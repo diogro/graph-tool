@@ -52,7 +52,7 @@ using namespace std;
     ((oentropy_args,, python::object, 0))                                      \
     ((verbose,, int, 0))                                                       \
     ((force_move,, bool, 0))                                                   \
-    ((niter,, size_t, 0))
+    ((niter,, double, 0))
 
 template <class State>
 struct MCMC
@@ -87,6 +87,8 @@ struct MCMC
         constexpr static double _psrandom = 1;
         constexpr static double _psscatter = 1;
         constexpr static double _pscoalesce = 1;
+
+        constexpr static bool _parallel = false;
 
         typename State::m_entries_t _m_entries;
 
@@ -226,6 +228,15 @@ struct MCMC
         void pop_state()
         {
             _state.pop_state();
+        }
+
+        template <class Rs>
+        constexpr void virtual_move_lock(size_t, size_t, Rs&&)
+        {
+        }
+
+        constexpr void virtual_move_unlock(size_t)
+        {
         }
     };
 

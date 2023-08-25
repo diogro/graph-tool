@@ -18,6 +18,8 @@
 #ifndef MERGE_SPLIT_HH
 #define MERGE_SPLIT_HH
 
+#include "parallel_rng.hh"
+
 namespace graph_tool
 {
 using namespace boost;
@@ -75,6 +77,7 @@ struct MergeSplit: public State
     using State::_beta;
     using State::_gibbs_sweeps;
     using State::_verbose;
+    using State::_parallel;
 
     size_t _nmoves = 0;
 
@@ -142,15 +145,19 @@ struct MergeSplit: public State
     void move_node(const Node& v, const Group& r, bool cache=false)
     {
         Group s = State::get_group(v);
+        if (s != r)
+        {
+            #pragma omp critical (move_node)
+            {
+                auto& vs = _groups[s];
+                vs.erase(v);
+                if (vs.empty())
+                    _groups.erase(s);
+                _groups[r].insert(v);
+                _nmoves++;
+            }
+        }
         State::move_node(v, r, cache);
-        if (s == r)
-            return;
-        auto& vs = _groups[s];
-        vs.erase(v);
-        if (vs.empty())
-            _groups.erase(s);
-        _groups[r].insert(v);
-        _nmoves++;
     }
 
     template <bool clear=true>
@@ -174,16 +181,26 @@ struct MergeSplit: public State
     template <class RNG>
     std::tuple<double, double>
     gibbs_sweep(std::vector<Node>& vs, const Group& r, const Group& s,
-                double beta, RNG& rng)
+                double beta, RNG& rng_)
     {
         double lp = 0, dS = 0;
         std::array<double,2> p = {0,0};
-        std::shuffle(vs.begin(), vs.end(), rng);
-        for (const auto& v : vs)
+        std::shuffle(vs.begin(), vs.end(), rng_);
+        assert(get_wr(r) > 0 && get_wr(s) > 0);
+
+        parallel_rng<rng_t> prng(rng_);
+        #pragma omp parallel for if (_parallel) reduction(+: dS, lp) firstprivate(p)
+        for (size_t i = 0; i < vs.size(); ++i)
         {
+            // parallel
+            auto& rng = prng.get(rng_);
+            const auto& v = vs[i];
             Group bv = State::get_group(v);
             Group nbv = (bv == r) ? s : r;
             double ddS;
+            State::virtual_move_lock(v, bv, nbv);
+
+            // serial
             if (allow_empty || get_wr(bv) > 1)
                 ddS = State::virtual_move(v, bv, nbv);
             else
@@ -219,66 +236,73 @@ struct MergeSplit: public State
             else
             {
                 lp += p[1];
+                State::virtual_move_unlock(v);
             }
+
+            assert(!std::isnan(lp));
         }
+        assert(get_wr(r) > 0 && get_wr(s) > 0);
         return {dS, lp};
     }
 
     template <bool forward=true, class RNG>
     std::tuple<double, Group, Group>
     stage_split_random(std::vector<Node>& vs, const Group& r,
-                       const Group& s, RNG& rng)
+                       const Group& s, RNG& rng_)
     {
         std::array<Group, 2> rt = {_null_group, _null_group};
         double dS = 0;
 
         std::uniform_real_distribution<> unit(0, 1);
-        double p0 = unit(rng);
+        double p0 = unit(rng_);
         std::bernoulli_distribution sample(p0);
 
-        std::shuffle(vs.begin(), vs.end(), rng);
-        for (const auto& v : vs)
+        parallel_rng<rng_t> prng(rng_);
+        std::shuffle(vs.begin(), vs.end(), rng_);
+        #pragma omp parallel for if (_parallel) reduction(+: dS)
+        for (size_t i = 0; i < vs.size(); ++i)
         {
-            if (rt[0] == _null_group)
+            //parallel
+            auto& rng = prng.get(rng_);
+            const auto& v = vs[i];
+
+            size_t j = sample(rng);
+
+            #pragma omp critical (split_random)
             {
-                rt[0] = r;
-                dS += State::virtual_move(v, State::get_group(v), rt[0]);
-                move_node(v, rt[0], true);
-                continue;
+                if (rt[0] == _null_group)
+                {
+                    rt[0] = r;
+                    j = 0;
+                }
+                else if (rt[1] == _null_group)
+                {
+                    if constexpr (forward)
+                        rt[1] = (s == _null_group) ? State::sample_new_group(v, rng) : s;
+                    else
+                        rt[1] = s;
+                    j = 1;
+                }
             }
 
-            if (rt[1] == _null_group)
-            {
-                if constexpr (forward)
-                    rt[1] = (s == _null_group) ? State::sample_new_group(v, rng) : s;
-                else
-                    rt[1] = s;
-                dS += State::virtual_move(v, State::get_group(v), rt[1]);
-                move_node(v, rt[1], true);
-                continue;
-            }
+            State::virtual_move_lock(v, State::get_group(v), rt[j]);
 
-            if (sample(rng))
-            {
-                dS += State::virtual_move(v, State::get_group(v), rt[0]);
-                move_node(v, rt[0], true);
-            }
-            else
-            {
-                dS += State::virtual_move(v, State::get_group(v), rt[1]);
-                move_node(v, rt[1], true);
-            }
+            // serial
+            dS += State::virtual_move(v, State::get_group(v), rt[j]);
+            move_node(v, rt[j], true);
         }
 
         if (allow_empty && vs.size() == 1)
-            rt[1] = State::sample_new_group(vs.front(), rng);
+            rt[1] = State::sample_new_group(vs.front(), rng_);
+
+        assert(get_wr(rt[0]) > 0 && get_wr(rt[1]) > 0);
 
         return {dS, rt[0], rt[1]};
     }
 
     template <bool forward=true, class RNG>
     std::tuple<double, Group, Group>
-    stage_split_scatter(std::vector<Node>& vs, const Group& r, const Group& s, RNG& rng)
+    stage_split_scatter(std::vector<Node>& vs, const Group& r, const Group& s, RNG& rng_)
     {
         std::array<Group, 2> rt = {_null_group, _null_group};
         std::array<double, 2> ps;
@@ -287,15 +311,18 @@ struct MergeSplit: public State
         std::array<Group, 2> except = {r, s};
         Group t;
         if (_rlist.size() < (forward ? _N - 1 : _N))
-            t = State::template sample_new_group<false>(*_groups[forward ? r : s].begin(), rng, except);
+            t = State::template sample_new_group<false>(*_groups[forward ? r : s].begin(), rng_, except);
         else
             t = r;
 
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
 
-        for (const auto& v : vrs)
+        #pragma omp parallel for if (_parallel) reduction(+: dS)
+        for (size_t i = 0; i < vrs.size(); ++i)
         {
+            const auto& v = vrs[i];
+            State::virtual_move_lock(v, State::get_group(v), t);
             dS += State::virtual_move(v, State::get_group(v), t);
             move_node(v, t, true);
         }
@@ -304,37 +331,55 @@ struct MergeSplit: public State
         {
             get_group_vs<>(s, vrs);
 
-            for (const auto& v : vrs)
+            #pragma omp parallel for if (_parallel) reduction(+: dS)
+            for (size_t i = 0; i < vrs.size(); ++i)
             {
+                const auto& v = vrs[i];
+                State::virtual_move_lock(v, State::get_group(v), t);
                 dS += State::virtual_move(v, State::get_group(v), t);
                 move_node(v, t, true);
             }
         }
 
-        std::shuffle(vs.begin(), vs.end(), rng);
-        for (const auto& v : vs)
+        std::shuffle(vs.begin(), vs.end(), rng_);
+
+        parallel_rng<rng_t> prng(rng_);
+        #pragma omp parallel for if (_parallel) reduction(+: dS) firstprivate(ps)
+        for (size_t i = 0; i < vs.size(); ++i)
         {
-            if (rt[0] == _null_group)
+            //parallel
+            auto& rng = prng.get(rng_);
+            const auto& v = vs[i];
+
+            ps = {numeric_limits<double>::quiet_NaN(),
+                  numeric_limits<double>::quiet_NaN()};
+
+            #pragma omp critical (split_scatter)
             {
-                rt[0] = r;
-                dS += State::virtual_move(v, State::get_group(v), rt[0]);
-                move_node(v, rt[0], true);
-                continue;
+                if (rt[0] == _null_group)
+                {
+                    rt[0] = r;
+                    ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+                    ps[1] = -numeric_limits<double>::infinity();
+                }
+                else if (rt[1] == _null_group)
+                {
+                    if constexpr (forward)
+                        rt[1] = (s == _null_group) ? State::sample_new_group(v, rng) : s;
+                    else
+                        rt[1] = s;
+                    ps[0] = -numeric_limits<double>::infinity();
+                    ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                }
             }
 
-            if (rt[1] == _null_group)
-            {
-                if constexpr (forward)
-                    rt[1] = (s == _null_group) ? State::sample_new_group(v, rng) : s;
-                else
-                    rt[1] = s;
-                dS += State::virtual_move(v, State::get_group(v), rt[1]);
-                move_node(v, rt[1], true);
-                continue;
-            }
+            State::virtual_move_lock(v, State::get_group(v), rt);
 
-            ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
-            ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);;
+            //serial
+            if (std::isnan(ps[0]))
+                ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+            if (std::isnan(ps[1]))
+                ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);;
 
             double Z = log_sum_exp(ps[0], ps[1]);
             double p0 = ps[0] - Z;
@@ -351,8 +396,10 @@ struct MergeSplit: public State
             }
         }
 
+        assert(get_wr(rt[0]) > 0 && get_wr(rt[1]) > 0);
+
         if (allow_empty && vs.size() == 1)
-            rt[1] = State::sample_new_group(vs.front(), rng);
+            rt[1] = State::sample_new_group(vs.front(), rng_);
 
         return {dS, rt[0], rt[1]};
     }
@@ -360,13 +407,12 @@ struct MergeSplit: public State
     template <bool forward=true, class RNG>
     std::tuple<double, Group, Group>
     stage_split_coalesce(std::vector<Node>& vs, const Group& r,
-                         const Group& s, RNG& rng)
+                         const Group& s, RNG& rng_)
     {
         std::array<Group, 2> rt = {_null_group, _null_group};
         std::array<double, 2> ps;
         double dS = 0;
 
-        size_t pos = 0;
         std::array<Group, 2> except = {r, s};
 
         size_t nB = get_wr(r);
@@ -378,59 +424,86 @@ struct MergeSplit: public State
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
 
-        for (const auto& v : vrs)
+        parallel_rng<rng_t> prng(rng_);
+        #pragma omp parallel for if (_parallel) reduction(+: dS)
+        for (size_t i = 0; i < vrs.size(); ++i)
         {
+            //parallel
+            auto& rng = prng.get(rng_);
+            const auto& v = vrs[i];
+
             Group t;
-            if (_rlist.size() + pos < (forward ? _N - 1 : _N))
+            if (_rlist.size() + i < (forward ? _N - 1 : _N))
                 t = State::template sample_new_group<false>(v, rng, except);
             else
                 t = r;
+            State::virtual_move_lock(v, State::get_group(v), t);
+
+            //serial
             dS += State::virtual_move(v, State::get_group(v), t);
             move_node(v, t, true);
-            ++pos;
         }
 
         if constexpr (!forward)
         {
             get_group_vs<>(s, vrs);
 
-            for (const auto& v : vrs)
+            #pragma omp parallel for if (_parallel) reduction(+: dS)
+            for (size_t i = 0; i < vrs.size(); ++i)
             {
+                // parallel
+                auto& rng = prng.get(rng_);
+                const auto& v = vrs[i];
                 Group t;
-                if (_rlist.size() + pos < (forward ? _N - 1 : _N))
+                if (_rlist.size() + i < (forward ? _N - 1 : _N))
                     t = State::template sample_new_group<false>(v, rng, except);
                 else
                     t = s;
+                State::virtual_move_lock(v, State::get_group(v), t);
+
+                // serial
                 dS += State::virtual_move(v, State::get_group(v), t);
                 move_node(v, t, true);
-                ++pos;
             }
         }
 
-        std::shuffle(vs.begin(), vs.end(), rng);
-        for (const auto& v : vs)
+        std::shuffle(vs.begin(), vs.end(), rng_);
+        #pragma omp parallel for if (_parallel) reduction(+: dS) firstprivate(ps)
+        for (size_t i = 0; i < vs.size(); ++i)
         {
-            if (rt[0] == _null_group)
+            // parallel
+            auto& rng = prng.get(rng_);
+            const auto& v = vs[i];
+
+            ps = {numeric_limits<double>::quiet_NaN(),
+                  numeric_limits<double>::quiet_NaN()};
+
+            #pragma omp critical (split_coalesce)
             {
-                rt[0] = r;
-                dS += State::virtual_move(v, State::get_group(v), rt[0]);
-                move_node(v, rt[0], true);
-                continue;
+                if (rt[0] == _null_group)
+                {
+                    rt[0] = r;
+                    ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+                    ps[1] = -numeric_limits<double>::infinity();
+                }
+                else if (rt[1] == _null_group)
+                {
+                    if constexpr (forward)
+                        rt[1] = (s == _null_group) ? State::sample_new_group(v, rng) : s;
+                    else
+                        rt[1] = s;
+                    ps[0] = -numeric_limits<double>::infinity();
+                    ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                }
             }
 
-            if (rt[1] == _null_group)
-            {
-                if constexpr (forward)
-                    rt[1] = (s == _null_group) ? State::sample_new_group(v, rng) : s;
-                else
-                    rt[1] = s;
-                dS += State::virtual_move(v, State::get_group(v), rt[1]);
-                move_node(v, rt[1], true);
-                continue;
-            }
+            State::virtual_move_lock(v, State::get_group(v), rt);
 
-            ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
-            ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+            // serial
+            if (std::isnan(ps[0]))
+                ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+            if (std::isnan(ps[1]))
+                ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
 
             double Z = log_sum_exp(ps[0], ps[1]);
             double p0 = ps[0] - Z;
@@ -447,8 +520,10 @@ struct MergeSplit: public State
             }
         }
 
+        assert(get_wr(rt[0]) > 0 && get_wr(rt[1]) > 0);
+
         if (allow_empty && vs.size() == 1)
-            rt[1] = State::sample_new_group(vs.front(), rng);
+            rt[1] = State::sample_new_group(vs.front(), rng_);
 
         return {dS, rt[0], rt[1]};
     }
@@ -522,8 +597,10 @@ struct MergeSplit: public State
 
                     pop_b();
 
-                    for (const auto& v : vs)
+                    #pragma omp parallel for if (_parallel)
+                    for (size_t i = 0; i < vs.size(); ++i)
                     {
+                        const auto& v = vs[i];
                         if (State::get_group(v) == rt[0])
                             move_node(v, rt[1]);
                         else
@@ -534,8 +611,14 @@ struct MergeSplit: public State
 
                     lp = log_sum_exp(lp1, lp2) - log(2);
 
-                    for (const auto& v : vs)
+                    #pragma omp parallel for if (_parallel)
+                    for (size_t i = 0; i < vs.size(); ++i)
+                    {
+                        const auto& v = vs[i];
                         move_node(v, _btemp[v]);
+                    }
+
+                    assert(!std::isnan(lp));
                 }
             }
         }
@@ -576,8 +659,10 @@ struct MergeSplit: public State
 
                 pop_b();
 
-                for (const auto& v : vs)
+                #pragma omp parallel for if (_parallel)
+                for (size_t i = 0; i < vs.size(); ++i)
                 {
+                    const auto& v = vs[i];
                     if (State::get_group(v) == r)
                         move_node(v, s);
                     else
@@ -588,13 +673,21 @@ struct MergeSplit: public State
 
                 lp = log_sum_exp(lp1, lp2) - log(2);
 
-                for (const auto& v : vs)
+                #pragma omp parallel for if (_parallel)
+                for (size_t i = 0; i < vs.size(); ++i)
+                {
+                    const auto& v = vs[i];
                     move_node(v, _btemp[v]);
+                }
             }
         }
 
-        for (const auto& v : vs)
+        #pragma omp parallel for if (_parallel)
+        for (size_t i = 0; i < vs.size(); ++i)
+        {
+            const auto& v = vs[i];
             move_node(v, _btemp[v]);
+        }
 
         return lp;
     }
@@ -603,10 +696,21 @@ struct MergeSplit: public State
                             const std::vector<Node>& vs)
     {
         double lp = 0;
-        for (const auto& v : vs)
+        #pragma omp parallel for if (_parallel) reduction(+: lp)
+        for (size_t i = 0; i < vs.size(); ++i)
         {
+            if (std::isinf(lp))
+                continue;
+
+            // parallel
+            const auto& v = vs[i];
+
             Group bv = State::get_group(v);
             Group nbv = (bv == r) ? s : r;
+
+            State::virtual_move_lock(v, bv, nbv);
+
+            //serial
             double ddS;
             if (allow_empty || get_wr(bv) > 1)
                 ddS = State::virtual_move(v, bv, nbv);
@@ -628,17 +732,23 @@ struct MergeSplit: public State
                 else
                 {
                     lp += -Z;
+                    State::virtual_move_unlock(v);
                 }
             }
             else
             {
                 if (tbv == nbv)
                 {
+                    #pragma omp critical (split_prob_gibbs)
                     lp = -std::numeric_limits<double>::infinity();
-                    break;
                 }
+                State::virtual_move_unlock(v);
             }
+            assert(!std::isnan(lp));
         }
+
+        assert(get_wr(r) > 0 && get_wr(s) > 0);
+        assert(!std::isnan(lp));
 
         return lp;
     }
@@ -655,8 +765,13 @@ struct MergeSplit: public State
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
 
-        for (const auto& v : vrs)
+        #pragma omp parallel for if (_parallel) reduction(+:dS)
+        for (size_t i = 0; i < vrs.size(); ++i)
         {
+            // parallel
+            const auto& v = vrs[i];
+            State::virtual_move_lock(v, State::get_group(v), s);
+            // serial
             dS += State::virtual_move(v, State::get_group(v), s); // FIXME: State::get_group(v) -> r
             move_node(v, s, true);
         }
@@ -679,14 +794,29 @@ struct MergeSplit: public State
         double prs = -numeric_limits<double>::infinity();
         double prr = -numeric_limits<double>::infinity();
         auto& vs = _groups[r];
+
+        std::vector<Node> vs_;
         for (const auto& v : vs)
+            vs_.push_back(v);
+
+        #pragma omp parallel for if (_parallel)
+        for (size_t i = 0; i < vs_.size(); ++i)
         {
-            prs = log_sum_exp(prs, State::get_move_prob(v, r, s, allow_empty, false));
-            prr = log_sum_exp(prr, State::get_move_prob(v, r, r, allow_empty, false));
+            const auto& v = vs_[i];
+            auto ps = State::get_move_prob(v, r, s, allow_empty, false);
+            auto pr = State::get_move_prob(v, r, r, allow_empty, false);
+            #pragma omp critical (get_move_prob)
+            {
+                prs = log_sum_exp(prs, ps);
+                prr = log_sum_exp(prr, pr);
+            }
         }
         prs -= safelog_fast(vs.size());
         prr -= safelog_fast(vs.size());
-        return prs - log1p(-exp(prr));
+
+        auto lp = prs - log1p(-exp(prr));
+        assert(!std::isnan(lp));
+        return lp;
     }
 
     double merge_prob(const Group& r, const Group& s)
@@ -718,7 +848,7 @@ struct MergeSplit: public State
         double dS = merge(r, s);
 
         if (_verbose)
-            cout << " " << dS << " " << pf << "  " << pb << endl;
+            cout << " " << dS << " " << pf << "  " << pb << " " << endl;
 
         return {s, dS, pf, pb};
     }
@@ -809,7 +939,7 @@ struct MergeSplit: public State
 
                 if (_verbose)
                     cout << "split proposal: " << get_wr(r) << " "
-                         << get_wr(s) << " " << _dS << " " << pb - pf
+                         << get_wr(s) << " " << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
 
                 for (const auto& v : _vs)
@@ -866,7 +996,7 @@ struct MergeSplit: public State
 
                 if (_verbose)
                     cout << "merge proposal: " <<  get_wr(r) << " "
-                         << get_wr(s) << " " << _dS << " " << pb - pf
+                         << get_wr(s) << " " << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
             }
             break;
@@ -920,8 +1050,9 @@ struct MergeSplit: public State
                 State::relax_update(false);
 
                 if (_verbose)
-                    cout << "mergesplit proposal: " << _dS << " " << pb - pf
-                         << " " << -_dS + pb - pf << endl;
+                    cout << "mergesplit proposal: " << _dS << " "
+                         << pb << " " << pf  << " "
+                         << -_dS + pb - pf << endl;
             }
             break;
 
@@ -956,7 +1087,7 @@ struct MergeSplit: public State
 
                 if (_verbose)
                     cout << "movelabel proposal: " <<  get_wr(r) << " "
-                         << get_wr(s) << " " << _dS << " " << pb - pf
+                         << get_wr(s) << " " << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
             }
             break;
@@ -1035,7 +1166,7 @@ struct MergeSplit: public State
 
     size_t get_N()
     {
-        return _N;
+        return std::round(_N * std::min(State::_niter, 1.));
     }
 
     double get_beta()
@@ -1045,7 +1176,7 @@ struct MergeSplit: public State
 
     size_t get_niter()
     {
-        return State::_niter;
+        return std::max(State::_niter, 1.);
     }
 
     constexpr void step(const Node&, size_t)
