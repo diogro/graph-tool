@@ -145,6 +145,7 @@ struct MergeSplit: public State
     void move_node(const Node& v, const Group& r, bool cache=false)
     {
         Group s = State::get_group(v);
+        State::move_node(v, r, cache);
         if (s != r)
         {
             #pragma omp critical (move_node)
@@ -157,7 +158,6 @@ struct MergeSplit: public State
                 _nmoves++;
             }
         }
-        State::move_node(v, r, cache);
     }
 
     template <bool clear=true>
