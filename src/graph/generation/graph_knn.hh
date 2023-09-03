@@ -43,8 +43,8 @@ using namespace std;
 using namespace boost;
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
-void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
-             double epsilon, Weight eweight, Hint& hint, bool verbose, RNG& rng_)
+size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
+               double epsilon, Weight eweight, Hint& hint, bool verbose, RNG& rng_)
 {
     parallel_rng<rng_t> prng(rng_);
 
@@ -64,10 +64,12 @@ void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
 
     vector<gt_hash_map<size_t,size_t>> all_seen(num_vertices(g));
 
+    size_t n_tot = 0;
+
     if (verbose)
         cout << "random init" << endl;
 
-    #pragma omp parallel if (parallel) firstprivate(vs_)
+    #pragma omp parallel if (parallel) firstprivate(vs_) reduction(+:n_tot)
     parallel_loop_no_spawn
         (vs,
          [&](auto, auto v)
@@ -80,6 +82,7 @@ void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                  if (u == v)
                      continue;
                  double l = d(u, v);
+                 ++n_tot;
                  Bv.emplace_back(u, l);
                  std::push_heap(Bv.begin(), Bv.end(), cmp);
                  seen[u] = 0;
@@ -91,6 +94,7 @@ void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                  if (seen.find(u) != seen.end() || u == v)
                      continue;
                  double l = d(u, v);
+                 ++n_tot;
                  if (l < get<1>(Bv.front()))
                  {
                      std::pop_heap(Bv.begin(), Bv.end(), cmp);
@@ -169,7 +173,7 @@ void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         size_t c = 0;
         size_t n = 0;
 
-        #pragma omp parallel if (parallel) reduction(+:c,n)
+        #pragma omp parallel if (parallel) reduction(+:c,n,n_tot)
         parallel_loop_no_spawn
             (vs,
              [&](auto, auto v)
@@ -200,6 +204,7 @@ void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                              return;
 
                          double l = d(w, v);
+                         ++n_tot;
 
                          if (l < get<1>(Bv.front()))
                          {
@@ -249,18 +254,20 @@ void gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         delta = c / double(vs.size() * k);
 
         if (verbose)
-            cout << iter++ << " " << delta << " " << c << " " << n << endl;
+            cout << iter++ << " " << delta << " " << c << " " << n
+                 << " " << n_tot << endl;
     }
 
     for (size_t v : vs)
         clear_vertex(v, g);
     for (auto v : vs)
         build_vertex(v);
+    return n_tot;
 }
 
 
 template <bool parallel, class Graph, class Dist, class Weight, class RNG>
-void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
+size_t gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
                    Weight eweight, bool verbose, RNG& rng_)
 {
     parallel_rng<rng_t> prng(rng_);
@@ -284,7 +291,9 @@ void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
     if (verbose)
         cout << "random init" << endl;
 
-    #pragma omp parallel if (parallel) firstprivate(vs_)
+    size_t n_tot = 0;
+
+    #pragma omp parallel if (parallel) firstprivate(vs_) reduction(+:n_tot)
     parallel_loop_no_spawn
         (vs,
          [&](auto, auto v)
@@ -296,6 +305,7 @@ void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
                  if (u == v)
                      continue;
                  double l = d(u, v);
+                 ++n_tot;
                  auto& Bv = B[v];
                  Bv.emplace_back(u, l, true);
                  std::push_heap(Bv.begin(), Bv.end(), cmp);
@@ -364,7 +374,7 @@ void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
         size_t c = 0;
         size_t n = 0;
 
-        #pragma omp parallel if (parallel) firstprivate(visited) reduction(+:c,n)
+        #pragma omp parallel if (parallel) firstprivate(visited) reduction(+:c,n,n_tot)
         parallel_loop_no_spawn
             (vs,
              [&](auto, auto v)
@@ -460,6 +470,7 @@ void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
                              return;
 
                          double l = d(s, t);
+                         ++n_tot;
 
                          do_ulocked([&]()
                                     {
@@ -494,7 +505,8 @@ void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
         delta = c / double(vs.size() * k);
 
         if (verbose)
-            cout << iter++ << " " << delta << " " << c << " " << n << endl;
+            cout << iter++ << " " << delta << " " << c << " " << n << " "
+                 << n_tot << endl;
     }
 
     for (size_t v : vs)
@@ -507,17 +519,20 @@ void gen_knn_local(Graph& g, Dist&& d, size_t k, double r, double epsilon,
             eweight[e] = l;
         }
     }
+
+    return n_tot;
 }
 
 template <bool parallel, class Graph, class Dist, class Weight>
-void gen_knn_exact(Graph& g, Dist&& d, size_t k, Weight eweight)
+size_t gen_knn_exact(Graph& g, Dist&& d, size_t k, Weight eweight)
 {
     std::vector<size_t> vs;
     for (auto v : vertices_range(g))
         vs.push_back(v);
     std::vector<std::vector<std::tuple<size_t, double>>> us(num_vertices(g));
+    size_t n_tot = 0;
 
-    #pragma omp parallel if (parallel)
+    #pragma omp parallel if (parallel) reduction(+:n_tot)
     parallel_loop_no_spawn
         (vs,
          [&](auto, auto v)
@@ -528,6 +543,7 @@ void gen_knn_exact(Graph& g, Dist&& d, size_t k, Weight eweight)
                  if (u == v)
                      continue;
                  ns.emplace_back(u, d(u, v));
+                 ++n_tot;
              }
              if (ns.size() <= k)
                  return;
@@ -550,11 +566,12 @@ void gen_knn_exact(Graph& g, Dist&& d, size_t k, Weight eweight)
             eweight[e] = w;
         }
     }
+    return n_tot;
 }
 
 template <bool parallel, class Graph, class Dist, class Weight>
-void gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
-                         Weight eweight)
+size_t gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
+                           Weight eweight)
 {
     std::vector<std::tuple<std::tuple<size_t, size_t>, double>> pairs;
 
@@ -568,7 +585,9 @@ void gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
     for (auto v : vertices_range(g))
         vs.push_back(v);
 
-    #pragma omp parallel if (parallel) firstprivate(heap)
+    size_t n_tot = 0;
+
+    #pragma omp parallel if (parallel) firstprivate(heap) reduction(+:n_tot)
     parallel_loop_no_spawn
         (vs,
          [&](auto, auto v)
@@ -581,6 +600,7 @@ void gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
                      continue;
                  auto l = d(u, v);
                  heap.push({{u, v}, l});
+                 ++n_tot;
              }
          });
 
@@ -592,6 +612,8 @@ void gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
         auto e = add_edge(u, v, g).first;
         eweight[e] = l;
     }
+
+    return n_tot;
 }
 
 template <class DescriptorProperty>
@@ -618,9 +640,9 @@ private:
 
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
-void gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
-                   double epsilon, Weight eweight, Hint& hint, bool local,
-                   bool directed, bool verbose, RNG& rng)
+size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
+                     double epsilon, Weight eweight, Hint& hint, bool local,
+                     bool directed, bool verbose, RNG& rng)
 {
     size_t N = num_vertices(g);
     std::vector<bool> select(N, true);
@@ -632,6 +654,7 @@ void gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
     auto uhint = make_filt_graph(hint, keep_all(),
                                  [&](auto v) { return select[v]; });
 
+    size_t n_tot = 0;
     size_t iter = 0;
     while (N > 1)
     {
@@ -642,7 +665,7 @@ void gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         {
             if (verbose)
                 cout << "Running exact m nearest with N = " << N << endl;
-            gen_k_nearest_exact<parallel>(u, d, m, directed, eweight);
+            n_tot += gen_k_nearest_exact<parallel>(u, d, m, directed, eweight);
             break;
         }
 
@@ -653,9 +676,9 @@ void gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         if (verbose)
             cout << "Running KNN with N = " << N << " and k = " << nk << endl;
         if (local)
-            gen_knn_local<parallel>(u, d, nk, r, epsilon, eweight, verbose, rng);
+            n_tot += gen_knn_local<parallel>(u, d, nk, r, epsilon, eweight, verbose, rng);
         else
-            gen_knn<parallel>(u, d, nk, r, max_rk, epsilon, eweight, uhint, verbose, rng);
+            n_tot += gen_knn<parallel>(u, d, nk, r, max_rk, epsilon, eweight, uhint, verbose, rng);
 
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         std::vector<std::tuple<edge_t, double>> medges;
@@ -770,6 +793,8 @@ void gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         auto e = add_edge(u, v, g).first;
         eweight[e] = l;
     }
+
+    return n_tot;
 }
 
 } // graph_tool namespace
