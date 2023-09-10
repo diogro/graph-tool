@@ -42,6 +42,70 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
+template <bool directed, bool parallel, class Dist>
+class DistCache
+{
+public:
+    DistCache(Dist&& d, size_t N)
+        :_d(d), _cache(N), _mutex(parallel ? N : 0)
+
+    {}
+
+    double operator()(size_t u, size_t v)
+    {
+        if (!directed && (u > v))
+            std::swap(u, v);
+
+        auto& cache = _cache[v];
+
+        double d;
+        if constexpr (parallel)
+        {
+            auto& mutex = _mutex[v];
+            {
+                std::shared_lock lock(mutex);
+                auto iter = cache.find(u);
+                if (iter != cache.end())
+                    return iter->second;
+            }
+
+            d = _d(u, v);
+
+            #pragma omp atomic
+            _miss_count++;
+
+            {
+                std::unique_lock lock(mutex);
+                cache[u] = d;
+            }
+        }
+        else
+        {
+            auto iter = cache.find(u);
+            if (iter != cache.end())
+                return iter->second;
+            d = _d(u, v);
+            _miss_count++;
+            cache[u] = d;
+        }
+
+        return d;
+    }
+
+    size_t _miss_count = 0;
+
+private:
+    Dist& _d;
+    std::vector<gt_hash_map<size_t, double>> _cache;
+    std::vector<std::shared_mutex> _mutex;
+};
+
+template <bool directed, bool parallel, class Dist>
+DistCache<directed, parallel, Dist> make_dist_cache(Dist&& d, size_t N)
+{
+    return DistCache<directed, parallel, Dist>(d, N);
+}
+
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
 size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                double epsilon, Weight eweight, Hint& hint, bool verbose, RNG& rng_)
@@ -62,20 +126,20 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         vs.push_back(v);
     vs_ = vs;
 
-    vector<gt_hash_map<size_t,size_t>> all_seen(num_vertices(g));
+    idx_set<size_t> seen;
 
     size_t n_tot = 0;
 
     if (verbose)
         cout << "random init" << endl;
 
-    #pragma omp parallel if (parallel) firstprivate(vs_) reduction(+:n_tot)
+    #pragma omp parallel if (parallel) firstprivate(vs_) firstprivate(seen) reduction(+:n_tot)
     parallel_loop_no_spawn
         (vs,
          [&](auto, auto v)
          {
              auto& rng = prng.get(rng_);
-             auto& seen = all_seen[v];
+             seen.clear();
              auto& Bv = B[v];
              for (auto u : random_permutation_range(vs_, rng))
              {
@@ -85,7 +149,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                  ++n_tot;
                  Bv.emplace_back(u, l);
                  std::push_heap(Bv.begin(), Bv.end(), cmp);
-                 seen[u] = 0;
+                 seen.insert(u);
                  if (Bv.size() == k)
                      break;
              }
@@ -101,7 +165,6 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                      Bv.back() = {u, l};
                      std::push_heap(Bv.begin(), Bv.end(), cmp);
                  }
-                 seen[u] = 0;
              }
          });
 
@@ -173,19 +236,18 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         size_t c = 0;
         size_t n = 0;
 
-        #pragma omp parallel if (parallel) reduction(+:c,n,n_tot)
+        #pragma omp parallel if (parallel) firstprivate(seen) reduction(+:c,n,n_tot)
         parallel_loop_no_spawn
             (vs,
              [&](auto, auto v)
              {
                  auto& rng = prng.get(rng_);
 
-                 auto& seen = all_seen[v];
-
                  auto& Bv = B[v];
 
+                 seen.clear();
                  for (auto& [v, l] : Bv)
-                     seen[v] = iter;
+                     seen.insert(v);
 
                  auto update =
                      [&](size_t u, size_t w)
@@ -195,10 +257,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
 
                          auto it = seen.find(w);
                          if (it != seen.end())
-                         {
-                             it->second = iter;
                              return;
-                         }
 
                          if (!rsample(rng))
                              return;
@@ -214,7 +273,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                              c++;
                          }
 
-                         seen[w] = iter;
+                         seen.insert(w);
                          n++;
                      };
 
@@ -241,14 +300,6 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                      for (auto w : out_neighbors[u])
                          update(u, w);
                  }
-
-                 for (auto it = seen.begin(); it != seen.end(); ++it)
-                 {
-                     if (it->second < iter)
-                         seen.erase(it);
-                 }
-
-                 seen.resize(0);
              });
 
         delta = c / double(vs.size() * k);
@@ -616,6 +667,223 @@ size_t gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
     return n_tot;
 }
 
+template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
+size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, size_t max_rk,
+                     double epsilon, Weight eweight, Hint& hint,
+                     bool directed, bool verbose, RNG& rng_)
+{
+    auto get_st =
+        [&](size_t s, size_t t)
+        {
+            if (!directed && s > t)
+                return std::make_tuple(t, s);
+            return make_tuple(s, t);
+        };
+
+    size_t N = num_vertices(g);
+
+    auto sample_st =
+        [&](auto& rng_)
+        {
+            std::uniform_int_distribution<size_t> sample_s(0, N-1), sample_t(0, N-2);
+            size_t s = sample_s(rng_);
+            size_t t = sample_t(rng_);
+            if (s == t)
+                t = N - 1;
+            return get_st(s, t);
+        };
+
+    std::vector<std::tuple<size_t,size_t,double>> edges(m), new_edges(m);
+    gt_hash_set<std::tuple<size_t,size_t>> eset, new_eset;
+
+    if (verbose)
+        cout << "setup" << endl;
+
+    for (size_t i = 0; i < m; ++i)
+    {
+        size_t s, t;
+        do
+        {
+            std::tie(s, t) = sample_st(rng_);
+        }
+        while (eset.find({s,t}) != eset.end());
+        eset.insert({s, t});
+        edges[i] = {s, t, 0};
+    }
+
+    size_t n_tot = 0;
+
+    #pragma omp parallel for if (parallel) reduction(+:n_tot)
+    for (size_t i = 0; i < m; ++i)
+    {
+        auto& [s, t, l] = edges[i];
+        l = d(s, t);
+        n_tot++;
+    }
+
+    auto build_graph =
+        [&]()
+        {
+            for (auto v : vertices_range(g))
+                clear_vertex(v, g);
+            for (auto& [s, t, l] : edges)
+            {
+                auto e = add_edge(s, t, g).first;
+                eweight[e] = l;
+            }
+        };
+
+
+    size_t iter = 0;
+    double delta = epsilon + 1;
+    while (delta > epsilon)
+    {
+        if (verbose)
+            cout << "build graph" << endl;
+
+        build_graph();
+
+        if (max_rk > 0)
+        {
+            for (auto v : vertices_range(g))
+            {
+                std::vector<std::tuple<size_t, double>> ein, eout;
+                for (auto e : out_edges_range(v, g))
+                    eout.emplace_back(target(e, g), eweight[e]);
+                for (auto e : in_edges_range(v, g))
+                    ein.emplace_back(source(e, g), eweight[e]);
+                clear_vertex(v, g);
+
+                size_t i = 0;
+                for (auto& [u, l] : random_permutation_range(eout, rng_))
+                {
+                    auto e = add_edge(u, v, g).first;
+                    eweight[e] = l;
+                    if (++i == max_rk)
+                        break;
+                }
+
+                i = 0;
+                for (auto& [u, l] : random_permutation_range(ein, rng_))
+                {
+                    auto e = add_edge(v, u, g).first;
+                    eweight[e] = l;
+                    if (++i == max_rk)
+                        break;
+                }
+            }
+        }
+
+        if (verbose)
+            cout << "find new edges" << endl;
+
+        size_t c = 0;
+
+        parallel_rng<rng_t> prng(rng_);
+
+        #pragma omp parallel for if (parallel) reduction(+:c, n_tot)
+        for (size_t i = 0; i < m; ++i)
+        {
+            auto& [s, t, le] = edges[i];
+            auto best = edges[i];
+
+            auto check_edge =
+                [&](auto s_, auto t_)
+                {
+                    if (s_ == t_)
+                        return;
+
+                    std::tie(s_, t_) = get_st(s_, t_);
+
+                    if (eset.find({s_, t_}) != eset.end())
+                        return;
+
+                    auto l = d(s_, t_);
+
+                    if (l < get<2>(best))
+                        best = {s_, t_, l};
+
+                    n_tot++;
+                };
+
+            auto check_incident =
+                [&](auto u, auto v, auto& g)
+                {
+                    for (auto w : all_neighbors_range(u, g))
+                    {
+                        check_edge(w, v);
+                        if (directed)
+                            check_edge(v, w);
+
+                        // for (auto w2 : all_neighbors_range(w, g))
+                        // {
+                        //     check_edge(w2, v);
+                        //     if (directed)
+                        //         check_edge(v, w2);
+
+                        //     for (auto w3 : all_neighbors_range(w, g))
+                        //     {
+                        //         check_edge(w2, w3);
+                        //         if (directed)
+                        //             check_edge(w3, w2);
+                        //     }
+                        // }
+
+                        // for (auto w2 : all_neighbors_range(u, g))
+                        // {
+                        //     check_edge(w2, w);
+                        //     if (directed)
+                        //         check_edge(w, w2);
+                        // }
+                    }
+                };
+
+            check_incident(s, t, g);
+            check_incident(t, s, g);
+
+            check_incident(s, s, hint);
+            check_incident(t, t, hint);
+
+            if (directed)
+                check_edge(t, s);
+
+
+            auto [s_, t_, l_] = best;
+            #pragma omp critical (eset)
+            {
+                assert(best == edges[i] || eset.find({s_, t_}) == eset.end());
+                auto iter = new_eset.find({s_, t_});
+                if (iter != new_eset.end())
+                {
+                    best = edges[i];
+                    new_eset.insert({s, t});
+                }
+                else
+                {
+                    new_eset.insert({s_, t_});
+                }
+            }
+
+            if (best != edges[i])
+                c++;
+            new_edges[i] = best;
+        }
+
+        edges.swap(new_edges);
+        eset.swap(new_eset);
+
+        delta = c / double(m);
+
+        if (verbose)
+            cout << iter++ << " " << delta << " " << c << " " << m
+                 << " " << n_tot << endl;
+    }
+
+    build_graph();
+
+    return n_tot;
+}
+
 template <class DescriptorProperty>
 class MaskFilter
 {
@@ -640,9 +908,9 @@ private:
 
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
-size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
-                     double epsilon, Weight eweight, Hint& hint, bool local,
-                     bool directed, bool verbose, RNG& rng)
+size_t gen_k_nearest_knn(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
+                         double epsilon, Weight eweight, Hint& hint, bool local,
+                         bool directed, bool verbose, RNG& rng)
 {
     size_t N = num_vertices(g);
     std::vector<bool> select(N, true);
