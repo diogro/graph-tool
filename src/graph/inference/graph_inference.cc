@@ -153,6 +153,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
 
     def("lbinom", lbinom<size_t, size_t>);
     def("lbinom_fast", lbinom_fast<true, size_t, size_t>);
+    def("lbinom_careful", lbinom_careful<double, double>);
     def("lgamma_fast", lgamma_fast<true, size_t>);
     def("safelog_fast", safelog_fast<true, size_t>);
     def("init_cache", init_cache);
