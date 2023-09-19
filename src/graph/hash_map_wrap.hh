@@ -130,7 +130,7 @@ struct deleted_key
         if (std::numeric_limits<Key>::is_integer)
             return std::numeric_limits<Key>::max() - 1;
         else
-            return std::numeric_limits<Key>::min();
+            return std::nextafter(std::numeric_limits<Key>::max(), 0);
     }
 
     static Key dispatch(std::integral_constant<bool, false>)
