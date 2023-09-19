@@ -47,7 +47,7 @@ class DistCache
 {
 public:
     DistCache(Dist&& d, size_t N)
-        :_d(d), _cache(N), _mutex(parallel ? N : 0)
+        : _cache(N), _d(d),  _mutex(parallel ? N : 0)
 
     {}
 
@@ -93,10 +93,10 @@ public:
     }
 
     size_t _miss_count = 0;
+    std::vector<gt_hash_map<size_t, double>> _cache;
 
 private:
     Dist& _d;
-    std::vector<gt_hash_map<size_t, double>> _cache;
     std::vector<std::shared_mutex> _mutex;
 };
 
