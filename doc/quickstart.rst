@@ -208,42 +208,33 @@ which is a dictionary of out-neighbors for every vertex key:
 
    >>> g = Graph({0: [2, 3], 1: [4], 3: [4, 5], 6: []})
 
-The above functionality also means that you can easily construct graphs
-from adjacency matrices. This can be done via the :func:`numpy.nonzero`
-function to extract an edge list from a matrix, e.g.:
+We can also easily construct graphs from adjacency matrices. They need only to
+be converted to a sparse scipy matrix (i.e. a subclass of
+:class:`scipy.sparse.sparray` or :class:`scipy.sparse.spmatrix`) and passed to
+the constructor, e.g.:
 
 .. doctest::
 
    >>> m = np.array([[0, 1, 0],
    ...               [0, 0, 1],
    ...               [0, 1, 0]])
-   >>> g = Graph(np.array(np.nonzero(m)).T)  # we need to transpose
+   >>> g = Graph(scipy.sparse.lil_matrix(m))
 
-If you wish to store also the non-zero values as a edge properties, you
-need only to add them to the list:
+The nonzero entries of the matrix are stored as an edge property map named
+``"weight"`` (see :ref:`sec_property_maps` below for more details), e.g.
 
 .. doctest::
 
    >>> m = np.array([[0, 1.2, 0],
    ...               [0, 0, 10],
    ...               [0, 7, 0]])
-   >>> es = np.nonzero(m)
-   >>> g = Graph(np.array([es[0], es[1], m[es]]).T, eprops=[("weight", "double")])
+   >>> g = Graph(scipy.sparse.lil_matrix(m))
    >>> print(g.ep.weight.a)
    [ 1.2 10.   7. ]
 
-For undirected graphs we need to consider only the upper (or lower) diagonal
-entries, otherwise we would end up with duplicate edges. For this we can use the
-:func:`numpy.triu` function:
-
-.. doctest::
-
-   >>> m = np.triu(m)
-   >>> es = np.nonzero(m)
-   >>> g = Graph(np.array([es[0], es[1], m[es]]).T, eprops=[("weight", "double")],
-   ...           directed=False)
-   >>> print(g.ep.weight.a)
-   [ 1.2 10. ]
+For undirected graphs (i.e. the option ``directed = False`` is given) only the
+upper triangular portion of the passed matrix will be considered, and the
+remaining entries will be ignored.
 
 We can also add many edges at once `after` the graph has been created using the
 :meth:`~graph_tool.Graph.add_edge_list` method. It accepts any iterable of

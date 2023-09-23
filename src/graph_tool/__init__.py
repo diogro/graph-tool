@@ -104,6 +104,7 @@ __URL__ = "https://graph-tool.skewed.de"
 import numpy
 import numpy.ma
 import scipy
+import scipy.sparse
 import numpy.random
 
 from .dl_import import *
@@ -1651,6 +1652,12 @@ class Graph(object):
               twice in the graph. To prevent this from happening the adjancecy
               list should mention an edge only once.
 
+        5. A sparse adjacency matrix of type :class:`scipy.sparse.sparray` or
+           :class:`scipy.sparse.spmatrix`. The matrix entries will be stored as
+           an internal :class:`~graph_tool.EdgePropertyMap` named ``"weight"``.
+           If ``directed == False``, only the upper triangular portion of this
+           matrix will be considered, and the remaining entries will be ignored.
+
     In cases 3 and 4 above, all remaining keyword parameters passed to
     :class:`Graph` will be passed along to the :meth:`Graph.add_edge_list`
     function. If the option ``hashed == True`` is passed, the vertex ids will be
@@ -1716,6 +1723,15 @@ class Graph(object):
                                 if k == 0:
                                     yield u, None
                         vids = self.add_edge_list(elist(), **kwargs)
+                    elif isinstance(g, (scipy.sparse.sparray,
+                                        scipy.sparse.spmatrix)):
+                        if not directed:
+                            g = scipy.sparse.triu(g)
+                        s, t, w = scipy.sparse.find(g)
+                        es = numpy.array([s, t, w]).T
+                        vids = self.add_edge_list(es,
+                                                  eprops=[("weight",
+                                                           _gt_type(w.dtype))])
                     else:
                         vids = self.add_edge_list(g, **kwargs)
                     if vids is not None:
