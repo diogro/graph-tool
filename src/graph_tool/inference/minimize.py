@@ -146,14 +146,6 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
         The graph.
     init_bs : iterable of iterable of ``int``s (optional, default: ``None``)
         Initial hierarchical partition.
-    B_min : ``int`` (optional, default: ``1``)
-        The minimum number of blocks.
-    B_max : ``int`` (optional, default: ``numpy.iinfo(numpy.int64).max``)
-        The maximum number of blocks.
-    b_min : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        The partition to be used with the minimum number of blocks.
-    b_max : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        The partition to be used with the maximum number of blocks.
     state : SBM state class (optional, default: :class:`~graph_tool.inference.NestedBlockState`)
         Type of model that will be used.
     state_args : ``dict`` (optional, default: ``{}``)
