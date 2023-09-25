@@ -975,6 +975,8 @@ size_t gen_k_nearest_knn(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
             cout << "Selecting nodes..." << endl;
 
         typename eprop_map_t<bool>::type ekeep(get(edge_index_t(), g));
+        for (auto e : edges_range(u))
+            ekeep[e] = false;
         for (auto& el : medges)
             ekeep[get<0>(el)] = true;
 
