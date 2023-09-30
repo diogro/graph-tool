@@ -1604,22 +1604,20 @@ class Graph(object):
         1. Another :class:`Graph` object, in which case the corresponding graph
            (and its internal properties) will be copied.
 
-        2. An integer, in wich case it corresponds to the number of vertices in
-           the graph.
+        2. An integer, in which case it corresponds to the number of vertices in
+           the graph, which is initially empty.
 
         3. An edge list, i.e. an iterable over (source, target) pairs, which
            will be used to populate the graph.
 
-           This is equivalent to calling :meth:`~graph_tool.Graph.add_edge_list`:
-
-           .. testsetup:: init_list
-
-              g = [(0, 1), (0, 2)]
+           This is equivalent to calling :meth:`~graph_tool.Graph.add_edge_list`
+           with an empty graph, as follows:
 
            .. doctest:: init_list
 
-              >>> ng = gt.Graph()
-              >>> ng.add_edge_list(g)
+              >>> elist = [(0, 1), (0, 2)]
+              >>> g = gt.Graph()
+              >>> g.add_edge_list(elist)
 
         4. An adjacency list, i.e. a dictionary with vertex keys mapping to an
            interable of vertices, which will be used to populate the graph. For
@@ -1628,22 +1626,19 @@ class Graph(object):
            This is equivalent to calling :meth:`~graph_tool.Graph.add_edge_list`
            as such:
 
-           .. testsetup:: init_adj
-
-              g = {0: [1, 2], 2: [3], 4: []}
-
            .. doctest:: init_adj
 
-              >>> ng = gt.Graph()
+              >>> adj = {0: [1, 2], 2: [3], 4: []}
               >>> def elist():
-              ...     for u, vw in g.items():
+              ...     for u, vw in adj.items():
               ...         k = 0
               ...         for v in vw:
               ...             k += 1
               ...             yield u, v
               ...         if k == 0:
               ...             yield u, None
-              >>> ng.add_edge_list(elist())
+              >>> g = gt.Graph()
+              >>> g.add_edge_list(elist())
 
            .. note::
 
@@ -1657,6 +1652,17 @@ class Graph(object):
            an internal :class:`~graph_tool.EdgePropertyMap` named ``"weight"``.
            If ``directed == False``, only the upper triangular portion of this
            matrix will be considered, and the remaining entries will be ignored.
+
+           This is equivalent to calling :meth:`~graph_tool.Graph.add_edge_list`
+           as such:
+
+           .. doctest:: init_mat
+
+              >>> a = scipy.sparse.coo_array([[0, 2, 1], [3, 1, 2], [0, 1, 0]])
+              >>> s, t, w = scipy.sparse.find(a)
+              >>> es = numpy.array([s, t, w]).T
+              >>> g = gt.Graph(a.shape[0])
+              >>> g.add_edge_list(es, eprops=[("weight", "int")]
 
     In cases 3 and 4 above, all remaining keyword parameters passed to
     :class:`Graph` will be passed along to the :meth:`Graph.add_edge_list`
@@ -1725,6 +1731,7 @@ class Graph(object):
                         vids = self.add_edge_list(elist(), **kwargs)
                     elif isinstance(g, (scipy.sparse.sparray,
                                         scipy.sparse.spmatrix)):
+                        self.add_vertex(g.shape[0])
                         if not directed:
                             g = scipy.sparse.triu(g)
                         s, t, w = scipy.sparse.find(g)
