@@ -62,7 +62,8 @@ struct MCMC
 
     template <class... Ts>
     class MCMCBlockStateImp
-        : public MCMCBlockStateBase<Ts...>
+        : public MCMCBlockStateBase<Ts...>,
+          public MergeSplitStateBase
     {
     public:
         GET_PARAMS_USING(MCMCBlockStateBase<Ts...>,

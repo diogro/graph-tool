@@ -25,6 +25,12 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
+struct MergeSplitStateBase
+{
+    template <class Group, class VS>
+    std::tuple<Group, double> relabel_group(const Group& r, VS&) { return {r, 0}; }
+};
+
 template <class State, class Node, class Group,
           template <class> class VSet,
           template <class, class> class VMap,
@@ -39,36 +45,36 @@ struct MergeSplit: public State
     template <class... TS>
     MergeSplit(TS&&... as)
         : State(as...)
-        {
-            State::iter_nodes
-                ([&](const auto& v)
-                {
-                    auto r = State::get_group(v);
-                    _groups[r].insert(v);
-                    _N++;
-                    _nodes.insert(v);
-                });
+    {
+        State::iter_nodes
+            ([&](const auto& v)
+             {
+                 auto r = State::get_group(v);
+                 _groups[r].insert(v);
+                 _N++;
+                 _nodes.insert(v);
+             });
 
-            State::iter_groups
-                ([&](const auto& r)
-                {
-                    _rlist.insert(r);
-                });
+        State::iter_groups
+            ([&](const auto& r)
+             {
+                 _rlist.insert(r);
+             });
 
-            std::vector<move_t> moves
-                = {move_t::single, move_t::split, move_t::merge,
-                   move_t::mergesplit, move_t::movelabel};
-            std::vector<double> probs
-                = {State::_psingle, State::_psplit, State::_pmerge,
-                   State::_pmergesplit, State::_pmovelabel};
-            _move_sampler = Sampler<move_t, mpl::false_>(moves, probs);
+        std::vector<move_t> moves
+            = {move_t::single, move_t::split, move_t::merge,
+               move_t::mergesplit, move_t::movelabel};
+        std::vector<double> probs
+            = {State::_psingle, State::_psplit, State::_pmerge,
+               State::_pmergesplit, State::_pmovelabel};
+        _move_sampler = Sampler<move_t, mpl::false_>(moves, probs);
 
-            std::vector<stage_t> stages
-                = {stage_t::random, stage_t::scatter, stage_t::coalesce};
-            std::vector<double> sprobs
-                = {State::_psrandom, State::_psscatter, State::_pscoalesce};
-            _stage_sampler = Sampler<stage_t, mpl::false_>(stages, sprobs);
-        }
+        std::vector<stage_t> stages
+            = {stage_t::random, stage_t::scatter, stage_t::coalesce};
+        std::vector<double> sprobs
+            = {State::_psrandom, State::_psscatter, State::_pscoalesce};
+        _stage_sampler = Sampler<stage_t, mpl::false_>(stages, sprobs);
+    }
 
     VSet<Node> _nodes;
     GMap _groups;
@@ -176,6 +182,21 @@ struct MergeSplit: public State
         if (iter != _groups.end())
             return iter->second.size();
         return 0;
+    }
+
+    double relabel_group(Group& r)
+    {
+        auto [s, dS] = State::relabel_group(r, _groups[r]);
+        if (s != r)
+        {
+            std::vector<Node> vrs;
+            get_group_vs<>(r, vrs);
+            #pragma omp parallel for if (_parallel)
+            for (size_t i = 0; i < vrs.size(); ++i)
+                move_node(vrs[i], s);
+            r = s;
+        }
+        return dS;
     }
 
     template <class RNG>
@@ -529,8 +550,8 @@ struct MergeSplit: public State
     }
 
     template <class RNG, bool forward=true>
-    std::tuple<Group, double, double> split(const Group& r, const Group& s,
-                                            RNG& rng)
+    std::tuple<Group, Group, double, double> split(const Group& r,
+                                                   const Group& s, RNG& rng)
     {
         std::vector<Node> vs;
         get_group_vs<>(r, vs);
@@ -556,12 +577,24 @@ struct MergeSplit: public State
             break;
         }
 
+        if (std::isinf(_beta))
+        {
+            dS += relabel_group(rt[0]);
+            dS += relabel_group(rt[1]);
+        }
+
         for (size_t i = 0; i < _gibbs_sweeps - 1; ++i)
         {
             auto ret = gibbs_sweep(vs, rt[0], rt[1],
                                    (i < _gibbs_sweeps / 2) ? 1 : _beta,
                                    rng);
             dS += get<0>(ret);
+
+            if (std::isinf(_beta))
+            {
+                dS += relabel_group(rt[0]);
+                dS += relabel_group(rt[1]);
+            }
 
             if (std::isinf(_beta) && abs(get<0>(ret)) < 1e-6)
                 break;
@@ -623,7 +656,7 @@ struct MergeSplit: public State
             }
         }
 
-        return {rt[1], dS, lp};
+        return {rt[0], rt[1], dS, lp};
     }
 
     template <class RNG>
@@ -758,7 +791,7 @@ struct MergeSplit: public State
         return State::allow_move(r, s);
     }
 
-    double merge(const Group& r, const Group& s)
+    double merge(const Group& r, Group& s)
     {
         double dS = 0;
 
@@ -774,6 +807,12 @@ struct MergeSplit: public State
             // serial
             dS += State::virtual_move(v, State::get_group(v), s); // FIXME: State::get_group(v) -> r
             move_node(v, s, true);
+        }
+
+        if (std::isinf(_beta))
+        {
+            for (size_t i = 0; i < _gibbs_sweeps; ++i)
+                dS += relabel_group(s);
         }
 
         return dS;
@@ -855,10 +894,10 @@ struct MergeSplit: public State
 
     template <class RNG>
     std::tuple<Group, double, double, double>
-    sample_split(const Group& r, Group s, RNG& rng)
+    sample_split(Group& r, Group s, RNG& rng)
     {
         double dS, pf, pb=0;
-        std::tie(s, dS, pf) = split(r, s, rng);
+        std::tie(r, s, dS, pf) = split(r, s, rng);
         if (!std::isinf(_beta))
             pb = merge_prob(s, r);
 
@@ -924,7 +963,7 @@ struct MergeSplit: public State
                 push_b(_vs);
 
                 Group s;
-                std::tie(s, _dS, pf) = split(r, _null_group, rng);
+                std::tie(r, s, _dS, pf) = split(r, _null_group, rng);
 
                 if (!std::isinf(_beta))
                 {
@@ -979,9 +1018,11 @@ struct MergeSplit: public State
                     pb += log(State::_psplit);
                 }
 
-                auto& vrs = _groups[r];
+                auto* vrs = &_groups[r];
                 _vs.clear();
-                _vs.insert(_vs.begin(), vrs.begin(), vrs.end());
+                _vs.insert(_vs.end(), vrs->begin(), vrs->end());
+                vrs = &_groups[s];
+                _vs.insert(_vs.end(), vrs->begin(), vrs->end());
 
                 push_b(_vs);
 
