@@ -211,15 +211,6 @@ struct MCMC
         {
             _state.pop_state();
         }
-
-        template <class Rs>
-        constexpr void virtual_move_lock(size_t, size_t, Rs&&)
-        {
-        }
-
-        constexpr void virtual_move_unlock(size_t)
-        {
-        }
     };
 
     class gmap_t :

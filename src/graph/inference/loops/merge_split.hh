@@ -27,8 +27,32 @@ using namespace std;
 
 struct MergeSplitStateBase
 {
+    template <class Group>
+    bool can_swap(const Group&, const Group&) { return true; }
+
+    template <class Group>
+    bool allow_move(const Group&, const Group&) { return true; }
+
+    void relax_update(bool) {}
+
+    template <class V>
+    void store_next_state(V) {}
+
+    void clear_next_state() {}
+
+    template <class V>
+    void push_state(V&&) {}
+
+    void pop_state() {}
+
     template <class Group, class VS>
     std::tuple<Group, double> relabel_group(const Group& r, VS&) { return {r, 0}; }
+
+    template <class V, class Rs>
+    void virtual_move_lock(V, V, Rs&&) {}
+
+    template <class V>
+    void virtual_move_unlock(V) {}
 };
 
 template <class State, class Node, class Group,
