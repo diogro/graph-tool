@@ -23,6 +23,13 @@
 #include <tuple>
 #include <algorithm>
 #include <limits>
+#include <typeindex>
+#include <unordered_map>
+#include <any>
+#include <boost/python/class.hpp>
+#include <boost/python/exception_translator.hpp>
+
+#include "demangle.hh"
 
 #ifndef __MOD__
 #error "__MOD__ needs to be defined"
@@ -35,7 +42,7 @@ namespace __MOD__
 
 typedef std::vector<std::tuple<int,std::function<void()>>> reg_t;
 
-reg_t& get_module_registry()
+reg_t& mod_reg()
 #ifdef DEF_REGISTRY
 {
     static reg_t* reg = new reg_t();
@@ -45,13 +52,62 @@ reg_t& get_module_registry()
 ;
 #endif
 
+typedef std::unordered_map<std::type_index, std::any> creg_t;
+
+creg_t& class_reg()
+#ifdef DEF_REGISTRY
+{
+    static creg_t* creg = new creg_t();
+    return *creg;
+}
+#else
+;
+#endif
+
+class ClassNotFound: public std::exception
+{
+public:
+    ClassNotFound(const std::type_info& tid)
+    {
+        _msg = std::string("class not found: ") + name_demangle(tid.name());
+    }
+
+    const char* what() const noexcept
+    {
+        return _msg.c_str();
+    }
+
+private:
+    std::string _msg;
+};
+
+template <class... Args, class... As>
+boost::python::class_<Args...>& get_class(As&&... as)
+{
+    typedef boost::python::class_<Args...> class_t;
+    auto& creg = class_reg();
+    auto idx = std::type_index(typeid(class_t));
+    auto iter = creg.find(idx);
+    if (iter != creg.end())
+        return std::any_cast<class_t&>(iter->second);
+    if constexpr (sizeof...(as) == 0)
+    {
+        throw ClassNotFound(typeid(class_t));
+    }
+    else
+    {
+        auto& a = creg[idx];
+        a.emplace<class_t>(as...);
+        return std::any_cast<class_t&>(a);
+    }
+}
 
 class RegisterMod
 {
 public:
-    RegisterMod(std::function<void()> f, int p = std::numeric_limits<int>::max())
+    RegisterMod(std::function<void()> f, int p = 0)
     {
-        get_module_registry().emplace_back(p, f);
+        mod_reg().emplace_back(p, f);
     }
 };
 
@@ -60,13 +116,20 @@ class EvokeRegistry
 public:
     EvokeRegistry()
     {
-        reg_t& reg = get_module_registry();
+        boost::python::register_exception_translator<ClassNotFound>
+            ([](const auto& e)
+             {
+                 PyObject* error = PyExc_RuntimeError;
+                 PyErr_SetString(error, e.what());
+             });
+        reg_t& reg = mod_reg();
         std::sort(reg.begin(), reg.end(),
                   [](const auto& a, const auto& b)
                   { return std::get<0>(a) < std::get<0>(b); });
         for (auto& [p, f] : reg)
             f();
         delete &reg;
+        delete &class_reg();
     }
 };
 
