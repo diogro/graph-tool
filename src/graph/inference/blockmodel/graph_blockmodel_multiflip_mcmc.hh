@@ -89,8 +89,6 @@ struct MCMC
         constexpr static double _psscatter = 1;
         constexpr static double _pscoalesce = 1;
 
-        constexpr static bool _parallel = false;
-
         typename State::m_entries_t _m_entries;
 
         template <class F>

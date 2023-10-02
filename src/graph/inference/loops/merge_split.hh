@@ -53,6 +53,8 @@ struct MergeSplitStateBase
 
     template <class V>
     void virtual_move_unlock(V) {}
+
+    constexpr static bool _parallel = false;
 };
 
 template <class State, class Node, class Group,
@@ -138,10 +140,11 @@ struct MergeSplit: public State
     void pop_b()
     {
         auto& back = _bstack.back();
-        for (auto& vb : back)
+        #pragma omp parallel for if (_parallel)
+        for (size_t i = 0; i < back.size(); ++i)
         {
-            auto& v = get<0>(vb);
-            auto& s = get<1>(vb);
+            auto& [v, s] = back[i];
+            State::virtual_move_lock(v, State::get_group(v), s);
             move_node(v, s);
         }
         _bstack.pop_back();

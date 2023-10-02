@@ -90,8 +90,6 @@ struct MCMC
         constexpr static double _psscatter = 1;
         constexpr static double _pscoalesce = 1;
 
-        constexpr static bool _parallel = false;
-
         template <class F>
         void iter_nodes(F&& f)
         {
