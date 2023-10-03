@@ -205,6 +205,16 @@ struct MCMC
             return 1;
         }
 
+        size_t get_b_min(size_t v)
+        {
+            return _b_min[v];
+        }
+
+        size_t get_b_max(size_t v)
+        {
+            return _b_max[v];
+        }
+
         template <class RNG>
         size_t sample_group(size_t v, bool allow_random, bool allow_empty,
                             bool init_heuristic, RNG& rng)

@@ -86,8 +86,6 @@ struct Multilevel: public State
 
     using State::_B_min;
     using State::_B_max;
-    using State::_b_min;
-    using State::_b_max;
 
     size_t _nmoves = 0;
 
@@ -110,8 +108,10 @@ struct Multilevel: public State
         auto& back = _bstack.back();
         for (auto& vb : back)
         {
-            auto& v = get<0>(vb);
-            auto& s = get<1>(vb);
+            auto& [v, s] = vb;
+            auto r = State::get_group(v);
+            if (r == s)
+                continue;
             move_node(v, s);
         }
         _bstack.pop_back();
@@ -689,7 +689,7 @@ struct Multilevel: public State
 
     template <bool forward=true, class RNG>
     std::pair<double, double>
-    stage_multilevel(GSet<Group>& rs, std::vector<size_t>& vs, RNG& rng)
+    stage_multilevel(GSet<Group>& rs, std::vector<Node>& vs, RNG& rng)
     {
         size_t N = vs.size();
 
@@ -776,10 +776,19 @@ struct Multilevel: public State
                     std::max(std::min(rs.size() - 1,
                                       size_t(round(rs.size() * State::_r))),
                              B);
+
                 while (rs.size() != Bnext)
                     S += merge_sweep(rs, Bnext, _merge_sweeps, rng);
+
                 for (size_t i = 0; i < _mh_sweeps; ++i)
-                    S += mh_sweep<true>(vs, rs, _beta, rng, B).first;
+                {
+                    double dS = 0;
+                    dS = mh_sweep<true>(vs, rs, _beta, rng, B).first;
+                    S += dS;
+                    if (std::isinf(_beta) && abs(dS) < 1e-8)
+                        break;
+                }
+
                 if ((keep_cache && _cache_states) || rs.size() == B)
                     put_cache(rs.size(), S);
 
@@ -803,7 +812,7 @@ struct Multilevel: public State
                     for (auto& v : vs)
                     {
                         auto r = State::get_group(v);
-                        Group t = _b_min[v];
+                        Group t = State::get_b_min(v);
                         if (r == t)
                             continue;
                         S += State::virtual_move(v, r, t);
@@ -841,6 +850,7 @@ struct Multilevel: public State
             rs.clear();
             push_b(vs);
             State::relax_update(true);
+
             for (auto& v : vs)
             {
                 auto s = State::get_group(v);
@@ -854,6 +864,8 @@ struct Multilevel: public State
                 move_node(v, t, true);
                 rs.insert(t);
             }
+
+            put_cache(rs.size(), S);
 
             // single-node sweep initialization with B = N. This is faster than
             // using merges!
@@ -890,7 +902,7 @@ struct Multilevel: public State
             for (auto& v : vs)
             {
                 auto r = State::get_group(v);
-                Group t = _b_max[v];
+                Group t = State::get_b_max(v);
                 if (r == t)
                     continue;
                 S += State::virtual_move(v, r, t);
