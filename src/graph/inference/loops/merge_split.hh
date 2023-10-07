@@ -214,6 +214,8 @@ struct MergeSplit: public State
     double relabel_group(Group& r)
     {
         auto [s, dS] = State::relabel_group(r, _groups[r]);
+        if (dS > 0)
+            return 0;
         if (s != r)
         {
             std::vector<Node> vrs;
