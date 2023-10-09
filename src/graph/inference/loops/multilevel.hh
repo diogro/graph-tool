@@ -186,7 +186,8 @@ struct Multilevel: public State
     template <bool smart, class RNG>
     std::pair<double, double>
     mh_sweep(std::vector<Node>& vs, GSet<Group>& rs, double beta, RNG& rng,
-             size_t B_min = std::numeric_limits<size_t>::max(),
+             size_t B_min = 0,
+             size_t B_max = std::numeric_limits<size_t>::max(),
              bool init_heuristic = false)
     {
         if (rs.size() == 1 || (rs.size() == vs.size() && B_min == rs.size()))
@@ -218,8 +219,14 @@ struct Multilevel: public State
                 rs.insert(r);
             }
 
+            int dB = 0;
+            if (get_wr(s) == 0)
+                dB++;
+            if (get_wr(r) == 1)
+                dB--;
+
             double dS;
-            if (s != r && (get_wr(r) == 1 && rs.size() <= B_min))
+            if (rs.size() + dB < B_min || rs.size() + dB > B_max)
                 dS = std::numeric_limits<double>::infinity();
             else
                 dS = State::virtual_move(v, r, s);
@@ -855,10 +862,9 @@ struct Multilevel: public State
         if (!State::_has_b_max)
         {
             double S = 0;
-            rs.clear();
             push_b(vs);
             State::relax_update(true);
-
+            rs.clear();
             for (auto& v : vs)
             {
                 auto s = State::get_group(v);
@@ -885,7 +891,7 @@ struct Multilevel: public State
                 {
                     Bprev = rs.size();
                     double dS = mh_sweep<true>(vs, rs, (i++ == 0) ? _init_beta : _beta,
-                                               rng, B_min, true).first;
+                                               rng, B_min, B_max, true).first;
                     S += dS;
                     if (_verbose)
                         cout << i - 1 << " " << ((i - 1 == 0) ? _init_beta : _beta)
@@ -938,12 +944,20 @@ struct Multilevel: public State
             get_S(Br, false);
         }
 
+        // remove out of bounds
+        auto iter = cache.upper_bound(B_max);
+        if (iter != cache.end())
+            cache.erase(iter, cache.end());
+        iter = cache.lower_bound(B_min);
+        if (iter != cache.end())
+            cache.erase(cache.begin(), iter);
+
         // Sample partition
-        auto iter = max_element(cache.begin(), cache.end(),
-                                [&](auto& x, auto& y)
-                                {
-                                    return x.second.first > y.second.first;
-                                });
+        iter = max_element(cache.begin(), cache.end(),
+                           [&](auto& x, auto& y)
+                           {
+                               return x.second.first > y.second.first;
+                           });
 
         std::vector<size_t> Bs;
         std::vector<double> probs;
@@ -1014,7 +1028,8 @@ struct Multilevel: public State
                             _btemp[v] = State::get_group(v);
                     }
 
-                    std::tie(dS, mh_lp) = mh_sweep<false>(vs, rs, _beta, rng);
+                    std::tie(dS, mh_lp) = mh_sweep<false>(vs, rs, _beta, rng,
+                                                          _B_min, _B_max);
 
                     if (!std::isinf(_beta))
                     {
