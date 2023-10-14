@@ -1557,8 +1557,8 @@ def remove_random_edges(g, M, weight=None, counts=True):
                             _get_rng())
 
 
-def generate_knn(points, k, dist=None, pairs=False, exact=False, local=True,
-                 r=.5, max_rk=None, epsilon=.001, directed=False, verbose=False):
+def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
+                 max_rk=None, epsilon=.001, directed=False, verbose=False):
     r"""Generate a graph of k-nearest neighbors (or pairs) from a set of
     multidimensional points.
 
@@ -1581,16 +1581,13 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, local=True,
     exact : ``bool`` (optional, default: ``False``)
         If ``False``, an fast approximation will be used, otherwise an exact but
         slow algorithm will be used.
-    local : ``bool`` (optional, default: ``True``)
-        If ``True``, the local version of the algorithm will be used.
     r : ``float`` (optional, default: ``.5``)
         If ``exact is False``, this specifies the fraction of randomly chosen
         neighbors that are used for the search.
     max_rk : ``int`` (optional, default: ``None``)
-        If provided and ``exact is False`` and ``local is false``, this
-        specifies the maximum number of randomly chosen out neighbors to
-        consider during each iteration. A value of ``None`` implies that all out
-        neighbors are considered.
+        If provided and ``exact is False``, this specifies the maximum number of
+        randomly chosen out neighbors to consider during each iteration. A value
+        of ``None`` implies that all out neighbors are considered.
     epsilon : ``float`` (optional, default: ``.001``)
         If ``exact is False``, this determines the convergence criterion used by
         the algorithm. When the fraction of updated neighbors drops below this
@@ -1663,15 +1660,12 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, local=True,
         if pairs:
             libgraph_tool_generation.gen_k_nearest(g._Graph__graph, points, k,
                                                    r, max_rk, epsilon,
-                                                   _prop("e", g, w), local,
-                                                   directed, verbose,
-                                                   _get_rng())
+                                                   _prop("e", g, w), directed,
+                                                   verbose,  _get_rng())
         else:
             libgraph_tool_generation.gen_knn(g._Graph__graph, points, k, r,
-                                             max_rk, epsilon, local,
-                                             _prop("e", g, w), verbose,
-                                             _get_rng())
-
+                                             max_rk, epsilon, _prop("e", g, w),
+                                             verbose, _get_rng())
 
     if not directed:
         g.set_directed(False)
