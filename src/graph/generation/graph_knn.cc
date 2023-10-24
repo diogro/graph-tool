@@ -50,7 +50,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
-                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true>
+                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
                      gen_knn<true>(g, d, k, r, max_rk, epsilon, w, h, verbose, rng);
                  })();
@@ -69,7 +69,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
-                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, false>
+                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, false, false>
                          (d_e, num_vertices(g));
                      gen_knn<false>(g, d, k, r, max_rk, epsilon, w, h, verbose, rng);
                  })();
@@ -142,9 +142,9 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
-                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true>
+                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
-                     gen_k_nearest<true>(g, d_e, k, r, max_rk, epsilon, w, h,
+                     gen_k_nearest<true>(g, d, k, r, max_rk, epsilon, w, h,
                                          directed, verbose, rng);
                  })();
     }
@@ -162,7 +162,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
-                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true>
+                     auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
                      gen_k_nearest<false>(g, d, k, r, max_rk, epsilon, w, h,
                                           directed, verbose, rng);

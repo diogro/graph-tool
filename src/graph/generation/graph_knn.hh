@@ -42,7 +42,7 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-template <bool directed, bool parallel, class Dist>
+template <bool directed, bool parallel, bool keep_iter, class Dist>
 class DistCache
 {
 public:
@@ -51,10 +51,18 @@ public:
 
     {}
 
-    double operator()(size_t u, size_t v)
+    double operator()(size_t u, size_t v, [[maybe_unused]] size_t iter = 0)
     {
         if (!directed && (u > v))
             std::swap(u, v);
+
+        if constexpr (keep_iter)
+        {
+            if (iter < _last_iter)
+                _offset += _last_iter + 2;
+            _last_iter = iter;
+            iter += _offset;
+        }
 
         auto& cache = _cache[v];
 
@@ -66,44 +74,63 @@ public:
                 std::shared_lock lock(mutex);
                 auto iter = cache.find(u);
                 if (iter != cache.end())
-                    return iter->second;
+                {
+                    if constexpr (keep_iter)
+                        return get<0>(iter->second);
+                    else
+                        return iter->second;
+                }
             }
 
             d = _d(u, v);
 
-            #pragma omp atomic
-            _miss_count++;
-
             {
                 std::unique_lock lock(mutex);
-                cache[u] = d;
+                if constexpr (keep_iter)
+                    cache[u] = {d, iter};
+                else
+                    cache[u] = d;
+                _miss_count++;
             }
         }
         else
         {
             auto iter = cache.find(u);
             if (iter != cache.end())
-                return iter->second;
+            {
+                if constexpr (keep_iter)
+                    return get<0>(iter->second);
+                else
+                    return iter->second;
+            }
             d = _d(u, v);
+            if constexpr (keep_iter)
+                cache[u] = {d, iter};
+            else
+                cache[u] = d;
             _miss_count++;
-            cache[u] = d;
         }
 
         return d;
     }
 
     size_t _miss_count = 0;
-    std::vector<gt_hash_map<size_t, double>> _cache;
+    std::conditional_t
+        <keep_iter,
+         std::vector<gt_hash_map<size_t, std::tuple<double, size_t>>>,
+         std::vector<gt_hash_map<size_t, double>>> _cache;
 
 private:
     Dist& _d;
     std::vector<std::shared_mutex> _mutex;
+    size_t _last_iter = 0;
+    size_t _offset = 0;
 };
 
-template <bool directed, bool parallel, class Dist>
-DistCache<directed, parallel, Dist> make_dist_cache(Dist&& d, size_t N)
+template <bool directed, bool parallel, bool keep_iter, class Dist>
+DistCache<directed, parallel, keep_iter, Dist> make_dist_cache(Dist&& d, size_t N)
 {
-    return DistCache<directed, parallel, Dist>(d, N);
+    return DistCache<directed, parallel, keep_iter, Dist>(d, N);
 }
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
@@ -145,7 +172,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
              {
                  if (u == v)
                      continue;
-                 double l = d(u, v);
+                 double l = d(u, v, 0);
                  ++n_tot;
                  Bv.emplace_back(u, l);
                  std::push_heap(Bv.begin(), Bv.end(), cmp);
@@ -157,7 +184,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
              {
                  if (seen.find(u) != seen.end() || u == v)
                      continue;
-                 double l = d(u, v);
+                 double l = d(u, v, 0);
                  ++n_tot;
                  if (l < get<1>(Bv.front()))
                  {
@@ -262,7 +289,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                          if (!rsample(rng))
                              return;
 
-                         double l = d(w, v);
+                         double l = d(w, v, iter);
                          ++n_tot;
 
                          if (l < get<1>(Bv.front()))
@@ -305,8 +332,9 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         delta = c / double(vs.size() * k);
 
         if (verbose)
-            cout << iter++ << " " << delta << " " << c << " " << n
+            cout << iter << " " << delta << " " << c << " " << n
                  << " " << n_tot << endl;
+        iter++;
     }
 
     for (size_t v : vs)
