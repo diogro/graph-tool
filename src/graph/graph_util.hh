@@ -403,9 +403,102 @@ auto random_permutation_range(Iter begin, Iter end, RNG& rng)
 }
 
 template <class V, class RNG>
-auto random_permutation_range(V& v, RNG& rng)
+auto random_permutation_range(V&& v, RNG& rng)
 {
     return random_permutation_range(v.begin(), v.end(), rng);
+}
+
+// This will iterate over a forward sequence of size N and select a subset of
+// size M <= N uniformly at random
+template <class Iterator, class RNG>
+class random_subset_iterator : public
+    std::iterator<std::input_iterator_tag, typename Iterator::value_type>
+{
+public:
+    random_subset_iterator(Iterator begin, Iterator end, size_t N, size_t M, RNG& rng)
+        : _i(begin), _end(end), _N(N), _M(M), _m(0), _t(0), _rng(&rng)
+    {
+        skip();
+    }
+
+    random_subset_iterator(Iterator begin, Iterator end, size_t M, RNG& rng)
+        : random_subset_iterator(begin, end, end - begin, M, rng)
+    {}
+
+    void skip()
+    {
+        if (_m == _M || _i == _end)
+        {
+            _i = _end;
+            return;
+        }
+
+        while ((_i != _end) && ((_N - _t) * _u(*_rng) >= _M - _m))
+        {
+            ++_i;
+            ++_t;
+        }
+
+        ++_t;
+        ++_m;
+    }
+
+    typename std::iterator_traits<Iterator>::reference operator*()
+    {
+        return *_i;
+    }
+
+    random_subset_iterator& operator++() // prefix
+    {
+        ++_i;
+        skip();
+        return *this;
+    }
+
+    bool operator==(const random_subset_iterator& ri)
+    {
+        return _i == ri._i;
+    }
+
+    bool operator!=(const random_subset_iterator& ri)
+    {
+        return _i != ri._i;
+    }
+
+private:
+    Iterator _i, _end;
+    size_t _N;
+    size_t _M;
+    size_t _m;
+    size_t _t;
+    RNG* _rng;
+    std::uniform_real_distribution<> _u;
+};
+
+template <class Iter, class RNG>
+auto random_subset_range(Iter begin, Iter end, size_t N, size_t M, RNG& rng)
+{
+    random_subset_iterator<Iter, RNG> rbegin(begin, end, N, M, rng);
+    random_subset_iterator<Iter, RNG> rend(end, end, N, M, rng);
+    return boost::make_iterator_range(rbegin, rend);
+}
+
+template <class Iter, class RNG>
+auto random_subset_range(Iter begin, Iter end, size_t M, RNG& rng)
+{
+    return random_subset_range(begin, end, end - begin, M, rng);
+}
+
+template <class V, class RNG>
+auto random_subset_range(V&& v, size_t N, size_t M, RNG& rng)
+{
+    return random_subset_range(v.begin(), v.end(), N, M, rng);
+}
+
+template <class V, class RNG>
+auto random_subset_range(V&& v, size_t M, RNG& rng)
+{
+    return random_subset_range(v, v.size(), M, rng);
 }
 
 //
