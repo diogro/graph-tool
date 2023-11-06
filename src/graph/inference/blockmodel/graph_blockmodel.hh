@@ -291,7 +291,7 @@ public:
     }
 
     template <class MEntries>
-    void move_vertex(size_t v,  size_t nr, MEntries& m_entries)
+    void move_vertex(size_t v, size_t nr, MEntries& m_entries)
     {
         size_t r = _b[v];
         move_vertex(v, r, nr, m_entries);
@@ -1643,6 +1643,9 @@ public:
                          bool reverse, MEntries& m_entries)
     {
         size_t B = _candidate_groups.size();
+
+        if (r == s)
+            reverse = false;
 
         if (reverse)
         {

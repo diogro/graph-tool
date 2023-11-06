@@ -101,8 +101,8 @@ for directed in [False, True]:
             true_samples.extend([r] * count)
 
         mp_h = bincount(samples)
-        if len(mp_h) < B + 1:
-            mp_h = list(mp_h) + [0] * (B + 1 - len(mp_h))
+        if len(mp_h) < len(mp):
+            mp_h = list(mp_h) + [0] * (len(mp) - len(mp_h))
         mp_h = array(mp_h, dtype="float")
         mp_h /= mp_h.sum()
         res = mp - mp_h
