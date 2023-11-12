@@ -369,7 +369,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
     if not distance:
         s = E - s
     if norm:
-        return s / E
+        return s / E if E > 0 else numpy.nan
     return s
 
 @_limit_args({"sim_type": ["dice", "salton", "hub-promoted", "hub-suppressed",
