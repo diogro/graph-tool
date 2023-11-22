@@ -248,7 +248,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
     **Relation to set operations**
 
     If the graph is unweighted, :math:`p=1`, and ``norm == False`` the
-    algorithm is equivalent to the following set operations:
+    algorithm is equivalent to the following set comparisons:
 
     1. If ``distance == True`` the returned value is equal to
 
