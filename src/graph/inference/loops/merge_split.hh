@@ -1081,6 +1081,12 @@ struct MergeSplit: public State
 
                 auto r = uniform_sample(_rlist, rng);
 
+                if (get_wr(r) < 2 && !allow_empty)
+                {
+                    move = move_t::null;
+                    break;
+                }
+
                 State::relax_update(true);
 
                 push_b(_groups[r]);
