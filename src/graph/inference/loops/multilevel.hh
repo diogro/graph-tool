@@ -83,6 +83,7 @@ struct Multilevel: public State
     using State::_init_beta;
     using State::_cache_states;
     using State::_verbose;
+    using State::_force_accept;
 
     using State::_B_min;
     using State::_B_max;
@@ -721,6 +722,12 @@ struct Multilevel: public State
 
         map<size_t, std::pair<double, std::vector<Group>>> cache;
 
+        auto has_cache =
+            [&](size_t B)
+            {
+                return cache.find(B) != cache.end();
+            };
+
         auto put_cache = [&](size_t B, double S)
         {
             assert(cache.find(B) == cache.end());
@@ -819,6 +826,7 @@ struct Multilevel: public State
                         move_node(v, t, true);
                     }
                 }
+                assert(rs.size() == B_min);
                 put_cache(B_min, S);
                 pop_b();
             }
@@ -889,7 +897,7 @@ struct Multilevel: public State
                 B_max = B_max_init = std::min(rs.size(), B_max);
             }
 
-            if (cache.find(rs.size()) == cache.end())
+            if (rs.size() >= B_min && !has_cache(rs.size()))
                 put_cache(rs.size(), S);
 
             pop_b();
@@ -983,6 +991,8 @@ struct Multilevel: public State
         if (!State::_has_b_max)
             B_max_init = N;
 
+        assert(rs.size() == B);
+
         if ((rs.size() > B_min_init) && (rs.size() < B_max_init))
         {
             if (State::_gibbs)
@@ -1027,8 +1037,6 @@ struct Multilevel: public State
                 lp += mh_lp;
             }
         }
-
-        assert(rs.size() == B);
 
         if (forward && State::_global_moves &&
             (B_init < _B_min || B_init > _B_max))
@@ -1159,6 +1167,9 @@ struct Multilevel: public State
 
                 for (auto& v : _vs)
                     move_node(v, _bprev[v]);
+
+                if (_force_accept)
+                    _dS = -numeric_limits<double>::infinity();
             }
             break;
 

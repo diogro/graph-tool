@@ -339,7 +339,8 @@ class MultilevelMCMCState(EntropyState):
                               init_beta=1., gibbs=False, B_min=1,
                               B_max=numpy.iinfo(numpy.uint64).max, b_min=None,
                               b_max=None, M=None, cache_states=True,
-                              entropy_args={}, verbose=False, **kwargs):
+                              force_accept=False, entropy_args={},
+                              verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a multilevel agglomerative acceptance-rejection
         MCMC to sample network partitions, that uses a bisection search on the
         number of groups, together with group merges and singe-node moves.
@@ -401,6 +402,9 @@ class MultilevelMCMCState(EntropyState):
         cache_states : ``bool`` (optional, default: ``True``)
             If ``True``, intermediary states will be cached during the bisection
             search.
+        force_accept : ``bool`` (optional, default: ``False``)
+            If ``True``, new state will be accepted even if it does not improve
+            the objective function.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
