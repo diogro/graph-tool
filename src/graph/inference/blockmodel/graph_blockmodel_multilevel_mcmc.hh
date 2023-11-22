@@ -60,6 +60,7 @@ typedef vprop_map_t<int32_t>::type vmap_t;
     ((B_max,, size_t, 0))                                                      \
     ((b_min,, vmap_t, 0))                                                      \
     ((b_max,, vmap_t, 0))                                                      \
+    ((force_accept,, bool, 0))                                                 \
     ((oentropy_args,, python::object, 0))                                      \
     ((verbose,, int, 0))                                                       \
     ((niter,, size_t, 0))

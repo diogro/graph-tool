@@ -89,6 +89,8 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
                     return state.get_N();
             };
 
+        state.init_iter(rng);
+
         for (size_t vi = 0; vi < get_N(); ++vi)
         {
             auto& v = (state.is_sequential()) ?
@@ -122,7 +124,11 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
             move_t& s = get_s();
 
             if (s == state._null_move)
+            {
+                if (state._verbose > 1)
+                    cout << " (null proposal)" << endl;
                 continue;
+            }
 
             double dS, mP;
             std::tie(dS, mP) = state.virtual_move_dS(v, s);

@@ -1223,6 +1223,11 @@ struct Multilevel: public State
     constexpr void step(const Node&, size_t)
     {
     }
+
+    template <class RNG>
+    void init_iter(RNG&)
+    {
+    }
 };
 
 } // graph_tool namespace

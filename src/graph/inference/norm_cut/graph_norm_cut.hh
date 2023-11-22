@@ -350,6 +350,11 @@ public:
         return true;
     }
 
+    template <class RNG>
+    void init_iter(RNG&)
+    {
+    }
+
     template <class V>
     void push_state(V&) {}
     void pop_state() {}

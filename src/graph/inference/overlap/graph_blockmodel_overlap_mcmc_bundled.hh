@@ -204,6 +204,10 @@ struct MCMC
         {
         }
 
+        template <class RNG>
+        void init_iter(RNG&)
+        {
+        }
     };
 };
 

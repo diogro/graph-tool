@@ -367,6 +367,11 @@ struct MCMC
         void step(size_t, hmove_t)
         {
         }
+
+        template <class RNG>
+        void init_iter(RNG&)
+        {
+        }
     };
 };
 

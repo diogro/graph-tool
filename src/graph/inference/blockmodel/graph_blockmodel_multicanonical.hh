@@ -155,6 +155,11 @@ struct Multicanonical
             _hist[_i]++;
             _dens[_i] += _f;
         }
+
+        template <class RNG>
+        void init_iter(RNG&)
+        {
+        }
     };
 };
 

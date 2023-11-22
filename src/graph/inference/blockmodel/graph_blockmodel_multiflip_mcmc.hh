@@ -228,7 +228,12 @@ struct MCMC
         {
             _state.pop_state();
         }
-    };
+
+        template <class RNG>
+        void init_iter(RNG&)
+        {
+        }
+   };
 
     class gmap_t :
         public idx_map<size_t, idx_set<size_t, true>>
