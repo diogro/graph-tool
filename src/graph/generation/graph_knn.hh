@@ -461,9 +461,10 @@ private:
 
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
-size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
-                     double epsilon, Weight eweight, Hint& hint,
-                     bool directed, bool verbose, RNG& rng)
+std::tuple<size_t, size_t>
+gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
+              double epsilon, Weight eweight, Hint& hint,
+              bool directed, bool verbose, RNG& rng)
 {
     size_t N = num_vertices(g);
     std::vector<bool> select(N, true);
@@ -479,8 +480,9 @@ size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
     size_t iter = 0;
     while (N > 1)
     {
+        iter++;
         if (verbose)
-            cout << "m = " << m <<  " nearest iteration: " << iter++ << endl;
+            cout << "m = " << m <<  " nearest iteration: " << iter << endl;
 
         if (N * N <= 4 * m)
         {
@@ -527,8 +529,18 @@ size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         typename eprop_map_t<bool>::type ekeep(get(edge_index_t(), g));
         for (auto e : edges_range(u))
             ekeep[e] = false;
-        for (auto& el : medges)
-            ekeep[get<0>(el)] = true;
+
+        parallel_loop(medges,
+                      [&](size_t, auto& el)
+                      {
+                          auto e = get<0>(el);
+                          ekeep[e] = true;
+                          auto s = source(e, u);
+                          auto t = target(e, u);
+                          auto ne = edge(t, s, u);
+                          if (ne.second)
+                              ekeep[ne.first] = true;
+                      }, 0);
 
         N = 0;
         std::vector<bool> nselect(select);
@@ -614,7 +626,7 @@ size_t gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         eweight[e] = l;
     }
 
-    return n_tot;
+    return {n_tot, iter};
 }
 
 } // graph_tool namespace
