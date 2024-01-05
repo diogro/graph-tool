@@ -418,7 +418,7 @@ struct MergeSplit: public State
                 if (rt[0] == _null_group)
                 {
                     rt[0] = r;
-                    ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+                    //ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
                     ps[1] = -numeric_limits<double>::infinity();
                 }
                 else if (rt[1] == _null_group)
@@ -428,7 +428,7 @@ struct MergeSplit: public State
                     else
                         rt[1] = s;
                     ps[0] = -numeric_limits<double>::infinity();
-                    ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                    //ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
                 }
             }
 
@@ -540,7 +540,7 @@ struct MergeSplit: public State
                 if (rt[0] == _null_group)
                 {
                     rt[0] = r;
-                    ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+                    //ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
                     ps[1] = -numeric_limits<double>::infinity();
                 }
                 else if (rt[1] == _null_group)
@@ -550,7 +550,7 @@ struct MergeSplit: public State
                     else
                         rt[1] = s;
                     ps[0] = -numeric_limits<double>::infinity();
-                    ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                    //ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
                 }
             }
 
