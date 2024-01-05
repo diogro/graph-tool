@@ -180,18 +180,28 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                  if (Bv.size() == k)
                      break;
              }
+
+             auto update =
+                 [&](auto u, auto w)
+                 {
+                     if (w == u || w == v || seen.find(w) != seen.end())
+                         return;
+                     double l = d(w, v, 0);
+                     ++n_tot;
+                     if (l < get<1>(Bv.front()))
+                     {
+                         std::pop_heap(Bv.begin(), Bv.end(), cmp);
+                         Bv.back() = {w, l};
+                         std::push_heap(Bv.begin(), Bv.end(), cmp);
+                     }
+                     seen.insert(w);
+                 };
+
              for (auto u : all_neighbors_range(v, hint))
              {
-                 if (seen.find(u) != seen.end() || u == v)
-                     continue;
-                 double l = d(u, v, 0);
-                 ++n_tot;
-                 if (l < get<1>(Bv.front()))
-                 {
-                     std::pop_heap(Bv.begin(), Bv.end(), cmp);
-                     Bv.back() = {u, l};
-                     std::push_heap(Bv.begin(), Bv.end(), cmp);
-                 }
+                 update(v, u);
+                 for (auto w : all_neighbors_range(u, hint))
+                     update(u, w);
              }
          });
 
@@ -303,13 +313,6 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                          seen.insert(w);
                          n++;
                      };
-
-                 for (auto u : all_neighbors_range(v, hint))
-                 {
-                     update(v, u);
-                     for (auto w : hint_neighbors[u])
-                         update(u, w);
-                 }
 
                  for (auto u : in_neighbors_range(v, g))
                  {
@@ -537,6 +540,8 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
                           ekeep[e] = true;
                           auto s = source(e, u);
                           auto t = target(e, u);
+                          if (directed)
+                              return;
                           auto ne = edge(t, s, u);
                           if (ne.second)
                               ekeep[ne.first] = true;
