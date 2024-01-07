@@ -1592,6 +1592,9 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
         If ``exact is False``, this determines the convergence criterion used by
         the algorithm. When the fraction of updated neighbors drops below this
         value, the algorithm stops.
+    max_iter : ``int`` (optional, default: ``0``)
+        If ``exact is False``, this determines the maximum number of iterations
+        allowed. A value of ``0`` means that no limit is imposed.
     directed : ``bool`` (optional, default: ``False``)
         If ``True`` a directed version of the graph will be returned, otherwise
         the graph is undirected.
@@ -1659,12 +1662,13 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     else:
         if pairs:
             libgraph_tool_generation.gen_k_nearest(g._Graph__graph, points, k,
-                                                   r, max_rk, epsilon,
+                                                   r, max_rk, epsilon, max_iter,
                                                    _prop("e", g, w), directed,
                                                    verbose,  _get_rng())
         else:
             libgraph_tool_generation.gen_knn(g._Graph__graph, points, k, r,
-                                             max_rk, epsilon, _prop("e", g, w),
+                                             max_rk, epsilon, max_iter,
+                                             _prop("e", g, w),
                                              verbose, _get_rng())
 
     if not directed:

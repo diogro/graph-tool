@@ -135,7 +135,8 @@ DistCache<directed, parallel, keep_iter, Dist> make_dist_cache(Dist&& d, size_t 
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
 size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
-               double epsilon, Weight eweight, Hint& hint, bool verbose, RNG& rng_)
+               double epsilon, size_t max_iter, Weight eweight, Hint& hint,
+               bool verbose, RNG& rng_)
 {
     parallel_rng<rng_t> prng(rng_);
 
@@ -338,6 +339,9 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
             cout << iter << " " << delta << " " << c << " " << n
                  << " " << n_tot << endl;
         iter++;
+
+        if (max_iter > 0 && iter == max_iter + 1)
+            break;
     }
 
     for (size_t v : vs)
@@ -466,7 +470,7 @@ private:
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
 std::tuple<size_t, size_t>
 gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
-              double epsilon, Weight eweight, Hint& hint,
+              double epsilon, size_t max_iter, Weight eweight, Hint& hint,
               bool directed, bool verbose, RNG& rng)
 {
     size_t N = num_vertices(g);
@@ -501,7 +505,8 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
 
         if (verbose)
             cout << "Running KNN with N = " << N << " and k = " << nk << endl;
-        n_tot += gen_knn<parallel>(u, d, nk, r, max_rk, epsilon, eweight, uhint, verbose, rng);
+        n_tot += gen_knn<parallel>(u, d, nk, r, max_rk, epsilon, max_iter,
+                                   eweight, uhint, verbose, rng);
 
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         std::vector<std::tuple<edge_t, double>> medges;
