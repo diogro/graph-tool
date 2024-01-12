@@ -23,8 +23,8 @@ using namespace boost;
 using namespace graph_tool;
 
 void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
-                  double r, size_t max_rk, double epsilon, size_t max_iter,
-                  boost::any aw, bool verbose,  rng_t& rng)
+                  double r, size_t max_rk, double epsilon, bool c_stop,
+                  size_t max_iter, boost::any aw, bool verbose,  rng_t& rng)
 
 {
     typedef eprop_map_t<double>::type emap_t;
@@ -52,8 +52,8 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                      typedef std::remove_reference_t<decltype(g)> g_t;
                      auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
-                     gen_knn<true>(g, d, k, r, max_rk, epsilon, max_iter, w, h,
-                                   verbose, rng);
+                     gen_knn<true>(g, d, k, r, max_rk, epsilon, c_stop,
+                                   max_iter, w, h,  verbose, rng);
                  })();
     }
     catch (InvalidNumpyConversion&)
@@ -72,8 +72,8 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                      typedef std::remove_reference_t<decltype(g)> g_t;
                      auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, false, false>
                          (d_e, num_vertices(g));
-                     gen_knn<false>(g, d, k, r, max_rk, epsilon, max_iter, w, h,
-                                    verbose, rng);
+                     gen_knn<false>(g, d, k, r, max_rk, epsilon, c_stop,
+                                    max_iter, w, h, verbose, rng);
                  })();
     }
 }
@@ -122,8 +122,9 @@ void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
 }
 
 void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
-                        double r, size_t max_rk, double epsilon, size_t max_iter,
-                        boost::any aw,  bool directed, bool verbose, rng_t& rng)
+                        double r, size_t max_rk, double epsilon, bool c_stop,
+                        size_t max_iter, boost::any aw,  bool directed,
+                        bool verbose, rng_t& rng)
 
 {
     typedef eprop_map_t<double>::type emap_t;
@@ -146,7 +147,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                      typedef std::remove_reference_t<decltype(g)> g_t;
                      auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
-                     gen_k_nearest<true>(g, d, k, r, max_rk, epsilon, max_iter,
+                     gen_k_nearest<true>(g, d, k, r, max_rk, epsilon, c_stop, max_iter,
                                          w, h, directed, verbose, rng);
                  })();
     }
@@ -166,7 +167,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                      typedef std::remove_reference_t<decltype(g)> g_t;
                      auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
-                     gen_k_nearest<false>(g, d, k, r, max_rk, epsilon, max_iter,
+                     gen_k_nearest<false>(g, d, k, r, max_rk, epsilon, c_stop, max_iter,
                                           w, h, directed, verbose, rng);
                  })();
     }

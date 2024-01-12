@@ -37,6 +37,9 @@
 #include "graph_contract_edges.hh"
 #include "shared_heap.hh"
 
+#include "../clustering/graph_clustering.hh"
+
+
 namespace graph_tool
 {
 using namespace std;
@@ -135,8 +138,8 @@ DistCache<directed, parallel, keep_iter, Dist> make_dist_cache(Dist&& d, size_t 
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
 size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
-               double epsilon, size_t max_iter, Weight eweight, Hint& hint,
-               bool verbose, RNG& rng_)
+               double epsilon, bool c_stop, size_t max_iter, Weight eweight,
+               Hint& hint, bool verbose, RNG& rng_)
 {
     parallel_rng<rng_t> prng(rng_);
 
@@ -198,6 +201,9 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                      seen.insert(w);
                  };
 
+             for (auto u : all_neighbors_range(v, g))
+                 update(v, u);
+
              for (auto u : all_neighbors_range(v, hint))
              {
                  update(v, u);
@@ -216,12 +222,15 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         };
 
     std::vector<std::vector<size_t>> out_neighbors(num_vertices(g));
-    std::vector<std::vector<size_t>> hint_neighbors(num_vertices(hint));
 
     std::bernoulli_distribution rsample(r);
 
+    undirected_adaptor g_u(g);
+    UnityPropertyMap<size_t, typename graph_traits<Graph>::edge_descriptor> dummy;
+
     size_t iter = 1;
     double delta = epsilon + 1;
+    double clust = 0;
     while (delta > epsilon)
     {
         if (verbose)
@@ -232,6 +241,18 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         for (auto v : vs)
             build_vertex(v);
 
+        if (c_stop)
+        {
+            auto nclust = get<0>(get_global_clustering(g_u, dummy));
+            if (iter > 1 && nclust <= clust)
+            {
+                if (verbose)
+                    cout << " " << nclust << endl;
+                break;
+            }
+            clust = nclust;
+        }
+
         #pragma omp parallel if (parallel)
         parallel_loop_no_spawn
             (vs,
@@ -239,12 +260,9 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
              {
                  auto& rng = prng.get(rng_);
                  auto& us = out_neighbors[v];
-                 auto& hus = hint_neighbors[v];
                  us.clear();
                  for (auto u : out_neighbors_range(v, g))
                      us.push_back(u);
-                 for (auto u : all_neighbors_range(v, hint))
-                     hus.push_back(u);
                  if (max_rk < us.size())
                  {
                      size_t i = 0;
@@ -254,17 +272,6 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                              break;
                      }
                      us.erase(us.begin() + max_rk, us.end());
-                 }
-
-                 if (max_rk < hus.size())
-                 {
-                     size_t i = 0;
-                     for ([[maybe_unused]] auto u : random_permutation_range(hus, rng))
-                     {
-                         if (++i == max_rk)
-                             break;
-                     }
-                     hus.erase(hus.begin() + max_rk, hus.end());
                  }
              });
 
@@ -336,8 +343,13 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         delta = c / double(vs.size() * k);
 
         if (verbose)
-            cout << iter << " " << delta << " " << c << " " << n
-                 << " " << n_tot << endl;
+        {
+            cout << iter << " " << delta << " " << c;
+            if (c_stop)
+                cout << " " << clust;
+            cout << " " << n << " " << n_tot << endl;
+        }
+
         iter++;
 
         if (max_iter > 0 && iter == max_iter + 1)
@@ -470,8 +482,8 @@ private:
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
 std::tuple<size_t, size_t>
 gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
-              double epsilon, size_t max_iter, Weight eweight, Hint& hint,
-              bool directed, bool verbose, RNG& rng)
+              double epsilon, bool c_stop, size_t max_iter, Weight eweight,
+              Hint& hint, bool directed, bool verbose, RNG& rng)
 {
     size_t N = num_vertices(g);
     std::vector<bool> select(N, true);
@@ -505,8 +517,8 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
 
         if (verbose)
             cout << "Running KNN with N = " << N << " and k = " << nk << endl;
-        n_tot += gen_knn<parallel>(u, d, nk, r, max_rk, epsilon, max_iter,
-                                   eweight, uhint, verbose, rng);
+        n_tot += gen_knn<parallel>(u, d, nk, r, max_rk, epsilon, c_stop,
+                                   max_iter, eweight, uhint, verbose, rng);
 
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         std::vector<std::tuple<edge_t, double>> medges;
