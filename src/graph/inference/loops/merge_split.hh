@@ -151,6 +151,14 @@ struct MergeSplit: public State
         State::pop_state();
     }
 
+    void check_rlist()
+    {
+#ifndef NDEBUG
+        for (auto r : _rlist)
+            assert(get_wr(r) > 0);
+#endif
+    }
+
     GSet<Group> _rlist;
 
     std::vector<Node> _vs;
@@ -211,10 +219,15 @@ struct MergeSplit: public State
         return 0;
     }
 
+    size_t get_wr_(Group r)
+    {
+        return get_wr(r);
+    }
+
     double relabel_group(Group& r)
     {
         auto [s, dS] = State::relabel_group(r, _groups[r]);
-        if (dS > 0)
+        if (dS > 0 || (s != r && get_wr(s) > 0))
             return 0;
         if (s != r)
         {
@@ -236,7 +249,6 @@ struct MergeSplit: public State
         double lp = 0, dS = 0;
         std::array<double,2> p = {0,0};
         std::shuffle(vs.begin(), vs.end(), rng_);
-        assert(get_wr(r) > 0 && get_wr(s) > 0);
 
         parallel_rng<rng_t> prng(rng_);
         #pragma omp parallel for if (_parallel) reduction(+: dS, lp) firstprivate(p)
@@ -291,7 +303,6 @@ struct MergeSplit: public State
 
             assert(!std::isnan(lp));
         }
-        assert(get_wr(r) > 0 && get_wr(s) > 0);
         return {dS, lp};
     }
 
@@ -344,8 +355,6 @@ struct MergeSplit: public State
 
         if (allow_empty && vs.size() == 1)
             rt[1] = State::sample_new_group(vs.front(), rng_);
-
-        assert(get_wr(rt[0]) > 0 && get_wr(rt[1]) > 0);
 
         return {dS, rt[0], rt[1]};
     }
@@ -445,8 +454,6 @@ struct MergeSplit: public State
                 move_node(v, rt[1], true);
             }
         }
-
-        assert(get_wr(rt[0]) > 0 && get_wr(rt[1]) > 0);
 
         if (allow_empty && vs.size() == 1)
             rt[1] = State::sample_new_group(vs.front(), rng_);
@@ -569,8 +576,6 @@ struct MergeSplit: public State
                 move_node(v, rt[1], true);
             }
         }
-
-        assert(get_wr(rt[0]) > 0 && get_wr(rt[1]) > 0);
 
         if (allow_empty && vs.size() == 1)
             rt[1] = State::sample_new_group(vs.front(), rng_);
@@ -809,7 +814,6 @@ struct MergeSplit: public State
             assert(!std::isnan(lp));
         }
 
-        assert(get_wr(r) > 0 && get_wr(s) > 0);
         assert(!std::isnan(lp));
 
         return lp;
@@ -822,6 +826,8 @@ struct MergeSplit: public State
 
     double merge(const Group& r, Group& s)
     {
+        assert(r != s);
+
         double dS = 0;
 
         std::vector<Node> vrs;
@@ -946,6 +952,7 @@ struct MergeSplit: public State
         _vs.clear();
         _nmoves = 0;
 
+        check_rlist();
         auto move = _move_sampler.sample(rng);
 
         switch (move)
@@ -975,6 +982,7 @@ struct MergeSplit: public State
 
         case move_t::split:
             {
+                check_rlist();
                 auto r = uniform_sample(_rlist, rng);
 
                 if (get_wr(r) < 2 && !allow_empty)
@@ -1014,13 +1022,14 @@ struct MergeSplit: public State
                     _bnext[v] = State::get_group(v);
 
                 pop_b();
-
+                check_rlist();
                 State::relax_update(false);
             }
             break;
 
         case move_t::merge:
             {
+                check_rlist();
                 if (_rlist.size() == 1 && !allow_empty)
                 {
                     move = move_t::null;
@@ -1028,6 +1037,8 @@ struct MergeSplit: public State
                 }
                 auto r = uniform_sample(_rlist, rng);
                 auto s = sample_move(r, rng);
+                auto r_ = r;
+                auto s_ = s;
                 if (s == r || !allow_merge(r, s))
                 {
                     move = move_t::null;
@@ -1062,11 +1073,13 @@ struct MergeSplit: public State
 
                 pop_b();
 
+                check_rlist();
+
                 State::relax_update(false);
 
                 if (_verbose)
-                    cout << "merge proposal: " <<  get_wr(r) << " "
-                         << get_wr(s) << " " << _dS << " " << pb << " " << pf
+                    cout << "merge proposal: " <<  get_wr(r_) << " "
+                         << get_wr(s_) << " " << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
             }
             break;
@@ -1078,6 +1091,8 @@ struct MergeSplit: public State
                     move = move_t::null;
                     break;
                 }
+
+                check_rlist();
 
                 auto r = uniform_sample(_rlist, rng);
 
@@ -1108,6 +1123,7 @@ struct MergeSplit: public State
                 pb += get<3>(ret);
 
                 ret = sample_split(s, r, rng);
+                r = get<0>(ret);
                 _dS += get<1>(ret);
                 pf += get<2>(ret);
                 pb += get<3>(ret);
@@ -1123,6 +1139,7 @@ struct MergeSplit: public State
                 while (!_bstack.empty())
                     pop_b();
 
+                check_rlist();
                 State::relax_update(false);
 
                 if (_verbose)
@@ -1134,11 +1151,12 @@ struct MergeSplit: public State
 
         case move_t::movelabel:
             {
+                check_rlist();
                 auto r = uniform_sample(_rlist, rng);
 
                 auto s = State::sample_new_group(*_groups[r].begin(), rng);
 
-                if (!allow_merge(r, s))
+                if (!allow_merge(r, s) || r == s)
                 {
                     move = move_t::null;
                     break;
@@ -1158,6 +1176,7 @@ struct MergeSplit: public State
                     _bnext[v] = State::get_group(v);
 
                 pop_b();
+                check_rlist();
 
                 State::relax_update(false);
 
@@ -1193,6 +1212,8 @@ struct MergeSplit: public State
             _a = _dS * _beta + 1;
         }
 
+        check_rlist();
+
         return {0, _nmoves};
     }
 
@@ -1204,6 +1225,7 @@ struct MergeSplit: public State
 
     void perform_move(const Node&, size_t)
     {
+        check_rlist();
         for (const auto& v : _vs)
         {
             auto r = State::get_group(v);
@@ -1219,6 +1241,7 @@ struct MergeSplit: public State
             if (get_wr(r) == 0)
                 _rlist.erase(r);
         }
+        check_rlist();
 
         State::_nacceptance[size_t(_move)]++;
     }
