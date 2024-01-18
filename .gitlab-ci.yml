@@ -223,23 +223,42 @@ build_jammy_git:
     BASE: ubuntu:jammy
     PLATFORM: amd64
 
-build_kinetic:
+build_lunar:
   extends: .build_deb
   variables:
-    BASE: ubuntu:kinetic
+    BASE: ubuntu:lunar
     PLATFORM: amd64
 
-build_kinetic_arm:
+build_lunar_arm:
   extends: .build_deb
   variables:
-    BASE: ubuntu:kinetic
+    BASE: ubuntu:lunar
     PLATFORM: arm64
-  needs: ["build_kinetic"]
+  needs: ["build_lunar"]
 
-build_kinetic_git:
+build_lunar_git:
   extends: .build_deb_git
   variables:
-    BASE: ubuntu:kinetic
+    BASE: ubuntu:lunar
+    PLATFORM: amd64
+
+build_mantic:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:mantic
+    PLATFORM: amd64
+
+build_mantic_arm:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:mantic
+    PLATFORM: arm64
+  needs: ["build_mantic"]
+
+build_mantic_git:
+  extends: .build_deb_git
+  variables:
+    BASE: ubuntu:mantic
     PLATFORM: amd64
 
 build_docker:
