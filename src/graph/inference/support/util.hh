@@ -35,7 +35,7 @@ inline double lbinom(T1 N, T2 k)
 {
     if (N == 0 || k == 0 || k >= N)
         return 0;
-    return ((std::lgamma(N + 1) - std::lgamma(k + 1)) - std::lgamma(N - k + 1));
+    return ((std::lgamma(N + 1) - std::lgamma(k + 1)) - std::lgamma((N - k) + 1));
 }
 
 template <bool Init=true, class T1, class T2>
@@ -44,7 +44,7 @@ inline double lbinom_fast(T1 N, T2 k)
 {
     if (N == 0 || k == 0 || k >= N)
         return 0;
-    return ((lgamma_fast<Init>(N + 1) - lgamma_fast<Init>(k + 1)) - lgamma_fast<Init>(N - k + 1));
+    return ((lgamma_fast<Init>(N + 1) - lgamma_fast<Init>(k + 1)) - lgamma_fast<Init>((N - k) + 1));
 }
 
 template <class T1, class T2>
