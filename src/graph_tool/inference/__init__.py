@@ -253,6 +253,11 @@ __all__ = ["minimize_blockmodel_dl",
            "PseudoIsingBlockState",
            "CIsingGlauberBlockState",
            "PseudoCIsingBlockState",
+           "PseudoNormalBlockState",
+           "LinearNormalBlockState",
+           "NormalGlauberBlockState",
+           "LVBlockState",
+           "VoterBlockState",
            "LatentLayerBaseState",
            "LatentClosureBlockState",
            "MeasuredClosureBlockState",
@@ -311,6 +316,7 @@ from . overlap_blockmodel import *
 from . layered_blockmodel import *
 from . nested_blockmodel import *
 from . uncertain_blockmodel import *
+from . reconstruction import *
 from . mcmc import *
 from . minimize import *
 from . blockmodel_em import *

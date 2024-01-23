@@ -1,0 +1,181 @@
+// graph-tool -- a general graph modification and manipulation thingy
+//
+// Copyright (C) 2006-2023 Tiago de Paula Peixoto <tiago@skewed.de>
+//
+// This program is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option) any
+// later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+#include "graph.hh"
+#include "graph_filtering.hh"
+#include "graph_util.hh"
+#include "numpy_bind.hh"
+
+#include "graph_selectors.hh"
+#include "graph_properties.hh"
+#include "graph_python_interface.hh"
+
+#include "graph_gaussian_bp.hh"
+
+#include "random.hh"
+
+
+using namespace std;
+using namespace boost;
+using namespace graph_tool;
+
+python::object make_gaussian_bp_state(GraphInterface& gi, boost::any ax,
+                                      boost::any amu, boost::any atheta,
+                                      boost::any aem_m, boost::any aem_s,
+                                      boost::any avm_m, boost::any avm_s,
+                                      bool marginal_init, rng_t& rng)
+{
+    GaussianBPState::emap_t x =
+        boost::any_cast<GaussianBPState::emap_t::checked_t>(ax).get_unchecked();
+    GaussianBPState::vmap_t mu =
+        boost::any_cast<GaussianBPState::vmap_t::checked_t>(amu).get_unchecked();
+    GaussianBPState::vmap_t theta =
+        boost::any_cast<GaussianBPState::vmap_t::checked_t>(atheta).get_unchecked();
+    GaussianBPState::emmap_t em_m =
+        boost::any_cast<GaussianBPState::emmap_t::checked_t>(aem_m).get_unchecked();
+    GaussianBPState::emmap_t em_s =
+        boost::any_cast<GaussianBPState::emmap_t::checked_t>(aem_s).get_unchecked();
+    GaussianBPState::vmap_t vm_m =
+        boost::any_cast<GaussianBPState::vmap_t::checked_t>(avm_m).get_unchecked();
+    GaussianBPState::vmap_t vm_s =
+        boost::any_cast<GaussianBPState::vmap_t::checked_t>(avm_s).get_unchecked();
+
+    python::object state;
+    run_action<>()
+        (gi,
+         [&](auto& g)
+         {
+             state = python::object(GaussianBPState(g, x, mu, theta, em_m, em_s,
+                                                    vm_m, vm_s, marginal_init,
+                                                    rng));
+         })();
+    return state;
+}
+
+#define __MOD__ dynamics
+#include "module_registry.hh"
+REGISTER_MOD
+([]
+ {
+     python::class_<GaussianBPState>("GaussianBPState", python::no_init)
+         .def("iterate",
+              +[](GaussianBPState& state, GraphInterface& gi, size_t niter)
+              {
+                  double delta = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           delta = state.iterate(g, niter);
+                       })();
+                  return delta;
+              })
+         .def("iterate_parallel",
+              +[](GaussianBPState& state, GraphInterface& gi, size_t niter)
+              {
+                  double delta = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           delta = state.iterate_parallel(g, niter);
+                       })();
+                  return delta;
+              })
+         .def("update_marginals",
+              +[](GaussianBPState& state, GraphInterface& gi)
+              {
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           state.update_marginals(g);
+                       })();
+              })
+         .def("log_Z",
+              +[](GaussianBPState& state, GraphInterface& gi)
+              {
+                  double lZ = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           lZ = state.log_Z(g);
+                       })();
+                  return lZ;
+              })
+         .def("energy",
+              +[](GaussianBPState& state, GraphInterface& gi, boost::any as)
+              {
+                  double H = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto& s)
+                       {
+                           H = state.energy(g, s);
+                       }, vertex_scalar_properties())(as);
+                  return H;
+              })
+         .def("energies",
+              +[](GaussianBPState& state, GraphInterface& gi, boost::any as)
+              {
+                  double H = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto& s)
+                       {
+                           H = state.energies(g, s);
+                       }, vertex_scalar_vector_properties())(as);
+                  return H;
+              })
+         .def("marginal_lprob",
+              +[](GaussianBPState& state, GraphInterface& gi, boost::any as)
+              {
+                  double L = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto& s)
+                       {
+                           L = state.marginal_lprob(g, s);
+                       }, vertex_scalar_properties())(as);
+                  return L;
+              })
+         .def("marginal_lprobs",
+              +[](GaussianBPState& state, GraphInterface& gi, boost::any as)
+              {
+                  double L = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto& s)
+                       {
+                           L = state.marginal_lprobs(g, s);
+                       }, vertex_scalar_vector_properties())(as);
+                  return L;
+              })
+         .def("sample",
+              +[](GaussianBPState& state, GraphInterface& gi, boost::any as, rng_t& rng)
+              {
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto& s)
+                       {
+                           state.sample(g, s, rng);
+                       }, writable_vertex_scalar_properties())(as);
+              });
+
+     def("make_gaussian_bp_state", &make_gaussian_bp_state);
+});

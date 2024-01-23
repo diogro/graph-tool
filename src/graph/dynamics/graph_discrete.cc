@@ -219,6 +219,15 @@ REGISTER_MOD
      export_state<boolean_state>();
      def("make_boolean_state", &make_state<boolean_state>);
 
+     export_state<generalized_binary_state>();
+     def("make_generalized_binary_state", &make_state<generalized_binary_state>);
+
      export_state<kirman_state>();
      def("make_kirman_state", &make_state<kirman_state>);
- });
+
+     export_state<normal_state>();
+     def("make_normal_state", &make_state<normal_state>);
+
+     export_state<linear_normal_state>();
+     def("make_linear_normal_state", &make_state<linear_normal_state>);
+});

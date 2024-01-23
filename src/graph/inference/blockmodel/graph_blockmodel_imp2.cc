@@ -22,7 +22,7 @@
 
 #include "graph_blockmodel_util.hh"
 #include "graph_blockmodel.hh"
-#include "../uncertain/graph_blockmodel_sample_edge.hh"
+#include "../uncertain/sample_edge_sbm.hh"
 #include "../support/graph_state.hh"
 
 using namespace boost;
@@ -121,6 +121,26 @@ REGISTER_MOD
                       +[](edge_sampler_t& es, size_t u, size_t v, size_t m)
                       {
                           return es.log_prob(u, v, m, 0);
+                      })
+                 .def("sample_out_neighbor",
+                      +[](edge_sampler_t& es, size_t v, rng_t& rng)
+                      {
+                          return es.sample_out_neighbor(v, rng);
+                      })
+                 .def("log_prob_out",
+                      +[](edge_sampler_t& es, size_t v, size_t u)
+                      {
+                          return es.log_prob_out(v, u);
+                      })
+                 .def("sample_in_neighbor",
+                      +[](edge_sampler_t& es, size_t v, rng_t& rng)
+                      {
+                          return es.sample_in_neighbor(v, rng);
+                      })
+                 .def("log_prob_in",
+                      +[](edge_sampler_t& es, size_t v, size_t u)
+                      {
+                          return es.log_prob_in(v, u);
                       });
          });
 }, 0);

@@ -267,10 +267,14 @@ libgraph_tool_dynamics_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_dynamics_la_SOURCES = \
 	src/graph/dynamics/graph_continuous.cc \
 	src/graph/dynamics/graph_discrete.cc \
-	src/graph/dynamics/graph_dynamics.cc
+	src/graph/dynamics/graph_dynamics.cc \
+	src/graph/dynamics/graph_gaussian_bp.cc \
+	src/graph/dynamics/graph_potts_bp.cc
 libgraph_tool_dynamics_la_include_HEADERS = \
 	src/graph/dynamics/graph_continuous.hh \
-	src/graph/dynamics/graph_discrete.hh
+	src/graph/dynamics/graph_discrete.hh \
+	src/graph/dynamics/graph_gaussian_bp.hh \
+	src/graph/dynamics/graph_potts_bp.hh
 
 ###################
 # src/graph/flow/ #
@@ -354,7 +358,7 @@ libgraph_tool_generation_la_include_HEADERS = \
 libgraph_tool_inferencedir = $(MOD_DIR)/inference
 libgraph_tool_inference_LTLIBRARIES = libgraph_tool_inference.la
 libgraph_tool_inference_la_includedir = $(MOD_DIR)/include/inference
-libgraph_tool_inference_la_LIBADD = $(MOD_LIBADD)
+libgraph_tool_inference_la_LIBADD = $(MOD_LIBADD) libgraph_tool_inference_fast.la
 libgraph_tool_inference_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/graph_blockmodel.cc \
@@ -435,34 +439,55 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/ranked/graph_ranked_gibbs.cc \
 	src/graph/inference/ranked/graph_ranked_multiflip_mcmc.cc \
 	src/graph/inference/ranked/graph_ranked_multilevel_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_epidemics.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_epidemics_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_epidemics_mcmc_r.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_cising_glauber.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_cising_glauber_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_cising_glauber_mcmc_h.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_ising_glauber.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_ising_glauber_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_ising_glauber_mcmc_h.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_cising.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_cising_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_cising_mcmc_h.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_ising.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc_h.cc \
-	src/graph/inference/uncertain/graph_blockmodel_latent_closure.cc \
-	src/graph/inference/uncertain/graph_blockmodel_latent_closure_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_measured.cc \
-	src/graph/inference/uncertain/graph_blockmodel_measured_mcmc.cc \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain.cc \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain_marginal.cc \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/dynamics.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_parallel_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_parallel_mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_parallel_swap_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/cising_glauber/state.cc \
+	src/graph/inference/uncertain/dynamics/epidemics/state.cc \
+	src/graph/inference/uncertain/dynamics/ising_glauber/state.cc \
+	src/graph/inference/uncertain/dynamics/linear_normal/state.cc \
+	src/graph/inference/uncertain/dynamics/lotka_volterra/state.cc \
+	src/graph/inference/uncertain/dynamics/normal_glauber/state.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_cising/state.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_ising/state.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_normal/state.cc \
+	src/graph/inference/uncertain/dynamics/voter/state.cc \
+	src/graph/inference/uncertain/latent_closure.cc \
+	src/graph/inference/uncertain/latent_closure_mcmc.cc \
+	src/graph/inference/uncertain/measured.cc \
+	src/graph/inference/uncertain/measured_mcmc.cc \
+	src/graph/inference/uncertain/uncertain.cc \
+	src/graph/inference/uncertain/uncertain_marginal.cc \
+	src/graph/inference/uncertain/uncertain_mcmc.cc \
 	src/graph/inference/support/cache.cc \
 	src/graph/inference/support/int_part.cc \
 	src/graph/inference/support/spence.cc \
 	src/graph/inference/graph_inference.cc \
 	src/graph/inference/graph_latent_multigraph.cc \
 	src/graph/inference/graph_modularity.cc
+
+noinst_LTLIBRARIES = libgraph_tool_inference_fast.la
+libgraph_tool_inference_fast_la_includedir = $(MOD_DIR)/include/inference
+libgraph_tool_inference_fast_la_LIBADD = $(MOD_LIBADD)
+libgraph_tool_inference_fast_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_inference_fast_la_CXXFLAGS = -ffast-math -funswitch-loops
+libgraph_tool_inference_fast_la_SOURCES = \
+	src/graph/inference/uncertain/dynamics/epidemics/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/cising_glauber/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/ising_glauber/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_cising/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_ising/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_normal/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/linear_normal/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/lotka_volterra/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/normal_glauber/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/voter/base_vec.cc
 
 graph_inference_blockmodeldir = $(MOD_DIR)/include/inference/blockmodel
 dist_graph_inference_blockmodel_HEADERS = \
@@ -536,21 +561,40 @@ dist_graph_inference_layers_HEADERS = \
 
 graph_inference_uncertaindir = $(MOD_DIR)/include/inference/uncertain
 dist_graph_inference_uncertain_HEADERS = \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics.hh \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_continuous.hh \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_discrete.hh \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_epidemics_mcmc_h.hh \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_mcmc.hh \
-	src/graph/inference/uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc_h.hh \
-	src/graph/inference/uncertain/graph_blockmodel_latent_closure.hh \
-	src/graph/inference/uncertain/graph_blockmodel_latent_layers.hh \
-	src/graph/inference/uncertain/graph_blockmodel_latent_layers_mcmc.hh \
-	src/graph/inference/uncertain/graph_blockmodel_measured.hh \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain.hh \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain_marginal.hh \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain_mcmc.hh \
-	src/graph/inference/uncertain/graph_blockmodel_uncertain_util.hh \
-	src/graph/inference/uncertain/graph_blockmodel_sample_edge.hh
+	src/graph/inference/uncertain/dynamics/dynamics.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_base.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_discrete.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_util.hh \
+	src/graph/inference/uncertain/dynamics/segment_sampler.hh \
+    src/graph/inference/uncertain/latent_closure.hh \
+	src/graph/inference/uncertain/latent_layers.hh \
+	src/graph/inference/uncertain/latent_layers_mcmc.hh \
+	src/graph/inference/uncertain/measured.hh \
+	src/graph/inference/uncertain/uncertain.hh \
+	src/graph/inference/uncertain/uncertain_marginal.hh \
+	src/graph/inference/uncertain/uncertain_mcmc.hh \
+	src/graph/inference/uncertain/uncertain_util.hh \
+	src/graph/inference/uncertain/sample_edge.hh \
+	src/graph/inference/uncertain/sample_edge_sbm.hh
+
+noinst_HEADERS = \
+	src/graph/inference/uncertain/dynamics/cising_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/epidemics/setup.hh \
+	src/graph/inference/uncertain/dynamics/ising_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/linear_normal/setup.hh \
+	src/graph/inference/uncertain/dynamics/lotka_volterra/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_cising/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_ising/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_normal/setup.hh \
+	src/graph/inference/uncertain/dynamics/normal_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/voter/setup.hh
 
 graph_inference_loopsdir = $(MOD_DIR)/include/inference/loops
 dist_graph_inference_loops_HEADERS = \
@@ -801,6 +845,7 @@ graph_tool_inference_PYTHON = \
 	src/graph_tool/inference/nested_blockmodel.py \
 	src/graph_tool/inference/overlap_blockmodel.py \
 	src/graph_tool/inference/uncertain_blockmodel.py \
+	src/graph_tool/inference/reconstruction.py \
 	src/graph_tool/inference/mcmc.py \
 	src/graph_tool/inference/minimize.py \
 	src/graph_tool/inference/modularity.py \
@@ -831,7 +876,8 @@ graph_tool_spectral_PYTHON = \
 graph_tool_spectraldir = $(MOD_DIR)/spectral
 
 graph_tool_dynamics_PYTHON = \
-	src/graph_tool/dynamics/__init__.py
+	src/graph_tool/dynamics/__init__.py \
+	src/graph_tool/dynamics/bp.py
 graph_tool_dynamicsdir = $(MOD_DIR)/dynamics
 
 graph_tool_search_PYTHON = \

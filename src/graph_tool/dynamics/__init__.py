@@ -50,6 +50,8 @@ Discrete-time dynamics
    AxelrodState
    BooleanState
    KirmanState
+   NormalState
+   LinearNormalState
 
 Continuous-time dynamics
 ========================
@@ -61,6 +63,18 @@ Continuous-time dynamics
 
    ContinuousStateBase
    KuramotoState
+
+Belief propagation
+==================
+
+.. autosummary::
+   :nosignatures:
+   :toctree: autosummary
+   :template: class.rst
+
+   GenPottsBPState
+   IsingBPState
+   GaussianBPState
 
 
 Contents
@@ -80,12 +94,15 @@ import scipy.integrate
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_dynamics as lib_dynamics")
 
+from . bp import *
+
 __all__ = ["DiscreteStateBase", "EpidemicStateBase", "SIState", "SISState",
            "SIRState", "SIRSState", "VoterState", "MajorityVoterState",
            "BinaryThresholdState", "IsingGlauberState", "CIsingGlauberState",
            "IsingMetropolisState", "PottsGlauberState", "PottsMetropolisState",
-           "AxelrodState", "BooleanState", "KirmanState", "ContinuousStateBase",
-           "KuramotoState"]
+           "AxelrodState", "BooleanState", "KirmanState", "NormalState",
+           "LinearNormalState", "GeneralizedBinaryState", "ContinuousStateBase",
+           "KuramotoState", "GenPottsBPState", "IsingBPState", "GaussianBPState"]
 
 class DiscreteStateBase(object):
     def __init__(self, g, make_state, params, s=None, stype="int32_t"):
@@ -105,13 +122,13 @@ class DiscreteStateBase(object):
 
     def copy(self):
         """Return a copy of the state."""
-        return type(self)(self.g, s=self.s.copy(), **self.params)
+        return type(self)(**self.__getstate__())
 
-    def __setstate__(self):
+    def __getstate__(self):
         return dict(g=self.g, s=self.s, params=self.params)
 
-    def __getstate__(self, state):
-        return type(self)(state["g"], s=state["s"], **state["params"])
+    def __setstate__(self, state):
+        self.__init__(**state)
 
     def get_state(self):
         """Returns the internal :class:`~graph_tool.VertexPropertyMap` with the current
@@ -1442,6 +1459,19 @@ class KirmanState(DiscreteStateBase):
                                    lib_dynamics.make_kirman_state,
                                    dict(d=d, c1=c1, c2=c2), s)
 
+class GeneralizedBinaryState(DiscreteStateBase):
+    def __init__(self, g, f, r, s=None):
+
+        self.f = numpy.asarray(f, dtype="float")
+        self.r = numpy.asarray(r, dtype="float")
+
+        if s is None:
+            s = g.new_vp("int32_t", vals=numpy.random.randint(0, 2, g.num_vertices()))
+
+        DiscreteStateBase.__init__(self, g,
+                                   lib_dynamics.make_generalized_binary_state,
+                                   dict(f=self.f, r=self.r), s)
+
 class AxelrodState(DiscreteStateBase):
     def __init__(self, g, f=10, q=2, r=0, s=None):
         r"""Axelrod's culture dissemination model.
@@ -1607,6 +1637,41 @@ class BooleanState(DiscreteStateBase):
                                    dict(f=f, p=p, r=r), s,
                                    stype="bool")
 
+class NormalState(DiscreteStateBase):
+    def __init__(self, g, w=0, h=1, s=None):
+        if isinstance(w, PropertyMap):
+            if w.value_type() != "double":
+                w = w.copy("double")
+        else:
+            w = g.new_ep("double", val=w)
+        if isinstance(h, PropertyMap):
+            if h.value_type() != "double":
+                h = h.copy("double")
+        else:
+            h = g.new_vp("double", val=h)
+        if s is None:
+            s = g.new_vp("double")
+        DiscreteStateBase.__init__(self, g,
+                                   lib_dynamics.make_normal_state,
+                                   dict(w=w, h=h), s, stype="double")
+
+class LinearNormalState(DiscreteStateBase):
+    def __init__(self, g, w=0, h=1, s=None):
+        if isinstance(w, PropertyMap):
+            if w.value_type() != "double":
+                w = w.copy("double")
+        else:
+            w = g.new_ep("double", val=w)
+        if isinstance(h, PropertyMap):
+            if h.value_type() != "double":
+                h = h.copy("double")
+        else:
+            h = g.new_vp("double", val=h)
+        if s is None:
+            s = g.new_vp("double")
+        DiscreteStateBase.__init__(self, g,
+                                   lib_dynamics.make_linear_normal_state,
+                                   dict(w=w, h=h), s, stype="double")
 
 class ContinuousStateBase(object):
     def __init__(self, g, make_state, params, t0=0, s=None, stype="double"):
@@ -1625,14 +1690,14 @@ class ContinuousStateBase(object):
                                  _prop("v", g, self.s_diff), params, _get_rng())
 
     def copy(self):
-        r"""Copy state."""
-        return type(self)(g, s=self.s.copy(), **self.params)
+        """Return a copy of the state."""
+        return type(self)(**self.__getstate__())
 
-    def __setstate__(self):
+    def __getstate__(self):
         return dict(g=self.g, s=self.s, params=self.params)
 
-    def __getstate__(self, state):
-        return type(self)(state["g"], s=state["s"], **state["params"])
+    def __setstate__(self, state):
+        self.__init__(**state)
 
     def get_state(self):
         r"""Returns the internal :class:`~graph_tool.VertexPropertyMap` with the current

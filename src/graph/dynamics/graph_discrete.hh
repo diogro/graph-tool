@@ -766,6 +766,59 @@ private:
     double _c2;
 };
 
+class generalized_binary_state: public discrete_state_base<>
+{
+public:
+
+    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+
+    template <class Graph, class RNG>
+    generalized_binary_state(Graph& g, smap_t s, smap_t s_temp,
+                             python::dict params, RNG&)
+        : discrete_state_base(s, s_temp),
+          _f(get_array<double,2>(params["f"])),
+          _r(get_array<double,2>(params["r"]))
+    {
+        for (auto v : vertices_range(g))
+        {
+            auto k = (graph_tool::is_directed(g)) ?
+                in_degreeS()(v, g) : out_degree(v, g);
+            if (_f.shape()[0] < k || _f.shape()[1] < k)
+                throw ValueException("f matrix should have dimensions at least as large as the largest (in-)degree");
+            if (_r.shape()[0] < k || _r.shape()[1] < k)
+                throw ValueException("r matrix should have dimensions at least as large as the largest (in-)degree");
+        }
+    };
+
+    template <bool sync, class Graph, class RNG>
+    bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
+    {
+        auto s = _s[v];
+
+        size_t m = 0, k = 0;
+        for (auto e : in_or_out_edges_range(v, g))
+        {
+            m += _s[source(e, g)];
+            k++;
+        }
+
+        double p = (s == 0) ? _f[m][k] : _r[m][k];
+
+        std::bernoulli_distribution coin(p);
+
+        auto t = coin(rng);
+
+        s_out[v] = t;
+
+        return s != t;
+    }
+
+private:
+    multi_array_ref<double,2> _f;
+    multi_array_ref<double,2> _r;
+};
+
+
 class potts_glauber_state: public discrete_state_base<>
 {
 public:
@@ -1015,6 +1068,84 @@ private:
 
     fmap_t _f;
     double _r;
+};
+
+
+class normal_state: public discrete_state_base<double>
+{
+public:
+
+    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+
+    template <class Graph, class RNG>
+    normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
+        : discrete_state_base(s, s_temp),
+          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()) {}
+
+    template <bool sync, class Graph, class RNG>
+    bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
+    {
+        auto s = _s[v];
+        auto sigma = _h[v];
+        double t;
+
+        double m = 0;
+        for (auto e : in_or_out_edges_range(v, g))
+            m += _w[e] * _s[source(e, g)];
+
+        double a = -m * sigma * sigma;
+
+        std::normal_distribution d{a, sigma};
+        s_out[v] = t = d(rng);
+
+        return t != s;
+    }
+
+private:
+
+    wmap_t _w;
+    hmap_t _h;
+};
+
+class linear_normal_state: public discrete_state_base<double>
+{
+public:
+
+    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+
+    template <class Graph, class RNG>
+    linear_normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
+        : discrete_state_base(s, s_temp),
+          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()) {}
+
+    template <bool sync, class Graph, class RNG>
+    bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
+    {
+        auto s = _s[v];
+        auto sigma = _h[v];
+        double t;
+
+        double m = 0;
+        for (auto e : in_or_out_edges_range(v, g))
+            m += _w[e] * _s[source(e, g)];
+
+        double a = s + m;
+
+        std::normal_distribution d{a, sigma};
+
+        s_out[v] = t = d(rng);
+
+        return t != s;
+    }
+
+private:
+
+    wmap_t _w;
+    hmap_t _h;
 };
 
 template <class Graph, class State, class RNG>
