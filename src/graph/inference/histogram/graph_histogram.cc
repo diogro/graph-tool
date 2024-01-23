@@ -29,16 +29,6 @@ using namespace graph_tool;
 template <template <class T> class VT>
 GEN_DISPATCH(hist_state, HistD<VT>::template HistState, HIST_STATE_params)
 
-template <size_t n>
-struct va_t
-{
-    template <class T>
-    using type = std::array<T, n>;
-};
-
-template <class T>
-using Vec = std::vector<T>;
-
 python::object make_hist_state(boost::python::object ostate, size_t D)
 {
     python::object state;
@@ -46,32 +36,38 @@ python::object make_hist_state(boost::python::object ostate, size_t D)
     {
     case 1:
         {
-            hist_state<va_t<1>::type>::make_dispatch(ostate,
-                                                     [&](auto& s){state = python::object(s);});
+            hist_state<HVa<1>::type>::make_dispatch(ostate,
+                                                    [&](auto& s){state = python::object(s);});
         }
         break;
     case 2:
         {
-            hist_state<va_t<2>::type>::make_dispatch(ostate,
-                                                     [&](auto& s){state = python::object(s);});
+            hist_state<HVa<2>::type>::make_dispatch(ostate,
+                                                    [&](auto& s){state = python::object(s);});
         }
         break;
     case 3:
         {
-            hist_state<va_t<3>::type>::make_dispatch(ostate,
-                                                     [&](auto& s){state = python::object(s);});
+            hist_state<HVa<3>::type>::make_dispatch(ostate,
+                                                    [&](auto& s){state = python::object(s);});
         }
         break;
     case 4:
         {
-            hist_state<va_t<4>::type>::make_dispatch(ostate,
-                                                     [&](auto& s){state = python::object(s);});
+            hist_state<HVa<4>::type>::make_dispatch(ostate,
+                                                    [&](auto& s){state = python::object(s);});
+        }
+        break;
+    case 5:
+        {
+            hist_state<HVa<5>::type>::make_dispatch(ostate,
+                                                    [&](auto& s){state = python::object(s);});
         }
         break;
     default:
         {
-            hist_state<Vec>::make_dispatch(ostate,
-                                           [&](auto& s){state = python::object(s);});
+            hist_state<HVec>::make_dispatch(ostate,
+                                            [&](auto& s){state = python::object(s);});
         }
     }
     return state;
@@ -86,11 +82,29 @@ void dispatch_state_def(State*)
         c(name_demangle(typeid(State).name()).c_str(),
           no_init);
     c.def("entropy", &State::entropy)
-        .def("get_mle_lpdf",
-             +[](State& state, python::object xo)
+        .def("get_x",
+             +[](State& state)
+             {
+                 auto& x = state.get_x();
+                 return wrap_multi_array_not_owned(x);
+             })
+        .def("get_w",
+             +[](State& state)
+             {
+                 auto& w = state.get_w();
+                 return wrap_vector_not_owned(w);
+             })
+        .def("get_lpdf",
+             +[](State& state, python::object xo, bool mle)
              {
                  auto x = get_array<typename State::value_t, 1>(xo);
-                 return state.get_mle_lpdf(x);
+                 return state.get_lpdf(x, mle);
+             })
+        .def("get_cond_mean",
+             +[](State& state, python::object xo, size_t mean_j, bool mle)
+             {
+                 auto x = get_array<typename State::value_t, 1>(xo);
+                 return state.get_cond_mean(x, mean_j, mle);
              })
         .def("sample",
              +[](State& state, size_t n, python::object cxo, rng_t& rng)
@@ -98,7 +112,31 @@ void dispatch_state_def(State*)
                  auto cx = get_array<typename State::value_t, 1>(cxo);
                  auto x = state.sample(n, cx, rng);
                  return wrap_multi_array_owned(x);
-             });
+             })
+        .def("replace_point_dS",
+             +[](State& state, size_t pos, python::object xo)
+             {
+                 auto x = get_array<typename State::value_t, 1>(xo);
+                 return state.virtual_replace_point_dS(pos, x);
+             })
+        .def("replace_point",
+             +[](State& state, size_t pos, size_t w, python::object xo)
+             {
+                 auto x = get_array<typename State::value_t, 1>(xo);
+                 state.replace_point(pos, x, w);
+             })
+        .def("add_point",
+             +[](State& state, size_t pos, size_t w, python::object xo)
+             {
+                 auto x = get_array<typename State::value_t, 1>(xo);
+                 state.template modify_point<true, true>(pos, x, w);
+             })
+        .def("remove_point",
+             +[](State& state, size_t pos)
+             {
+                 state.template modify_point<false, false>(pos);
+             })
+        .def("trim_points", &State::trim_points);
 }
 
 #define __MOD__ inference
@@ -110,23 +148,27 @@ REGISTER_MOD
     def("make_hist_state", &make_hist_state);
 
     {
-        hist_state<va_t<1>::type>::dispatch
+        hist_state<HVa<1>::type>::dispatch
             ([&](auto* s){ dispatch_state_def(s);});
     }
     {
-        hist_state<va_t<2>::type>::dispatch
+        hist_state<HVa<2>::type>::dispatch
             ([&](auto* s){ dispatch_state_def(s);});
     }
     {
-        hist_state<va_t<3>::type>::dispatch
+        hist_state<HVa<3>::type>::dispatch
             ([&](auto* s){ dispatch_state_def(s);});
     }
     {
-        hist_state<va_t<4>::type>::dispatch
+        hist_state<HVa<4>::type>::dispatch
             ([&](auto* s){ dispatch_state_def(s);});
     }
     {
-        hist_state<Vec>::dispatch
+        hist_state<HVa<5>::type>::dispatch
+            ([&](auto* s){ dispatch_state_def(s);});
+    }
+    {
+        hist_state<HVec>::dispatch
             ([&](auto* s){ dispatch_state_def(s);});
     }
 });

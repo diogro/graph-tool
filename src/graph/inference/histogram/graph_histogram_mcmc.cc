@@ -34,16 +34,6 @@ template <class State>
 GEN_DISPATCH(mcmc_hist_state, MCMC<State>::template MCMCHistState,
              MCMC_HIST_STATE_params(State))
 
-template <size_t n>
-struct va_t
-{
-    template <class T>
-    using type = std::array<T, n>;
-};
-
-template <class T>
-using Vec = std::vector<T>;
-
 python::object hist_mcmc_sweep(python::object omcmc_state,
                                python::object ohist_state,
                                size_t D,
@@ -69,27 +59,32 @@ python::object hist_mcmc_sweep(python::object omcmc_state,
     {
     case 1:
         {
-            hist_state<va_t<1>::type>::dispatch(ohist_state, dispatch);
+            hist_state<HVa<1>::type>::dispatch(ohist_state, dispatch);
         }
         break;
     case 2:
         {
-            hist_state<va_t<2>::type>::dispatch(ohist_state, dispatch);
+            hist_state<HVa<2>::type>::dispatch(ohist_state, dispatch);
         }
         break;
     case 3:
         {
-            hist_state<va_t<3>::type>::dispatch(ohist_state, dispatch);
+            hist_state<HVa<3>::type>::dispatch(ohist_state, dispatch);
         }
         break;
     case 4:
         {
-            hist_state<va_t<4>::type>::dispatch(ohist_state, dispatch);
+            hist_state<HVa<4>::type>::dispatch(ohist_state, dispatch);
+        }
+        break;
+    case 5:
+        {
+            hist_state<HVa<5>::type>::dispatch(ohist_state, dispatch);
         }
         break;
     default:
         {
-            hist_state<Vec>::dispatch(ohist_state, dispatch);
+            hist_state<HVec>::dispatch(ohist_state, dispatch);
         }
     }
 
