@@ -136,11 +136,16 @@ for directed in [True, False]:
         g.set_directed(directed)
         state = LatentMultigraphBlockState(g, state_args=dict(deg_corr=deg_corr))
         for i in range(1000):
-            state.multiflip_mcmc_sweep(niter=10)
-        print(state)
-        esampler = state.bstate._state.get_edge_sampler(False)
+            state.mcmc_sweep(niter=10)
+        state = state.bstate
+        esampler = state._state.get_edge_sampler(False)
 
         ecount = defaultdict(int)
+        for u in g.vertices():
+            for v in g.vertices():
+                if not directed and v < u:
+                    continue
+                ecount[(int(u), int(v))] = 0
         for i in range(10000000):
             u, v = esampler.sample(graph_tool._get_rng())
             if v < u and not directed:
@@ -154,19 +159,95 @@ for directed in [True, False]:
         for e, c in ecount.items():
             p = log(c)-log(N)
             u, v = e
-            e = state.bstate.g.edge(u, v)
+            e = state.g.edge(u, v)
             if e is None:
                 m = 0
             else:
-                m = state.bstate.eweight[e]
+                m = state.eweight[e]
             Le = esampler.log_prob(u, v, m)
             Lp.append(Le)
             Ls.append(p)
+
+        print("Norm computed:", scipy.special.logsumexp(Lp))
+        print("Norm measured:", scipy.special.logsumexp(Ls))
 
         clf()
         plot(Ls, Lp, "o")
         plot(Ls, Ls, "-")
         savefig(f"test_mcmc/test_mcmc_edge_sample_directed{directed}_deg_corr{deg_corr}.pdf")
+
+for directed in [True, False]:
+    for deg_corr in [True, False]:
+        print(f"test out neighbor sampling directed={directed}, deg_corr={deg_corr}...")
+
+        g = collection.data["football"]
+        g.set_directed(directed)
+        state = LatentMultigraphBlockState(g, state_args=dict(deg_corr=deg_corr))
+        for i in range(1000):
+            state.mcmc_sweep(niter=10)
+        state = state.bstate.copy()
+        esampler = state._state.get_edge_sampler(False)
+
+        Lp = []
+        Ls = []
+
+        for v in g.vertices():
+            vcount = zeros(g.num_vertices())
+            for i in range(100000):
+                u = esampler.sample_out_neighbor(int(v), graph_tool._get_rng())
+                vcount[int(u)] += 1
+
+            N = vcount.sum()
+
+            for u, c in enumerate(vcount):
+                p = log(c)-log(N)
+                Le = esampler.log_prob_out(v, u)
+                Lp.append(Le)
+                Ls.append(p)
+
+        print("Norm computed:", scipy.special.logsumexp(Lp)-log(g.num_vertices()))
+        print("Norm measured:", scipy.special.logsumexp(Ls)-log(g.num_vertices()))
+
+        clf()
+        plot(Ls, Lp, "o")
+        plot(Ls, Ls, "-")
+        savefig(f"test_mcmc/test_mcmc_out_neighbor_sample_directed{directed}_deg_corr{deg_corr}.pdf")
+
+        if directed:
+            print(f"test in neighber sampling directed={directed}, deg_corr={deg_corr}...")
+
+            g = collection.data["football"]
+            g.set_directed(directed)
+            state = LatentMultigraphBlockState(g, state_args=dict(deg_corr=deg_corr))
+            for i in range(1000):
+                state.mcmc_sweep(niter=10)
+            state = state.bstate
+            esampler = state._state.get_edge_sampler(False)
+
+            Lp = []
+            Ls = []
+
+            for v in g.vertices():
+                vcount = zeros(g.num_vertices())
+                for i in range(100000):
+                    u = esampler.sample_in_neighbor(int(v), graph_tool._get_rng())
+                    vcount[int(u)] += 1
+
+                N = vcount.sum()
+
+                for u, c in enumerate(vcount):
+                    p = log(c)-log(N)
+                    Le = esampler.log_prob_in(v, u)
+                    Lp.append(Le)
+                    Ls.append(p)
+
+            print("Norm computed:", scipy.special.logsumexp(Lp)-log(g.num_vertices()))
+            print("Norm measured:", scipy.special.logsumexp(Ls)-log(g.num_vertices()))
+
+            clf()
+            plot(Ls, Lp, "o")
+            plot(Ls, Ls, "-")
+            savefig(f"test_mcmc/test_mcmc_in_neighbor_sample_directed{directed}_deg_corr{deg_corr}.pdf")
 
 if os.path.exists("g_small.gt"):
     g_small = load_graph("g_small.gt")
