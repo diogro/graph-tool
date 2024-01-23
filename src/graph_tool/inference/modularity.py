@@ -126,7 +126,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     """
 
     def __init__(self, g, b=None, eweight=None):
-
+        EntropyState.__init__(self)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int32_t")
@@ -150,8 +150,6 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self._abg = self.bg._get_any()
         self._state = libinference.make_modularity_state(self)
 
-        self._entropy_args = dict(gamma=1.)
-
     def __copy__(self):
         return self.copy()
 
@@ -171,6 +169,9 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return "<ModularityState object with %d blocks, for graph %s, at 0x%x>" % \
             (self.get_B(), str(self.g), id(self))
 
+    def _gen_eargs(self, args):
+        return libinference.modularity_entropy_args()
+
     def get_B(self):
         r"Returns the total number of blocks."
         rs = np.unique(self.b.fa)
@@ -188,7 +189,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def entropy(self, gamma=1., **kwargs):
+    def entropy(self, gamma=1.):
         r"""Return the unnormalized negative generalized modularity.
 
         Notes
@@ -206,10 +207,6 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         """
 
         eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
-
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
 
         return self._state.entropy(eargs)
 

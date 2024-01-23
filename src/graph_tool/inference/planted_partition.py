@@ -51,7 +51,7 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     """
 
     def __init__(self, g, b=None):
-
+        EntropyState.__init__(self)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int32_t")
@@ -72,8 +72,6 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self.bg.clear_filters()
         self._abg = self.bg._get_any()
         self._state = libinference.make_pp_state(self)
-
-        self._entropy_args = dict(uniform=False, degree_dl_kind="distributed")
 
     def __copy__(self):
         return self.copy()
@@ -138,7 +136,7 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self._state.move_vertex(int(v), int(s))
 
     @copy_state_wrap
-    def entropy(self, uniform=False, degree_dl_kind="distributed", **kwargs):
+    def entropy(self, uniform=False, degree_dl_kind="distributed"):
         r"""Return the model entropy (negative log-likelihood).
 
         Parameters
@@ -228,35 +226,26 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
            043271 (2020), :doi:`10.1103/PhysRevResearch.2.043271`, :arxiv:`2006.14493`
         """
 
-        eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
-
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
+        eargs = self._get_entropy_args(locals())
 
         return self._state.entropy(eargs)
 
-    def _get_entropy_args(self, kwargs, ignore=None):
-        kwargs = dict(self._entropy_args, **kwargs)
-        if ignore is not None:
-            for a in ignore:
-                kwargs.pop(a, None)
-        deg_dl_kind = kwargs["degree_dl_kind"]
+    def _gen_eargs(self, args):
+        return libinference.pp_entropy_args()
+
+    def _get_entropy_args(self, kwargs, consume=False):
+        if not consume:
+            kwargs = kwargs.copy()
+        deg_dl_kind = kwargs.get("degree_dl_kind",
+                                 self._entropy_args["degree_dl_kind"])
         if deg_dl_kind == "entropy":
             kind = libinference.deg_dl_kind.ent
         elif deg_dl_kind == "uniform":
             kind = libinference.deg_dl_kind.uniform
         elif deg_dl_kind == "distributed":
             kind = libinference.deg_dl_kind.dist
-        ea = libinference.pp_entropy_args()
-        ea.degree_dl_kind = kind
-        ea.uniform = kwargs["uniform"]
-        del kwargs["uniform"]
-        del kwargs["degree_dl_kind"]
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized entropy arguments: " +
-                             str(list(kwargs.keys())))
-        return ea
+        kwargs["degree_dl_kind"] = kind
+        return super()._get_entropy_args(kwargs, consume)
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
         return libinference.pp_mcmc_sweep(mcmc_state, self._state,

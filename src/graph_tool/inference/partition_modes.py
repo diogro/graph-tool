@@ -283,7 +283,7 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
 
     """
     def __init__(self, bs, b=None, B=1, nested=False, relabel=True):
-
+        EntropyState.__init__(self)
         self.bs = []
         self.nested = nested
 
@@ -421,8 +421,8 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         r"""Return the model entropy (negative log-likelihood)."""
         return self._state.entropy()
 
-    def _get_entropy_args(self, kwargs):
-        return ""
+    def _gen_args(self, args):
+        return DictState({})
 
     def posterior_entropy(self, MLE=True):
         r"""Return the entropy of the random label model, using maximum likelihood

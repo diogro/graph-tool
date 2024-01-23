@@ -48,7 +48,7 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState)
     """
 
     def __init__(self, bs, b=None, RMI=False):
-
+        EntropyState.__init__(self)
         self.bs = bs = np.asarray(bs, dtype="int32")
         if b is None:
             b = np.zeros(bs.shape[1], dtype="int32")
@@ -105,8 +105,8 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState)
     def entropy(self):
         return self._state.entropy()
 
-    def _get_entropy_args(self, kwargs):
-        return ""
+    def _gen_eargs(self, args):
+        return "f"
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
         if self.RMI:

@@ -292,6 +292,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         kwargs.pop("epsilon", None)
         kwargs.pop("bfield", None)
 
+        self._entropy_args = self.agg_state._entropy_args.copy()
+
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
                           str(list(kwargs.keys())))
@@ -724,21 +726,13 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         return True
 
     @copy_state_wrap
-    def entropy(self, adjacency=True, dl=True, partition_dl=True,
-                degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, exact=True,
-                **kwargs):
+    def entropy(self, **kwargs):
         r"""Calculate the entropy associated with the current block partition. The
         meaning of the parameters are the same as in
         :meth:`graph_tool.inference.BlockState.entropy`.
         """
 
-        return BlockState.entropy(self, adjacency=adjacency, dl=dl,
-                                  partition_dl=partition_dl, degree_dl=degree_dl,
-                                  degree_dl_kind=degree_dl_kind, edges_dl=edges_dl,
-                                  dense=dense, multigraph=multigraph,
-                                  deg_entropy=deg_entropy, exact=exact,
-                                  **dict(kwargs, test=False))
+        return BlockState.entropy(self, **dict(kwargs, test=False))
 
     def _get_lvertex(self, v, l):
         i = numpy.searchsorted(self.vc[v].a, l)

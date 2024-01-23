@@ -75,6 +75,7 @@ class OverlapBlockState(BlockState):
     def __init__(self, g, b=None, B=None, recs=[], rec_types=[], rec_params=[],
                  clabel=None, pclabel=None, deg_corr=True, dense_bg=False,
                  **kwargs):
+        EntropyState.__init__(self)
 
         kwargs = kwargs.copy()
 
@@ -255,13 +256,6 @@ class OverlapBlockState(BlockState):
 
         if deg_corr:
             init_q_cache(max((self.get_E(), self.get_N())) + 1)
-
-        self._entropy_args = dict(adjacency=True, deg_entropy=True, dl=True,
-                                  partition_dl=True, degree_dl=True,
-                                  degree_dl_kind="distributed", edges_dl=True,
-                                  dense=False, multigraph=True, exact=True,
-                                  recs=True, recs_dl=True, beta_dl=1.,
-                                  Bfield=True)
 
         self._coupled_state = None
 
@@ -576,7 +570,7 @@ class OverlapBlockState(BlockState):
 
         """
 
-        eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
+        eargs = self._get_entropy_args(locals())
 
         S = self._state.entropy(eargs, kwargs.pop("propagate", False))
 

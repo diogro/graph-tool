@@ -34,7 +34,7 @@ from . uncertain_blockmodel import UncertainBaseState
 
 import numpy.random
 
-class LatentLayerBaseState(object):
+class LatentLayerBaseState(EntropyState):
     r"""Base state for uncertain latent layer network inference."""
 
     def get_ec(self, ew=None):
@@ -155,16 +155,13 @@ class LatentLayerBaseState(object):
                                                 _prop("e", g, g.ep.wcount))
         return gs
 
-    def _get_entropy_args(self, entropy_args):
+    def _gen_eargs(self, args):
         if isinstance(self.bstates[0], NestedBlockState):
             bstate = self.bstates[0].levels[0]
         else:
             bstate = self.bstates[0]
-        ea = bstate._get_entropy_args(entropy_args, ignore=["latent_edges", "density"])
-        uea = libinference.uentropy_args(ea)
-        uea.latent_edges = entropy_args.get("latent_edges", True)
-        uea.density = entropy_args.get("density", True)
-        return uea
+        ea = bstate._get_entropy_args(args, consume=True)
+        return libinference.uentropy_args(ea)
 
     def _mcmc_sweep(self, mcmc_state):
         return libinference.mcmc_latent_layers_sweep(mcmc_state,
@@ -258,6 +255,8 @@ class LatentClosureBlockState(LatentLayerBaseState):
 
     def __init__(self, g, L=1, b=None, aE=numpy.nan, nested=True,
                  state_args={}, g_orig=None, ew=None, ex=None, **kwargs):
+        EntropyState.__init__(self)
+
         self.g = g
         self.us = []
         self.ew = []
@@ -290,6 +289,8 @@ class LatentClosureBlockState(LatentLayerBaseState):
                                      **state_args)
             self.ew[0] = self.bstate.eweight
             self.b = self.bstate.b
+
+        self._entropy_args.update(self.bstate._entropy_args)
 
         if nested:
             self.pstate = self.bstate.levels[0]

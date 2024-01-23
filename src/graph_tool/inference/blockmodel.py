@@ -200,6 +200,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def __init__(self, g, b=None, B=None, eweight=None, vweight=None, recs=[],
                  rec_types=[], rec_params=[], clabel=None, pclabel=None,
                  bfield=None, Bfield=None, deg_corr=True, dense_bg=False, **kwargs):
+        EntropyState.__init__(self)
+
         kwargs = kwargs.copy()
 
         if eweight is None:
@@ -378,13 +380,6 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         if deg_corr:
             init_q_cache(max((2 * max((self.get_E(), self.get_N())), 100)))
-
-        self._entropy_args = dict(adjacency=True, deg_entropy=True, dl=True,
-                                  partition_dl=True, degree_dl=True,
-                                  degree_dl_kind="distributed", edges_dl=True,
-                                  dense=False, multigraph=True, exact=True,
-                                  recs=True, recs_dl=True, beta_dl=1.,
-                                  Bfield=True)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -1017,7 +1012,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         """
 
-        eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
+        eargs = self._get_entropy_args(locals())
 
         S = self._state.entropy(eargs, kwargs.pop("propagate", False))
 
@@ -1027,57 +1022,28 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                              str(list(kwargs.keys())))
         return S
 
-    def _get_entropy_args(self, kwargs, ignore=None):
-        kwargs = dict(self._entropy_args, **kwargs)
-        if ignore is not None:
-            for a in ignore:
-                kwargs.pop(a, None)
-        args = DictState(kwargs)
-        deg_dl_kind = args.degree_dl_kind
-        del kwargs["degree_dl_kind"]
+    def _gen_eargs(self, args):
+        return libinference.entropy_args()
+
+    def _get_entropy_args(self, kwargs, consume=False):
+        if not consume:
+            kwargs = kwargs.copy()
+        deg_dl_kind = kwargs.get("degree_dl_kind",
+                                 self._entropy_args["degree_dl_kind"])
         if deg_dl_kind == "entropy":
             kind = libinference.deg_dl_kind.ent
         elif deg_dl_kind == "uniform":
             kind = libinference.deg_dl_kind.uniform
         elif deg_dl_kind == "distributed":
             kind = libinference.deg_dl_kind.dist
-        ea = libinference.entropy_args()
-        ea.exact = args.exact
-        ea.dense = args.dense
-        ea.multigraph = args.multigraph
-        ea.adjacency = args.adjacency
-        ea.deg_entropy = args.deg_entropy
-        ea.recs = args.recs
-        del kwargs["exact"]
-        del kwargs["dense"]
-        del kwargs["multigraph"]
-        del kwargs["adjacency"]
-        del kwargs["deg_entropy"]
-        del kwargs["recs"]
-        if args.dl:
-            ea.partition_dl = args.partition_dl
-            ea.degree_dl = args.degree_dl
-            ea.edges_dl = args.edges_dl
-            ea.recs_dl = args.recs_dl
-        else:
+        kwargs["degree_dl_kind"] = kind
+        dl = kwargs.get("dl", self._entropy_args["dl"])
+        ea = super()._get_entropy_args(kwargs, consume)
+        if not dl:
             ea.partition_dl = False
             ea.degree_dl = False
             ea.edges_dl = False
             ea.recs_dl = False
-        ea.degree_dl_kind = kind
-        ea.beta_dl = args.beta_dl
-        ea.Bfield = args.Bfield
-        del kwargs["dl"]
-        del kwargs["partition_dl"]
-        del kwargs["degree_dl"]
-        del kwargs["edges_dl"]
-        del kwargs["recs_dl"]
-        del kwargs["beta_dl"]
-        del kwargs["Bfield"]
-        kwargs.pop("callback", None)
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized entropy arguments: " +
-                             str(list(kwargs.keys())))
         return ea
 
     def get_matrix(self):

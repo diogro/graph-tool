@@ -58,11 +58,9 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     """
 
     def __init__(self, g, b=None, u=None, **kwargs):
-
+        EntropyState.__init__(self)
         self.g = g
-
         self.ustate = BlockState(self.g, b=b, **kwargs)
-
         self.b = self.ustate.b
 
         if u is None:
@@ -78,8 +76,6 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         self._state = libinference.make_ranked_state(self.ustate._state,
                                                      self)
-
-        self._entropy_args = self.ustate._entropy_args
 
         self.eweight = self.ustate.eweight
         self.vweight = self.ustate.vweight
@@ -256,9 +252,9 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         r"""Return the model entropy (negative log-likelihood). See
         :meth:`BlockState.entropy` for documentation."""
 
-        eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
+        eargs = self._get_entropy_args(locals())
 
-        S = self._state.entropy(eargs)
+        S = self._state.entropy(eargs, False)
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
@@ -270,8 +266,29 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         parameter ``pmovelabel=1``.`"""
         return super().multiflip_mcmc_sweep(pmovelabel=pmovelabel, **kwargs)
 
-    def _get_entropy_args(self, kwargs, ignore=None):
-        return BlockState._get_entropy_args(self, kwargs, ignore)
+    def _gen_eargs(self, args):
+        return libinference.entropy_args()
+
+    def _get_entropy_args(self, kwargs, consume=False):
+        if not consume:
+            kwargs = kwargs.copy()
+        deg_dl_kind = kwargs.get("degree_dl_kind",
+                                 self._entropy_args["degree_dl_kind"])
+        if deg_dl_kind == "entropy":
+            kind = libinference.deg_dl_kind.ent
+        elif deg_dl_kind == "uniform":
+            kind = libinference.deg_dl_kind.uniform
+        elif deg_dl_kind == "distributed":
+            kind = libinference.deg_dl_kind.dist
+        kwargs["degree_dl_kind"] = kind
+        dl = kwargs.get("dl", self._entropy_args["dl"])
+        ea = super()._get_entropy_args(kwargs, consume)
+        if not dl:
+            ea.partition_dl = False
+            ea.degree_dl = False
+            ea.edges_dl = False
+            ea.recs_dl = False
+        return ea
 
     def sample_graph(self, **kwargs):
         r"""Sample a new graph from the fitted model. See :meth:`BlockState.sample_graph` for documentation."""

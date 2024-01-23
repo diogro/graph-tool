@@ -24,11 +24,9 @@ from . util import *
 
 import functools
 from abc import ABC, abstractmethod
-import gc
+import inspect
 import math
-
 import numpy
-import math
 
 import graph_tool.draw
 
@@ -84,21 +82,55 @@ def mcmc_sweep_wrap(func):
                 assert self._check_clabel(), "invalid clabel after sweep"
             dS = ret[0]
             Sf = self.entropy(**entropy_args)
+            if not math.isclose(dS, (Sf - Si), abs_tol=1e-8):
+                print(self.x.fa)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
         return ret
     return wrapper
 
-class MCMCState(ABC):
-    r"""Base state that implements single-flip MCMC sweeps"""
+
+class EntropyState(ABC):
+    r"""Base state that implements entropy arguments."""
+
+    def __init__(self, ignore=[]):
+        self._entropy_args = {}
+        sig = inspect.signature(self.entropy)
+        for k, v in sig.parameters.items():
+            if k in ignore + ["self", "kwargs"]:
+                continue
+            self._entropy_args[k] = v.default
 
     @abstractmethod
-    def _mcmc_sweep_dispatch(self, mcmc_state):
+    def entropy(self):
         pass
 
     @abstractmethod
-    def _get_entropy_args(self, kwargs):
+    def _gen_eargs(self, args):
+        pass
+
+    def _get_entropy_args(self, eargs, consume=False):
+        if not consume:
+            eargs = dict(self._entropy_args, **eargs)
+        ea = self._gen_eargs(eargs)
+        for arg in list(eargs.keys()):
+            if arg not in self._entropy_args:
+                continue
+            setattr(ea, arg, eargs.pop(arg, self._entropy_args[arg]))
+        for k in ["self", "kwargs"]:
+            eargs.pop(k, None)
+        if len(eargs) > 0 and not consume:
+            raise ValueError("unrecognized entropy arguments: " +
+                             str(list(eargs.keys())))
+        return ea
+
+
+class MCMCState(EntropyState):
+    r"""Base state that implements single-flip MCMC sweeps."""
+
+    @abstractmethod
+    def _mcmc_sweep_dispatch(self, mcmc_state):
         pass
 
     @mcmc_sweep_wrap
@@ -188,15 +220,11 @@ class MCMCState(ABC):
         else:
             return mcmc_state
 
-class MultiflipMCMCState(ABC):
+class MultiflipMCMCState(EntropyState):
     r"""Base state that implements multiflip (merge-split) MCMC sweeps"""
 
     @abstractmethod
     def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        pass
-
-    @abstractmethod
-    def _get_entropy_args(self, kwargs):
         pass
 
     @mcmc_sweep_wrap
@@ -294,15 +322,11 @@ class MultiflipMCMCState(ABC):
 
         return dS, nattempts, nmoves
 
-class MultilevelMCMCState(ABC):
+class MultilevelMCMCState(EntropyState):
     r"""Base state that implements multilevel agglomerative MCMC sweeps"""
 
     @abstractmethod
     def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        pass
-
-    @abstractmethod
-    def _get_entropy_args(self, kwargs):
         pass
 
     def _get_bclabel(self):
@@ -437,15 +461,11 @@ class MultilevelMCMCState(ABC):
         else:
             return mcmc_state
 
-class GibbsMCMCState(ABC):
+class GibbsMCMCState(EntropyState):
     r"""Base state that implements single flip MCMC sweeps"""
 
     @abstractmethod
     def _gibbs_sweep_dispatch(self, gibbs_state):
-        pass
-
-    @abstractmethod
-    def _get_entropy_args(self, kwargs):
         pass
 
     @mcmc_sweep_wrap
@@ -515,7 +535,7 @@ class GibbsMCMCState(ABC):
 
         return dS, nattempts, nmoves
 
-class MulticanonicalMCMCState(ABC):
+class MulticanonicalMCMCState(EntropyState):
     r"""Base state that implements multicanonical MCMC sweeps"""
 
     @abstractmethod
@@ -598,15 +618,11 @@ class MulticanonicalMCMCState(ABC):
 
         return S, nattempts, nmoves
 
-class ExhaustiveSweepState(ABC):
+class ExhaustiveSweepState(EntropyState):
     r"""Base state that implements exhaustive enumerative sweeps"""
 
     @abstractmethod
     def _exhaustive_sweep_dispatch(self, exhaustive_state):
-        pass
-
-    @abstractmethod
-    def _get_entropy_args(self, kwargs):
         pass
 
     def exhaustive_sweep(self, entropy_args={}, callback=None, density=None,
@@ -696,7 +712,6 @@ class ExhaustiveSweepState(ABC):
                 return (Ss, density[2]), b_min
         else:
             return b_min
-
 
 class DrawBlockState(ABC):
     r"""Base state that implements group-based drawing."""

@@ -54,7 +54,7 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     """
 
     def __init__(self, g, b=None):
-
+        EntropyState.__init__(self)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int32_t")
@@ -69,8 +69,6 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self.bg = self.g
         self._abg = self.bg._get_any()
         self._state = libinference.make_norm_cut_state(self)
-
-        self._entropy_args = {}
 
     def __copy__(self):
         return self.copy()
@@ -96,6 +94,9 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return "<NormCutState object with %d blocks, for graph %s, at 0x%x>" % \
             (self.get_B(), str(self.g), id(self))
 
+    def _gen_eargs(self, args):
+        return libinference.modularity_entropy_args()
+
     def get_B(self):
         r"Returns the total number of blocks."
         return len(np.unique(self.b.fa))
@@ -111,14 +112,10 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def entropy(self, **kwargs):
+    def entropy(self):
         r"""Return the normalized cut. See :meth:`~NormCutState.norm_cut`."""
 
         eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
-
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
 
         return self._state.entropy(eargs)
 
