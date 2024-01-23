@@ -43,6 +43,14 @@ def dmask(d, ks):
             del d[k]
     return d
 
+def dselect(d, ks):
+    """Copy dictionary ``d`` considering only key list ``ks``."""
+    nd = {}
+    for k in ks:
+        if k in d:
+            nd[k] = d[k]
+    return nd
+
 def check_verbose(verbose):
     if isinstance(verbose, tuple):
         return verbose[0] != False
