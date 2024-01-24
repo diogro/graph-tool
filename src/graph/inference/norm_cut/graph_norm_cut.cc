@@ -58,7 +58,8 @@ REGISTER_MOD
                    no_init);
              c.def("move_vertex", move_vertex)
                  .def("virtual_move", virtual_move)
-                 .def("entropy", &state_t::entropy);
+                 .def("entropy", +[](state_t& state,
+                                     const norm_cut_entropy_args_t& ea){ return state.entropy(ea); });
          });
 
     class_<norm_cut_entropy_args_t>("norm_cut_entropy_args");

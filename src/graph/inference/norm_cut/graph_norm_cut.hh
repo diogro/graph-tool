@@ -330,6 +330,11 @@ public:
         return C;
     }
 
+    double entropy(const norm_cut_entropy_args_t& ea, bool)
+    {
+        return entropy(ea);
+    }
+
     template <class MCMCState>
     void init_mcmc(MCMCState&)
     {

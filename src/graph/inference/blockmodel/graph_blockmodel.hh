@@ -1260,10 +1260,12 @@ public:
             int dr = (_wr[r] == _vweight[v] && _vweight[v] > 0) ? -1 : 0;
             int dnr = (_wr[nr] == 0 && _vweight[v] > 0) ? 1 : 0;
             if (!m_entries._p_entries.empty() || dr != 0 || dnr != 0)
+            {
                 dS_dl += _coupled_state->propagate_entries_dS(r, nr, dr, dnr,
                                                               m_entries._p_entries,
                                                               _coupled_entropy_args,
                                                               _LdBdx, dL);
+            }
         }
         return dS + ea.beta_dl * dS_dl;
     }
@@ -1281,9 +1283,13 @@ public:
         {
             if (ea.recs && _rt == weight_type::REAL_NORMAL)
             {
-                _m_entries.set_move(r, s, num_vertices(_bg));
-                auto rdS = rec_entries_dS(*this, _m_entries, ea, dBdx, dL);
-                double dS = get<0>(rdS) + get<1>(rdS);
+                double dS;
+                #pragma omp critical (propagate_entries_dS)
+                {
+                    _m_entries.set_move(r, s, num_vertices(_bg));
+                    auto rdS = rec_entries_dS(*this, _m_entries, ea, dBdx, dL);
+                    dS = get<0>(rdS) + get<1>(rdS);
+                }
                 entries.clear();
                 if (_coupled_state != nullptr)
                     dS += _coupled_state->propagate_entries_dS(r, s, 0, 0,
@@ -1295,121 +1301,123 @@ public:
             return 0.;
         }
 
-        _m_entries.set_move(r, s, num_vertices(_bg));
-
-        auto comp =
-            [&](auto&... dummy)
-            {
-                if (du != 0)
-                {
-                    for (auto t : out_neighbors_range(r, _bg))
-                        _m_entries.template insert_delta<true>(r, t, 0, dummy...);
-                    for (auto t : in_neighbors_range(r, _bg))
-                        _m_entries.template insert_delta<true>(t, r, 0, dummy...);
-                }
-
-                if (dv != 0)
-                {
-                    for (auto t : out_neighbors_range(s, _bg))
-                        _m_entries.template insert_delta<true>(s, t, 0, dummy...);
-                    for (auto t : in_neighbors_range(s, _bg))
-                        _m_entries.template insert_delta<true>(t, s, 0, dummy...);
-                }
-            };
-
-        std::vector<double> dummy;
-        if (!ea.recs || _rt == weight_type::NONE)
-        {
-            for (auto& iter : entries)
-                _m_entries.template insert_delta<true>(_b[get<0>(iter)],
-                                                       _b[get<1>(iter)],
-                                                       get<3>(iter));
-            comp();
-        }
-        else
-        {
-            for (auto& iter : entries)
-                recs_propagate_insert(*this, _b[get<0>(iter)], _b[get<1>(iter)],
-                                      get<2>(iter), get<3>(iter), get<4>(iter),
-                                      _m_entries);
-            dummy.resize(_rec.size(), 0.);
-            comp(dummy, dummy);
-        }
-
         double dS = 0;
-
         entries.clear();
 
-        auto e_diff =
-            [&](auto rr, auto ss, auto& me, auto d)
-            {
-                int ers = 0;
-                if (me != _emat.get_null_edge())
-                    ers = this->_mrs[me];
-                auto wr = this->_wr[rr];
-                auto ws = this->_wr[ss];
-
-                dS -= eterm_dense(rr, ss, ers, wr, ws, true, _bg);
-
-                if (rr == r)
-                    wr += du;
-                if (rr == s)
-                    wr += dv;
-
-                if (ss == r)
-                    ws += du;
-                if (ss == s)
-                    ws += dv;
-
-                dS += eterm_dense(rr, ss, ers + d, wr, ws, true, _bg);
-            };
-
-        if (!ea.recs || _rt == weight_type::NONE)
+        #pragma omp critical (propagate_entries_dS)
         {
-            if (ea.adjacency)
+            _m_entries.set_move(r, s, num_vertices(_bg));
+
+            auto comp =
+                [&](auto&... dummy)
+                {
+                    if (du != 0)
+                    {
+                        for (auto t : out_neighbors_range(r, _bg))
+                            _m_entries.template insert_delta<true>(r, t, 0, dummy...);
+                        for (auto t : in_neighbors_range(r, _bg))
+                            _m_entries.template insert_delta<true>(t, r, 0, dummy...);
+                    }
+
+                    if (dv != 0)
+                    {
+                        for (auto t : out_neighbors_range(s, _bg))
+                            _m_entries.template insert_delta<true>(s, t, 0, dummy...);
+                        for (auto t : in_neighbors_range(s, _bg))
+                            _m_entries.template insert_delta<true>(t, s, 0, dummy...);
+                    }
+                };
+
+            std::vector<double> dummy;
+            if (!ea.recs || _rt == weight_type::NONE)
             {
-                entries_op(_m_entries, _emat,
-                           [&](auto rr, auto ss, auto& me, auto d)
-                           {
-                               e_diff(rr, ss, me, d);
-                               if (d == 0)
-                                   return;
-                               entries.emplace_back(rr, ss, me, d, dummy);
-                           });
+                for (auto& iter : entries)
+                    _m_entries.template insert_delta<true>(_b[get<0>(iter)],
+                                                           _b[get<1>(iter)],
+                                                           get<3>(iter));
+                comp();
             }
             else
             {
-                entries_op(_m_entries, _emat,
-                           [&](auto rr, auto ss, auto& me, auto d)
-                           {
-                               if (d == 0)
-                                   return;
-                               entries.emplace_back(rr, ss, me, d, dummy);
-                           });
+                for (auto& iter : entries)
+                    recs_propagate_insert(*this, _b[get<0>(iter)], _b[get<1>(iter)],
+                                          get<2>(iter), get<3>(iter), get<4>(iter),
+                                          _m_entries);
+                dummy.resize(_rec.size(), 0.);
+                comp(dummy, dummy);
             }
-        }
-        else
-        {
-            if (ea.adjacency)
+
+            auto e_diff =
+                [&](auto rr, auto ss, auto& me, auto d)
+                {
+                    int ers = 0;
+                    if (me != _emat.get_null_edge())
+                        ers = this->_mrs[me];
+                    auto wr = this->_wr[rr];
+                    auto ws = this->_wr[ss];
+
+                    dS -= eterm_dense(rr, ss, ers, wr, ws, true, _bg);
+
+                    if (rr == r)
+                        wr += du;
+                    if (rr == s)
+                        wr += dv;
+
+                    if (ss == r)
+                        ws += du;
+                    if (ss == s)
+                        ws += dv;
+
+                    dS += eterm_dense(rr, ss, ers + d, wr, ws, true, _bg);
+                };
+
+            if (!ea.recs || _rt == weight_type::NONE)
             {
-                wentries_op(_m_entries, _emat,
-                            [&](auto rr, auto ss, auto& me, auto d, auto& ed)
-                            {
-                                e_diff(rr, ss, me, d);
-                                entries.emplace_back(rr, ss, me, d, get<0>(ed));
-                            });
+                if (ea.adjacency)
+                {
+                    entries_op(_m_entries, _emat,
+                               [&](auto rr, auto ss, auto& me, auto d)
+                               {
+                                   e_diff(rr, ss, me, d);
+                                   if (d == 0)
+                                       return;
+                                   entries.emplace_back(rr, ss, me, d, dummy);
+                               });
+                }
+                else
+                {
+                    entries_op(_m_entries, _emat,
+                               [&](auto rr, auto ss, auto& me, auto d)
+                               {
+                                   if (d == 0)
+                                       return;
+                                   entries.emplace_back(rr, ss, me, d, dummy);
+                               });
+                }
             }
             else
             {
-                wentries_op(_m_entries, _emat,
-                            [&](auto rr, auto ss, auto& me, auto d, auto& ed)
-                            {
-                                entries.emplace_back(rr, ss, me, d, get<0>(ed));
-                            });
-            }
+                if (ea.adjacency)
+                {
+                    wentries_op(_m_entries, _emat,
+                                [&](auto rr, auto ss, auto& me, auto d, auto& ed)
+                                {
+                                    e_diff(rr, ss, me, d);
+                                    entries.emplace_back(rr, ss, me, d, get<0>(ed));
+                                });
+                }
+                else
+                {
+                    wentries_op(_m_entries, _emat,
+                                [&](auto rr, auto ss, auto& me, auto d, auto& ed)
+                                {
+                                    entries.emplace_back(rr, ss, me, d, get<0>(ed));
+                                });
+                }
 
-            auto rdS = rec_entries_dS(*this, _m_entries, ea, dBdx, dL);
-            dS += get<0>(rdS) + get<1>(rdS);
+                auto rdS = rec_entries_dS(*this, _m_entries, ea, dBdx, dL);
+                dS += get<0>(rdS) + get<1>(rdS);
+            }
         }
 
         int dr = (_wr[r] + du == 0) ? -1 : 0;
@@ -1856,23 +1864,36 @@ public:
             else
                 S = dense_entropy(ea.multigraph);
 
+            assert(!isnan(S) && !isnan(S_dl));
+
             if (!ea.dense && !ea.exact)
             {
                 size_t E = 0;
-                for (auto e : edges_range(_g))
-                    E += _eweight[e];
+                #pragma omp parallel reduction(+:E)
+                parallel_edge_loop_no_spawn
+                    (_g,
+                     [&](const auto& e)
+                     {
+                         E += _eweight[e];
+                     });
                 if (ea.multigraph)
                     S -= E;
                 else
                     S += E;
             }
+
+            assert(!isnan(S) && !isnan(S_dl));
         }
 
         if (ea.partition_dl)
             S_dl += get_partition_dl();
 
+        assert(!isnan(S) && !isnan(S_dl));
+
         if (_deg_corr && ea.degree_dl)
             S_dl += get_deg_dl(ea.degree_dl_kind);
+
+        assert(!isnan(S) && !isnan(S_dl));
 
         if (ea.edges_dl)
         {
@@ -1882,14 +1903,19 @@ public:
             S_dl += get_edges_dl(actual_B, _E, _g);
         }
 
-        for (auto v : vertices_range(_g))
-        {
-            auto& f = _bfield[v];
-            if (f.empty())
-                continue;
-            size_t r = _b[v];
-            S_dl -= (r < f.size()) ? f[r] : f.back();
-        }
+        assert(!isnan(S) && !isnan(S_dl));
+
+        #pragma omp parallel reduction(+:S_dl)
+        parallel_vertex_loop_no_spawn
+            (_g,
+             [&](auto v)
+             {
+                 auto& f = _bfield[v];
+                 if (f.empty())
+                     return;
+                 size_t r = _b[v];
+                 S_dl -= (r < f.size()) ? f[r] : f.back();
+             });
 
         if (ea.recs)
         {
@@ -1897,6 +1923,8 @@ public:
             S += get<0>(rdS);
             S_dl += get<1>(rdS);
         }
+
+        assert(!isnan(S) && !isnan(S_dl));
 
         if (!_Bfield.empty() && ea.Bfield)
         {
@@ -1906,9 +1934,12 @@ public:
             S_dl -= (actual_B < _Bfield.size()) ?
                 _Bfield[actual_B] : _Bfield.back();
         }
+        assert(!isnan(S) && !isnan(S_dl));
 
         if (_coupled_state != nullptr && propagate)
             S_dl += _coupled_state->entropy(_coupled_entropy_args, true);
+
+        assert(!isnan(S) && !isnan(S_dl));
 
         return S + S_dl * ea.beta_dl;
     }

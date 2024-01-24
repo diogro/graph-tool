@@ -336,11 +336,11 @@ class MultilevelMCMCState(EntropyState):
     def multilevel_mcmc_sweep(self, niter=1, beta=1., c=.5, psingle=None,
                               pmultilevel=1, d=0.01, r=0.9, random_bisect=True,
                               merge_sweeps=10, mh_sweeps=10, init_r=0.99,
-                              init_beta=1., gibbs=False, B_min=1,
-                              B_max=numpy.iinfo(numpy.uint64).max, b_min=None,
-                              b_max=None, M=None, cache_states=True,
-                              force_accept=False, entropy_args={},
-                              verbose=False, **kwargs):
+                              init_min_iter=5, init_beta=1., gibbs=False,
+                              B_min=1, B_max=numpy.iinfo(numpy.uint64).max,
+                              b_min=None, b_max=None, M=None, cache_states=True,
+                              force_accept=False, parallel=False,
+                              entropy_args={}, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a multilevel agglomerative acceptance-rejection
         MCMC to sample network partitions, that uses a bisection search on the
         number of groups, together with group merges and singe-node moves.
@@ -382,6 +382,8 @@ class MultilevelMCMCState(EntropyState):
             bisection search. A number of single-node Metropolis-Hastings sweeps
             is done until the number of groups is shrunk by a factor that is
             larger than this parameter.
+        init_min_iter : ``int`` (optional, default: ``5``)
+            Minimum number of iterations at the intialization phase.
         init_beta : ``float`` (optional, default: ``1.``)
             Inverse temperature to be used for the very first sweep of the
             initialization phase.
@@ -405,6 +407,9 @@ class MultilevelMCMCState(EntropyState):
         force_accept : ``bool`` (optional, default: ``False``)
             If ``True``, new state will be accepted even if it does not improve
             the objective function.
+        parallel : ``bool`` (optional, default: ``False``)
+            If ``True``, the algorithm will run in parallel (if enabled during
+            compilation).
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.

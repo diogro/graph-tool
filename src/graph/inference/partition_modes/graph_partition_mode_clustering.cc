@@ -72,7 +72,7 @@ REGISTER_MOD
                            auto bv = get_bv(ob);
                            state.add_partition(bv, r, relabel);
                        })
-                 .def("entropy", &state_t::entropy)
+                 .def("entropy", +[](state_t& state){ return state.entropy(); })
                  .def("posterior_entropy", &state_t::posterior_entropy)
                  .def("posterior_lprob",
                       +[](state_t& state, size_t r, object obv, bool MLE)

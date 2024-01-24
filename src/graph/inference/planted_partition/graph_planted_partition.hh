@@ -480,6 +480,11 @@ public:
         return S;
     }
 
+    double entropy(const pp_entropy_args_t& ea, bool)
+    {
+        return entropy(ea);
+    }
+
     template <class MCMCState>
     void init_mcmc(MCMCState&)
     {

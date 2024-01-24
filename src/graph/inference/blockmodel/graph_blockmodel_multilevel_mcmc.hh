@@ -50,6 +50,8 @@ typedef vprop_map_t<int32_t>::type vmap_t;
     ((pmultilevel,, double, 0))                                                \
     ((merge_sweeps,, size_t, 0))                                               \
     ((mh_sweeps,, size_t, 0))                                                  \
+    ((parallel,, bool, 0))                                                     \
+    ((init_min_iter,, size_t, 0))                                              \
     ((init_r,, double, 0))                                                     \
     ((init_beta,, double, 0))                                                  \
     ((gibbs,, bool, 0))                                                        \
@@ -84,10 +86,12 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCBlockStateImp(ATs&&... as)
            : MCMCBlockStateBase<Ts...>(as...),
-             _m_entries(num_vertices(_state._bg)),
              _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
         {
             _state.init_mcmc(*this);
+
+            for (int i = 0; i < get_num_threads(); ++i)
+                _m_entries.emplace_back(num_vertices(_state._bg));
 
             if (_global_moves)
             {
@@ -112,7 +116,7 @@ struct MCMC
         bool _has_b_max = false;
         bool _has_b_min = false;
 
-        typename State::m_entries_t _m_entries;
+        std::vector<typename State::m_entries_t> _m_entries;
         typename State::_entropy_args_t& _entropy_args;
 
         vprop_map_t<int32_t>::type::unchecked_t _bh;
@@ -175,7 +179,7 @@ struct MCMC
         void move_node(size_t v, size_t r, bool cache)
         {
             if (cache)
-                _state.move_vertex(v, r, _m_entries);
+                _state.move_vertex(v, r, _m_entries[get_thread_num()]);
             else
                 _state.move_vertex(v, r);
         }
@@ -187,7 +191,7 @@ struct MCMC
                 if (_bh[r] != _bh[s])
                     return numeric_limits<double>::infinity();
             }
-            return _state.virtual_move(v, r, s, _entropy_args, _m_entries);
+            return _state.virtual_move(v, r, s, _entropy_args, _m_entries[get_thread_num()]);
         }
 
         template <class VS>
@@ -232,6 +236,11 @@ struct MCMC
                                         allow_random ? _c : 0,
                                         allow_empty ? _d : 0,
                                         reverse);
+        }
+
+        double entropy()
+        {
+            return _state.entropy(_entropy_args, true);
         }
 
         void relax_update(bool relax)

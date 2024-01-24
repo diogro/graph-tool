@@ -50,6 +50,8 @@ typedef vprop_map_t<int32_t>::type vmap_t;
     ((pmultilevel,, double, 0))                                                \
     ((merge_sweeps,, size_t, 0))                                               \
     ((mh_sweeps,, size_t, 0))                                                  \
+    ((parallel,, bool, 0))                                                     \
+    ((init_min_iter,, size_t, 0))                                              \
     ((init_r,, double, 0))                                                     \
     ((init_beta,, double, 0))                                                  \
     ((gibbs,, bool, 0))                                                        \
@@ -234,6 +236,11 @@ struct MCMC
                                         allow_random ? _c : 0,
                                         allow_empty ? _d : 0,
                                         reverse);
+        }
+
+        double entropy()
+        {
+            return _state.entropy(_entropy_args);
         }
 
         void relax_update(bool relax)

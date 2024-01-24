@@ -277,6 +277,12 @@ public:
         return S;
     }
 
+    template <class Eargs>
+    double entropy(const Eargs&, bool)
+    {
+        return entropy();
+    }
+
     template <class MCMCState>
     void init_mcmc(MCMCState&)
     {

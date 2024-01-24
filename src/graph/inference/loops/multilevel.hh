@@ -76,7 +76,9 @@ struct Multilevel: public State
     using State::_state;
     using State::_merge_sweeps;
     using State::_mh_sweeps;
+    using State::_parallel;
     using State::_init_r;
+    using State::_init_min_iter;
     using State::_gibbs;
     using State::_null_group;
     using State::_beta;
@@ -291,6 +293,93 @@ struct Multilevel: public State
         return {S, lp};
     }
 
+    std::vector<Group> _mh_moves;
+
+    template <bool smart, class RNG>
+    std::pair<double, double>
+    pseudo_mh_sweep(std::vector<Node>& vs, GSet<Group>& rs, double beta,
+                    RNG& rng_, size_t B_min = 0,
+                    size_t B_max = std::numeric_limits<size_t>::max(),
+                    bool init_heuristic = false)
+    {
+        if (rs.size() == 1 || (rs.size() == vs.size() && B_min == rs.size()))
+            return {0, 0};
+
+        if (_vis.size() < vs.size())
+        {
+            _vis.resize(vs.size());
+            std::iota(_vis.begin(), _vis.end(), 0);
+            std::shuffle(_vis.begin(), _vis.end(), rng_);
+        }
+
+        auto& moves = _mh_moves;
+        moves.resize(vs.size());
+
+        double S = 0;
+
+        parallel_rng<rng_t> prng(rng_);
+
+        #pragma omp parallel for schedule(runtime) reduction(+:S)
+        for (size_t i = 0; i < _vis.size(); ++i)
+        {
+            auto& rng = prng.get(rng_);
+
+            size_t vi = _vis[i];
+            const auto& v = vs[vi];
+
+            auto r = State::get_group(v);
+            Group s;
+
+            if constexpr (smart)
+            {
+                s = State::sample_group(v, false, false, init_heuristic, rng); // c == 0!
+                if (rs.find(s) == rs.end() || s == r)
+                {
+                    moves[vi] = r;
+                    continue;
+                }
+            }
+            else
+            {
+                s = r;
+                while (s == r)
+                    s = uniform_sample(rs, rng);
+            }
+
+            double dS = State::virtual_move(v, r, s);
+
+            if (metropolis_accept(dS, 0, beta, rng))
+            {
+                S += dS;
+                moves[vi] = s;
+            }
+            else
+            {
+                moves[vi] = r;
+            }
+        }
+
+        for (auto vi : _vis)
+        {
+            const auto& v = vs[vi];
+            auto r = State::get_group(v);
+            auto s = moves[vi];
+            if (r == s || get_wr(s) == 0)
+                continue;
+            int dB = 0;
+            if (get_wr(s) == 0)
+                dB++;
+            if (get_wr(r) == 1)
+                dB--;
+            if (rs.size() + dB < B_min || rs.size() + dB > B_max)
+                continue;
+            move_node(v, s, false);
+            if (get_wr(r) == 0)
+                rs.erase(r);
+        }
+
+        return {S, 0.};
+    }
 
     template <class RNG>
     double mh_sweep_prob(std::vector<Node>& vs, GSet<Group>& rs, double beta,
@@ -794,14 +883,23 @@ struct Multilevel: public State
                 while (rs.size() != Bnext)
                     S += merge_sweep(rs, Bnext, _merge_sweeps, rng);
 
+                double Sb = _parallel ? State::entropy() - S: 0;
+
                 for (size_t i = 0; i < _mh_sweeps; ++i)
                 {
                     double dS = 0;
-                    dS = mh_sweep<true>(vs, rs, _beta, rng, B).first;
+                    if (_parallel)
+                        dS = pseudo_mh_sweep<true>(vs, rs, _beta, rng, B).first;
+                    else
+                        dS = mh_sweep<true>(vs, rs, _beta, rng, B).first;
                     S += dS;
                     if (std::isinf(_beta) && abs(dS) < 1e-8)
                         break;
                 }
+
+                double Sa = _parallel ? State::entropy() : S;
+
+                S = Sa - Sb;
 
                 if ((keep_cache && _cache_states) || rs.size() == B)
                     put_cache(rs.size(), S);
@@ -887,18 +985,30 @@ struct Multilevel: public State
             {
                 size_t Bprev;
                 size_t i = 0;
+                double Sb = _parallel ? State::entropy() - S: 0;
                 do
                 {
                     Bprev = rs.size();
-                    double dS = mh_sweep<true>(vs, rs, (i++ == 0) ? _init_beta : _beta,
-                                               rng, B_min, B_max, true).first;
+                    double dS;
+                    if (_parallel)
+                        dS = pseudo_mh_sweep<true>(vs, rs,
+                                                   (i == 0) ? _init_beta : _beta,
+                                                   rng, B_min, B_max, true).first;
+                    else
+                        dS = mh_sweep<true>(vs, rs,
+                                            (i == 0) ? _init_beta : _beta,
+                                            rng, B_min, B_max, true).first;
                     S += dS;
                     if (_verbose)
-                        cout << i - 1 << " " << ((i - 1 == 0) ? _init_beta : _beta)
+                        cout << i << " " << ((i == 0) ? _init_beta : _beta)
                              << " " << dS << " " << rs.size() << " "
                              << rs.size()/double(Bprev) << endl;
+                    ++i;
                 }
-                while (rs.size()/double(Bprev) < _init_r);
+                while (i < _init_min_iter || rs.size()/double(Bprev) < _init_r);
+
+                double Sa = _parallel ? State::entropy() : S;
+                S = Sa - Sb;
 
                 B_max = B_max_init = std::min(rs.size(), B_max);
             }
@@ -1007,7 +1117,8 @@ struct Multilevel: public State
 
         assert(rs.size() == B);
 
-        if ((rs.size() > B_min_init) && (rs.size() < B_max_init))
+        if (!std::isinf(_beta) && (rs.size() > B_min_init) &&
+            (rs.size() < B_max_init))
         {
             if (State::_gibbs)
             {
@@ -1022,25 +1133,19 @@ struct Multilevel: public State
                 if constexpr (forward)
                 {
                     //for relabel
-                    if (!std::isinf(_beta))
-                    {
-                        for (auto& v : vs)
-                            _btemp[v] = State::get_group(v);
-                    }
+                    for (auto& v : vs)
+                        _btemp[v] = State::get_group(v);
 
-                    std::tie(dS, mh_lp) = mh_sweep<false>(vs, rs, _beta, rng,
-                                                          _B_min, _B_max);
+                    std::tie(dS, mh_lp) =
+                        mh_sweep<false>(vs, rs, _beta, rng, _B_min, _B_max);
 
-                    if (!std::isinf(_beta))
+                    auto mu = relabel_rs(vs, _btemp);
+                    for (auto& [r, s] : mu)
                     {
-                        auto mu = relabel_rs(vs, _btemp);
-                        for (auto& [r, s] : mu)
+                        if (r != s)
                         {
-                            if (r != s)
-                            {
-                                mh_lp = numeric_limits<double>::infinity();
-                                break;
-                            }
+                            mh_lp = numeric_limits<double>::infinity();
+                            break;
                         }
                     }
                 }

@@ -401,6 +401,12 @@ public:
         return S;
     }
 
+    template <class Eargs>
+    double entropy(const Eargs&, bool)
+    {
+        return entropy();
+    }
+
     double posterior_entropy(bool MLE)
     {
         double S = 0;

@@ -328,6 +328,11 @@ public:
         return -Q;
     }
 
+    double entropy(const modularity_entropy_args_t& ea, bool)
+    {
+        return entropy(ea);
+    }
+
     template <class MCMCState>
     void init_mcmc(MCMCState&)
     {
