@@ -46,8 +46,6 @@ typedef vprop_map_t<int32_t>::type vmap_t;
     ((d,, double, 0))                                                          \
     ((r,, double, 0))                                                          \
     ((random_bisect,, bool, 0))                                                \
-    ((psingle,, double, 0))                                                    \
-    ((pmultilevel,, double, 0))                                                \
     ((merge_sweeps,, size_t, 0))                                               \
     ((mh_sweeps,, size_t, 0))                                                  \
     ((parallel,, bool, 0))                                                     \

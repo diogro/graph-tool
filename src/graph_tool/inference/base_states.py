@@ -333,24 +333,25 @@ class MultilevelMCMCState(EntropyState):
         return None
 
     @mcmc_sweep_wrap
-    def multilevel_mcmc_sweep(self, niter=1, beta=1., c=.5, psingle=None,
-                              pmultilevel=1, d=0.01, r=0.9, random_bisect=True,
-                              merge_sweeps=10, mh_sweeps=10, init_r=0.99,
-                              init_min_iter=5, init_beta=1., gibbs=False,
-                              B_min=1, B_max=numpy.iinfo(numpy.uint64).max,
-                              b_min=None, b_max=None, M=None, cache_states=True,
+    def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, c=.5, d=0.01, r=0.9,
+                              random_bisect=True, merge_sweeps=10, mh_sweeps=10,
+                              init_r=0.99, init_min_iter=5, init_beta=1.,
+                              gibbs=False, B_min=1,
+                              B_max=numpy.iinfo(numpy.uint64).max, b_min=None,
+                              b_max=None, M=None, cache_states=True,
                               force_accept=False, parallel=False,
                               entropy_args={}, verbose=False, **kwargs):
-        r"""Perform ``niter`` sweeps of a multilevel agglomerative acceptance-rejection
-        MCMC to sample network partitions, that uses a bisection search on the
-        number of groups, together with group merges and singe-node moves.
+        r"""Perform ``niter`` sweeps of a multilevel agglomerative
+        acceptance-rejection pseudo-MCMC (i.e. detailed balance is not
+        preserved) to sample network partitions, that uses a bisection search on
+        the number of groups, together with group merges and singe-node moves.
 
         Parameters
         ----------
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
             made for each node, on average.
-        beta : ``float`` (optional, default: ``1.``)
+        beta : ``float`` (optional, default: :const:`numpy.inf`)
             Inverse temperature.
         c : ``float`` (optional, default: ``.5``)
             Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
@@ -358,11 +359,6 @@ class MultilevelMCMCState(EntropyState):
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
-        psingle : ``float`` (optional, default: ``None``)
-            Relative probability of proposing a single node move. If ``None``,
-            it will be selected as the number of nodes in the graph.
-        pmultilevel : ``float`` (optional, default: ``1``)
-            Relative probability of proposing a multilevel move.
         d : ``float`` (optional, default: ``.01``)
             Probability of selecting a new (i.e. empty) group for a given
             single-node move.
@@ -440,8 +436,6 @@ class MultilevelMCMCState(EntropyState):
 
         """
 
-        if psingle is None:
-            psingle = self.g.num_vertices()
         merge_sweeps = max((merge_sweeps, 1))
         if M is None:
             M = self.g.num_vertices()

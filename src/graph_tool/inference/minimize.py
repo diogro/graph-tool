@@ -127,7 +127,7 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
 
     state = state(g, **state_args)
 
-    args = dict(niter=1, psingle=0, beta=numpy.inf)
+    args = dict(niter=1, beta=numpy.inf)
     args.update(multilevel_mcmc_args)
 
     state.multilevel_mcmc_sweep(**args)
@@ -226,7 +226,7 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
 
     state = state(g, bs=init_bs, **state_args)
 
-    args = dict(niter=1, psingle=0, beta=numpy.inf)
+    args = dict(niter=1, beta=numpy.inf)
     args.update(multilevel_mcmc_args)
 
     l = 0

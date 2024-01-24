@@ -42,7 +42,7 @@ template <class State, class Node, class Group,
           bool labelled=false>
 struct Multilevel: public State
 {
-    enum class move_t { single = 0, multilevel, null };
+    enum class move_t { multilevel=0, null };
 
     template <class... TS>
     Multilevel(TS&&... as)
@@ -62,12 +62,6 @@ struct Multilevel: public State
                 {
                     _rlist.insert(r);
                 });
-
-            std::vector<move_t> moves
-                = {move_t::single, move_t::multilevel};
-            std::vector<double> probs
-                = {State::_psingle, State::_pmultilevel};
-            _move_sampler = Sampler<move_t, mpl::false_>(moves, probs);
         }
 
     VSet<Node> _nodes;
@@ -186,21 +180,19 @@ struct Multilevel: public State
     std::vector<size_t> _vis;
 
     template <bool smart, class RNG>
-    std::pair<double, double>
-    mh_sweep(std::vector<Node>& vs, GSet<Group>& rs, double beta, RNG& rng,
-             size_t B_min = 0,
-             size_t B_max = std::numeric_limits<size_t>::max(),
-             bool init_heuristic = false)
+    double mh_sweep(std::vector<Node>& vs, GSet<Group>& rs, double beta,
+                    RNG& rng, size_t B_min = 0,
+                    size_t B_max = std::numeric_limits<size_t>::max(),
+                    bool init_heuristic = false)
     {
         if (rs.size() == 1 || (rs.size() == vs.size() && B_min == rs.size()))
-            return {0, 0};
+            return 0;
 
         _vis.resize(vs.size());
         std::iota(_vis.begin(), _vis.end(), 0);
         std::shuffle(_vis.begin(), _vis.end(), rng);
 
         double S = 0;
-        double lp = 0;
         for (size_t vi : _vis)
         {
             const auto& v = vs[vi];
@@ -274,36 +266,27 @@ struct Multilevel: public State
             {
                 move_node(v, s, true);
                 S += dS;
-                lp += ap;
-
-                if constexpr (!smart)
-                    lp -= safelog_fast(rs.size() - 1);
 
                 if (get_wr(r) == 0)
                     rs.erase(r);
 
                 assert(r != s || dS == 0);
             }
-            else
-            {
-                lp += rp;
-            }
         }
 
-        return {S, lp};
+        return S;
     }
 
     std::vector<Group> _mh_moves;
 
     template <bool smart, class RNG>
-    std::pair<double, double>
-    pseudo_mh_sweep(std::vector<Node>& vs, GSet<Group>& rs, double beta,
-                    RNG& rng_, size_t B_min = 0,
-                    size_t B_max = std::numeric_limits<size_t>::max(),
-                    bool init_heuristic = false)
+    double pseudo_mh_sweep(std::vector<Node>& vs, GSet<Group>& rs, double beta,
+                           RNG& rng_, size_t B_min = 0,
+                           size_t B_max = std::numeric_limits<size_t>::max(),
+                           bool init_heuristic = false)
     {
         if (rs.size() == 1 || (rs.size() == vs.size() && B_min == rs.size()))
-            return {0, 0};
+            return 0;
 
         if (_vis.size() < vs.size())
         {
@@ -378,12 +361,11 @@ struct Multilevel: public State
                 rs.erase(r);
         }
 
-        return {S, 0.};
+        return S;
     }
 
     template <class RNG>
-    double mh_sweep_prob(std::vector<Node>& vs, GSet<Group>& rs, double beta,
-                         RNG& rng)
+    double gibbs_sweep(std::vector<Node>& vs, GSet<Group>& rs, RNG& rng)
     {
         if (rs.size() == 1 || rs.size() == vs.size())
             return 0;
@@ -392,116 +374,13 @@ struct Multilevel: public State
         std::iota(_vis.begin(), _vis.end(), 0);
         std::shuffle(_vis.begin(), _vis.end(), rng);
 
-        gt_hash_map<Group, Group> mu;
-        if constexpr (!labelled)
-            mu = relabel_rs(vs, _bprev);
-
-        double lp = 0;
-
-        for (auto& v : vs)
-            _btemp[v] = State::get_group(v);
-
-        for (size_t vi : _vis)
-        {
-            const auto& v = vs[vi];
-
-            auto r = State::get_group(v);
-            Group s = labelled ? _bprev[v] : mu[_bprev[v]];
-
-            if (s != r && get_wr(r) == 1)
-            {
-                lp = -std::numeric_limits<double>::infinity();
-                break;
-            }
-
-            bool accept = true;
-            if (s == r)
-            {
-                rs.erase(r);
-                s = uniform_sample(rs, rng);
-                rs.insert(r);
-                accept = false;
-            }
-            else
-            {
-                lp -= safelog_fast(rs.size()-1);
-            }
-
-            double dS;
-            if (s != r && get_wr(State::get_group(v)) == 1)
-                dS = std::numeric_limits<double>::infinity();
-            else
-                dS = State::virtual_move(v, r, s);
-
-            double ap, rp;
-            if (!std::isinf(beta))
-            {
-                double logZ = log_sum_exp(-beta * dS, 0.);
-                ap = -beta * dS - logZ;
-                rp = -logZ;
-            }
-            else
-            {
-                if (dS < 0)
-                {
-                    ap = 0;
-                    rp = -std::numeric_limits<double>::infinity();
-                }
-                else
-                {
-                    ap = -std::numeric_limits<double>::infinity();
-                    rp = 0;
-                }
-            }
-
-            if (accept)
-            {
-                move_node(v, s, true);
-                lp += ap;
-            }
-            else
-            {
-                lp += rp;
-            }
-        }
-
-        for (auto& v : vs)
-            move_node(v, _btemp[v]);
-
-        return lp;
-    }
-
-
-    template <bool forward, class RNG>
-    std::pair<double, double>
-    gibbs_sweep(std::vector<Node>& vs, GSet<Group>& rs, RNG& rng)
-    {
-        if (rs.size() == 1 || rs.size() == vs.size())
-            return {0, 0};
-
-        _vis.resize(vs.size());
-        std::iota(_vis.begin(), _vis.end(), 0);
-        std::shuffle(_vis.begin(), _vis.end(), rng);
-
-        gt_hash_map<Group, Group> mu;
-
-        if constexpr (!forward && !labelled)
-            mu = relabel_rs(vs, _bprev);
-
         double S = 0;
-        double lp = 0;
 
         std::vector<double> dS(rs.size());
         std::vector<double> probs(rs.size());
         std::vector<double> ps(rs.size());
         std::vector<size_t> ris(rs.size());
         std::iota(ris.begin(), ris.end(), 0);
-
-        if constexpr (!forward)
-        {
-            for (auto& v : vs)
-                _btemp[v] = State::get_group(v);
-        }
 
         for (size_t vi : _vis)
         {
@@ -538,107 +417,22 @@ struct Multilevel: public State
             }
 
             size_t si = rs.size();
-            if constexpr (forward)
-            {
-                for (size_t j = 0; j < rs.size(); ++j)
-                    probs[j] = exp(ps[j] - Z);
+            for (size_t j = 0; j < rs.size(); ++j)
+                probs[j] = exp(ps[j] - Z);
 
-                Sampler<size_t> sampler(ris, probs);
-                si = sampler.sample(rng);
-            }
-            else
-            {
-                auto s = (!labelled) ? mu[_bprev[v]] : _bprev[v];
-                auto iter = rs.begin();
-                for (size_t j = 0; j < rs.size(); ++j)
-                {
-                    if (*iter++ == s)
-                    {
-                        si = j;
-                        break;
-                    }
-                }
-            }
+            Sampler<size_t> sampler(ris, probs);
+            si = sampler.sample(rng);
 
             if (si >= rs.size() || std::isinf(dS[si]))
-            {
-                lp = -std::numeric_limits<double>::infinity();
                 break;
-            }
 
             auto iter = rs.begin();
             std::advance(iter, si);
             move_node(v, *iter);
-            lp += ps[si] - Z;
             S += dS[si];
         }
 
-        if constexpr (!forward)
-        {
-            for (auto& v : vs)
-                move_node(v, _btemp[v]);
-        }
-
-        return {S, lp};
-    }
-
-    template <class VB>
-    auto relabel_rs(std::vector<Node>& vs, VB& b)
-    {
-        // label matching
-
-        if constexpr (!labelled)
-        {
-            adj_list<> g;
-            typename vprop_map_t<Group>::type label(get(vertex_index_t(), g));
-            typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-            typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
-
-            std::vector<int> x, y;
-            for (auto& v: vs)
-            {
-                x.push_back(State::get_group(v));
-                y.push_back(b[v]);
-            }
-
-            get_contingency_graph<false>(g, partition, label, mrs, x, y);
-
-            typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-            typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
-
-            auto u = undirected_adaptor<adj_list<>>(g);
-            maximum_bipartite_weighted_matching(u, partition, mrs, match);
-
-            vector<size_t> unmatched;
-            for (auto v : vertices_range(g))
-            {
-                if (!partition[v])
-                    continue;
-                if (match[v] == graph_traits<adj_list<>>::null_vertex())
-                    unmatched.push_back(v);
-            }
-
-            gt_hash_map<Group, Group> mu;
-            for (auto v : vertices_range(g))
-            {
-                if (partition[v])
-                    continue;
-                auto w = match[v];
-                if (w == graph_traits<adj_list<>>::null_vertex())
-                {
-                    w = unmatched.back();
-                    unmatched.pop_back();
-                }
-                mu[label[w]] = label[v];
-            }
-
-            return mu;
-        }
-        else
-        {
-            gt_hash_map<Group, Group> mu;
-            return mu;
-        }
+        return S;
     }
 
     std::vector<Node> _mvs;
@@ -784,14 +578,13 @@ struct Multilevel: public State
         return S;
     }
 
-    template <bool forward=true, class RNG>
-    std::pair<double, double>
-    stage_multilevel(GSet<Group>& rs, std::vector<Node>& vs, RNG& rng)
+    template <class RNG>
+    double stage_multilevel(GSet<Group>& rs, std::vector<Node>& vs, RNG& rng)
     {
         size_t N = vs.size();
 
         if (N == 1)
-            return {0, 0};
+            return 0;
 
         if (_verbose)
             cout << "staging multilevel, N = " << N << endl;
@@ -803,16 +596,8 @@ struct Multilevel: public State
 
         size_t B_mid;
 
-        size_t B_init = rs.size();
         size_t B_max_init = B_max;
         size_t B_min_init = B_min;
-
-        if constexpr (!forward)
-        {
-            _rs_prev.clear();
-            for (auto& v : vs)
-                _rs_prev.insert(_bprev[v]);
-        }
 
         double S_best = std::numeric_limits<double>::infinity();
 
@@ -889,9 +674,9 @@ struct Multilevel: public State
                 {
                     double dS = 0;
                     if (_parallel)
-                        dS = pseudo_mh_sweep<true>(vs, rs, _beta, rng, B).first;
+                        dS = pseudo_mh_sweep<true>(vs, rs, _beta, rng, B);
                     else
-                        dS = mh_sweep<true>(vs, rs, _beta, rng, B).first;
+                        dS = mh_sweep<true>(vs, rs, _beta, rng, B);
                     S += dS;
                     if (std::isinf(_beta) && abs(dS) < 1e-8)
                         break;
@@ -993,11 +778,11 @@ struct Multilevel: public State
                     if (_parallel)
                         dS = pseudo_mh_sweep<true>(vs, rs,
                                                    (i == 0) ? _init_beta : _beta,
-                                                   rng, B_min, B_max, true).first;
+                                                   rng, B_min, B_max, true);
                     else
                         dS = mh_sweep<true>(vs, rs,
                                             (i == 0) ? _init_beta : _beta,
-                                            rng, B_min, B_max, true).first;
+                                            rng, B_min, B_max, true);
                     S += dS;
                     if (_verbose)
                         cout << i << " " << ((i == 0) ? _init_beta : _beta)
@@ -1044,13 +829,9 @@ struct Multilevel: public State
         // add midpoint
         if (!std::isinf(_beta))
         {
-            size_t Br;
-            if constexpr (forward)
-                Br = (State::_random_bisect ?
-                      fb.get_mid(B_min_init, B_max_init, rng) :
-                      fb.get_mid(B_min_init, B_max_init));
-            else
-                Br = _rs_prev.size();
+            size_t Br = (State::_random_bisect ?
+                         fb.get_mid(B_min_init, B_max_init, rng) :
+                         fb.get_mid(B_min_init, B_max_init));
             get_S(Br, false);
         }
 
@@ -1088,84 +869,13 @@ struct Multilevel: public State
             }
         }
 
-        size_t B;
-        if constexpr (forward)
-        {
-            Sampler<size_t> B_sampler(Bs, probs);
-            B = B_sampler.sample(rng);
-        }
-        else
-        {
-            B = _rs_prev.size();
-        }
-
-        double lp = 0;
+        Sampler<size_t> B_sampler(Bs, probs);
+        size_t B = B_sampler.sample(rng);
         double S = get_cache(B, rs);
-
-        if (!std::isinf(_beta))
-        {
-            double Z = -numeric_limits<double>::infinity();
-            for (auto& BS : cache)
-                Z = log_sum_exp(Z, -_beta * BS.second.first);
-            lp += -_beta * S - Z;
-        }
-
-        if (!State::_has_b_min)
-            B_min_init = 1;
-        if (!State::_has_b_max)
-            B_max_init = N;
 
         assert(rs.size() == B);
 
-        if (!std::isinf(_beta) && (rs.size() > B_min_init) &&
-            (rs.size() < B_max_init))
-        {
-            if (State::_gibbs)
-            {
-                double g_lp, g_dS;
-                std::tie(g_dS, g_lp) = gibbs_sweep<forward>(vs, rs, rng);
-                S += g_dS;
-                lp += g_lp;
-            }
-            else
-            {
-                double mh_lp, dS = 0;
-                if constexpr (forward)
-                {
-                    //for relabel
-                    for (auto& v : vs)
-                        _btemp[v] = State::get_group(v);
-
-                    std::tie(dS, mh_lp) =
-                        mh_sweep<false>(vs, rs, _beta, rng, _B_min, _B_max);
-
-                    auto mu = relabel_rs(vs, _btemp);
-                    for (auto& [r, s] : mu)
-                    {
-                        if (r != s)
-                        {
-                            mh_lp = numeric_limits<double>::infinity();
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    mh_lp = mh_sweep_prob(vs, rs, _beta, rng);
-                }
-                S += dS;
-                lp += mh_lp;
-            }
-        }
-
-        if (forward && State::_global_moves &&
-            (B_init < _B_min || B_init > _B_max))
-        {
-            S = -numeric_limits<double>::infinity();
-            lp = 0;
-        }
-
-        return {S, lp};
+        return S;
     }
 
     template <class RNG>
@@ -1208,100 +918,33 @@ struct Multilevel: public State
         _vs.clear();
         _nmoves = 0;
 
-        auto move = _move_sampler.sample(rng);
+        sample_rs(_rs, rng);
+        size_t nr = _rs.size();
 
-        switch (move)
-        {
-        case move_t::single:
-            {
-                auto v = uniform_sample(_nodes, rng);
-                auto r = State::get_group(v);
-                auto s = State::sample_group(v, true, true, false, rng);
-                if (r == s)
-                {
-                    move = move_t::null;
-                    break;
-                }
-                _dS = State::virtual_move(v, r, s);
-                if (!std::isinf(_beta))
-                {
-                    double pf = State::get_move_prob(v, r, s, true, true, false);
-                    double pb = State::get_move_prob(v, s, r, true, true, true);
-                    _a = pb - pf;
-                }
-                _vs.clear();
-                _vs.push_back(v);
-                _bnext[v] = s;
-                _nmoves++;
-            }
-            break;
+        _vs.clear();
+        for (const auto& r : _rs)
+            get_group_vs<false>(r, _vs);
 
-        case move_t::multilevel:
-            {
-                sample_rs(_rs, rng);
-                size_t nr = _rs.size();
+        //push_b(_vs);
+        for (auto& v : _vs)
+            _bprev[v] = State::get_group(v);
 
-                _vs.clear();
-                for (const auto& r : _rs)
-                    get_group_vs<false>(r, _vs);
+        _dS = stage_multilevel(_rs, _vs, rng);
 
-                //push_b(_vs);
-                for (auto& v : _vs)
-                    _bprev[v] = State::get_group(v);
+        size_t nnr = _rs.size();
 
-                double pf = 0, pb = 0;
+        for (auto& v : _vs)
+            _bnext[v] = State::get_group(v);
 
-                auto ret = stage_multilevel(_rs, _vs, rng);
-                _dS = get<0>(ret);
-                pf += get<1>(ret);
+        if (_verbose)
+            cout << "multilevel proposal: " << nr << "->" << nnr
+                 << " (" << _vs.size() << "), dS: " << _dS << endl;
 
-                size_t nnr = _rs.size();
+        for (auto& v : _vs)
+            move_node(v, _bprev[v]);
 
-                for (auto& v : _vs)
-                    _bnext[v] = State::get_group(v);
-
-                if (!std::isinf(_beta))
-                {
-                    if (!std::isinf(pf))
-                    {
-                        pb += stage_multilevel<false>(_rs, _vs, rng).second;
-
-                        if (!State::_global_moves && !std::isinf(pb))
-                        {
-                            int dB = int(nnr) - int(nr);
-                            pf += -safelog_fast(std::min(_rlist.size()     , State::_M))
-                                - lbinom_fast(_rlist.size(), nr);
-                            pb += -safelog_fast(std::min(_rlist.size() + dB, State::_M))
-                                - lbinom_fast(_rlist.size() + dB, nnr);
-                        }
-                    }
-
-                    _a = pb - pf;
-                }
-
-                if (_verbose)
-                    cout << "multilevel proposal: " << nr << "->" << nnr
-                         << " (" << _vs.size() << "), dS: " << _dS << ", pf: "
-                         << pf << ", pb: " << pb << ", a: " << -_beta * _dS + pb - pf
-                         << endl;
-
-                for (auto& v : _vs)
-                    move_node(v, _bprev[v]);
-
-                if (_force_accept)
-                    _dS = -numeric_limits<double>::infinity();
-            }
-            break;
-
-        default:
-            move = move_t::null;
-            break;
-        }
-
-        if (move == move_t::null)
-            return {_null_move, _nmoves ? _nmoves : 1};
-
-        _move = move;
+        if (_force_accept)
+            _dS = -numeric_limits<double>::infinity();
 
         return {0, _nmoves};
     }
