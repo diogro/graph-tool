@@ -111,7 +111,7 @@ _vdefaults = {
     "font_size": 12.,
     "surface": None,
     "pie_fractions": [0.75, 0.25],
-    "pie_colors": [matplotlib.cm.tab10(x) for x in range(10)]
+    "pie_colors": [default_cm(x) for x in range(10)]
     }
 
 _edefaults = {
@@ -382,7 +382,7 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                 if rg[0] == rg[1]:
                     rg[1] = 1
                 if cmap is None:
-                    cmap = matplotlib.cm.Tab10
+                    cmap = default_cm
                 map_property_values(val, new_val,
                                     lambda y: flatten([cmap((x - rg[0]) / (rg[1] - rg[0]),
                                                             alpha=alpha) for x in y]))
@@ -535,7 +535,8 @@ def _convert_props(props, d, g, cmap, pmap_default=False):
             nprops[k] = _convert(attr, v, cmap, pmap_default=pmap_default,
                                  g=g, k=d)
         except AttributeError:
-            warnings.warn("Unknown attribute: " + str(k), UserWarning)
+            kind = "vertex" if d == k else "edge"
+            warnings.warn(f"Unknown {kind} attribute: " + str(k), UserWarning)
             continue
     return nprops
 
