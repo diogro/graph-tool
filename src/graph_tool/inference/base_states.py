@@ -82,8 +82,6 @@ def mcmc_sweep_wrap(func):
                 assert self._check_clabel(), "invalid clabel after sweep"
             dS = ret[0]
             Sf = self.entropy(**entropy_args)
-            if not math.isclose(dS, (Sf - Si), abs_tol=1e-8):
-                print(self.x.fa)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
