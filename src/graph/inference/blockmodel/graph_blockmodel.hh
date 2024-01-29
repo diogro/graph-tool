@@ -81,9 +81,9 @@ typedef mpl::vector1<std::false_type> rmap_tr;
     ((is_weighted,, mpl::vector1<std::true_type>, 1))                          \
     ((use_hash,, bool_tr, 1))                                                  \
     ((use_rmap,, rmap_tr, 1))                                                  \
-    ((_abg, &, boost::any&, 0))                                                \
-    ((_aeweight, &, boost::any&, 0))                                           \
-    ((_avweight, &, boost::any&, 0))                                           \
+    ((_abg,, boost::any, 0))                                                   \
+    ((_aeweight,, boost::any, 0))                                              \
+    ((_avweight,, boost::any, 0))                                              \
     ((mrs,, emap_t, 0))                                                        \
     ((mrp,, vmap_t, 0))                                                        \
     ((mrm,, vmap_t, 0))                                                        \
@@ -111,11 +111,14 @@ GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
 
 template <class... Ts>
 class BlockState
-    : public BlockStateBase<Ts...>, public BlockStateVirtualBase
+    : public BlockStateBase<Ts...>,
+      public virtual BlockStateVirtualBase
 {
 public:
     GET_PARAMS_USING(BlockStateBase<Ts...>, BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, BLOCK_STATE_params)
+    using typename BlockStateBase<Ts...>::args_t;
+    using BlockStateBase<Ts...>::dispatch_args;
 
     typedef partition_stats<use_rmap_t::value> partition_stats_t;
 
@@ -128,7 +131,8 @@ public:
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(_g, _bg),
-          _m_entries(num_vertices(_bg))
+          _m_entries(num_vertices(_bg)),
+          _args(std::forward<ATs>(args)...)
     {
         for (auto r : vertices_range(_bg))
         {
@@ -187,7 +191,6 @@ public:
                 break;
         }
         _dBdx.resize(_rec_types.size());
-        _LdBdx.resize(_rec_types.size());
 
         _N = 0;
 
@@ -545,7 +548,7 @@ public:
                 if (_coupled_state != nullptr)
                     _coupled_state->remove_edge(me);
                 else
-                    boost::remove_edge(me, this->_bg);
+                    boost::remove_edge(me, _bg);
             }
         }
     }
@@ -730,8 +733,7 @@ public:
                 _coupled_state->remove_edge(r, s, me, dm);
         }
 
-        if (!_egroups.empty())
-            _egroups.clear();
+        clear_egroups();
     }
 
     template <bool Add, bool Deplete>
@@ -916,8 +918,8 @@ public:
             _empty_groups.insert(r);
             for (auto& p : _partition_stats)
                 p.add_block();
-            if (!_egroups.empty())
-                _egroups.add_block();
+            if (_egroups)
+                _egroups->add_block();
             if (_coupled_state != nullptr)
                 _coupled_state->coupled_resize_vertex(r);
         }
@@ -1222,10 +1224,11 @@ public:
         }
 
         int dL = 0;
+        std::vector<double> LdBdx;
         if (ea.recs && _rt != weight_type::NONE)
         {
-            std::fill(_LdBdx.begin(), _LdBdx.end(), 0);
-            auto rdS = rec_entries_dS(*this, m_entries, ea, _LdBdx, dL);
+            LdBdx.resize(_rec_types.size(), 0);
+            auto rdS = rec_entries_dS(*this, m_entries, ea, LdBdx, dL);
             dS += get<0>(rdS);
             dS_dl += get<1>(rdS);
         }
@@ -1264,7 +1267,7 @@ public:
                 dS_dl += _coupled_state->propagate_entries_dS(r, nr, dr, dnr,
                                                               m_entries._p_entries,
                                                               _coupled_entropy_args,
-                                                              _LdBdx, dL);
+                                                              LdBdx, dL);
             }
         }
         return dS + ea.beta_dl * dS_dl;
@@ -1607,9 +1610,9 @@ public:
             std::bernoulli_distribution rand(p_rand);
             if (c == 0 || !rand(rng))
             {
-                if (_egroups.empty())
-                    _egroups.init(_bg, _mrs);
-                s = _egroups.sample_edge(t, rng);
+                if (!_egroups)
+                    init_egroups();
+                s = _egroups->sample_edge(t, rng);
             }
             else
             {
@@ -2355,16 +2358,10 @@ public:
     template <class MCMCState>
     void init_mcmc(MCMCState& state)
     {
+        clear_egroups();
         auto c = state._c;
         if (!std::isinf(c))
-        {
-            _egroups.clear();
-            _egroups.init(_bg, _mrs);
-        }
-        else
-        {
-            _egroups.clear();
-        }
+            init_egroups();
     }
 
     void couple_state(BlockStateVirtualBase& s, const entropy_args_t& ea)
@@ -2383,9 +2380,14 @@ public:
         return _coupled_state;
     }
 
+    void init_egroups()
+    {
+        _egroups = std::make_shared<EGroups>(_bg, _mrs);
+    }
+
     void clear_egroups()
     {
-        _egroups.clear();
+        _egroups.reset();
     }
 
     void sync_emat()
@@ -2511,10 +2513,156 @@ public:
 
     void relax_update(bool relax)
     {
-        _egroups.check(_bg, _mrs);
+        if (_egroups)
+            _egroups->check(_bg, _mrs);
         _egroups_update = !relax;
         if (_coupled_state != nullptr)
             _coupled_state->relax_update(relax);
+    }
+
+    double _global = false;
+    template <class G, size_t... Is>
+    BlockState* deep_copy(G& g, bool global, index_sequence<Is...>)
+    {
+        bg_t* bg;
+        if constexpr (std::is_same_v<bg_t, GraphInterface::multigraph_t>)
+            bg = new bg_t(_bg);
+        else
+            bg = new bg_t(*(new GraphInterface::multigraph_t(_bg.original_graph())));
+        auto abg = boost::any(std::ref(*bg));
+
+        auto args =
+            dispatch_args(_args,
+                          [&](std::string name, auto& a) -> decltype(auto)
+                          {
+                              typedef std::remove_reference_t<decltype(a)> a_t;
+                              if (name == "_abg")
+                              {
+                                  if constexpr (std::is_same_v<a_t, boost::any>)
+                                      return abg;
+                                  return a;
+                              }
+                              else if (name == "recdx")
+                              {
+                                  if constexpr (std::is_same_v<a_t, recdx_t>)
+                                      return *(new recdx_t(this->_recdx));
+                                  return a;
+                              }
+                              else if (name == "Lrecdx")
+                              {
+                                  if (global)
+                                  {
+                                      if constexpr (std::is_same_v<a_t, Lrecdx_t>)
+                                          return *(new Lrecdx_t(this->_Lrecdx));
+                                  }
+                                  return a;
+                              }
+                              else if (name == "epsilon")
+                              {
+                                  if constexpr (std::is_same_v<a_t, epsilon_t>)
+                                      return *(new epsilon_t(this->_epsilon));
+                                  return a;
+                              }
+                              return a;
+                          });
+
+        BlockState* state = new BlockState(g, std::get<Is+1>(args)...);
+        state->_bgp = std::shared_ptr<bg_t>(bg);
+        if constexpr (!std::is_same_v<bg_t, GraphInterface::multigraph_t>)
+            state->__bgp =
+                std::shared_ptr<GraphInterface::multigraph_t>(&bg->original_graph());
+        state->_global = global;
+        state->_recdxp = std::shared_ptr<recdx_t>(&state->_recdx);
+        if (global)
+            state->_Lrecdxp = std::shared_ptr<Lrecdx_t>(&state->_Lrecdx);
+        state->_epsilonp = std::shared_ptr<epsilon_t>(&state->_epsilon);
+        return state;
+    }
+
+    BlockState* deep_copy(boost::any args, bool global)
+    {
+        BlockState* state = nullptr;
+        try
+        {
+            g_t& g = boost::any_cast<std::reference_wrapper<g_t>>(args);
+            state = deep_copy(g, global, make_index_sequence<sizeof...(Ts)-1>{});
+        }
+        catch (boost::bad_any_cast& e)
+        {
+            typedef undirected_adaptor<GraphInterface::multigraph_t> ug_t;
+            if constexpr (std::is_same_v<g_t, ug_t>)
+            {
+                GraphInterface::multigraph_t& g =
+                    boost::any_cast<std::reference_wrapper<GraphInterface::multigraph_t>>(args);
+                ug_t* ug = new ug_t(g);
+                state = deep_copy(*ug, global, make_index_sequence<sizeof...(Ts)-1>{});
+                state->_ugp = std::shared_ptr<ug_t>(ug);
+            }
+            else
+            {
+                throw e;
+            }
+        }
+        if constexpr (!std::is_same_v<decltype(_eweight),ecmap_t>)
+            state->_eweight = state->_eweight.copy();
+        if constexpr (!std::is_same_v<decltype(_vweight),vcmap_t>)
+            state->_vweight = state->_vweight.copy();
+        state->_mrs = state->_mrs.copy();
+        state->_c_mrs = state->_mrs.get_checked();
+        state->_mrp = state->_mrp.copy();
+        if (graph_tool::is_directed(_g))
+            state->_mrm = state->_mrm.copy();
+        else
+            state->_mrm = state->_mrp;
+        state->_wr = state->_wr.copy();
+        state->_b = state->_b.copy();
+        state->_egroups = _egroups;
+        state->_c_rec.clear();
+        for (auto& p : state->_rec)
+        {
+            p = p.copy();
+            state->_c_rec.push_back(p.get_checked());
+        }
+        state->_c_drec.clear();
+        for (auto& p : state->_drec)
+        {
+            p = p.copy();
+            state->_c_drec.push_back(p.get_checked());
+        }
+        state->_c_brec.clear();
+        for (auto& p : state->_brec)
+        {
+            p = p.copy();
+            state->_c_brec.push_back(p.get_checked());
+        }
+        state->_c_bdrec.clear();
+        for (auto& p : state->_bdrec)
+        {
+            p = p.copy();
+            state->_c_bdrec.push_back(p.get_checked());
+        }
+        state->_recsum = _recsum;
+        state->_brecsum = state->_brecsum.copy();
+        if (_coupled_state != nullptr)
+        {
+            state->_coupled_state =
+                _coupled_state->deep_copy(boost::any(std::ref(state->_bg)));
+            state->_coupled_statep =
+                std::shared_ptr<BlockStateVirtualBase>(state->_coupled_state);
+            state->_coupled_entropy_args = _coupled_entropy_args;
+        }
+
+        return state;
+    }
+
+    BlockState* deep_copy(boost::any args)
+    {
+        return deep_copy(args, false);
+    }
+
+    BlockState* deep_copy()
+    {
+        return deep_copy(boost::any(std::ref(_g)), true);
     }
 
 //private:
@@ -2536,7 +2684,6 @@ public:
     std::vector<double> _recsum;
     std::vector<double> _recx2;
     std::vector<double> _dBdx;
-    std::vector<double> _LdBdx;
     size_t _B_E = 0;
     size_t _B_E_D = 0;
     int _rt = weight_type::NONE;
@@ -2563,7 +2710,7 @@ public:
         emat_t;
     emat_t _emat;
 
-    EGroups _egroups;
+    std::shared_ptr<EGroups> _egroups;
     bool _egroups_update = true;
 
     std::vector<partition_stats_t> _partition_stats;
@@ -2578,7 +2725,16 @@ public:
     typedef entropy_args_t _entropy_args_t;
     BlockStateVirtualBase* _coupled_state = nullptr;
     entropy_args_t _coupled_entropy_args;
+    args_t _args;
 
+    // owned by deep copies
+    std::shared_ptr<undirected_adaptor<GraphInterface::multigraph_t>> _ugp;
+    std::shared_ptr<bg_t> _bgp;
+    std::shared_ptr<GraphInterface::multigraph_t> __bgp;
+    std::shared_ptr<BlockStateVirtualBase> _coupled_statep;
+    std::shared_ptr<recdx_t> _recdxp;
+    std::shared_ptr<Lrecdx_t> _Lrecdxp;
+    std::shared_ptr<epsilon_t> _epsilonp;
 };
 
 } // graph_tool namespace

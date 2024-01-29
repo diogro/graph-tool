@@ -93,7 +93,8 @@ class NestedBlockState(object):
                                   recs_dl=False,
                                   beta_dl=1.)
 
-        self.levels = [base_type(g, b=bs[0] if bs is not None else None,
+        g_ = self.state_args.pop("g", g) # for OverlapBlockState
+        self.levels = [base_type(g_, b=bs[0] if bs is not None else None,
                                  **self.state_args)]
 
         if bs is None:
@@ -199,7 +200,8 @@ class NestedBlockState(object):
         base_state.pop("epsilon", None)
         base_state.pop("drec", None)
         state_args = dict(self.state_args, **base_state)
-        state_args.pop("g", None)
+        if self.base_type is not OverlapBlockState:
+            state_args.pop("g", None)
         state_args.pop("b", None)
         state = dict(g=self.g, bs=self.get_bs(),
                      base_type=type(self.levels[0]),
@@ -698,8 +700,6 @@ class NestedBlockState(object):
            it once with a large value of ``niter``.
 
         """
-
-        kwargs["psingle"] = kwargs.get("psingle", self.g.num_vertices())
 
         c = kwargs.pop("c", 1)
         if not isinstance(c, collections.abc.Iterable):

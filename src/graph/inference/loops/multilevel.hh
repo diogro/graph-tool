@@ -39,7 +39,7 @@ template <class State, class Node, class Group,
           template <class> class GSet,
           template <class, class> class GMap,
           class GSMap, bool allow_empty=false,
-          bool labelled=false>
+          bool relabel=false>
 struct Multilevel: public State
 {
     enum class move_t { multilevel=0, null };
@@ -121,7 +121,6 @@ struct Multilevel: public State
     move_t _move;
     GSet<Group> _rs, _rs_prev;
     GMap<Group, pair<Group, double>> _best_merge;
-    GSet<Group> _past_merges;
     GMap<Group, Group> _root;
 
     VSet<Node> _visited;
@@ -435,14 +434,68 @@ struct Multilevel: public State
         return S;
     }
 
-    std::vector<Node> _mvs;
+    template <class RNG>
+    double relabel_sweep(GSet<Group>& rs, double beta, RNG& rng)
+    {
+        double S = 0;
+        for (auto r : rs)
+        {
+            auto u = State::sample_group_label(r, rng);
+            double dS = State::relabel_group_dS(r, u);
+            if (metropolis_accept(dS, 0, beta, rng))
+            {
+                State::relabel_group(r, u);
+                S += dS;
+            }
+        }
+        return S;
+    }
+
+    template <class RNG>
+    double pseudo_relabel_sweep(GSet<Group>& rs_, double beta, RNG& rng_)
+    {
+        typedef decltype(State::group_label(Group())) label_t;
+        std::vector<label_t> moves(rs_.size());
+        std::vector<Group> rs(rs_.begin(), rs_.end());
+
+        double S = 0;
+
+        parallel_rng<rng_t> prng(rng_);
+
+        #pragma omp parallel for schedule(runtime) reduction(+:S)
+        for (size_t i = 0; i < _vis.size(); ++i)
+        {
+            auto r = rs[i];
+            auto& rng = prng.get(rng_);
+            auto u = State::sample_group_label(r, rng);
+            double dS = State::relabel_group_dS(r, u);
+            if (metropolis_accept(dS, 0, beta, rng))
+            {
+                moves[i] = u;
+                S += dS;
+            }
+            else
+            {
+                moves[i] = State::group_label(r);
+            }
+        }
+
+        for (size_t i = 0; i < _vis.size(); ++i)
+        {
+            auto r = rs[i];
+            auto u = moves[i];
+            if (u != State::group_label(r))
+                relabel_group(r, u);
+        }
+
+        return S;
+    }
+
     double virtual_merge_dS(const Group& r, const Group& s)
     {
-        assert(r != s);
-
+        std::vector<Node> mvs;
         State::relax_update(true);
 
-        _mvs.clear();
         double dS = 0;
         for (auto& v : _groups[r])
         {
@@ -452,10 +505,10 @@ struct Multilevel: public State
             if (std::isinf(ddS))
                 break;
             State::move_node(v, s, true);
-            _mvs.push_back(v);
+            mvs.push_back(v);
         }
 
-        for (auto& v : _mvs)
+        for (auto& v : mvs)
             State::move_node(v, r, false);
 
         State::relax_update(false);
@@ -467,23 +520,37 @@ struct Multilevel: public State
     {
         assert(r != s);
 
-        get_group_vs(r, _mvs);
-        for (auto& v : _mvs)
+        std::vector<Node> mvs;
+        get_group_vs(r, mvs);
+        for (auto& v : mvs)
             move_node(v, s);
     }
 
     template <class RNG>
-    double merge_sweep(GSet<Group>& rs, size_t B, size_t niter, RNG& rng)
+    double merge_sweep(GSet<Group>& rs, size_t B, size_t niter, RNG& rng_)
     {
         double S = 0;
 
+        std::vector<Group> rlist;
         _best_merge.clear();
         for (const auto& r : rs)
-            _best_merge[r] = std::make_pair(r, numeric_limits<double>::infinity());
-
-        _past_merges.clear();
-        for (const auto& r : rs)
         {
+            _best_merge[r] = std::make_pair(r, numeric_limits<double>::infinity());
+            rlist.push_back(r);
+        }
+
+        gt_hash_set<Group> past_merges;
+        parallel_rng<rng_t> prng(rng_);
+
+        if (_parallel)
+            State::split_parallel();
+
+        #pragma omp parallel for schedule(runtime) if (_parallel)   \
+            firstprivate(past_merges)
+        for (size_t j = 0; j < rlist.size(); ++j)
+        {
+            auto& rng = prng.get(rng_);
+            auto& r = rlist[j];
             auto find_candidates = [&](bool allow_random)
                 {
                     for (size_t i = 0; i < niter; ++i)
@@ -492,12 +559,12 @@ struct Multilevel: public State
                         auto s = State::sample_group(v, allow_random, false, false, rng);
                         if (s != r &&
                             rs.find(s) != rs.end() &&
-                            _past_merges.find(s) == _past_merges.end())
+                            past_merges.find(s) == past_merges.end())
                         {
                             double dS = virtual_merge_dS(r, s);
                             if (!std::isinf(dS) && dS < _best_merge[r].second)
-                                _best_merge[r] = std::make_pair(s, dS);
-                            _past_merges.insert(s);
+                                _best_merge[r] = {s, dS};
+                            past_merges.insert(s);
                         }
                     }
                 };
@@ -511,8 +578,11 @@ struct Multilevel: public State
             if (_best_merge[r].first == r)
                 find_candidates(true);
 
-            _past_merges.clear();
+            past_merges.clear();
         }
+
+        if (_parallel)
+            State::unsplit_parallel();
 
         std::vector<std::pair<Group, Group>> pairs;
         std::vector<double> dS;
@@ -531,7 +601,7 @@ struct Multilevel: public State
 
         std::vector<size_t> pis(pairs.size());
         std::iota(pis.begin(), pis.end(), 0);
-        std::shuffle(pis.begin(), pis.end(), rng);
+        std::shuffle(pis.begin(), pis.end(), rng_);
 
         for (auto i : pis)
             queue.push(i);
@@ -673,10 +743,17 @@ struct Multilevel: public State
                 for (size_t i = 0; i < _mh_sweeps; ++i)
                 {
                     double dS = 0;
+                    if constexpr (relabel)
+                    {
+                        if (_parallel)
+                            dS += pseudo_relabel_sweep(rs, _beta, rng);
+                        else
+                            dS += relabel_sweep(rs, _beta, rng);
+                    }
                     if (_parallel)
-                        dS = pseudo_mh_sweep<true>(vs, rs, _beta, rng, B);
+                        dS += pseudo_mh_sweep<true>(vs, rs, _beta, rng, B);
                     else
-                        dS = mh_sweep<true>(vs, rs, _beta, rng, B);
+                        dS += mh_sweep<true>(vs, rs, _beta, rng, B);
                     S += dS;
                     if (std::isinf(_beta) && abs(dS) < 1e-8)
                         break;
@@ -774,15 +851,23 @@ struct Multilevel: public State
                 do
                 {
                     Bprev = rs.size();
-                    double dS;
+                    double dS = 0;
+                    if constexpr (relabel)
+                    {
+                        if (_parallel)
+                            dS += pseudo_relabel_sweep(rs, (i == 0) ? _init_beta : _beta, rng);
+                        else
+                            dS += relabel_sweep(rs, (i == 0) ? _init_beta : _beta, rng);
+                    }
+
                     if (_parallel)
-                        dS = pseudo_mh_sweep<true>(vs, rs,
-                                                   (i == 0) ? _init_beta : _beta,
-                                                   rng, B_min, B_max, true);
+                        dS += pseudo_mh_sweep<true>(vs, rs,
+                                                    (i == 0) ? _init_beta : _beta,
+                                                    rng, B_min, B_max, true);
                     else
-                        dS = mh_sweep<true>(vs, rs,
-                                            (i == 0) ? _init_beta : _beta,
-                                            rng, B_min, B_max, true);
+                        dS += mh_sweep<true>(vs, rs,
+                                             (i == 0) ? _init_beta : _beta,
+                                             rng, B_min, B_max, true);
                     S += dS;
                     if (_verbose)
                         cout << i << " " << ((i == 0) ? _init_beta : _beta)

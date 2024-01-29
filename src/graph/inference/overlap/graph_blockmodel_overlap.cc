@@ -290,7 +290,13 @@ REGISTER_MOD
                                                  b[v] = r;
                                              }
                                          })();
+                      })
+                 .def("get_any",
+                      +[](state_t& state)
+                      {
+                          return boost::any(&state);
                       });
+
          });
 
     def("make_overlap_block_state", &make_overlap_block_state);

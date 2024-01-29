@@ -20,6 +20,8 @@
 
 #include "config.h"
 
+#include <any>
+
 #include "graph_blockmodel_entropy.hh"
 #include "graph_blockmodel_partition.hh"
 #include "graph_blockmodel_entries.hh"
@@ -32,6 +34,7 @@ namespace graph_tool
 
 class BlockStateVirtualBase {
 public:
+    virtual ~BlockStateVirtualBase() {};
     virtual double entropy(const entropy_args_t& eargs, bool propagate) = 0;
     virtual void add_partition_node(size_t v, size_t r) = 0;
     virtual void remove_partition_node(size_t v, size_t r) = 0;
@@ -75,6 +78,8 @@ public:
     virtual void check_node_counts() = 0;
     virtual bool allow_move(size_t r, size_t nr) = 0;
     virtual void relax_update(bool relax) = 0;
+    virtual BlockStateVirtualBase* deep_copy() = 0;
+    virtual BlockStateVirtualBase* deep_copy(boost::any) { return deep_copy(); } ;
 };
 
 } // graph_tool namespace

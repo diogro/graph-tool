@@ -99,7 +99,12 @@ REGISTER_MOD
                  .def("get_edge_sampler",
                       +[](state_t& state, bool edges_only)
                       {
-                          return make_shared<SBMEdgeSampler<state_t>>(state, edges_only);
+                          return make_shared<SBMEdgeSampler<state_t>>(state, edges_only ? 1. : 0.25);
+                      })
+                 .def("get_any",
+                      +[](state_t& state)
+                      {
+                          return boost::any(&state);
                       });
 
              typedef SBMEdgeSampler<state_t> edge_sampler_t;

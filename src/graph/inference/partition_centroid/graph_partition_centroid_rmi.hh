@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include <vector>
+#include <mutex>
 
 #include "../blockmodel/graph_blockmodel_util.hh"
 #include "../support/graph_state.hh"
@@ -100,18 +101,22 @@ class RMICenterState
 public:
     GET_PARAMS_USING(RMICenterStateBase<Ts...>, BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, BLOCK_STATE_params)
+    using typename RMICenterStateBase<Ts...>::args_t;
+    using RMICenterStateBase<Ts...>::dispatch_args;
 
     template <class... ATs,
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     RMICenterState(ATs&&... args)
         : RMICenterStateBase<Ts...>(std::forward<ATs>(args)...),
-        _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
-        _mrs(_bs.shape()[0]),
-        _nr(_bs.shape()[0]),
-        _N(_bs.shape()[1]),
-        _wr(_N),
-        _bclabel(_N),
-        _pclabel(_N)
+          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _mrs(_bs.shape()[0]),
+          _nr(_bs.shape()[0]),
+          _N(_bs.shape()[1]),
+          _wr(_N),
+          _bclabel(_N),
+          _pclabel(_N),
+          _args(args...),
+          _move_mutex(new std::mutex())
     {
         for (size_t r : _b)
             _wr[r]++;
@@ -159,6 +164,8 @@ public:
     typedef char _entropy_args_t;
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
+
+    args_t _args;
 
     typedef int m_entries_t;
 
@@ -219,10 +226,12 @@ public:
     {
     }
 
+    std::shared_ptr<std::mutex> _move_mutex;
     double virtual_move(size_t v, size_t r, size_t nr)
     {
         if (r == nr)
             return 0;
+        std::lock_guard lock(*_move_mutex);
 
         double Sb = entropy();
         move_vertex(v, nr);
@@ -352,6 +361,37 @@ public:
     void clear_next_state() {}
     void relax_update(bool) {}
 
+    // owned by deep copy
+    std::shared_ptr<multi_array<int32_t,1>> _bp;
+
+    template <size_t... Is>
+    RMICenterState* deep_copy(index_sequence<Is...>)
+    {
+        multi_array<int32_t,1>* bp = new multi_array<int32_t,1>(_b);
+        multi_array_ref<int32_t,1> b(*bp);
+        auto args =
+            dispatch_args(_args,
+                          [&](std::string name, auto& a) -> decltype(auto)
+                          {
+                              typedef std::remove_reference_t<decltype(a)> a_t;
+                              if (name == "b")
+                              {
+                                  if constexpr (std::is_same_v<a_t, b_t>)
+                                      return b;
+                                  return a;
+                              }
+                              return a;
+                          });
+
+        auto state = new RMICenterState(std::get<Is>(args)...);
+        state->_bp = std::shared_ptr<multi_array<int32_t,1>>(bp);
+        return state;
+    };
+
+    RMICenterState* deep_copy()
+    {
+        return deep_copy(make_index_sequence<sizeof...(Ts)>{});
+    }
 };
 
 } // graph_tool namespace

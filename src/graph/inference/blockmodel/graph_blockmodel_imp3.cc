@@ -70,7 +70,12 @@ REGISTER_MOD
              c.def("get_B_E",
                   &state_t::get_B_E)
                  .def("get_B_E_D",
-                      &state_t::get_B_E_D);
+                      &state_t::get_B_E_D)
+                 .def("get_any",
+                      +[](state_t& state)
+                      {
+                          return boost::any(&state);
+                      });
              // c.def("remove_vertices", remove_vertices)
              //     .def("add_vertices", add_vertices)
              //     .def("move_vertex", move_vertex)

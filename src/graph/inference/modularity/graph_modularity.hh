@@ -37,7 +37,6 @@ struct modularity_entropy_args_t
     double gamma;
 };
 
-
 typedef vprop_map_t<int32_t>::type vmap_t;
 typedef eprop_map_t<int32_t>::type emap_t;
 
@@ -58,6 +57,8 @@ class ModularityState
 public:
     GET_PARAMS_USING(ModularityStateBase<Ts...>, BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, BLOCK_STATE_params)
+    using typename ModularityStateBase<Ts...>::args_t;
+    using ModularityStateBase<Ts...>::dispatch_args;
 
     typedef partition_stats<false> partition_stats_t;
 
@@ -65,12 +66,13 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     ModularityState(ATs&&... args)
         : ModularityStateBase<Ts...>(std::forward<ATs>(args)...),
-        _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
-        _N(HardNumVertices()(_g)),
-        _E(0),
-        _bclabel(_N),
-        _pclabel(_N),
-        _wr(_N)
+          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _N(HardNumVertices()(_g)),
+          _E(0),
+          _bclabel(_N),
+          _pclabel(_N),
+          _wr(_N),
+          _args(std::forward<ATs>(args)...)
     {
         _wr.resize(num_vertices(_g), 0);
         _er.resize(num_vertices(_g), 0);
@@ -124,6 +126,8 @@ public:
 
     UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
     simple_degs_t _degs;
+
+    args_t _args;
 
     typedef modularity_entropy_args_t _entropy_args_t;
 
@@ -359,6 +363,51 @@ public:
     void store_next_state(size_t) {}
     void clear_next_state() {}
     void relax_update(bool) {}
+
+    //owned by deep copy
+    std::shared_ptr<er_t> _er_p;
+    std::shared_ptr<err_t> _err_p;
+
+    template <size_t... Is>
+    ModularityState* deep_copy(index_sequence<Is...>)
+    {
+        auto b = _b.copy();
+        auto args =
+            dispatch_args(_args,
+                          [&](std::string name, auto& a) -> decltype(auto)
+                          {
+                              typedef std::remove_reference_t<decltype(a)> a_t;
+                              if (name == "b")
+                              {
+                                  if constexpr (std::is_same_v<a_t, b_t>)
+                                      return b;
+                                  return a;
+                              }
+                              else if (name == "er")
+                              {
+                                  if constexpr (std::is_same_v<a_t, er_t>)
+                                      return *(new er_t(this->_er));
+                                  return a;
+                              }
+                              else if (name == "err")
+                              {
+                                  if constexpr (std::is_same_v<a_t, err_t>)
+                                      return *(new err_t(this->_err));
+                                  return a;
+                              }
+                              return a;
+                          });
+
+        auto state = new ModularityState(std::get<Is>(args)...);
+        state->_er_p = std::shared_ptr<er_t>(&state->_er);
+        state->_err_p = std::shared_ptr<err_t>(&state->_err);
+        return state;
+    };
+
+    ModularityState* deep_copy()
+    {
+        return deep_copy(make_index_sequence<sizeof...(Ts)>{});
+    }
 };
 
 } // graph_tool namespace

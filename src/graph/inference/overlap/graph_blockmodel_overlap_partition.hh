@@ -155,36 +155,44 @@ struct overlap_partition_stats_t
 
     size_t get_v(size_t v)
     {
-        constexpr size_t null =
-            std::numeric_limits<size_t>::max();
-        if (v >= _vmap.size())
-            _vmap.resize(v + 1, null);
-        size_t nv = _vmap[v];
-        if (nv == null)
-            nv = _vmap[v] = _bvs.size();
-        if (nv >= _bvs.size())
+        size_t nv;
+        #pragma omp critical (get_v)
         {
-            _bvs.resize(nv + 1);
-            _degs.resize(nv + 1);
+            constexpr size_t null =
+                std::numeric_limits<size_t>::max();
+            if (v >= _vmap.size())
+                _vmap.resize(v + 1, null);
+            nv = _vmap[v];
+            if (nv == null)
+                nv = _vmap[v] = _bvs.size();
+            if (nv >= _bvs.size())
+            {
+                _bvs.resize(nv + 1);
+                _degs.resize(nv + 1);
+            }
         }
         return nv;
     }
 
     size_t get_r(size_t r)
     {
-        constexpr size_t null =
-            std::numeric_limits<size_t>::max();
-        if (r >= _bmap.size())
-            _bmap.resize(r + 1, null);
-        size_t nr = _bmap[r];
-        if (nr == null)
-            nr = _bmap[r] = _r_count.size();
-        if (nr >= _r_count.size())
+        size_t nr;
+        #pragma omp critical (get_r)
         {
-            _r_count.resize(nr + 1);
-            _dhist.resize(nr + 2);
-            _emhist.resize(nr + 1);
-            _ephist.resize(nr + 1);
+            constexpr size_t null =
+                std::numeric_limits<size_t>::max();
+            if (r >= _bmap.size())
+                _bmap.resize(r + 1, null);
+            nr = _bmap[r];
+            if (nr == null)
+                nr = _bmap[r] = _r_count.size();
+            if (nr >= _r_count.size())
+            {
+                _r_count.resize(nr + 1);
+                _dhist.resize(nr + 2);
+                _emhist.resize(nr + 1);
+                _ephist.resize(nr + 1);
+            }
         }
         return nr;
     }
@@ -352,8 +360,8 @@ struct overlap_partition_stats_t
         size_t kin = (in_deg + out_deg == 0) ? in_degreeS()(v, g) : in_deg;
         size_t kout = (in_deg + out_deg == 0) ? out_degreeS()(v, g) : out_deg;
 
-        static gt_hash_map<size_t, std::pair<int, int>> deg_delta;
-        static vector<size_t> rs;
+        gt_hash_map<size_t, std::pair<int, int>> deg_delta;
+        //vector<size_t> rs;
 
         auto& d_r = deg_delta[r];
         d_r.first -= kin;
@@ -382,8 +390,8 @@ struct overlap_partition_stats_t
                 has_r = true;
             else if (s == nr)
                 has_nr = true;
-            else
-                rs.push_back(s);
+            // else
+            //     rs.push_back(s);
 
             if ((get<0>(k_s) + get<1>(k_s)) > 0)
             {
@@ -415,11 +423,11 @@ struct overlap_partition_stats_t
             }
         }
 
-        deg_delta[r] = {0, 0};
-        deg_delta[nr] = {0, 0};
-        for (auto s : rs)
-            deg_delta[s] = {0, 0};
-        rs.clear();
+        // deg_delta[r] = {0, 0};
+        // deg_delta[nr] = {0, 0};
+        // for (auto s : rs)
+        //     deg_delta[s] = {0, 0};
+        // rs.clear();
 
         return is_same_bv;
     }
@@ -464,7 +472,7 @@ struct overlap_partition_stats_t
 
         u = get_v(u);
 
-        auto& bv = _bvs[u];
+        const auto& bv = _bvs[u];
         assert(bv.size() > 0);
         bv_t n_bv;
         size_t d = bv.size();
@@ -772,8 +780,8 @@ struct overlap_partition_stats_t
             S_b += lbinom_fast(_r_count[s] + _ephist[s] - 1, _ephist[s]);
         }
 
-        static gt_hash_map<size_t, pair<int, int>> deg_delta;
-        static gt_hash_map<size_t, int> r_count_delta;
+        gt_hash_map<size_t, pair<int, int>> deg_delta;
+        gt_hash_map<size_t, int> r_count_delta;
 
         if (bv != n_bv)
         {
@@ -823,34 +831,34 @@ struct overlap_partition_stats_t
             }
         }
 
-        if (bv != n_bv)
-        {
-            if (n_bv_count == 0)
-            {
-                for (auto s : n_bv)
-                    r_count_delta[s] -= 1;
-            }
+        // if (bv != n_bv)
+        // {
+        //     if (n_bv_count == 0)
+        //     {
+        //         for (auto s : n_bv)
+        //             r_count_delta[s] -= 1;
+        //     }
 
-            if (bv_count == 1)
-            {
-                for (auto s : bv)
-                   r_count_delta[s] += 1;
-            }
-        }
+        //     if (bv_count == 1)
+        //     {
+        //         for (auto s : bv)
+        //            r_count_delta[s] += 1;
+        //     }
+        // }
 
-        if (r != nr)
-        {
-            size_t kin = (in_deg + out_deg == 0) ? in_degreeS()(v, g) : in_deg;
-            size_t kout = (in_deg + out_deg == 0) ? out_degreeS()(v, g) : out_deg;
+        // if (r != nr)
+        // {
+        //     size_t kin = (in_deg + out_deg == 0) ? in_degreeS()(v, g) : in_deg;
+        //     size_t kout = (in_deg + out_deg == 0) ? out_degreeS()(v, g) : out_deg;
 
-            auto& d_r = deg_delta[r];
-            d_r.first += kin;
-            d_r.second += kout;
+        //     auto& d_r = deg_delta[r];
+        //     d_r.first += kin;
+        //     d_r.second += kout;
 
-            auto& d_nr = deg_delta[nr];
-            d_nr.first -= kin;
-            d_nr.second -= kout;
-        }
+        //     auto& d_nr = deg_delta[nr];
+        //     d_nr.first -= kin;
+        //     d_nr.second -= kout;
+        // }
 
         return S_a - S_b;
     }

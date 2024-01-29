@@ -89,6 +89,10 @@ struct MCMC
         {
             _state.init_mcmc(*this);
 
+            for (int i = 0; i < get_num_threads(); ++i)
+                _m_entries.emplace_back(num_vertices(_state._ustate._bg));
+            _pstates.resize(get_num_threads(), nullptr);
+
             if (_global_moves)
             {
                 idx_set<size_t> rs_min, rs_max;
@@ -112,7 +116,8 @@ struct MCMC
         bool _has_b_max = false;
         bool _has_b_min = false;
 
-        typename State::m_entries_t _m_entries;
+        std::vector<typename State::m_entries_t> _m_entries;
+        std::vector<State*> _pstates;
         typename State::_entropy_args_t& _entropy_args;
 
         vprop_map_t<int32_t>::type::unchecked_t _bh;
@@ -149,6 +154,25 @@ struct MCMC
             return _state._b[v];
         }
 
+        void split_parallel()
+        {
+            _pstates[0] = &_state;
+            #pragma omp parallel for schedule(runtime)
+            for (size_t i = 1; i < _pstates.size(); ++i)
+                _pstates[i] = _state.deep_copy();
+        }
+
+        void unsplit_parallel()
+        {
+            _pstates[0] = nullptr;
+            #pragma omp parallel for schedule(runtime)
+            for (size_t i = 1; i < _pstates.size(); ++i)
+            {
+                delete _pstates[i];
+                _pstates[i] = nullptr;
+            }
+        }
+
         template <class RNG>
         size_t get_new_group(size_t v, bool inherit, RNG& rng)
         {
@@ -176,20 +200,27 @@ struct MCMC
 
         void move_node(size_t v, size_t r, bool cache)
         {
+            auto& state = (_pstates[0] == nullptr) ?
+                _state : *_pstates[get_thread_num()];
+
             if (cache)
-                _state.move_vertex(v, r, _m_entries);
+                state.move_vertex(v, r, _m_entries[get_thread_num()]);
             else
-                _state.move_vertex(v, r);
+                state.move_vertex(v, r);
         }
 
         double virtual_move(size_t v, size_t r, size_t s)
         {
-            if (std::isinf(_beta) && _state._ustate._coupled_state != nullptr)
+            auto& state = (_pstates[0] == nullptr) ?
+                _state : *_pstates[get_thread_num()];
+
+            if (std::isinf(_beta) && state._ustate._coupled_state != nullptr)
             {
                 if (_bh[r] != _bh[s])
                     return numeric_limits<double>::infinity();
             }
-            return _state.virtual_move(v, r, s, _entropy_args, _m_entries);
+            return state.virtual_move(v, r, s, _entropy_args,
+                                      _m_entries[get_thread_num()]);
         }
 
         template <class VS>
@@ -219,12 +250,15 @@ struct MCMC
         size_t sample_group(size_t v, bool allow_random, bool allow_empty,
                             bool init_heuristic, RNG& rng)
         {
+            auto& state = (_pstates[0] == nullptr) ?
+                _state : *_pstates[get_thread_num()];
+
             if (!init_heuristic)
-                return _state.sample_block(v,
-                                           allow_random ? _c : 0,
-                                           allow_empty ? _d : 0, rng);
+                return state.sample_block(v,
+                                          allow_random ? _c : 0,
+                                          allow_empty ? _d : 0, rng);
             else
-                return _state.sample_block_local(v, rng);
+                return state.sample_block_local(v, rng);
         }
 
         double get_move_prob(size_t v, size_t r, size_t s, bool allow_random,
@@ -238,12 +272,32 @@ struct MCMC
 
         double entropy()
         {
-            return _state.entropy(_entropy_args);
+            return _state.entropy(_entropy_args, true);
+        }
+
+        template <class RNG>
+        double sample_group_label(size_t, RNG& rng)
+        {
+            return _state.sample_u(rng);
+        }
+
+        double relabel_group_dS(size_t r, double nu)
+        {
+            auto& state = (_pstates[0] == nullptr) ?
+                _state : *_pstates[get_thread_num()];
+            return state.reorder_group_dS(r, nu);
+        }
+
+        void relabel_group(size_t r, double nu)
+        {
+            _state.reorder_group(r, nu);
         }
 
         void relax_update(bool relax)
         {
-            _state.relax_update(relax);
+            auto& state = (_pstates[0] == nullptr) ?
+                _state : *_pstates[get_thread_num()];
+            state.relax_update(relax);
         }
 
         template <class V>
@@ -291,7 +345,7 @@ struct MCMC
                           imap,
                           iset,
                           imap,
-                          gmap_t, false, true>
+                          gmap_t, false>
     {
     public:
         template <class... ATs,
@@ -305,7 +359,7 @@ struct MCMC
                         imap,
                         iset,
                         imap,
-                        gmap_t, false, true>(as...)
+                        gmap_t, false>(as...)
         {}
     };
 };

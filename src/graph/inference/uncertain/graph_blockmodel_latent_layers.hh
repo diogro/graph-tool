@@ -101,7 +101,7 @@ struct LatentLayers
                   typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
         LatentLayersState(std::vector<std::reference_wrapper<BlockState>> block_state, ATs&&... args)
             : LatentLayersStateBase<Ts...>(std::forward<ATs>(args)...),
-              _g(boost::any_cast<std::reference_wrapper<g_t>>(python::extract<any&>(_og)()).get()),
+              _g(boost::any_cast<std::reference_wrapper<g_t>>(python::extract<boost::any&>(_og)()).get()),
               _block_state(block_state),
               _eweight_c(_eweight.get_checked()),
               _g_orig(boost::any_cast<std::reference_wrapper<g_t>>(_ag_orig).get())

@@ -59,6 +59,8 @@ class PPState
 public:
     GET_PARAMS_USING(PPStateBase<Ts...>, BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, BLOCK_STATE_params)
+    using typename PPStateBase<Ts...>::args_t;
+    using PPStateBase<Ts...>::dispatch_args;
 
     typedef partition_stats<false> partition_stats_t;
 
@@ -66,13 +68,14 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     PPState(ATs&&... args)
         : PPStateBase<Ts...>(std::forward<ATs>(args)...),
-        _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
-        _N(HardNumVertices()(_g)),
-        _E(HardNumEdges()(_g)),
-        _bclabel(num_vertices(_g)),
-        _pclabel(num_vertices(_g)),
-        _partition_stats(_g, _b, vertices_range(_g), _E,
-                         num_vertices(_g), _vweight, _eweight, _degs)
+          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _N(HardNumVertices()(_g)),
+          _E(HardNumEdges()(_g)),
+          _bclabel(num_vertices(_g)),
+          _pclabel(num_vertices(_g)),
+          _partition_stats(_g, _b, vertices_range(_g), _E,
+                           num_vertices(_g), _vweight, _eweight, _degs),
+          _args(std::forward<ATs>(args)...)
     {
         _wr.resize(num_vertices(_g), 0);
         _er.resize(num_vertices(_g), 0);
@@ -135,6 +138,8 @@ public:
     simple_degs_t _degs;
 
     partition_stats_t _partition_stats;
+
+    args_t _args;
 
     typedef pp_entropy_args_t _entropy_args_t;
 
@@ -512,6 +517,66 @@ public:
     void clear_next_state() {}
     void relax_update(bool) {}
 
+    //owned by deep copy
+    std::shared_ptr<wr_t> _wr_p;
+    std::shared_ptr<er_t> _er_p;
+    std::shared_ptr<err_t> _err_p;
+    std::shared_ptr<eio_t> _eio_p;
+
+    template <size_t... Is>
+    PPState* deep_copy(index_sequence<Is...>)
+    {
+        auto b = _b.copy();
+        auto args =
+            dispatch_args(_args,
+                          [&](std::string name, auto& a) -> decltype(auto)
+                          {
+                              typedef std::remove_reference_t<decltype(a)> a_t;
+                              if (name == "b")
+                              {
+                                  if constexpr (std::is_same_v<a_t, b_t>)
+                                      return b;
+                                  return a;
+                              }
+                              else if (name == "wr")
+                              {
+                                  if constexpr (std::is_same_v<a_t, wr_t>)
+                                      return *(new er_t(this->_wr));
+                                  return a;
+                              }
+                              else if (name == "er")
+                              {
+                                  if constexpr (std::is_same_v<a_t, er_t>)
+                                      return *(new er_t(this->_er));
+                                  return a;
+                              }
+                              else if (name == "err")
+                              {
+                                  if constexpr (std::is_same_v<a_t, err_t>)
+                                      return *(new err_t(this->_err));
+                                  return a;
+                              }
+                              else if (name == "eio")
+                              {
+                                  if constexpr (std::is_same_v<a_t, eio_t>)
+                                      return *(new err_t(this->_err));
+                                  return a;
+                              }
+                              return a;
+                          });
+
+        auto state = new PPState(std::get<Is>(args)...);
+        state->_wr_p = std::shared_ptr<wr_t>(&state->_wr);
+        state->_er_p = std::shared_ptr<er_t>(&state->_er);
+        state->_err_p = std::shared_ptr<err_t>(&state->_err);
+        state->_eio_p = std::shared_ptr<eio_t>(&state->_eio);
+        return state;
+    };
+
+    PPState* deep_copy()
+    {
+        return deep_copy(make_index_sequence<sizeof...(Ts)>{});
+    }
 };
 
 } // graph_tool namespace

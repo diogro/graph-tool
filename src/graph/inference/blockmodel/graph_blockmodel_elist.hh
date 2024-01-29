@@ -31,13 +31,11 @@ namespace graph_tool
 class EGroups
 {
 public:
-    template <class Eprop, class BGraph>
-    void init(BGraph& bg, Eprop& mrs)
+    template <class BGraph, class Eprop>
+    EGroups(BGraph& bg, Eprop& mrs)
+        : _egroups(num_vertices(bg)),
+          _pos(num_vertices(bg))
     {
-        clear();
-        _egroups.resize(num_vertices(bg));
-        _pos.resize(num_vertices(bg));
-
         for (auto e : edges_range(bg))
         {
             insert_edge(source(e, bg), target(e, bg), mrs[e]);
@@ -51,19 +49,6 @@ public:
     {
         _egroups.emplace_back();
         _pos.emplace_back();
-    }
-
-    void clear()
-    {
-        _egroups.clear();
-        _egroups.shrink_to_fit();
-        _pos.clear();
-        _pos.shrink_to_fit();
-    }
-
-    bool empty()
-    {
-        return _egroups.empty();
     }
 
     void insert_edge(size_t s, size_t t, int weight)
@@ -111,8 +96,6 @@ public:
     void check([[maybe_unused]] BGraph& bg, [[maybe_unused]] Eprop& mrs)
     {
 #ifndef NDEBUG
-        if (empty())
-            return;
         for (auto e : edges_range(bg))
         {
             auto r = source(e, bg);

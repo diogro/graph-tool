@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <vector>
+#include <mutex>
 
 #include "../support/graph_state.hh"
 #include "../blockmodel/graph_blockmodel_util.hh"
@@ -41,7 +42,8 @@ typedef std::vector<bmap_t> vbmap_t;
 
 #define LAYERED_BLOCK_STATE_params                                             \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
-    ((layer_states,, python::object, 0))                                       \
+    ((alayer_states,, std::vector<boost::any>, 0))                             \
+    ((ablock_rmaps,, std::vector<boost::any>, 0))                              \
     ((ec,, emap_t, 0))                                                         \
     ((vc,, vcvmap_t, 0))                                                       \
     ((vmap,, vcvmap_t, 0))                                                     \
@@ -50,7 +52,7 @@ typedef std::vector<bmap_t> vbmap_t;
 
 
 class LayeredBlockStateVirtualBase
-    : public BlockStateVirtualBase
+    : public virtual BlockStateVirtualBase
 {
 public:
     virtual BlockStateVirtualBase& get_layer(size_t l) = 0;
@@ -81,6 +83,8 @@ struct Layers
         GET_PARAMS_TYPEDEF(Ts, LAYERED_BLOCK_STATE_params)
 
         GET_PARAMS_USING(BaseState, BASE_STATE_params)
+        using typename LayeredBlockStateBase<Ts...>::args_t;
+        using LayeredBlockStateBase<Ts...>::dispatch_args;
         using BaseState::_bg;
         using BaseState::_m_entries;
         using BaseState::_emat;
@@ -93,18 +97,18 @@ struct Layers
             : public BaseState
         {
         public:
-            LayerState(const BaseState& base_state, LayeredBlockState& lstate,
+            LayerState(BaseState& base_state, LayeredBlockState& lstate,
                        bmap_t& block_map, block_rmap_t block_rmap, size_t l)
                 : BaseState(base_state),
                   _lstate(&lstate),
                   _block_map(block_map),
                   _block_rmap(block_rmap),
-                  _l(l), _E(0)
+                  _l(l), _E(0), _bmap_mutex(new std::mutex())
             {
                 for (auto e : edges_range(BaseState::_g))
                     _E += BaseState::_eweight[e];
             }
-            virtual ~LayerState(){}
+            virtual ~LayerState() {}
 
             LayeredBlockState* _lstate;
             bmap_t& _block_map;
@@ -117,8 +121,12 @@ struct Layers
             using BaseState::_empty_groups;
             using BaseState::add_block;
 
+            std::shared_ptr<std::mutex> _bmap_mutex;
+
             size_t get_block_map(size_t r, bool put_new=true)
             {
+                std::lock_guard lock(*_bmap_mutex);
+
                 size_t r_u;
                 auto iter = _block_map.find(r);
                 if (iter == _block_map.end())
@@ -173,9 +181,9 @@ struct Layers
                 else
                 {
                     r_u = iter->second;
-                    assert(size_t(_block_rmap[r_u]) == r);
-                    assert(_lstate->_lcoupled_state == nullptr ||
-                           r_u == _lstate->_lcoupled_state->get_layer_node(_l, r));
+                    // assert(size_t(_block_rmap[r_u]) == r);
+                    // assert(_lstate->_lcoupled_state == nullptr ||
+                    //        r_u == _lstate->_lcoupled_state->get_layer_node(_l, r));
                 }
 
                 if (_lstate->_lcoupled_state != nullptr)
@@ -184,8 +192,6 @@ struct Layers
                     auto& hb_u = BaseState::_coupled_state->get_b();
                     hb_u[r_u] = _lstate->_lcoupled_state->get_block_map(_l, hb[r], put_new);
                 }
-
-                assert(r_u < num_vertices(_bg));
                 return r_u;
             }
 
@@ -200,17 +206,18 @@ struct Layers
         LayeredBlockState(const BaseState& base_state, ATs&&... args)
             : LayeredBlockStateBase<Ts...>(std::forward<ATs>(args)...),
               BaseState(base_state), _vc_c(_vc.get_checked()),
-              _vmap_c(_vmap.get_checked())
+              _vmap_c(_vmap.get_checked()),
+              _args(std::forward<ATs>(args)...)
         {
-            for (int l = 0; l < python::len(_layer_states); ++l)
+            _layers.reserve(_alayer_states.size());
+            for (size_t l = 0; l < _alayer_states.size(); ++l)
             {
-                auto ostate = _layer_states[l];
-                BaseState& state = python::extract<BaseState&>(ostate.attr("_state"));
-                boost::python::object temp = ostate.attr("block_rmap").attr("_get_any")();
-                boost::any& a = python::extract<boost::any&>(temp);
-                block_rmap_t block_rmap = boost::any_cast<block_rmap_t>(a);
+                BaseState* lstate = boost::any_cast<BaseState*>(_alayer_states[l]);
+                block_rmap_t block_rmap = boost::any_cast<block_rmap_t>(_ablock_rmaps[l]);
                 bmap_t& block_map = _block_map[l];
-                _layers.emplace_back(state, *this, block_map, block_rmap, l);
+                _layers.emplace_back(*lstate, *this, block_map, block_rmap, l);
+                if (lstate->_bgp)
+                    delete lstate;
             }
             for (auto r : vertices_range(BaseState::_bg))
             {
@@ -222,7 +229,78 @@ struct Layers
             // assert(check_edge_counts());
         }
 
-        virtual ~LayeredBlockState() {}
+        template <size_t... Is>
+        LayeredBlockState* deep_copy(index_sequence<Is...>)
+        {
+            std::vector<boost::any> lstates;
+            std::vector<boost::any> rmaps;
+            for (auto& lstate : _layers)
+            {
+                BaseState* nlstate = lstate.deep_copy();
+                lstates.push_back(nlstate);
+                rmaps.push_back(lstate._block_rmap.copy());
+            }
+
+            std::shared_ptr<block_map_t>
+                block_map(new block_map_t(_block_map));
+
+            auto args =
+                dispatch_args(_args,
+                              [&](std::string name, auto& a) -> decltype(auto)
+                              {
+                                  typedef std::remove_reference_t<decltype(a)> a_t;
+                                  if constexpr (std::is_same_v<a_t, vcvmap_t::unchecked_t>)
+                                  {
+                                      return a.copy();
+                                  }
+                                  else if constexpr (std::is_same_v<a_t, emap_t::unchecked_t>)
+                                  {
+                                      return a.copy();
+                                  }
+                                  else
+                                  {
+                                      if (name == "alayer_states")
+                                      {
+                                          if constexpr (std::is_same_v<a_t, alayer_states_t>)
+                                              return lstates;
+                                          return a;
+                                      }
+                                      if (name == "ablock_rmaps")
+                                      {
+                                          if constexpr (std::is_same_v<a_t, ablock_rmaps_t>)
+                                              return rmaps;
+                                          return a;
+                                      }
+                                      if (name == "block_map")
+                                      {
+                                          if constexpr (std::is_same_v<a_t, block_map_t>)
+                                              return *block_map;
+                                          return a;
+                                      }
+                                      return a;
+                                  }
+                              });
+
+            auto* base_state = BaseState::deep_copy();
+            LayeredBlockState* state =
+                new LayeredBlockState(*base_state, std::get<Is>(args)...);
+            state->_block_map_p = block_map;
+            delete base_state;
+            for (auto& nlstate : state->_layers)
+                nlstate._lstate = state;
+            return state;
+        }
+
+        virtual LayeredBlockState* deep_copy(boost::any)
+        {
+            auto* state = deep_copy(make_index_sequence<sizeof...(Ts)>{});
+            return state;
+        }
+
+        virtual LayeredBlockState* deep_copy()
+        {
+            return deep_copy(boost::any());
+        }
 
         std::vector<LayerState> _layers;
         size_t _actual_B = 0;
@@ -231,6 +309,9 @@ struct Layers
         LayeredBlockStateVirtualBase* _lcoupled_state = nullptr;
         typename vc_t::checked_t _vc_c;
         typename vmap_t::checked_t _vmap_c;
+        args_t _args;
+
+        std::shared_ptr<block_map_t> _block_map_p;
 
         void move_vertex(size_t v, size_t s)
         {

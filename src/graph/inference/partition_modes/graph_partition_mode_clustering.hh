@@ -597,6 +597,10 @@ public:
         return {r, _modes[r].sample_nested_partition(MLE, fix_empty, rng)};
     }
 
+    ModeClusterState* deep_copy()
+    {
+        return this;
+    };
 };
 
 } // graph_tool namespace

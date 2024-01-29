@@ -430,7 +430,7 @@ struct StateWrap
     BOOST_PP_SEQ_FOR_EACH_I                                                    \
         (_COMMA_CAT,,BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(seq)),\
                                           seq))                                \
-        BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(seq)), seq)
+    BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(seq)), seq)
 
 #define _PARAM_TYPEDEF(r, pack, pos, name)                                     \
     typedef typename nth_t<pos, pack...>::type                                 \
@@ -449,6 +449,33 @@ struct StateWrap
     BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(4, 0, name));
 #define GET_PARAMS_DEFINE(names)                                               \
     BOOST_PP_SEQ_FOR_EACH_I(_PARAM_DEFINE, r, names)
+
+#define __PARAM_DISPATCH(r, pack, pos, name)                                   \
+    pdispatch(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(4, 0, name)),             \
+              std::get<pos>(args))
+#define _PARAM_DISPATCH(r, pack, pos, name)                                    \
+    __PARAM_DISPATCH(r, pack, pos, name),
+#define GEN_PARAMS_DISPATCH(names)                                             \
+    BOOST_PP_SEQ_FOR_EACH_I                                                    \
+        (_PARAM_DISPATCH,,                                                     \
+         BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),          \
+                              names))                                          \
+    __PARAM_DISPATCH(,,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),                 \
+                     BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)), \
+                                       names))
+
+#define __PARAM_TYPE(name)                                                     \
+    BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(4, 0, name), _t)                          \
+    BOOST_PP_TUPLE_ELEM(2, 1, name)
+#define _PARAM_TYPE(r, pack, pos, name)                                        \
+    __PARAM_TYPE(name),
+#define GET_PARAMS_ALL_TYPES(names)                                            \
+    BOOST_PP_SEQ_FOR_EACH_I                                                    \
+        (_PARAM_TYPE,,                                                         \
+         BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),          \
+                              names))                                          \
+    __PARAM_TYPE(BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),     \
+                                   names))
 
 #define _PARAM_INIT(r, pack, pos, name)                                        \
     BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(4, 0, name))(nth<pos>()(pack...)),
@@ -482,6 +509,7 @@ struct StateWrap
     {                                                                          \
     public:                                                                    \
         GET_PARAMS_TYPEDEF(Ts, state_params)                                   \
+        typedef std::tuple<GET_PARAMS_ALL_TYPES(state_params)> args_t;         \
         template <class... ATs,                                                \
                   typename std::enable_if_t                                    \
                       <!std::is_same<typename nth_t<0, ATs...>::type,          \
@@ -490,8 +518,12 @@ struct StateWrap
         base_name(const base_name<Ts...>&) = default;                          \
     protected:                                                                 \
         GET_PARAMS_DEFINE(state_params)                                        \
+        template <class Args, class F>                                         \
+        Args dispatch_args(Args& args, F&& pdispatch)                          \
+        {                                                                      \
+            return Args(GEN_PARAMS_DISPATCH(state_params));                    \
+        }                                                                      \
     };
-
 
 
 #define _GET_T(r, data, elem) BOOST_PP_TUPLE_ELEM(4, 2, elem)

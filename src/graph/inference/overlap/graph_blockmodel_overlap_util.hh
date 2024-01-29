@@ -512,15 +512,16 @@ private:
     size_t _mes_pos;
 
     // static const std::tuple<EVals...> _null_delta;
-    static const bedge_t _null_edge;
+    //static const bedge_t _null_edge;
+    const bedge_t _null_edge;
 };
 
 // template <class Graph, class BGraph, class... EVals>
 // const std::tuple<EVals...> SingleEntrySet<Graph, BGraph, EVals...>::_null_delta;
 
-template <class Graph, class BGraph, class... EVals>
-const typename SingleEntrySet<Graph, BGraph, EVals...>::bedge_t
-SingleEntrySet<Graph, BGraph, EVals...>::_null_edge;
+// template <class Graph, class BGraph, class... EVals>
+// const typename SingleEntrySet<Graph, BGraph, EVals...>::bedge_t
+// SingleEntrySet<Graph, BGraph, EVals...>::_null_edge;
 
 struct is_loop_overlap
 {

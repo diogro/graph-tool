@@ -150,6 +150,15 @@ void set_vector_state(std::vector<T>& v, python::object state)
     v.insert(v.end(), a.begin(), a.end());
 }
 
+namespace boost
+{
+bool operator==(const boost::any&, const boost::any&)
+{
+    throw ValueException("boost::any comparison not implemented.");
+}
+}
+
+template <bool comparable=true, bool hashable=true>
 struct export_vector_types
 {
     template <class ValueType>
@@ -160,9 +169,6 @@ struct export_vector_types
         std::replace(type_name.begin(), type_name.end(), ' ', '_');
         string name = "Vector_" + type_name;
         class_<vector<ValueType> > vc(name.c_str());
-        std::function<size_t(const vector<ValueType>&)> hasher =
-            [] (const vector<ValueType>& v) -> size_t
-            { return std::hash<vector<ValueType>>()(v); };
         std::function<void(vector<ValueType>&, size_t size)> resize =
             [] (vector<ValueType>& v, size_t n) { v.resize(n); };
         std::function<void(vector<ValueType>&, size_t n)> reserve =
@@ -173,14 +179,25 @@ struct export_vector_types
             [] (vector<ValueType>& v) -> bool { return v.empty(); };
         std::function<void(vector<ValueType>&)> clear =
             [] (vector<ValueType>& v) { v.clear(); };
-        vc.def(vector_indexing_suite<vector<ValueType> >())
-            .def("__eq__", &vector_equal_compare<ValueType>)
-            .def("__ne__", &vector_nequal_compare<ValueType>)
-            .def("__hash__", hasher)
+        vc.def(vector_indexing_suite<vector<ValueType>>())
             .def("resize", resize)
             .def("shrink_to_fit", shrink_to_fit)
             .def("clear", clear)
             .def("empty", empty);
+
+        if constexpr (comparable)
+        {
+            vc.def("__eq__", &vector_equal_compare<ValueType>);
+            vc.def("__ne__", &vector_nequal_compare<ValueType>);
+        }
+        if constexpr (hashable)
+        {
+            std::function<size_t(const vector<ValueType>&)> hasher =
+                [] (const vector<ValueType>& v) -> size_t
+                { return std::hash<vector<ValueType>>()(v); };
+            vc.def("__hash__", hasher);
+        }
+
         wrap_array(vc, typename boost::mpl::has_key<numpy_types,ValueType>::type());
         vector_from_list<ValueType>();
     }
@@ -497,10 +514,11 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     def("graph_filtering_enabled", &graph_filtering_enabled);
     export_openmp();
 
-    boost::mpl::for_each<boost::mpl::push_back<scalar_types,string>::type>(export_vector_types());
-    export_vector_types()(size_t(), "size_t");
-    export_vector_types()(std::vector<double>(), "Vector_double");
-    export_vector_types()(std::complex<double>(), "cdouble");
+    boost::mpl::for_each<boost::mpl::push_back<scalar_types,string>::type>(export_vector_types<>());
+    export_vector_types<>()(size_t(), "size_t");
+    export_vector_types<>()(std::vector<double>(), "Vector_double");
+    export_vector_types<false,false>()(boost::any(), "any");
+    export_vector_types<>()(std::complex<double>(), "cdouble");
 
     class_<GraphInterface>("GraphInterface", init<>())
         .def(init<GraphInterface,bool,boost::python::object,

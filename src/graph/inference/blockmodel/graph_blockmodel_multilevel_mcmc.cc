@@ -84,7 +84,7 @@ python::object do_multilevel_mcmc_sweep_parallel(python::object omcmc_states,
     std::vector<std::shared_ptr<MCMC_sweep_base>> sweeps;
 
     size_t N = python::len(omcmc_states);
-    for (size_t i = 0; i < N; ++ i)
+    for (size_t i = 0; i < N; ++i)
     {
         auto dispatch = [&](auto& block_state)
         {

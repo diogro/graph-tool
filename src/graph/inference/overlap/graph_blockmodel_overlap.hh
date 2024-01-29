@@ -73,11 +73,13 @@ GEN_STATE_BASE(OverlapBlockStateVirtualBase, OVERLAP_BLOCK_STATE_params)
 template <class... Ts>
 class OverlapBlockState
     : public OverlapBlockStateVirtualBase<Ts...>,
-      public BlockStateVirtualBase
+      public virtual BlockStateVirtualBase
 {
 public:
     GET_PARAMS_USING(OverlapBlockStateVirtualBase<Ts...>, OVERLAP_BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, OVERLAP_BLOCK_STATE_params)
+    using typename OverlapBlockStateVirtualBase<Ts...>::args_t;
+    using OverlapBlockStateVirtualBase<Ts...>::dispatch_args;
 
     template <class... ATs,
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
@@ -88,7 +90,8 @@ public:
           _emat(_g, _bg),
           _egroups_update(true),
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg)),
-          _coupled_state(nullptr)
+          _coupled_state(nullptr),
+          _args(std::forward<ATs>(args)...)
     {
         for (auto r : vertices_range(_bg))
         {
@@ -143,7 +146,6 @@ public:
                 break;
         }
         _dBdx.resize(_rec_types.size());
-        _LdBdx.resize(_rec_types.size());
 
         init_partition_stats();
     }
@@ -160,7 +162,6 @@ public:
           _recsum(other._recsum),
           _recx2(other._recx2),
           _dBdx(other._dBdx),
-          _LdBdx(other._LdBdx),
           _B_E(other._B_E),
           _B_E_D(other._B_E_D),
           _rt(other._rt),
@@ -168,7 +169,8 @@ public:
           _egroups_update(other._egroups_update),
           //_overlap_stats(other._overlap_stats),
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg)),
-          _coupled_state(other._coupled_state)
+          _coupled_state(other._coupled_state),
+          _args(other._args)
     {
         init_partition_stats();
     }
@@ -453,10 +455,11 @@ public:
         }
 
         int dL = 0;
+        std::vector<double> LdBdx;
         if (ea.recs)
         {
-            std::fill(_LdBdx.begin(), _LdBdx.end(), 0);
-            auto rdS = rec_entries_dS(*this, m_entries, ea, _LdBdx, dL);
+            LdBdx.resize(_rec_types.size(), 0);
+            auto rdS = rec_entries_dS(*this, m_entries, ea, LdBdx, dL);
             dS += get<0>(rdS);
             dS_dl += get<1>(rdS);
         }
@@ -494,7 +497,7 @@ public:
                 dS_dl += _coupled_state->propagate_entries_dS(r, nr, dr, dnr,
                                                               m_entries._p_entries,
                                                               _coupled_entropy_args,
-                                                              _LdBdx, dL);
+                                                              LdBdx, dL);
         }
 
         return dS + ea.beta_dl * dS_dl;
@@ -601,9 +604,9 @@ public:
             typedef std::uniform_real_distribution<> rdist_t;
             if (c == 0 || rdist_t()(rng) >= p_rand)
             {
-                if (_egroups.empty())
-                    _egroups.init(_bg, _mrs);
-                s = _egroups.sample_edge(t, rng);
+                if (!_egroups)
+                    init_egroups();
+                s = _egroups->sample_edge(t, rng);
             }
         }
 
@@ -1006,9 +1009,14 @@ public:
         return _coupled_state;
     }
 
+    void init_egroups()
+    {
+        _egroups = std::make_shared<EGroups>(_bg, _mrs);
+    }
+
     void clear_egroups()
     {
-        _egroups.clear();
+        _egroups.reset();
     }
 
     void sync_emat()
@@ -1148,8 +1156,8 @@ public:
             _overlap_stats.add_block();
             for (auto& p : _partition_stats)
                 p.add_block();
-            if (!_egroups.empty())
-                _egroups.add_block();
+            if (_egroups)
+                _egroups->add_block();
             if (_coupled_state != nullptr)
                 _coupled_state->coupled_resize_vertex(r);
         }
@@ -1196,16 +1204,10 @@ public:
     template <class MCMCState>
     void init_mcmc(MCMCState& state)
     {
+        clear_egroups();
         auto c = state._c;
         if (!std::isinf(c))
-        {
-            if (_egroups.empty())
-                _egroups.init(_bg, _mrs);
-        }
-        else
-        {
-            _egroups.clear();
-        }
+            init_egroups();
     }
 
     bool check_edge_counts(bool emat=true)
@@ -1276,8 +1278,115 @@ public:
 
     void relax_update(bool relax)
     {
-        _egroups.check(_bg, _mrs);
+        if (_egroups)
+            _egroups->check(_bg, _mrs);
         _egroups_update = !relax;
+        if (_coupled_state != nullptr)
+            _coupled_state->relax_update(relax);
+    }
+
+    template <size_t... Is>
+    OverlapBlockState* deep_copy(index_sequence<Is...>)
+    {
+        bg_t* bg;
+        if constexpr (std::is_same_v<bg_t, GraphInterface::multigraph_t>)
+            bg = new bg_t(_bg);
+        else
+            bg = new bg_t(*(new GraphInterface::multigraph_t(_bg.original_graph())));
+        auto abg = boost::any(std::ref(*bg));
+
+        auto args =
+            dispatch_args(_args,
+                          [&](std::string name, auto& a) -> decltype(auto)
+                          {
+                              typedef std::remove_reference_t<decltype(a)> a_t;
+                              if constexpr (std::is_same_v<a_t, vmap_t::unchecked_t>)
+                              {
+                                  return a.copy();
+                              }
+                              else if constexpr (std::is_same_v<a_t, emap_t::unchecked_t>)
+                              {
+                                  return a.copy();
+                              }
+                              else
+                              {
+                                  if (name == "_abg")
+                                  {
+                                      if constexpr (std::is_same_v<a_t, boost::any>)
+                                          return abg;
+                                      return a;
+                                  }
+                                  else if (name == "recdx")
+                                  {
+                                      if constexpr (std::is_same_v<a_t, recdx_t>)
+                                          return *(new recdx_t(this->_recdx));
+                                      return a;
+                                  }
+                                  else if (name == "Lrecdx")
+                                  {
+                                      if constexpr (std::is_same_v<a_t, Lrecdx_t>)
+                                          return *(new Lrecdx_t(this->_Lrecdx));
+                                      return a;
+                                  }
+                                  else if (name == "epsilon")
+                                  {
+                                      if constexpr (std::is_same_v<a_t, epsilon_t>)
+                                          return *(new epsilon_t(this->_epsilon));
+                                      return a;
+                                  }
+                                  return a;
+                              }
+                          });
+
+        OverlapBlockState* state =
+            new OverlapBlockState(std::get<Is>(args)...);
+        state->_bgp = std::shared_ptr<bg_t>(bg);
+        if constexpr (!std::is_same_v<bg_t, GraphInterface::multigraph_t>)
+            state->__bgp =
+                std::shared_ptr<GraphInterface::multigraph_t>(&bg->original_graph());
+        state->_recdxp = std::shared_ptr<recdx_t>(&state->_recdx);
+        state->_Lrecdxp = std::shared_ptr<Lrecdx_t>(&state->_Lrecdx);
+        state->_epsilonp = std::shared_ptr<epsilon_t>(&state->_epsilon);
+        return state;
+    }
+
+    OverlapBlockState* deep_copy(boost::any)
+    {
+        auto* state = deep_copy(make_index_sequence<sizeof...(Ts)>{});
+        state->_egroups = _egroups;
+        for (auto& p : state->_rec)
+            p = p.copy();
+        for (auto& p : state->_drec)
+            p = p.copy();
+        state->_c_brec.clear();
+        for (auto& p : state->_brec)
+        {
+            p = p.copy();
+            state->_c_brec.push_back(p.get_checked());
+        }
+        state->_c_bdrec.clear();
+        for (auto& p : state->_bdrec)
+        {
+            p = p.copy();
+            state->_c_bdrec.push_back(p.get_checked());
+        }
+        state->_recsum = _recsum;
+        state->_brecsum = state->_brecsum.copy();
+        if (_coupled_state != nullptr)
+        {
+            state->_coupled_state =
+                _coupled_state->deep_copy(boost::any(std::ref(state->_bg)));
+            state->_coupled_statep =
+                std::shared_ptr<BlockStateVirtualBase>(state->_coupled_state);
+            state->_coupled_entropy_args = _coupled_entropy_args;
+        }
+
+        return state;
+    }
+
+    OverlapBlockState* deep_copy()
+    {
+        return deep_copy(boost::any());
     }
 
 //private:
@@ -1297,7 +1406,6 @@ public:
     std::vector<double> _recsum;
     std::vector<double> _recx2;
     std::vector<double> _dBdx;
-    std::vector<double> _LdBdx;
     std::vector<double> _rdelta;
     size_t _B_E = 0;
     size_t _B_E_D = 0;
@@ -1309,7 +1417,7 @@ public:
         emat_t;
     emat_t _emat;
 
-    EGroups _egroups;
+    std::shared_ptr<EGroups> _egroups;
     bool _egroups_update;
 
     overlap_stats_t _overlap_stats;
@@ -1328,6 +1436,15 @@ public:
     typedef entropy_args_t _entropy_args_t;
     BlockStateVirtualBase* _coupled_state;
     entropy_args_t _coupled_entropy_args;
+    args_t _args;
+
+    // owned by deep copies
+    std::shared_ptr<bg_t> _bgp;
+    std::shared_ptr<GraphInterface::multigraph_t> __bgp;
+    std::shared_ptr<BlockStateVirtualBase> _coupled_statep;
+    std::shared_ptr<recdx_t> _recdxp;
+    std::shared_ptr<Lrecdx_t> _Lrecdxp;
+    std::shared_ptr<epsilon_t> _epsilonp;
 };
 
 } // namespace graph_tool

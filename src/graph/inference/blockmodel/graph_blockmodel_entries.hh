@@ -577,18 +577,19 @@ void apply_delta(State& state, MEntries& m_entries)
                     });
             };
 
-            if (!state._egroups.empty() && state._egroups_update)
+            if (state._egroups && state._egroups_update)
             {
+                auto& egroups = *state._egroups;
                 dispatch([&](auto r, auto s, auto delta)
                          {
                              if (r != s)
                              {
-                                 state._egroups.insert_edge(r, s, delta);
-                                 state._egroups.insert_edge(s, r, delta);
+                                 egroups.insert_edge(r, s, delta);
+                                 egroups.insert_edge(s, r, delta);
                              }
                              else
                              {
-                                 state._egroups.insert_edge(r, s, 2 * delta);
+                                 egroups.insert_edge(r, s, 2 * delta);
                              }
                          });
             }

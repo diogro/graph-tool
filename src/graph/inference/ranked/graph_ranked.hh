@@ -30,8 +30,6 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t>::type vmap_t;
-typedef eprop_map_t<int32_t>::type emap_t;
 typedef vprop_map_t<double>::type umap_t;
 
 #define RANKED_STATE_params                                                    \
@@ -52,6 +50,8 @@ public:
     public:
         GET_PARAMS_USING(RankedStateBase<Ts...>, RANKED_STATE_params)
         GET_PARAMS_TYPEDEF(Ts, RANKED_STATE_params)
+        using typename RankedStateBase<Ts...>::args_t;
+        using RankedStateBase<Ts...>::dispatch_args;
 
         typedef BState bstate_t;
 
@@ -65,7 +65,9 @@ public:
               _g(ustate._g),
               _b(ustate._b),
               _eweight(ustate._eweight),
-              _u_c(_u.get_checked())
+              _m_entries(num_vertices(ustate._bg)),
+              _u_c(_u.get_checked()),
+              _args(std::forward<ATs>(args)...)
         {
             for (auto e : edges_range(_g))
             {
@@ -80,21 +82,41 @@ public:
         typename bstate_t::b_t& _b;
         typename bstate_t::eweight_t& _eweight;
 
-        typedef typename bstate_t::m_entries_t m_entries_t;
+        class m_entries_t:
+            public bstate_t::m_entries_t
+        {
+        public:
+            m_entries_t(size_t B=0)
+                : bstate_t::m_entries_t(B)
+            {}
+
+            gt_hash_map<size_t, int> _delta;
+            std::array<int, 3> _dE = {0, 0, 0};
+        };
+
+        m_entries_t _m_entries;
 
         std::array<size_t, 3> _E = {0, 0, 0};
 
         typename u_t::checked_t _u_c;
 
+        args_t _args;
+
         int stream_dir(size_t r, size_t s)
         {
             auto x = _u[r];
             auto y = _u[s];
+            return ustream_dir(x, y);
+        }
+
+        int ustream_dir(double x, double y)
+        {
             if (x < y)
                 return 0;   // upstream
-            if (x > y)
+            else if (x > y)
                 return 2;   // downstream
-            return 1;
+            else
+                return 1;   // lateral
         }
 
         void add_block(size_t n)
@@ -102,37 +124,35 @@ public:
             _ustate.add_block(n);
         }
 
-        gt_hash_map<size_t, int> _delta;
-        std::array<int, 3> _dE = {0, 0, 0}; // FIXME: should go in m_entries!
-
-        void get_dE(size_t v, size_t r, size_t nr)
+        std::array<int, 3>
+        get_dE(size_t v, size_t r, size_t nr)
         {
-            _dE = {0, 0, 0};
+            std::array<int, 3> dE = {0, 0, 0};
 
             for (auto e : out_edges_range(v, _g))
             {
                 auto s = _b[target(e, _g)];
                 auto w = _eweight[e];
-                _dE[stream_dir(r, s)] -= w;
+                dE[stream_dir(r, s)] -= w;
                 if (target(e, _g) == v)
                     s = nr;
-                _dE[stream_dir(nr, s)] += w;
+                dE[stream_dir(nr, s)] += w;
             }
 
             for (auto e : in_edges_range(v, _g))
             {
                 auto s = _b[source(e, _g)];
                 auto w = _eweight[e];
-                _dE[stream_dir(s, r)] -= w;
+                dE[stream_dir(s, r)] -= w;
                 if (source(e, _g) == v)
                     s = nr;
-                _dE[stream_dir(s, nr)] += w;
+                dE[stream_dir(s, nr)] += w;
             }
+            return dE;
         }
 
-        template <class ME>
         double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t& ea,
-                            ME& m_entries)
+                            m_entries_t& m_entries)
         {
             if (r == nr)
                 return 0;
@@ -142,7 +162,7 @@ public:
 
             double dS = _ustate.virtual_move(v, r, nr, uea, m_entries);
 
-            get_dE(v, r, nr);
+            m_entries._dE = get_dE(v, r, nr);
 
             int dB = 0;
             if (_ustate._wr[r] == 1)
@@ -151,16 +171,16 @@ public:
                 dB++;
 
             dS -= get_edges_dl({0, 0, 0}, 0);
-            dS += get_edges_dl(_dE, dB);
+            dS += get_edges_dl(m_entries._dE, dB);
 
-            _delta.clear();
+            m_entries._delta.clear();
             size_t B = num_vertices(_ustate._bg) + 1;
             entries_op(m_entries, _ustate._emat,
                        [&](auto t, auto u, auto&, auto delta)
                        {
                            if (delta == 0 || t == u)
                                return;
-                           _delta[t + B * u] = delta;
+                           m_entries._delta[t + B * u] = delta;
                        });
 
             entries_op(m_entries, _ustate._emat,
@@ -169,13 +189,14 @@ public:
                            if (delta == 0 || t == u)
                                return;
 
-                           size_t etu = _ustate._mrs[me];
+                           size_t etu = (me != _ustate._emat.get_null_edge()) ?
+                               _ustate._mrs[me] : 0;
                            size_t eut = get_beprop(u, t, _ustate._mrs,
                                                    _ustate._emat);
 
                            int delta_r = 0;
-                           auto iter = _delta.find(u + B * t);
-                           if (iter != _delta.end())
+                           auto iter = m_entries._delta.find(u + B * t);
+                           if (iter != m_entries._delta.end())
                                delta_r = iter->second;
 
                            if (delta_r != 0 && t > u)
@@ -191,7 +212,7 @@ public:
 
         double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t& ea)
         {
-            return virtual_move(v, r, nr, ea, _ustate._m_entries);
+            return virtual_move(v, r, nr, ea, _m_entries);
         }
 
         template <class ME>
@@ -202,8 +223,8 @@ public:
             if (r == nr)
                 return;
 
-            for (size_t i = 0; i < 3; ++i)     // FIXME: should go in m_entries!
-                _E[i] += _dE[i];
+            for (size_t i = 0; i < 3; ++i)
+                _E[i] += m_entries._dE[i];
 
             _ustate.move_vertex(v, nr, m_entries);
         }
@@ -215,12 +236,54 @@ public:
             if (r == nr)
                 return;
 
-            get_dE(v, r, nr);
+            auto dE = get_dE(v, r, nr);
 
             for (size_t i = 0; i < 3; ++i)
-                _E[i] += _dE[i];
+                _E[i] += dE[i];
 
             _ustate.move_vertex(v, nr);
+        }
+
+        std::array<int, 3>
+        get_group_dE(size_t r, double nu)
+        {
+            std::array<int, 3> dE = {0, 0, 0};
+
+            for (auto e : out_edges_range(r, _ustate._bg))
+            {
+                auto s = target(e, _g);
+                auto w = _ustate._mrs[e];
+                dE[stream_dir(r, s)] -= w;
+                dE[ustream_dir(nu, _u[s])] += w;
+            }
+
+            for (auto e : in_edges_range(r, _ustate._bg))
+            {
+                auto s = source(e, _g);
+                if (s == r)
+                    continue;
+                auto w = _ustate._mrs[e];
+                dE[stream_dir(s, r)] -= w;
+                dE[ustream_dir(_u[s], nu)] += w;
+            }
+            return dE;
+        }
+
+        double reorder_group_dS(size_t r, double nu)
+        {
+            auto dE = get_group_dE(r, nu);
+            double dS = 0;
+            dS -= get_edges_dl({0, 0, 0}, 0);
+            dS += get_edges_dl(dE, 0);
+            return dS;
+        }
+
+        void reorder_group(size_t r, double nu)
+        {
+            auto dE = get_group_dE(r, nu);
+            for (size_t i = 0; i < 3; ++i)
+                _E[i] += dE[i];
+            _u[r] = nu;
         }
 
         size_t get_empty_block(size_t v, bool force_add = false)
@@ -279,28 +342,31 @@ public:
             return S;
         }
 
-        double entropy(entropy_args_t ea)
+        double entropy(entropy_args_t ea, bool propagate=false)
         {
             double S = 0;
 
             ea.edges_dl = false;
-            S += _ustate.entropy(ea);
+            S += _ustate.entropy(ea, propagate);
 
             S += get_edges_dl({0, 0, 0}, 0);
 
-            for (auto e : edges_range(_ustate._bg))
-            {
-                auto r = source(e, _ustate._bg);
-                auto s = target(e, _ustate._bg);
+            #pragma omp parallel reduction(+:S)
+            parallel_edge_loop_no_spawn
+                    (_ustate._bg,
+                     [&](const auto& e)
+                     {
+                         auto r = source(e, _ustate._bg);
+                         auto s = target(e, _ustate._bg);
 
-                if (r >= s)
-                    continue;
+                         if (r >= s)
+                             return;
 
-                size_t ers = _ustate._mrs[e];
-                size_t esr = get_beprop(s, r, _ustate._mrs, _ustate._emat);
+                         size_t ers = _ustate._mrs[e];
+                         size_t esr = get_beprop(s, r, _ustate._mrs, _ustate._emat);
 
-                S -= lbinom_fast(ers + esr, ers);
-            }
+                         S -= lbinom_fast(ers + esr, ers);
+                     });
 
             return S;
         }
@@ -352,6 +418,40 @@ public:
         {
             _ustate.decouple_state();
         }
+
+        //owned by deep copy
+        std::shared_ptr<BState> _ustate_p;
+
+        template <size_t... Is>
+        RankedState* deep_copy(index_sequence<Is...>)
+        {
+            auto u = _u.copy();
+            auto args =
+                dispatch_args(_args,
+                              [&](std::string name, auto& a) -> decltype(auto)
+                              {
+                                  typedef std::remove_reference_t<decltype(a)> a_t;
+                                  if (name == "u")
+                                  {
+                                      if constexpr (std::is_same_v<a_t, u_t>)
+                                          return u;
+                                      return a;
+                                  }
+                                  return a;
+                              });
+
+            auto* ustate = _ustate.deep_copy();
+            auto state = new RankedState(*ustate, std::get<Is>(args)...);
+            state->_u_c = state->_u.get_checked();
+            state->_ustate_p = std::shared_ptr<BState>(ustate);
+            return state;
+        };
+
+        RankedState* deep_copy()
+        {
+            return deep_copy(make_index_sequence<sizeof...(Ts)>{});
+        }
+
     };
 };
 } // graph_tool namespace

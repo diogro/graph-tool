@@ -264,9 +264,13 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         self._coupled_state = None
 
+        self.alayer_states = libcore.Vector_any()
+        self.ablock_rmaps = libcore.Vector_any()
         for l, u in enumerate(self.gs):
             state = self.__gen_state(l, u, ldegs)
             self.layer_states.append(state)
+            self.alayer_states.append(state._state.get_any())
+            self.ablock_rmaps.append(state.block_rmap._get_any())
 
         if ec is None:
             self.ec = self.g.new_ep("int")
