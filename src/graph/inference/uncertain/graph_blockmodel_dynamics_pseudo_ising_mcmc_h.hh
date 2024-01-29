@@ -138,6 +138,11 @@ struct MCMC
         void step(T&, int)
         {
         }
+
+        template <class RNG>
+        void init_iter(RNG&)
+        {
+        }
     };
 };
 

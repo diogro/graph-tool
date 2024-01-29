@@ -302,6 +302,12 @@ struct MCMC
         void step(T&, std::tuple<int, double>&)
         {
         }
+
+        template <class RNG>
+        void init_iter(RNG&)
+        {
+        }
+
     };
 };
 
