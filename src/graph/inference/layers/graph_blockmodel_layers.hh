@@ -261,14 +261,16 @@ struct Layers
                                   {
                                       if (name == "alayer_states")
                                       {
+                                          auto& lstates_ = lstates; // workaround clang bug
                                           if constexpr (std::is_same_v<a_t, alayer_states_t>)
-                                              return lstates;
+                                              return lstates_;
                                           return a;
                                       }
                                       if (name == "ablock_rmaps")
                                       {
+                                          auto& rmaps_ = rmaps; // workaround clang bug
                                           if constexpr (std::is_same_v<a_t, ablock_rmaps_t>)
-                                              return rmaps;
+                                              return rmaps_;
                                           return a;
                                       }
                                       if (name == "block_map")

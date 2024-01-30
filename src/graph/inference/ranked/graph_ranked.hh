@@ -433,8 +433,9 @@ public:
                                   typedef std::remove_reference_t<decltype(a)> a_t;
                                   if (name == "u")
                                   {
+                                      auto& u_ = u; // workaround clang bug
                                       if constexpr (std::is_same_v<a_t, u_t>)
-                                          return u;
+                                          return u_;
                                       return a;
                                   }
                                   return a;

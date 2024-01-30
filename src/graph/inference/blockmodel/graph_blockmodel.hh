@@ -2538,8 +2538,9 @@ public:
                               typedef std::remove_reference_t<decltype(a)> a_t;
                               if (name == "_abg")
                               {
+                                  auto& abg_ = abg; // workaround clang bug
                                   if constexpr (std::is_same_v<a_t, boost::any>)
-                                      return abg;
+                                      return abg_;
                                   return a;
                               }
                               else if (name == "recdx")

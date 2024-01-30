@@ -485,7 +485,7 @@ struct Multilevel: public State
             auto r = rs[i];
             auto u = moves[i];
             if (u != State::group_label(r))
-                relabel_group(r, u);
+                State::relabel_group(r, u);
         }
 
         return S;

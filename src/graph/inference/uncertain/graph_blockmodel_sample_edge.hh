@@ -133,7 +133,7 @@ public:
         auto me = _state._emat.get_me(r, s);
         if (me != _state._emat.get_null_edge())
         {
-            int ers = _state._mrs[me] + (delta < 0) ? delta : 0;
+            int ers = _state._mrs[me] + ((delta < 0) ? delta : 0);
             if (ers == 0)
             {
                 _rs_sampler.remove(_rs_pos[me]);

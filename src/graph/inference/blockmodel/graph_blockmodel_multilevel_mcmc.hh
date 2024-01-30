@@ -273,6 +273,21 @@ struct MCMC
             return _state.entropy(_entropy_args, true);
         }
 
+        template <class RNG>
+        double sample_group_label(size_t, RNG&)
+        {
+            return 0;
+        }
+
+        double relabel_group_dS(size_t, double)
+        {
+            return 0;
+        }
+
+        void relabel_group(size_t, double)
+        {
+        }
+
         void relax_update(bool relax)
         {
             auto& state = (_pstates[0] == nullptr) ?

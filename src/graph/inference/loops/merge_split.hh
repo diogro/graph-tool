@@ -55,6 +55,7 @@ struct MergeSplitStateBase
     void virtual_move_unlock(V) {}
 
     constexpr static bool _parallel = false;
+    constexpr static bool _relabel = false;
 };
 
 template <class State, class Node, class Group,
@@ -110,6 +111,7 @@ struct MergeSplit: public State
     using State::_gibbs_sweeps;
     using State::_verbose;
     using State::_parallel;
+    using State::_relabel;
 
     size_t _nmoves = 0;
 
@@ -226,8 +228,10 @@ struct MergeSplit: public State
 
     double relabel_group(Group& r)
     {
-        auto [s, dS] = State::relabel_group(r, _groups[r]);
-        if (dS > 0 || (s != r && get_wr(s) > 0))
+        Group s;
+        double dS;
+        std::tie(s, dS) = State::relabel_group(r, _groups[r]);
+        if (dS >= 0 || (s != r && get_wr(s) > 0))
             return 0;
         if (s != r)
         {
@@ -611,10 +615,13 @@ struct MergeSplit: public State
             break;
         }
 
-        if (std::isinf(_beta))
+        if constexpr (_relabel)
         {
-            dS += relabel_group(rt[0]);
-            dS += relabel_group(rt[1]);
+            if (std::isinf(_beta))
+            {
+                dS += relabel_group(rt[0]);
+                dS += relabel_group(rt[1]);
+            }
         }
 
         for (size_t i = 0; i < _gibbs_sweeps - 1; ++i)
@@ -624,10 +631,13 @@ struct MergeSplit: public State
                                    rng);
             dS += get<0>(ret);
 
-            if (std::isinf(_beta))
+            if constexpr (_relabel)
             {
-                dS += relabel_group(rt[0]);
-                dS += relabel_group(rt[1]);
+                if (std::isinf(_beta))
+                {
+                    dS += relabel_group(rt[0]);
+                    dS += relabel_group(rt[1]);
+                }
             }
 
             if (std::isinf(_beta) && abs(get<0>(ret)) < 1e-6)
@@ -844,10 +854,13 @@ struct MergeSplit: public State
             move_node(v, s, true);
         }
 
-        if (std::isinf(_beta))
+        if constexpr (_relabel)
         {
-            for (size_t i = 0; i < _gibbs_sweeps; ++i)
-                dS += relabel_group(s);
+            if (std::isinf(_beta))
+            {
+                for (size_t i = 0; i < _gibbs_sweeps; ++i)
+                    dS += relabel_group(s);
+            }
         }
 
         return dS;
