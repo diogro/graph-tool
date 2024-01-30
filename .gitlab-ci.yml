@@ -166,25 +166,6 @@ build_buster_git:
     BASE: debian:buster
     PLATFORM: amd64
 
-build_bionic:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:bionic
-    PLATFORM: amd64
-
-build_bionic_arm:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:bionic
-    PLATFORM: arm64
-  needs: ["build_bionic"]
-
-build_bionic_git:
-  extends: .build_deb_git
-  variables:
-    BASE: ubuntu:bionic
-    PLATFORM: amd64
-
 build_focal:
   extends: .build_deb
   variables:
