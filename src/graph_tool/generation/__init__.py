@@ -1558,8 +1558,8 @@ def remove_random_edges(g, M, weight=None, counts=True):
 
 
 def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
-                 max_rk=None, epsilon=.001, c_stop=False, directed=False,
-                 verbose=False):
+                 max_rk=None, epsilon=.001, c_stop=False, max_iter=0,
+                 directed=False, verbose=False):
     r"""Generate a graph of k-nearest neighbors (or pairs) from a set of
     multidimensional points.
 
