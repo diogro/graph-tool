@@ -1660,9 +1660,9 @@ class Graph(object):
 
               >>> a = scipy.sparse.coo_array([[0, 2, 1], [3, 1, 2], [0, 1, 0]])
               >>> s, t, w = scipy.sparse.find(a)
-              >>> es = numpy.array([s, t, w]).T
+              >>> es = np.array([s, t, w]).T
               >>> g = gt.Graph(a.shape[0])
-              >>> g.add_edge_list(es, eprops=[("weight", "int")]
+              >>> g.add_edge_list(es, eprops=[("weight", "int")])
 
     In cases 3 and 4 above, all remaining keyword parameters passed to
     :class:`Graph` will be passed along to the :meth:`Graph.add_edge_list`
