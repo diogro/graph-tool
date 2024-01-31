@@ -832,6 +832,9 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             length will be included.
         beta_dl : ``double`` (optional, default: ``1.``)
             Prior inverse temperature.
+        Bfield : ``bool`` (optional, default: ``False``)
+            If True, the ``Bfield`` parameter passed to the construtor will be
+            taken into account.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.

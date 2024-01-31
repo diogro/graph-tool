@@ -10,7 +10,7 @@ functionality with self-contained examples. For a more thorough
 theoretical introduction to the methods described here, the reader is
 referred to [peixoto-bayesian-2019]_.
 
-See also [peixoto-descriptive-2021]_ and the corresponding `blog post
+See also [peixoto-descriptive-2023]_ and the corresponding `blog post
 <https://skewed.de/tiago/blog/descriptive-inferential>`_ for an overall
 discussion about inferential approaches to structure identification in
 networks, and how they contrast with descriptive approaches.
@@ -35,9 +35,10 @@ References
    by P. Doreian, V. Batagelj, A. Ferligoj, (Wiley, New York, 2019)
    :doi:`10.1002/9781119483298.ch11`, :arxiv:`1705.10225`
 
-.. [peixoto-descriptive-2021] Tiago P. Peixoto, “Descriptive
-   vs. inferential community detection: pitfalls, myths and half-truths”,
-   :arxiv:`2112.00183`
+.. [peixoto-descriptive-2023] Tiago P. Peixoto, “Descriptive vs. inferential
+   community detection in networks: pitfalls, myths and half-truths”, Elements
+   in the Structure and Dynamics of Complex Networks, Cambridge University Press
+   (2023), :doi:`10.1017/9781009118897` :arxiv:`2112.00183`
 
 .. [holland-stochastic-1983] Paul W. Holland, Kathryn Blackmond Laskey,
    Samuel Leinhardt, "Stochastic blockmodels: First steps", Social Networks

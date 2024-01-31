@@ -120,7 +120,8 @@ References
 
 .. [descriptive-vs-inferential] Tiago P. Peixoto, “Descriptive vs. inferential
    community detection in networks: pitfalls, myths and half-truths”,
-   :arxiv:`2112.00183`
+   Elements in the Structure and Dynamics of Complex Networks, Cambridge University Press (2023),
+   :doi:`10.1017/9781009118897` :arxiv:`2112.00183`
 
 Contents
 --------
