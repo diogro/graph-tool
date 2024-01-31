@@ -1305,7 +1305,6 @@ public:
         }
 
         double dS = 0;
-        entries.clear();
 
         #pragma omp critical (propagate_entries_dS)
         {
@@ -1349,6 +1348,8 @@ public:
                 dummy.resize(_rec.size(), 0.);
                 comp(dummy, dummy);
             }
+
+            entries.clear();
 
             auto e_diff =
                 [&](auto rr, auto ss, auto& me, auto d)
