@@ -121,7 +121,8 @@ class UncertainBaseState(object):
         self.__init__(**state)
 
     def _get_entropy_args(self, kwargs):
-        ea = self.bstate._get_entropy_args(kwargs, ignore=["latent_edges", "density"])
+        ea = self.bstate._get_entropy_args(dmask(kwargs, ["latent_edges",
+                                                          "density"]))
         uea = libinference.uentropy_args(ea)
         uea.latent_edges = kwargs.get("latent_edges", True)
         uea.density = kwargs.get("density", True)
