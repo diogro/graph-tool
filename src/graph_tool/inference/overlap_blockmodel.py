@@ -432,7 +432,7 @@ class OverlapBlockState(BlockState):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, recs=True,
-                recs_dl=True, beta_dl=1., exact=True, **kwargs):
+                recs_dl=True, beta_dl=1., Bfield=False, exact=True, **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
@@ -470,6 +470,9 @@ class OverlapBlockState(BlockState):
             length will be included.
         beta_dl : ``double`` (optional, default: ``1.``)
             Prior inverse temperature.
+        Bfield : ``bool`` (optional, default: ``False``)
+            If True, the ``Bfield`` parameter passed to the construtor will be
+            taken into account.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
