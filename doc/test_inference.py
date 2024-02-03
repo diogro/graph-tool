@@ -214,7 +214,8 @@ pranges = {"directed": [False, True],
            "rec": [None, "real-exponential", "real-normal"],
            "deg_corr": [False, True],
            "degree_dl_kind": ["uniform", "distributed", "entropy"],
-           "dense_bg": [True, False]}
+           "dense_bg": [True, False],
+           "parallel": [True, False]}
 
 for pvals in iter_ranges(pranges):
     params = dict(pvals)
@@ -255,7 +256,8 @@ for pvals in iter_ranges(pranges):
     state = minimize_blockmodel_dl(GraphView(g, directed=directed),
                                    state=state_t,
                                    state_args=state_args,
-                                   multilevel_mcmc_args=dict(entropy_args=entropy_args))
+                                   multilevel_mcmc_args=dict(entropy_args=entropy_args,
+                                                             parallel=parallel))
 
     print(state.get_B(), state.entropy(), file=out)
 
@@ -264,12 +266,12 @@ for pvals in iter_ranges(pranges):
         state_args["base_state"] = LayeredBlockState
         state_args["overlap"] = overlap
     elif overlap:
-            state_args["base_state"] = OverlapBlockState
-
+        state_args["base_state"] = OverlapBlockState
 
     state = minimize_nested_blockmodel_dl(GraphView(g, directed=directed),
                                           state_args=state_args,
-                                          multilevel_mcmc_args=dict(entropy_args=entropy_args))
+                                          multilevel_mcmc_args=dict(entropy_args=entropy_args,
+                                                                    parallel=parallel))
     if verbose:
         state.print_summary()
 
