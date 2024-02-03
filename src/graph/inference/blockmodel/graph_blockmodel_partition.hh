@@ -56,7 +56,7 @@ std::tuple<size_t, size_t>& get_deg(size_t v, Eprop&,
 }
 
 template <bool use_rmap>
-class partition_stats
+class partition_stats_base
 {
 public:
 
@@ -64,8 +64,8 @@ public:
 
     template <class Graph, class Vprop, class VWprop, class Eprop, class Degs,
               class Vlist>
-    partition_stats(Graph& g, Vprop& b, Vlist&& vlist, size_t E, size_t B,
-                    VWprop& vweight, Eprop& eweight, Degs& degs)
+    partition_stats_base(Graph& g, Vprop& b, Vlist&& vlist, size_t E, size_t B,
+                         VWprop& vweight, Eprop& eweight, Degs& degs)
         : _directed(graph_tool::is_directed(g)), _N(0), _E(E), _total_B(B)
     {
         if constexpr (!use_rmap)
@@ -104,32 +104,7 @@ public:
         }
     }
 
-    partition_stats(const partition_stats& o)
-        : _directed(o._directed),
-          _bmap(o._bmap),
-          _N(o._N),
-          _E(o._E),
-          _actual_B(o._actual_B),
-          _total_B(o._total_B),
-          _hist_in(o._hist_in),
-          _hist_out(o._hist_out),
-          _total(o._total),
-          _ep(o._ep),
-          _em(o._em)
-    {
-        typedef decltype(_hist_out) hist_t;
-        for (auto* h : std::array<hist_t*,2>({&_hist_out, &_hist_in}))
-        {
-            auto& hist = *h;
-            for (size_t r = 0; r < hist.size(); ++r)
-            {
-                if (hist[r] != nullptr)
-                    hist[r] = new map_t(*hist[r]);
-            }
-        }
-    }
-
-    ~partition_stats()
+    ~partition_stats_base()
     {
         for (auto* h : _hist_in)
         {
@@ -825,6 +800,20 @@ public:
         }
     }
 
+    void copy_hists()
+    {
+        typedef decltype(_hist_out) hist_t;
+        for (auto* h : std::array<hist_t*,2>({&_hist_out, &_hist_in}))
+        {
+            auto& hist = *h;
+            for (size_t r = 0; r < hist.size(); ++r)
+            {
+                if (hist[r] != nullptr)
+                    hist[r] = new map_t(*hist[r]);
+            }
+        }
+    }
+
 private:
     bool _directed;
     vector<size_t> _bmap;
@@ -838,6 +827,36 @@ private:
     vector<int> _em;
     map_t _dummy;
 };
+
+template <bool use_rmap>
+class partition_stats:
+        public partition_stats_base<use_rmap>
+{
+public:
+    typedef partition_stats_base<use_rmap> base_t;
+
+    template <class... Args>
+    partition_stats(Args&&... args)
+        : base_t(args...)
+    {
+    }
+
+    partition_stats(const partition_stats& o)
+        : base_t(o)
+    {
+        base_t::copy_hists();
+    }
+
+    partition_stats& operator=(const partition_stats& other)
+    {
+        if (this == &other)
+            return *this;
+        base_t::operator=(other);
+        base_t::copy_hists();
+        return *this;
+    }
+};
+
 
 } //namespace graph_tool
 #endif // GRAPH_BLOCKMODEL_PARTITION_HH

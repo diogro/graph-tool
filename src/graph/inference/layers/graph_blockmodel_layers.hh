@@ -199,6 +199,14 @@ struct Layers
             {
                 return _block_map.find(r) != _block_map.end();
             }
+
+            virtual void deep_assign(const graph_tool::BlockStateVirtualBase& state_)
+            {
+                BaseState::deep_assign(state_);
+                const LayerState& state = *dynamic_cast<const LayerState*>(&state_);
+                _block_rmap.get_storage() = state._block_rmap.get_storage();
+                _E = state._E;
+            }
         };
 
         template <class... ATs,
@@ -302,6 +310,17 @@ struct Layers
         virtual LayeredBlockState* deep_copy()
         {
             return deep_copy(boost::any());
+        }
+
+        virtual void deep_assign(const BlockStateVirtualBase& state_)
+        {
+            const LayeredBlockState& state =
+                *dynamic_cast<const LayeredBlockState*>(&state_);
+
+            for (size_t l = 0; l < _layers.size(); ++l)
+                _layers[l].deep_assign(state._layers[l]);
+
+            _block_map = state._block_map;
         }
 
         std::vector<LayerState> _layers;

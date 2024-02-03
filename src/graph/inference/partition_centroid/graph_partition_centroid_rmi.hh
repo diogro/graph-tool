@@ -393,6 +393,17 @@ public:
     {
         return deep_copy(make_index_sequence<sizeof...(Ts)>{});
     }
+
+    template <class State>
+    void deep_assign(const State& state)
+    {
+        _b = state._b;
+        _nr = state._nr;
+        _mrs = state._mrs;
+        _wr = state._wr;
+        _empty_groups = state._empty_groups;
+        _candidate_groups = state._candidate_groups;
+    }
 };
 
 } // graph_tool namespace

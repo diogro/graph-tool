@@ -86,9 +86,8 @@ struct overlap_partition_stats_t
     template <class Graph, class Vprop, class Eprop, class Vlist>
     overlap_partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E,
                               size_t B, Eprop& eweight, overlap_stats_t& ostats)
-        : _overlap_stats(ostats),
+        : _overlap_stats(&ostats),
           _directed(graph_tool::is_directed(g))
-
     {
         _D = 0;
         _N = vlist.size();
@@ -202,7 +201,7 @@ struct overlap_partition_stats_t
     void get_bv_deg(size_t v, Vprop& b, Eprop&, Graph& g, set<size_t>& rs,
                     dmap_t& in_hist, dmap_t& out_hist)
     {
-        auto& half_edges = _overlap_stats.get_half_edges(v);
+        auto& half_edges = _overlap_stats->get_half_edges(v);
         for (size_t u : half_edges)
         {
             size_t kin = in_degreeS()(u, g);
@@ -468,7 +467,7 @@ struct overlap_partition_stats_t
         r = get_r(r);
         nr = get_r(nr);
 
-        size_t u = _overlap_stats.get_node(v);
+        size_t u = _overlap_stats->get_node(v);
 
         u = get_v(u);
 
@@ -511,9 +510,9 @@ struct overlap_partition_stats_t
         }
 
         int dB = 0;
-        if (_overlap_stats.virtual_remove_size(v, o_r, in_deg, out_deg) == 0)
+        if (_overlap_stats->virtual_remove_size(v, o_r, in_deg, out_deg) == 0)
             dB--;
-        if (_overlap_stats.get_block_size(o_nr) == 0)
+        if (_overlap_stats->get_block_size(o_nr) == 0)
             dB++;
 
         auto get_S_d = [&] (size_t d_i, int delta, int dB) -> double
@@ -590,9 +589,9 @@ struct overlap_partition_stats_t
         double S_b = 0, S_a = 0;
 
         int dB = 0;
-        if (_overlap_stats.virtual_remove_size(v, r) == 0)
+        if (_overlap_stats->virtual_remove_size(v, r) == 0)
             dB--;
-        if (_overlap_stats.get_block_size(nr) == 0)
+        if (_overlap_stats->get_block_size(nr) == 0)
             dB++;
 
         if (dB != 0)
@@ -626,7 +625,7 @@ struct overlap_partition_stats_t
 
         double S_b = 0, S_a = 0;
 
-        size_t u = get_v(_overlap_stats.get_node(v));
+        size_t u = get_v(_overlap_stats->get_node(v));
         auto& bv = _bvs[u];
         bv_t n_bv;
 
@@ -876,7 +875,7 @@ struct overlap_partition_stats_t
 
     //     double S_b = 0, S_a = 0;
 
-    //     size_t u = get_v(_overlap_stats.get_node(v));
+    //     size_t u = get_v(_overlap_stats->get_node(v));
     //     auto& bv = _bvs[u];
     //     bv_t n_bv;
 
@@ -905,7 +904,7 @@ struct overlap_partition_stats_t
         r = get_r(r);
         nr = get_r(nr);
 
-        auto u =_overlap_stats.get_node(v);
+        auto u =_overlap_stats->get_node(v);
         u = get_v(u);
         auto& bv = _bvs[u];
         assert(!bv.empty());
@@ -1029,7 +1028,7 @@ struct overlap_partition_stats_t
     }
 
 private:
-    overlap_stats_t& _overlap_stats;
+    overlap_stats_t* _overlap_stats;
     vector<size_t> _bmap;
     vector<size_t> _vmap;
     size_t _N;

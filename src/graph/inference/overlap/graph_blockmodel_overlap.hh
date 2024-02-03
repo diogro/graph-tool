@@ -1345,6 +1345,8 @@ public:
         if constexpr (!std::is_same_v<bg_t, GraphInterface::multigraph_t>)
             state->__bgp =
                 std::shared_ptr<GraphInterface::multigraph_t>(&bg->original_graph());
+        state->_rec = _rec;
+        state->_drec = _drec;
         state->_recdxp = std::shared_ptr<recdx_t>(&state->_recdx);
         state->_Lrecdxp = std::shared_ptr<Lrecdx_t>(&state->_Lrecdx);
         state->_epsilonp = std::shared_ptr<epsilon_t>(&state->_epsilon);
@@ -1354,11 +1356,16 @@ public:
     OverlapBlockState* deep_copy(boost::any)
     {
         auto* state = deep_copy(make_index_sequence<sizeof...(Ts)>{});
+        state->_mrs = state->_mrs.copy();
+        state->_c_mrs = state->_mrs.get_checked();
+        state->_mrp = state->_mrp.copy();
+        if (graph_tool::is_directed(_g))
+            state->_mrm = state->_mrm.copy();
+        else
+            state->_mrm = state->_mrp;
+        state->_wr = state->_wr.copy();
+        state->_b = state->_b.copy();
         state->_egroups = _egroups;
-        for (auto& p : state->_rec)
-            p = p.copy();
-        for (auto& p : state->_drec)
-            p = p.copy();
         state->_c_brec.clear();
         for (auto& p : state->_brec)
         {
@@ -1372,22 +1379,67 @@ public:
             state->_c_bdrec.push_back(p.get_checked());
         }
         state->_recsum = _recsum;
-        state->_brecsum = state->_brecsum.copy();
+        state->_brecsum = _brecsum.copy();
         if (_coupled_state != nullptr)
         {
             state->_coupled_state =
-                _coupled_state->deep_copy(boost::any(std::ref(state->_bg)));
+                _coupled_state->
+                    deep_copy(boost::any(std::make_tuple(boost::any(std::ref(state->_bg)),
+                                                         state->_mrs,
+                                                         state->_brec,
+                                                         state->_bdrec)));
             state->_coupled_statep =
                 std::shared_ptr<BlockStateVirtualBase>(state->_coupled_state);
             state->_coupled_entropy_args = _coupled_entropy_args;
         }
-
         return state;
     }
 
     OverlapBlockState* deep_copy()
     {
         return deep_copy(boost::any());
+    }
+
+    virtual void deep_assign(const BlockStateVirtualBase& state_)
+    {
+        const OverlapBlockState& state =
+            *dynamic_cast<const OverlapBlockState*>(&state_);
+        if constexpr (is_directed_::apply<g_t>::type::value)
+            _bg = state._bg;
+        else
+            _bg.original_graph() = state._bg.original_graph();
+        _mrs.get_storage() = state._mrs.get_storage();
+        _mrp.get_storage() = state._mrp.get_storage();
+        if constexpr (is_directed_::apply<g_t>::type::value)
+            _mrm.get_storage() = state._mrm.get_storage();
+        _wr.get_storage() = state._wr.get_storage();
+        _b.get_storage() = state._b.get_storage();
+
+        for (size_t i = 0; i < _brec.size(); ++i)
+        {
+            _brec[i].get_storage() = state._brec[i].get_storage();
+            _bdrec[i].get_storage() = state._bdrec[i].get_storage();
+        }
+
+        _recdx = state._recdx;
+        _Lrecdx = state._Lrecdx;
+        _epsilon = state._epsilon;
+        _recsum = state._recsum;
+        _brecsum = state._brecsum;
+        _recdx = state._recdx;
+        _recx2 = state._recx2;
+
+        _candidate_groups = state._candidate_groups;
+        _empty_groups = state._empty_groups;
+        _B_E = state._B_E;
+        _B_E_D = state._B_E_D;
+        _emat = state._emat;
+        _partition_stats.clear();
+        for (size_t i = 0; i < _partition_stats.size(); ++i)
+            _partition_stats[i] = state._partition_stats[i];
+
+        if (_coupled_state != nullptr)
+            _coupled_state->deep_assign(*state._coupled_state);
     }
 
 //private:

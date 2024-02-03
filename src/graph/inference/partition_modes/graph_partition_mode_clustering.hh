@@ -61,21 +61,24 @@ class ModeClusterState
 public:
     GET_PARAMS_USING(ModeClusterStateBase<Ts...>, BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, BLOCK_STATE_params)
+    using typename ModeClusterStateBase<Ts...>::args_t;
+    using ModeClusterStateBase<Ts...>::dispatch_args;
 
     template <class... ATs,
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     ModeClusterState(ATs&&... args)
         : ModeClusterStateBase<Ts...>(std::forward<ATs>(args)...),
-        _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
-        _M(python::len(_obs)),
-        _pos(_M),
-        _modes(_M),
-        _wr(_M),
-        _bclabel(_M),
-        _pclabel(_M),
-        _vs(vrange<size_t>(_M)),
-        _partition_stats(_g, _b, _vs, 0, _M, _vweight, _eweight, _degs),
-        _next_state(_M)
+          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _M(python::len(_obs)),
+          _pos(_M),
+          _modes(_M),
+          _wr(_M),
+          _bclabel(_M),
+          _pclabel(_M),
+          _vs(vrange<size_t>(_M)),
+          _partition_stats(_g, _b, _vs, 0, _M, _vweight, _eweight, _degs),
+          _next_state(_M),
+          _args(args...)
     {
         for (int i = 0; i < python::len(_obs); ++i)
         {
@@ -141,6 +144,10 @@ public:
     std::vector<size_t> _next_list;
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
+
+    std::shared_ptr<b_t> _bp;
+
+    args_t _args;
 
     typedef int m_entries_t;
 
@@ -597,10 +604,44 @@ public:
         return {r, _modes[r].sample_nested_partition(MLE, fix_empty, rng)};
     }
 
+    template <size_t... Is>
+    ModeClusterState* deep_copy(index_sequence<Is...>)
+    {
+        b_t* bp = new b_t(_b);
+        auto args =
+            dispatch_args(_args,
+                          [&](std::string name, auto& a) -> decltype(auto)
+                          {
+                              typedef std::remove_reference_t<decltype(a)> a_t;
+                              if (name == "b")
+                              {
+                                  auto& b_ = *bp; // workaround clang bug
+                                  if constexpr (std::is_same_v<a_t, b_t>)
+                                      return b_;
+                                  return a;
+                              }
+                              return a;
+                          });
+
+        auto state = new ModeClusterState(std::get<Is>(args)...);
+        state->_bp = std::shared_ptr<b_t>(bp);
+        return state;
+    };
+
     ModeClusterState* deep_copy()
     {
-        return this;
-    };
+        return deep_copy(make_index_sequence<sizeof...(Ts)>{});
+    }
+
+    template <class State>
+    void deep_assign(const State& state)
+    {
+        _b = state._b;
+        _wr = state._wr;
+        _empty_groups = state._empty_groups;
+        _candidate_groups = state._candidate_groups;
+        _pos = state._pos;
+    }
 };
 
 } // graph_tool namespace

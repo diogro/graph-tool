@@ -113,6 +113,16 @@ struct MCMC
             }
         }
 
+        ~MCMCBlockStateImp()
+        {
+            if (_pstates[0] != nullptr)
+            {
+                #pragma omp parallel for schedule(runtime)
+                for (size_t i = 1; i < _pstates.size(); ++i)
+                    delete _pstates[i];
+            }
+        }
+
         bool _has_b_max = false;
         bool _has_b_min = false;
 
@@ -159,18 +169,17 @@ struct MCMC
             _pstates[0] = &_state;
             #pragma omp parallel for schedule(runtime)
             for (size_t i = 1; i < _pstates.size(); ++i)
-                _pstates[i] = _state.deep_copy();
+            {
+                if (_pstates[i] == nullptr)
+                    _pstates[i] = _state.deep_copy();
+                else
+                    _pstates[i]->deep_assign(_state);
+            }
         }
 
         void unsplit_parallel()
         {
             _pstates[0] = nullptr;
-            #pragma omp parallel for schedule(runtime)
-            for (size_t i = 1; i < _pstates.size(); ++i)
-            {
-                delete _pstates[i];
-                _pstates[i] = nullptr;
-            }
         }
 
         template <class RNG>

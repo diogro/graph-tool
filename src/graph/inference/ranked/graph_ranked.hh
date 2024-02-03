@@ -453,6 +453,13 @@ public:
             return deep_copy(make_index_sequence<sizeof...(Ts)>{});
         }
 
+        void deep_assign(const RankedState& state_)
+        {
+            const RankedState& state =
+                *dynamic_cast<const RankedState*>(&state_);
+            _ustate.deep_assign(state._ustate);
+            _u.get_storage() = state._u.get_storage();
+        }
     };
 };
 } // graph_tool namespace

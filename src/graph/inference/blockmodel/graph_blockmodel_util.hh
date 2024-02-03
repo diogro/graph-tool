@@ -80,6 +80,7 @@ public:
     virtual void relax_update(bool relax) = 0;
     virtual BlockStateVirtualBase* deep_copy() = 0;
     virtual BlockStateVirtualBase* deep_copy(boost::any) { return deep_copy(); } ;
+    virtual void deep_assign(const BlockStateVirtualBase&) = 0;
 };
 
 } // graph_tool namespace

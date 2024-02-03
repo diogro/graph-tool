@@ -409,6 +409,17 @@ public:
     {
         return deep_copy(make_index_sequence<sizeof...(Ts)>{});
     }
+
+    template <class State>
+    void deep_assign(const State& state)
+    {
+        _b.get_storage() = state._b.get_storage();
+        _er = state._er;
+        _err = state._err;
+        _wr = state._wr;
+        _empty_groups = state._empty_groups;
+        _candidate_groups = state._candidate_groups;
+    }
 };
 
 } // graph_tool namespace

@@ -122,6 +122,11 @@ public:
 
     typedef partition_stats<use_rmap_t::value> partition_stats_t;
 
+    typedef typename std::conditional<is_weighted_t::value,
+                                      vmap_t::unchecked_t, vcmap_t>::type vweight_t;
+    typedef typename std::conditional<is_weighted_t::value,
+                                      emap_t::unchecked_t, ecmap_t>::type eweight_t;
+
     template <class... ATs,
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     BlockState(ATs&&... args)
@@ -2523,7 +2528,8 @@ public:
 
     double _global = false;
     template <class G, size_t... Is>
-    BlockState* deep_copy(G& g, bool global, index_sequence<Is...>)
+    BlockState* deep_copy(G& g, eweight_t& eweight, rec_t& rec, drec_t& drec,
+                          Lrecdx_t& Lrecdx, bool global, index_sequence<Is...>)
     {
         bg_t* bg;
         if constexpr (std::is_same_v<bg_t, GraphInterface::multigraph_t>)
@@ -2552,10 +2558,13 @@ public:
                               }
                               else if (name == "Lrecdx")
                               {
-                                  if (global)
+                                  if constexpr (std::is_same_v<a_t, Lrecdx_t>)
                                   {
-                                      if constexpr (std::is_same_v<a_t, Lrecdx_t>)
-                                          return *(new Lrecdx_t(this->_Lrecdx));
+                                      auto& Lrecdx_ = Lrecdx; // workaround clang bug
+                                      if (global)
+                                          return *(new Lrecdx_t(Lrecdx_));
+                                      else
+                                          return Lrecdx_;
                                   }
                                   return a;
                               }
@@ -2573,6 +2582,9 @@ public:
         if constexpr (!std::is_same_v<bg_t, GraphInterface::multigraph_t>)
             state->__bgp =
                 std::shared_ptr<GraphInterface::multigraph_t>(&bg->original_graph());
+        state->_eweight = eweight;
+        state->_rec = rec;
+        state->_drec = drec;
         state->_global = global;
         state->_recdxp = std::shared_ptr<recdx_t>(&state->_recdx);
         if (global)
@@ -2583,11 +2595,16 @@ public:
 
     BlockState* deep_copy(boost::any args, bool global)
     {
+        auto& [ag, eweight, rec, drec, Lrecdx] =
+            boost::any_cast<std::tuple<boost::any, eweight_t, rec_t,
+                                       drec_t, Lrecdx_t>&>(args);
+
         BlockState* state = nullptr;
         try
         {
-            g_t& g = boost::any_cast<std::reference_wrapper<g_t>>(args);
-            state = deep_copy(g, global, make_index_sequence<sizeof...(Ts)-1>{});
+            g_t& g = boost::any_cast<std::reference_wrapper<g_t>>(ag);
+            state = deep_copy(g, eweight, rec, drec, Lrecdx,
+                              global, make_index_sequence<sizeof...(Ts)-1>{});
         }
         catch (boost::bad_any_cast& e)
         {
@@ -2595,9 +2612,10 @@ public:
             if constexpr (std::is_same_v<g_t, ug_t>)
             {
                 GraphInterface::multigraph_t& g =
-                    boost::any_cast<std::reference_wrapper<GraphInterface::multigraph_t>>(args);
+                    boost::any_cast<std::reference_wrapper<GraphInterface::multigraph_t>>(ag);
                 ug_t* ug = new ug_t(g);
-                state = deep_copy(*ug, global, make_index_sequence<sizeof...(Ts)-1>{});
+                state = deep_copy(*ug, eweight, rec, drec, Lrecdx, global,
+                                  make_index_sequence<sizeof...(Ts)-1>{});
                 state->_ugp = std::shared_ptr<ug_t>(ug);
             }
             else
@@ -2605,10 +2623,6 @@ public:
                 throw e;
             }
         }
-        if constexpr (!std::is_same_v<decltype(_eweight),ecmap_t>)
-            state->_eweight = state->_eweight.copy();
-        if constexpr (!std::is_same_v<decltype(_vweight),vcmap_t>)
-            state->_vweight = state->_vweight.copy();
         state->_mrs = state->_mrs.copy();
         state->_c_mrs = state->_mrs.get_checked();
         state->_mrp = state->_mrp.copy();
@@ -2621,16 +2635,10 @@ public:
         state->_egroups = _egroups;
         state->_c_rec.clear();
         for (auto& p : state->_rec)
-        {
-            p = p.copy();
             state->_c_rec.push_back(p.get_checked());
-        }
         state->_c_drec.clear();
         for (auto& p : state->_drec)
-        {
-            p = p.copy();
             state->_c_drec.push_back(p.get_checked());
-        }
         state->_c_brec.clear();
         for (auto& p : state->_brec)
         {
@@ -2644,11 +2652,16 @@ public:
             state->_c_bdrec.push_back(p.get_checked());
         }
         state->_recsum = _recsum;
-        state->_brecsum = state->_brecsum.copy();
+        state->_brecsum = _brecsum.copy();
         if (_coupled_state != nullptr)
         {
             state->_coupled_state =
-                _coupled_state->deep_copy(boost::any(std::ref(state->_bg)));
+                _coupled_state->
+                    deep_copy(boost::any(std::make_tuple(boost::any(std::ref(state->_bg)),
+                                                         state->_mrs,
+                                                         state->_brec,
+                                                         state->_bdrec,
+                                                         state->_Lrecdx)));
             state->_coupled_statep =
                 std::shared_ptr<BlockStateVirtualBase>(state->_coupled_state);
             state->_coupled_entropy_args = _coupled_entropy_args;
@@ -2657,14 +2670,59 @@ public:
         return state;
     }
 
-    BlockState* deep_copy(boost::any args)
+    virtual BlockState* deep_copy(boost::any args)
     {
         return deep_copy(args, false);
     }
 
     BlockState* deep_copy()
     {
-        return deep_copy(boost::any(std::ref(_g)), true);
+        return deep_copy(boost::any(std::make_tuple(boost::any(std::ref(_g)),
+                                                    _eweight,
+                                                    _rec,
+                                                    _drec,
+                                                    _Lrecdx)), true);
+    }
+
+    virtual void deep_assign(const BlockStateVirtualBase& state_)
+    {
+        const BlockState& state = *dynamic_cast<const BlockState*>(&state_);
+        if constexpr (is_directed_::apply<g_t>::type::value)
+            _bg = state._bg;
+        else
+            _bg.original_graph() = state._bg.original_graph();
+        _mrs.get_storage() = state._mrs.get_storage();
+        _mrp.get_storage() = state._mrp.get_storage();
+        if constexpr (is_directed_::apply<g_t>::type::value)
+            _mrm.get_storage() = state._mrm.get_storage();
+        _wr.get_storage() = state._wr.get_storage();
+        _b.get_storage() = state._b.get_storage();
+
+        for (size_t i = 0; i < _brec.size(); ++i)
+        {
+            _brec[i].get_storage() = state._brec[i].get_storage();
+            _bdrec[i].get_storage() = state._bdrec[i].get_storage();
+        }
+
+        _recdx = state._recdx;
+        _Lrecdx = state._Lrecdx;
+        _epsilon = state._epsilon;
+        _recsum = state._recsum;
+        _brecsum = state._brecsum;
+        _recdx = state._recdx;
+        _recx2 = state._recx2;
+
+        _candidate_groups = state._candidate_groups;
+        _empty_groups = state._empty_groups;
+        _B_E = state._B_E;
+        _B_E_D = state._B_E_D;
+        _emat = state._emat;
+        _partition_stats.clear();
+        for (size_t i = 0; i < _partition_stats.size(); ++i)
+            _partition_stats[i] = state._partition_stats[i];
+
+        if (_coupled_state != nullptr)
+            _coupled_state->deep_assign(*state._coupled_state);
     }
 
 //private:
@@ -2692,12 +2750,7 @@ public:
     size_t _N;
     size_t _E;
 
-    typedef typename std::conditional<is_weighted_t::value,
-                                      vmap_t::unchecked_t, vcmap_t>::type vweight_t;
     vweight_t _vweight;
-
-    typedef typename std::conditional<is_weighted_t::value,
-                                      emap_t::unchecked_t, ecmap_t>::type eweight_t;
     eweight_t _eweight;
 
     typedef typename std::conditional<is_weighted_t::value,
