@@ -260,7 +260,7 @@ public:
              [&] (const auto& e)
              {
                  auto u = source(e, g);
-                 auto v = source(e, g);
+                 auto v = target(e, g);
                  H += _x[e] * _f[s[u]][s[v]];
              });
 
@@ -286,7 +286,7 @@ public:
              [&] (const auto& e)
              {
                  auto u = source(e, g);
-                 auto v = source(e, g);
+                 auto v = target(e, g);
                  auto& s_u = ss[u];
                  auto& s_v = ss[v];
                  auto xe = _x[e];

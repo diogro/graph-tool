@@ -30,7 +30,7 @@
 namespace graph_tool
 {
 
-class GaussianBPState
+class NormalBPState
 {
 public:
 
@@ -39,10 +39,9 @@ public:
     typedef eprop_map_t<std::vector<double>>::type::unchecked_t emmap_t;
 
     template <class Graph, class RNG>
-    GaussianBPState(Graph& g, emap_t x, vmap_t mu, vmap_t theta, emmap_t em_m,
-                    emmap_t em_s, vmap_t vm_m, vmap_t vm_s, bool marginal_init,
-                    RNG& //rng
-                    )
+    NormalBPState(Graph& g, emap_t x, vmap_t mu, vmap_t theta, emmap_t em_m,
+                  emmap_t em_s, vmap_t vm_m, vmap_t vm_s, bool marginal_init,
+                  RNG&)
         : _x(x), _mu(mu), _theta(theta), _em_m(em_m), _em_s(em_s), _vm_m(vm_m),
           _vm_s(vm_s)
     {
@@ -254,7 +253,7 @@ public:
              [&] (const auto& e)
              {
                  auto u = source(e, g);
-                 auto v = source(e, g);
+                 auto v = target(e, g);
                  H += _x[e] * s[u] * s[v];
              });
 
@@ -280,7 +279,7 @@ public:
              [&] (const auto& e)
              {
                  auto u = source(e, g);
-                 auto v = source(e, g);
+                 auto v = target(e, g);
                  auto& s_u = ss[u];
                  auto& s_v = ss[v];
                  auto xe = _x[e];

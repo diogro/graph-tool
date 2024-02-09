@@ -268,12 +268,12 @@ libgraph_tool_dynamics_la_SOURCES = \
 	src/graph/dynamics/graph_continuous.cc \
 	src/graph/dynamics/graph_discrete.cc \
 	src/graph/dynamics/graph_dynamics.cc \
-	src/graph/dynamics/graph_gaussian_bp.cc \
+	src/graph/dynamics/graph_normal_bp.cc \
 	src/graph/dynamics/graph_potts_bp.cc
 libgraph_tool_dynamics_la_include_HEADERS = \
 	src/graph/dynamics/graph_continuous.hh \
 	src/graph/dynamics/graph_discrete.hh \
-	src/graph/dynamics/graph_gaussian_bp.hh \
+	src/graph/dynamics/graph_normal_bp.hh \
 	src/graph/dynamics/graph_potts_bp.hh
 
 ###################

@@ -74,7 +74,7 @@ Belief propagation
 
    GenPottsBPState
    IsingBPState
-   GaussianBPState
+   NormalBPState
 
 
 Contents
@@ -102,7 +102,7 @@ __all__ = ["DiscreteStateBase", "EpidemicStateBase", "SIState", "SISState",
            "IsingMetropolisState", "PottsGlauberState", "PottsMetropolisState",
            "AxelrodState", "BooleanState", "KirmanState", "NormalState",
            "LinearNormalState", "GeneralizedBinaryState", "ContinuousStateBase",
-           "KuramotoState", "GenPottsBPState", "IsingBPState", "GaussianBPState"]
+           "KuramotoState", "GenPottsBPState", "IsingBPState", "NormalBPState"]
 
 class DiscreteStateBase(object):
     def __init__(self, g, make_state, params, s=None, stype="int32_t"):
