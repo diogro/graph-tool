@@ -118,12 +118,15 @@ public:
     virtual void set_params(python::dict p)
     {
         _positive = python::extract<bool>(p["positive"]);
+        _pslack = python::extract<double>(p["pslack"]);
     }
 
     template <class Val>
     Val transform_theta(Val theta, Val k)
     {
-        return (_positive && k > 0) ? std::min(-std::log(k)/2 - 1e-6, theta) : theta;
+        return (_positive && k > 0) ?
+            std::min(-std::log(k)/2 - _pslack, theta) :
+            theta;
     }
 
     [[gnu::flatten]] [[gnu::always_inline]]
@@ -136,6 +139,7 @@ public:
     }
 
     bool _positive = true;
+    double _pslack = 0;
 };
 
 class NormalGlauberState

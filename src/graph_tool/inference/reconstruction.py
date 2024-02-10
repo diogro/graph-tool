@@ -21,12 +21,16 @@
 from .. import _prop, _get_rng, Vector_int32_t
 
 from .. spectral import adjacency
-from .. generation import complete_graph, generate_triadic_closure, remove_parallel_edges
-from .. dynamics import IsingGlauberState, NormalState
+from .. generation import complete_graph, generate_triadic_closure, \
+    remove_parallel_edges
+from .. dynamics import IsingGlauberState, NormalState, IsingBPState, \
+    NormalBPState
 
 from . uncertain_blockmodel import *
 from . util import pmap
 
+from abc import ABC
+import inspect
 import numpy as np
 import numbers
 
@@ -89,8 +93,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         """
 
-        super().__init__(g, nested=nested, state_args=state_args, bstate=bstate,
-                         self_loops=self_loops)
+        UncertainBaseState.__init__(self, g, nested=nested,
+                                    state_args=state_args, bstate=bstate,
+                                    self_loops=self_loops)
 
         if isinstance(s, PropertyMap):
             s = [s]
@@ -714,6 +719,109 @@ class DynamicsBlockStateBase(UncertainBaseState):
         g.ep.xdev.fa = sqrt(g.ep.x2sum.fa / g.gp.count - g.ep.x.fa ** 2)
         return g
 
+class BPBlockStateBase(DynamicsBlockStateBase, ABC):
+    def __init__(self, *args, S_bp_0=None, S_bp_1=None, S_0=None, S_1=None,
+                 **kwargs):
+        DynamicsBlockStateBase.__init__(self, *args, **kwargs)
+        self.S_bp_0 = S_bp_0
+        self.S_0 = S_0
+        self.S_bp_1 = S_bp_1
+        self.S_1 = S_1
+        if self.S_bp_0 is None or self.S_0 is None:
+            if self.u.num_edges() == 0:
+                state = self
+            else:
+                state = self.copy(S_bp_0=0, S_0=0)
+                state.u.clear_edges()
+                state = state.copy(S_bp_0=0, S_0=0)
+            if self.S_bp_0 is None:
+                self.S_bp_0 = state.get_S_bp()
+            if self.S_0 is None:
+                self.S_0 = state.get_S()
+            if self.u.num_edges() == 0:
+                self.update_alpha()
+
+    def __getstate__(self):
+        return dict(DynamicsBlockStateBase.__getstate__(self),
+                    S_bp_0=self.S_bp_0, S_bp_1=self.S_bp_1, S_0=self.S_0,
+                    S_1=self.S_1)
+
+    def reset_alpha(self):
+        self.S_bp_0 = self.get_S_bp()
+        self.S_0 = self.get_S()
+        self.S_bp_1 = self.S_1 = None
+
+    def get_alpha(self):
+        if self.S_bp_1 is None or self.S_1 is None:
+            return 1
+        if abs(self.S_1 - self.S_0) < 1e-6:
+            return 1
+        alpha = (self.S_bp_1 - self.S_bp_0) / (self.S_1 - self.S_0)
+        if alpha < 0 or alpha > 1:
+            return 1
+        return alpha
+
+    def get_beta(self):
+        if self.S_bp_1 is None or self.S_1 is None:
+            return 0
+        alpha = self.get_alpha()
+        beta = self.S_bp_1 - alpha * self.S_1
+        return beta
+
+    def update_alpha(self):
+        self.S_bp_1 = self.get_S_bp()
+        self.S_1 = self.get_S()
+
+    def transform_s(self, s):
+        return s
+
+    def get_S_bp(self, **kwargs):
+        bstate = self.get_bpstate(converge=False)
+        bstate.converge(**kwargs)
+        S = 0
+        for s in self.s:
+            s = self.transform_s(s)
+            S -= bstate.log_prob(s)
+        return S
+
+    def get_S(self):
+        return DynamicsBlockStateBase.entropy(self, sbm=False, tdist=False,
+                                              xdist=False, density=False, xl1=0,
+                                              tl1=0, alpha=-1, test=False)
+
+    def mcmc_sweep(self, **kwargs):
+        ret = DynamicsBlockStateBase.mcmc_sweep(self, **kwargs)
+        self.update_alpha()
+        return ret
+
+    def _get_entropy_args(self, eargs, consume=False):
+        if not consume:
+            eargs = eargs.copy()
+        if "alpha" in eargs and eargs["alpha"] < 0:
+            eargs["alpha"] *= -1
+        else:
+            eargs["alpha"] = self.get_alpha()
+        return DynamicsBlockStateBase._get_entropy_args(self, eargs,
+                                                        consume=consume)
+
+    @copy_state_wrap
+    def entropy(self, **kwargs):
+        alpha = kwargs.get("alpha", 1)
+        if alpha < 0:
+            return DynamicsBlockStateBase.entropy(self, **dict(kwargs,
+                                                               alpha=-alpha,
+                                                               test=False))
+        S = DynamicsBlockStateBase.entropy(self, **dict(kwargs,
+                                                        alpha=self.get_alpha(),
+                                                        test=False))
+        return S + self.get_beta()
+
+    entropy.__signature__ = inspect.signature(DynamicsBlockStateBase.entropy)
+
+    @abstractmethod
+    def get_bpstate(**kwargs):
+        pass
+
 class EpidemicsBlockState(DynamicsBlockStateBase):
     def __init__(self, g, s, exposed=False, theta=-1, x_range=(-np.inf, 1e-8),
                  theta_range=(-np.inf, 1e-8), **kwargs):
@@ -767,7 +875,8 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         return libinference.mcmc_epidemics_sweep(mcmc_state, self._state,
                                                  _get_rng())
 
-class IsingBaseBlockState(DynamicsBlockStateBase):
+class IsingBlockStateBase(ABC):
+    @abstractmethod
     def __init__(self, g, s, has_zero=False, **kwargs):
         r"""Base state for network reconstruction based on the Ising model, using the
         stochastic block model as a prior. This class is not supposed to be
@@ -802,75 +911,95 @@ class IsingBaseBlockState(DynamicsBlockStateBase):
            (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
 
         """
+        pass
 
-        super().__init__(g, s, has_zero=has_zero, **kwargs)
+    def get_dyn_state(self, s=None):
+        return IsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
 
-class IsingGlauberBlockState(IsingBaseBlockState):
-    def __init__(self, *args, **kwargs):
+    def transform_s(self, s):
+        s = s.copy("vector<int>")
+        for v in self.u.vertices():
+            s[v].a = (s[v].a + 1)/2
+        return s
+
+class IsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
+    def __init__(self, g, s, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the Glauber dynamics of the Ising
         model, using the stochastic block model as a prior.
 
-        See documentation for :class:`IsingBaseBlockState` for details.
+        See documentation for :class:`IsingBlockStateBase` for details.
         """
-
-        super().__init__(*args, **kwargs)
+        DynamicsBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
 
     def _make_state(self):
         return libinference.make_ising_glauber_state(self._state, self.ot,
                                                      self.os, self.params)
 
-class CIsingGlauberBlockState(IsingBaseBlockState):
-    def __init__(self, *args, **kwargs):
+class CIsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
+    def __init__(self, g, s, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the Glauber dynamics of the
         continuous Ising model, using the stochastic block model as a prior.
 
-        See documentation for :class:`IsingBaseBlockState` for details. Note
+        See documentation for :class:`IsingBlockStateBase` for details. Note
         that in this case the ``s`` parameter should contain property maps of
         type ``vector<double>``, with values in the range :math:`[-1,1]`.
         """
-        super().__init__(*args, **kwargs)
+        DynamicsBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
+
+    def get_dyn_state(self, s=None):
+        return CIsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+
+    def transform_s(self, s):
+        return s
 
     def _make_state(self):
         return libinference.make_cising_glauber_state(self._state, self.ot,
                                                       self.os, self.params)
 
-class PseudoIsingBlockState(IsingBaseBlockState):
-    def __init__(self, *args, **kwargs):
+class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
+    def __init__(self, g, s, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the equilibrium configurations of
         the Ising model, using the Pseudolikelihood approximation and the
         stochastic block model as a prior.
 
-        See documentation for :class:`IsingBaseBlockState` for details. Note
+        See documentation for :class:`IsingBlockStateBase` for details. Note
         that in this model "time-series" should be interpreted as a set of
         uncorrelated samples, not a temporal sequence.
         """
-        super().__init__(*args, **kwargs)
+        BPBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
+
+    def get_bpstate(self, **kwargs):
+        return IsingBPState(self.u, x=self.x,
+                            theta=self.theta,
+                            has_zero=self.params.get("has_zero"), **kwargs)
 
     def _make_state(self):
         return libinference.make_pseudo_ising_state(self._state, self.ot,
                                                     self.os, self.params)
 
-    def get_dyn_state(self, s=None):
-        return IsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
-
-
-class PseudoCIsingBlockState(IsingBaseBlockState):
-    def __init__(self, *args, **kwargs):
+class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
+    def __init__(self, g, s, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the equilibrium configurations of
         the continuous Ising model, using the Pseudolikelihood approximation and
         the stochastic block model as a prior.
 
-        See documentation for :class:`IsingBaseBlockState` for details. Note
+        See documentation for :class:`IsingBlockStateBase` for details. Note
         that in this model "time-series" should be interpreted as a set of
         uncorrelated samples, not a temporal sequence. Additionally, the ``s``
         parameter should contain property maps of type ``vector<double>``, with
         values in the range :math:`[-1,1]`.
         """
-        super().__init__(*args, **kwargs)
+        DynamicsBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
 
     def _make_state(self):
         return libinference.make_pseudo_cising_state(self._state, self.ot,
                                                      self.os, self.params)
+
+    def get_dyn_state(self, s=None):
+        return CIsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+
+    def transform_s(self, s):
+        return s
 
 class VoterBlockState(DynamicsBlockStateBase):
     def __init__(self, g, s, x_range=(-np.inf, 1e-8), theta_range=(-np.inf, 1e-8),
@@ -882,28 +1011,83 @@ class VoterBlockState(DynamicsBlockStateBase):
                                              self.params)
 
 
-class PseudoNormalBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, fix_mean=True, positive=True, **kwargs):
+class PseudoNormalBlockState(BPBlockStateBase):
+    def __init__(self, g, s, fix_mean=True, positive=True, pslack=1e-6,
+                 **kwargs):
         if fix_mean:
             s = [sx.copy("vector<double>") for sx in s]
             for sx in s:
                 for v in g.vertices():
                     sx[v].a -= sx[v].a.mean()
-        super().__init__(g, s, positive=positive, **kwargs)
+        BPBlockStateBase.__init__(self, g, s, positive=positive, pslack=pslack,
+                                  **kwargs)
 
     def _make_state(self):
         return libinference.make_pseudo_normal_state(self._state, self.ot,
                                                      self.os, self.params)
 
-    def get_dyn_state(self, s=None):
+    def get_dcov(self):
+        N = self.g.num_vertices()
+        S = np.zeros((N, N))
+        M = 0
+        for m in range(len(self.s)):
+            M += len(self.s[m][0])
+            for i in range(N):
+                for j in range(N):
+                    S[i,j] += np.dot(self.s[0][i].a,
+                                     self.s[0][j].a)
+        S /= M
+        return S
+
+    def get_precision(self):
+        theta = self.theta.copy()
+        w = self.x.copy()
+        w.fa = abs(w.fa)
+        pslack = self.params["pslack"]
+        for v in self.u.vertices():
+            k = v.out_degree(w)
+            theta[v] =  min(theta[v], -log(k)/2-pslack) if k > 0 else theta[v]
+        W = adjacency(self.u, self.x).tolil()
+        for v in self.u.vertices():
+            W[int(v), int(v)] = 1/exp(theta[v] * 2)
+        return W
+
+    def get_theta_shifted(self):
         h = self.theta.copy()
         w = self.x.copy()
-        w.fa = numpy.abs(w.fa)
+        w.fa = np.abs(w.fa)
         k = self.u.degree_property_map("out", w)
         idx = k.a > 0
-        h.a[idx] = numpy.minimum(-log(k.a[idx])/2, h.a[idx])
-        h.a = numpy.exp(h.a)
+        pslack = self.params["pslack"]
+        h.a[idx] = np.minimum(-np.log(k.a[idx])/2 - pslack, h.a[idx])
+        return h
+
+    def log_P_exact(self):
+        S = self.get_dcov()
+        W = self.get_precision().todense()
+        N = W.shape[0]
+        D = np.linalg.slogdet(W)[1]
+        M = 0
+        for m in range(len(self.s)):
+            M += len(self.s[m][0])
+        return float(-M*(S@W).trace()/2 + M/2*D - M*N*np.log(2*np.pi)/2)
+
+    def log_Z_exact(self):
+        W = self.get_precision().todense()
+        N = W.shape[0]
+        D = np.linalg.slogdet(W)[1]
+        return -float(D/2 - N * np.log(2 * np.pi) /2)
+
+    def get_dstate(self, s=None):
+        h = self.get_theta_shifted()
+        h.a = np.exp(h.a)
         return NormalState(self.u, w=self.x, h=h, s=s)
+
+    def get_bpstate(self, **kwargs):
+        theta = self.get_theta_shifted()
+        theta.fa = np.exp(-2 * theta.fa)
+        return NormalBPState(self.u, x=self.x, theta=theta, **kwargs)
+
 
 class NormalGlauberBlockState(DynamicsBlockStateBase):
     def __init__(self, g, s, self_loops=False, **kwargs):

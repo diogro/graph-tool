@@ -180,7 +180,7 @@ State classes
    UncertainBaseState
    DynamicsBlockStateBase
    EpidemicsBlockState
-   IsingBaseBlockState
+   IsingBlockStateBase
    IsingGlauberBlockState
    CIsingGlauberBlockState
    PseudoIsingBlockState
@@ -248,7 +248,7 @@ __all__ = ["minimize_blockmodel_dl",
            "MixedMeasuredBlockState",
            "DynamicsBlockStateBase",
            "EpidemicsBlockState",
-           "IsingBaseBlockState",
+           "IsingBlockStateBase",
            "IsingGlauberBlockState",
            "PseudoIsingBlockState",
            "CIsingGlauberBlockState",
