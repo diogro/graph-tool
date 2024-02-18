@@ -605,14 +605,25 @@ class PropertyMap(object):
                   :class:`~graph_tool.PropertyArray` is returned, which
                   is identical to the :attr:`~PropertyMap.a` attribute.""")
 
-    def get_2d_array(self, pos):
-        r"""Return a two-dimensional array of shape ``(M,N)``, where ``N`` is the number
-        of vertices or edges, and ``M`` is the size of each property vector,
-        with contains a copy of all entries of the vector-valued property map.
-        The parameter ``pos`` must be a sequence of integers which specifies the
-        indices of the property values which will be copied.
+    def get_2d_array(self, pos=None, dtype=None):
+        r"""Return a two-dimensional array of shape ``(M,N)``, where ``N`` is
+        the number of vertices or edges, and ``M`` is the size of each property
+        vector, which contains a copy of all entries of the vector-valued
+        property map.
+
+        The parameter ``pos`` must be a sequence of integers which
+        specifies the indices of the property values which will be copied.
+
+        If ``pos`` is not given (the default), then it will be assumed to
+        correspond to the entire range of the first entry in the map.
+
+        The parameter ``dtype`` determines the desired data-type for the array.
+        If not given, it will be determined automatically (by applying
+        promotion rules when necessary.)
         """
 
+        if pos is None:
+            pos = range(len(next(iter(self))))
         if self.key_type() == "g":
             raise ValueError("Cannot create multidimensional array for graph property maps.")
         if "vector" not in self.value_type() and (len(pos) > 1 or pos[0] != 0):
@@ -638,11 +649,11 @@ class PropertyMap(object):
             for v in iters:
                 for i in range(len(p)):
                     a[i].append(p[i][v])
-            a = numpy.array(a)
+            a = numpy.array(a, dtype=dtype)
             return a
 
         p = ungroup_vector_property(self, pos)
-        a = numpy.array([x.fa for x in p])
+        a = numpy.array([x.fa for x in p], dtype=dtype)
         return a
 
     def set_2d_array(self, a, pos=None):
