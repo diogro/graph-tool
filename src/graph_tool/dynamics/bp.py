@@ -84,7 +84,7 @@ class BPBaseState(ABC):
                                       _prop("v", self.g, s))
 
     def log_prob(self, s):
-        H = self.energy(s)
+        H = BPBaseState.energy(self, s)
         lZ = self.log_Z()
         if "vector" in s.value_type():
             _check_prop_vector(s, scalar=True)
@@ -156,9 +156,9 @@ class IsingBPState(GenPottsBPState):
             f = [[-1,  1],
                  [ 1, -1]]
         else:
-            f = [[-1, 0,  1],
-                 [ 0, 0,  0],
-                 [ 1, 0, -1]]
+            f = [[-1,  0,  1],
+                 [ 0,  0,  0],
+                 [ 1,  0, -1]]
         if not isinstance(theta, VertexPropertyMap):
             if not has_zero:
                 theta = g.new_vp("vector<double>", val=[theta, -theta])
@@ -174,43 +174,46 @@ class IsingBPState(GenPottsBPState):
                 theta = group_vector_property([ntheta, zero, theta])
         elif theta.value_type() != "vector<double>":
             theta = theta.copy("vector<double>")
+        self.has_zero = has_zero
         super().__init__(g=g, f=f, x=x, theta=theta, em=em, vm=vm,
                          marginal_init=marginal_init, converge=converge)
 
     def __getstate__(self):
         return dict(g=self.g, x=self.x, theta=self.theta, em=self.em,
-                    vm=self.vm)
+                    vm=self.vm, has_zero=self.has_zero, coverge=False)
 
     def from_spin(self, s):
         s = s.copy()
+        f = 2 if not self.has_zero else 1
         if "vector" in s.value_type():
             for v in self.g.vertices():
-                s[v].a = (s[v].a + 1)/2
+                s[v].a = (s[v].a + 1)/f
         else:
-            s.fa = (s.fa + 1)/2
+            s.fa = (s.fa + 1)/f
         return s
 
     def to_spin(self, s):
         s = s.copy()
+        f = 2 if not self.has_zero else 1
         if "vector" in s.value_type():
             for v in self.g.vertices():
-                s[v].a = 2 * s[v].a - 1
+                s[v].a = f * s[v].a - 1
         else:
-            s.fa = 2 * s.fa - 1
+            s.fa = f * s.fa - 1
         return s
 
     def energy(self, s):
-        return super().energy(self.from_spin(s))
+        return GenPottsBPState.energy(self, self.from_spin(s))
 
     def log_prob(self, s):
-        return super().log_prob(self.from_spin(s))
+        return GenPottsBPState.log_prob(self, self.from_spin(s))
 
     def marginal_log_prob(self, s):
-        return super().marginal_log_prob(self.from_spin(s))
+        return GenPottsBPState.marginal_log_prob(self, self.from_spin(s))
 
     def sample(self, update_marginals=True, val_type="int"):
-        s = super().sample(update_marginals=update_marginals,
-                           val_type=val_type)
+        s = GenPottsBPState.sample(self, update_marginals=update_marginals,
+                                   val_type=val_type)
         return self.to_spin(s)
 
 class NormalBPState(BPBaseState):

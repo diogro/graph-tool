@@ -539,17 +539,12 @@ struct Dynamics
             if ((ea.sbm && x == 0) || ea.xdist)
                 return 0.;
             double S = 0;
-            if (ea.xl1 > 0)
-            {
-                if (ea.delta == 0)
-                    S -= laplace_lpdf(x, ea.xl1);
-                else
-                    S -= qlaplace_lprob(x, ea.xl1, ea.delta/2, ea.sbm);
-            }
-            else if (ea.normal)
-            {
+            if (ea.normal)
                 S -= norm_lpdf(x, ea.mu, ea.sigma);
-            }
+            else if (ea.xl1 > 0 && ea.delta == 0)
+                S -= laplace_lpdf(x, ea.xl1);
+            else if (ea.xl1 > 0)
+                S -= qlaplace_lprob(x, ea.xl1, ea.delta/2, ea.sbm);
             if (std::isnan(S))
                 cout << x << " " << ea.xl1 << " " << ea.delta << " " << ea.sbm << " " << S << endl;
             return S;
@@ -1607,6 +1602,32 @@ struct Dynamics
 
             return bisect(f, ea.tl1, minval, maxval, maxiter, tol,
                           reversible);
+        }
+
+        double edge_diff(size_t u, size_t v, double h, const dentropy_args_t& ea)
+        {
+            auto get_dS =
+                [&](auto x, auto nx)
+                {
+                    return (dstate_edge_dS(u, v, x, nx, ea) +
+                            (edge_x_S(nx, ea) - edge_x_S(x, ea)));
+                };
+
+            auto x = get<1>(edge_state(u, v));
+            return get_dS(x - h, x + h) / (2 * h);
+        }
+
+        double node_diff(size_t v, double h, const dentropy_args_t& ea)
+        {
+            auto get_dS =
+                [&](auto x, auto nx)
+                {
+                    return (dstate_node_dS(v, nx - x, ea) +
+                            (node_x_S(nx, ea) - node_x_S(x, ea)));
+                };
+
+            auto x = _theta[v];
+            return get_dS(x - h, x + h) / (2 * h);
         }
 
         void quantize_x(double delta)

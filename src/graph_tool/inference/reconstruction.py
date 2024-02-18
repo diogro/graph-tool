@@ -34,11 +34,15 @@ import inspect
 import numpy as np
 import numbers
 
+import scipy.stats
+
+@entropy_state_signature
 class DynamicsBlockStateBase(UncertainBaseState):
-    def __init__(self, g, s, t=[], x=1, x_range=(-np.inf, np.inf), theta=0,
+    def __init__(self, s, g=None, t=[], x=1, x_range=(-np.inf, np.inf), theta=0,
                  theta_range=(-np.inf, np.inf), disable_xdist=False,
                  disable_tdist=False, nested=True, state_args={}, bstate=None,
-                 self_loops=False, max_m=1 << 16, nmax_extend=8, **kwargs):
+                 self_loops=False, max_m=1 << 16, nmax_extend=8,
+                 entropy_args={}, **kwargs):
         r"""Base state for network reconstruction based on dynamical data, using the
         stochastic block model as a prior. This class is not meant to be
         instantiated directly, only indirectly via one of its
@@ -47,18 +51,24 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         Parameters
         ----------
-        g : :class:`~graph_tool.Graph`
-            Initial graph state.
-        s : ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap`
-            Collection of time-series with node states over time. Each entry in
-            this list must be a :class:`~graph_tool.VertexPropertyMap` with type
-            ``vector<int>`` or ``vector<double>``, depending on wether the model
-            has discrete or continuous state values. If a single property map is
-            given, then a single time series is assumed.
+        s : ``~nummpy.ndarray`` of shape ``(N,M)`` or ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap`
+            Time series or independent samples used for reconstruction.
+
+            If the type is ``~nummpy.ndarray``, it should correspond to a
+            ``(N,M)`` data matrix with ``M`` samples for all ``N`` nodes.
+
+            If the parameter ``g`` is provided, this can be optionally a list of
+            of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
+            in this list must be a :class:`~graph_tool.VertexPropertyMap` with
+            type ``vector<int>`` or ``vector<double>``, depending on wether the
+            model has discrete or continuous state values. If a single property
+            map is given, then a single time series is assumed.
 
             If the parameter ``t`` below is given, each property map value for a
             given node should contain only the states for the same points in
             time given by that parameter.
+        g : :class:`~graph_tool.Graph` (optional, default: ``None``)
+            Initial graph state. If not provided, an empty graph will be assumed.
         t : ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``[]``)
             If nonempty, this allows for a compressed representation of the
             time-series parameter ``s``, corresponding only to points in time
@@ -90,12 +100,29 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self_loops : bool (optional, default: ``False``)
             If ``True``, it is assumed that the inferred graph can contain
             self-loops.
-
+        entropy_args: ``dict`` (optional, default: ``{}``)
+            Override default arguments for
+            :meth:`~DynamicsBlockStateBase.entropy()` method and releated
+            operations.
         """
+
+        directed = kwargs.pop("directed", None)
+        if g is None:
+            if directed is None:
+                directed = False
+            g = Graph(s.shape[0], directed=directed)
+        elif directed is None:
+            directed = g.is_directed()
+        if g.is_directed() != directed:
+            g = GraphView(g, directed=directed)
+
+        if isinstance(s, np.ndarray):
+            s = g.new_vp("vector<double>", vals=s)
 
         UncertainBaseState.__init__(self, g, nested=nested,
                                     state_args=state_args, bstate=bstate,
-                                    self_loops=self_loops)
+                                    self_loops=self_loops,
+                                    entropy_args=entropy_args)
 
         if isinstance(s, PropertyMap):
             s = [s]
@@ -131,6 +158,13 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self.disable_xdist = disable_xdist
         self.disable_tdist = disable_tdist
 
+        if disable_xdist:
+            self.update_entropy_args(xdist=False,
+                                     sbm=entropy_args.get("sbm", False),
+                                     delta=entropy_args.get("delta", 0))
+        if disable_tdist:
+            self.update_entropy_args(tdist=False)
+
         kwargs = kwargs.copy()
         for k in kwargs.keys():
             v = kwargs[k]
@@ -163,29 +197,33 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return dict(self.params)
 
     def __getstate__(self):
-        state = super().__getstate__()
+        state = UncertainBaseState.__getstate__(self)
         return dict(state, s=self.s, t=self.t, x=self.x,
-                    x_range=(self.xmin_bound, self.xmax_bound), theta=self.theta,
+                    x_range=(self.xmin_bound, self.xmax_bound),
+                    theta=self.theta,
                     theta_range=(self.tmin_bound, self.tmax_bound),
-                    disable_xdist=self.disable_xdist, disable_tdist=self.disable_tdist,
-                    rg=self.rg, elist=self.elist, max_m=self.max_m, **self.params)
+                    disable_xdist=self.disable_xdist,
+                    disable_tdist=self.disable_tdist,
+                    rg=self.rg, elist=self.elist, max_m=self.max_m,
+                    **self.params)
 
     def __repr__(self):
-        return "<%s object with %s, at 0x%x>" % \
+        return "<%s object with %s, %d edge categories and %d node categories, at 0x%x>" % \
             (self.__class__.__name__,
              self.nbstate if self.nbstate is not None else self.bstate,
+             len(self.get_xvals()), len(self.get_tvals()),
              id(self))
 
     def _gen_eargs(self, args):
-        uea = super()._gen_eargs(args)
+        uea = UncertainBaseState._gen_eargs(self, args)
         return libinference.dentropy_args(uea)
 
     @copy_state_wrap
-    def entropy(self, latent_edges=True, density=False, aE=1, sbm=True,
-                xdist=True, tdist=True, xdist_uniform=False,
-                tdist_uniform=False, xl1=1, tl1=1, alpha=1, delta=1e-8,
-                normal=False, mu=0, sigma=1, **kwargs):
-        """Return the entropy, i.e. negative log-likelihood."""
+    def _entropy(self, latent_edges=True, density=False, aE=1, sbm=True,
+                 xdist=True, tdist=True, xl1=1, tl1=1, alpha=1, delta=1e-8,
+                 normal=False, mu=0, sigma=1, **kwargs):
+        """Return the description length, i.e. the negative joint
+        log-likelihood."""
         eargs = self._get_entropy_args(locals())
         S = self._state.entropy(eargs)
         if sbm:
@@ -276,9 +314,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
                 print("sbm_mcmc_sweep:")
             kwargs = kwargs.copy()
             eargs = kwargs.get("entropy_args", {}).copy()
-            for x in ["xdist", "tdist", "xdist_uniform", "tdist_uniform", "xl1",
-                      "tl1", "sbm", "latent_edges", "density", "aE", "alpha"]:
-                eargs.pop(x, None)
+            for k in list(eargs.keys()):
+                if k not in self.bstate._entropy_args:
+                    eargs.pop(k, None)
             kwargs["entropy_args"] = eargs
             sret = self.sbm_mcmc_sweep(**dict(dict(beta=beta, niter=niter,
                                                    **kwargs), **sbm_mcmc_args))
@@ -311,7 +349,6 @@ class DynamicsBlockStateBase(UncertainBaseState):
             return self._state.pseudo_mcmc_sweep(mcmc_state, _get_rng())
         else:
             return self._state.mcmc_sweep(mcmc_state, _get_rng())
-
 
     @mcmc_sweep_wrap
     def swap_mcmc_sweep(self, beta=np.inf, niter=1, k=5, elist_args={},
@@ -610,6 +647,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
         entropy_args = self._get_entropy_args(entropy_args)
         return self._state.update_edge_dS(int(u), int(v), nx, entropy_args)
 
+    def virtual_update_node(self, v, nt, entropy_args={}):
+        entropy_args = self._get_entropy_args(entropy_args)
+        return self._state.update_node_dS(int(v), nt, entropy_args)
+
     def remove_edge(self, u, v, dm=1):
         return self._state.remove_edge(int(u), int(v), dm)
 
@@ -618,6 +659,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
     def update_edge(self, u, v, nx):
         return self._state.update_edge(int(u), int(v), nx)
+
+    def update_node(self, v, nt):
+        return self._state.update_node(int(v), nt)
 
     def bisect_x(self, u, v, maxiter=0, tol=1e-7, entropy_args={},
                  reversible=False, fb=False):
@@ -720,101 +764,82 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return g
 
 class BPBlockStateBase(DynamicsBlockStateBase, ABC):
-    def __init__(self, *args, S_bp_0=None, S_bp_1=None, S_0=None, S_1=None,
-                 **kwargs):
+    def __init__(self, *args, alpha=1, beta=0, **kwargs):
         DynamicsBlockStateBase.__init__(self, *args, **kwargs)
-        self.S_bp_0 = S_bp_0
-        self.S_0 = S_0
-        self.S_bp_1 = S_bp_1
-        self.S_1 = S_1
-        if self.S_bp_0 is None or self.S_0 is None:
-            if self.u.num_edges() == 0:
-                state = self
-            else:
-                state = self.copy(S_bp_0=0, S_0=0)
-                state.u.clear_edges()
-                state = state.copy(S_bp_0=0, S_0=0)
-            if self.S_bp_0 is None:
-                self.S_bp_0 = state.get_S_bp()
-            if self.S_0 is None:
-                self.S_0 = state.get_S()
-            if self.u.num_edges() == 0:
-                self.update_alpha()
+        self.alpha = alpha
+        self.beta = beta
 
     def __getstate__(self):
-        return dict(DynamicsBlockStateBase.__getstate__(self),
-                    S_bp_0=self.S_bp_0, S_bp_1=self.S_bp_1, S_0=self.S_0,
-                    S_1=self.S_1)
+        return dict(DynamicsBlockStateBase.__getstate__(self), alpha=self.alpha,
+                    beta=self.beta)
 
-    def reset_alpha(self):
-        self.S_bp_0 = self.get_S_bp()
-        self.S_0 = self.get_S()
-        self.S_bp_1 = self.S_1 = None
+    def comp_lreg(self):
+        return
+        egrad = self.get_elist_grad()
+        ngrad = self.get_node_grad()
+        astate = self.copy()
 
-    def get_alpha(self):
-        if self.S_bp_1 is None or self.S_1 is None:
-            return 1
-        if abs(self.S_1 - self.S_0) < 1e-6:
-            return 1
-        alpha = (self.S_bp_1 - self.S_bp_0) / (self.S_1 - self.S_0)
-        if alpha < 0 or alpha > 1:
-            return 1
-        return alpha
+        for i, (u, v) in enumerate(self.elist[1]):
+            d = egrad[i]
+            h = 1e-3
+            e = astate.u.edge(u, v)
+            if e is None:
+                astate.add_edge(u, v, -h * d)
+            else:
+                x = astate.x[e]
+                astate.update_edge(u, v, x - d * h)
+        for v in astate.u.vertices():
+            astate.update_node(v, astate.theta[v] - h * ngrad[int(v)])
 
-    def get_beta(self):
-        if self.S_bp_1 is None or self.S_1 is None:
-            return 0
-        alpha = self.get_alpha()
-        beta = self.S_bp_1 - alpha * self.S_1
-        return beta
+        Ss = [self.get_S(), astate.get_S()]
+        Sbps = [self.get_S_bp(), astate.get_S_bp()]
+        Scs = [max(S1, S2) for S1, S2 in zip(Ss, Sbps)]
 
-    def update_alpha(self):
-        self.S_bp_1 = self.get_S_bp()
-        self.S_1 = self.get_S()
-
-    def transform_s(self, s):
-        return s
+        res = scipy.stats.linregress(Ss, Scs)
+        if res.slope > 0 and res.slope < 1:
+            self.alpha = res.slope
+        else:
+            self.alpha = 1
+        self.beta = Sbps[0] - self.alpha * Ss[0]
+        print(res.slope, self.alpha, self.beta)
+        self.update_entropy_args(alpha=self.alpha)
 
     def get_S_bp(self, **kwargs):
         bstate = self.get_bpstate(converge=False)
         bstate.converge(**kwargs)
         S = 0
         for s in self.s:
-            s = self.transform_s(s)
             S -= bstate.log_prob(s)
         return S
+
+    def get_elist_grad(self, h=1e-6, entropy_args={}):
+        entropy_args = self._get_entropy_args(entropy_args)
+        ediff = []
+        for u, v in self.elist[1]:
+            ediff.append(self._state.edge_diff(u, v, h, entropy_args))
+        return ediff
+
+    def get_node_grad(self, h=1e-6, entropy_args={}):
+        entropy_args = self._get_entropy_args(entropy_args)
+        ndiff = []
+        for v in self.u.vertices():
+            ndiff.append(self._state.node_diff(v, h, entropy_args))
+        return ndiff
 
     def get_S(self):
         return DynamicsBlockStateBase.entropy(self, sbm=False, tdist=False,
                                               xdist=False, density=False, xl1=0,
-                                              tl1=0, alpha=-1, test=False)
+                                              tl1=0, alpha=1, test=False)
 
     def mcmc_sweep(self, **kwargs):
         ret = DynamicsBlockStateBase.mcmc_sweep(self, **kwargs)
-        self.update_alpha()
+        self.comp_lreg()
         return ret
-
-    def _get_entropy_args(self, eargs, consume=False):
-        if not consume:
-            eargs = eargs.copy()
-        if "alpha" in eargs and eargs["alpha"] < 0:
-            eargs["alpha"] *= -1
-        else:
-            eargs["alpha"] = self.get_alpha()
-        return DynamicsBlockStateBase._get_entropy_args(self, eargs,
-                                                        consume=consume)
 
     @copy_state_wrap
     def entropy(self, **kwargs):
-        alpha = kwargs.get("alpha", 1)
-        if alpha < 0:
-            return DynamicsBlockStateBase.entropy(self, **dict(kwargs,
-                                                               alpha=-alpha,
-                                                               test=False))
-        S = DynamicsBlockStateBase.entropy(self, **dict(kwargs,
-                                                        alpha=self.get_alpha(),
-                                                        test=False))
-        return S + self.get_beta()
+        S = DynamicsBlockStateBase.entropy(self, **dict(kwargs, test=False))
+        return S + self.beta
 
     entropy.__signature__ = inspect.signature(DynamicsBlockStateBase.entropy)
 
@@ -823,26 +848,34 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
         pass
 
 class EpidemicsBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, exposed=False, theta=-1, x_range=(-np.inf, 1e-8),
+    def __init__(self, s, g=None, exposed=False, theta=-1, x_range=(-np.inf, 1e-8),
                  theta_range=(-np.inf, 1e-8), **kwargs):
         r"""Inference state for network reconstruction based on epidemic dynamics, using
         the stochastic block model as a prior.
 
         Parameters
         ----------
-        g : :class:`~graph_tool.Graph`
-            Initial graph state.
-        s : ``list`` of :class:`~graph_tool.VertexPropertyMap`
-            Collection of time-series with node states over time. Each entry in
-            this list must be a :class:`~graph_tool.VertexPropertyMap` with type
-            ``vector<int>`` containing the states of each node in each time
-            step. A value of ``1`` means infected and ``0`` susceptible. Other
+        s : ``~nummpy.ndarray`` of shape ``(N,M)`` or ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap`
+            Time series used for reconstruction.
+
+            If the type is ``~nummpy.ndarray``, it should correspond to a
+            ``(N,M)`` data matrix with ``M`` samples for all ``N`` nodes.
+
+            A value of ``1`` means infected and ``0`` susceptible. Other
             values are allowed (e.g. for recovered), but their actual value is
             unimportant for reconstruction.
 
-            If the parameter ``t`` is given, each property map value for a
+            If the parameter ``g`` is provided, this can be optionally a list of
+            of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
+            in this list must be a :class:`~graph_tool.VertexPropertyMap` with
+            type ``vector<int>``. If a single property map is given, then a
+            single time series is assumed.
+
+            If the parameter ``t`` below is given, each property map value for a
             given node should contain only the states for the same points in
             time given by that parameter.
+        g : :class:`~graph_tool.Graph` (optional, default: ``None``)
+            Initial graph state. If not provided, an empty graph will be assumed.
         exposed : ``boolean`` (optional, default: ``False``)
             If ``True``, the data is supposed to come from a SEI, SEIR,
             etc. model, where a susceptible node (valued ``0``) first transits
@@ -856,10 +889,15 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
            community detection from dynamics", Phys. Rev. Lett. 123 128301
            (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
-        """
 
-        super().__init__(g, s, exposed=exposed, theta=theta, x_range=x_range,
-                         theta_range=theta_range, **kwargs)
+        """
+        directed = kwargs.pop("directed", None)
+        if g is None and directed is None:
+            directed = True
+        DynamicsBlockStateBase.__init__(self, s, g=g, exposed=exposed,
+                                        theta=theta, x_range=x_range,
+                                        theta_range=theta_range,
+                                        directed=directed, **kwargs)
 
     def _make_state(self):
         return libinference.make_epidemics_state(self._state, self.ot, self.os,
@@ -877,7 +915,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
 
 class IsingBlockStateBase(ABC):
     @abstractmethod
-    def __init__(self, g, s, has_zero=False, **kwargs):
+    def __init__(self, s, g=None, has_zero=False, **kwargs):
         r"""Base state for network reconstruction based on the Ising model, using the
         stochastic block model as a prior. This class is not supposed to be
         instantiated directly. Instead one of its specialized subclasses must
@@ -916,27 +954,21 @@ class IsingBlockStateBase(ABC):
     def get_dyn_state(self, s=None):
         return IsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
 
-    def transform_s(self, s):
-        s = s.copy("vector<int>")
-        for v in self.u.vertices():
-            s[v].a = (s[v].a + 1)/2
-        return s
-
 class IsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
-    def __init__(self, g, s, has_zero=False, **kwargs):
+    def __init__(self, s, g=None, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the Glauber dynamics of the Ising
         model, using the stochastic block model as a prior.
 
         See documentation for :class:`IsingBlockStateBase` for details.
         """
-        DynamicsBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
+        DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero, **kwargs)
 
     def _make_state(self):
         return libinference.make_ising_glauber_state(self._state, self.ot,
                                                      self.os, self.params)
 
 class CIsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
-    def __init__(self, g, s, has_zero=False, **kwargs):
+    def __init__(self, s, g=None, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the Glauber dynamics of the
         continuous Ising model, using the stochastic block model as a prior.
 
@@ -944,20 +976,18 @@ class CIsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         that in this case the ``s`` parameter should contain property maps of
         type ``vector<double>``, with values in the range :math:`[-1,1]`.
         """
-        DynamicsBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
+        DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
+                                        **kwargs)
 
     def get_dyn_state(self, s=None):
         return CIsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
-
-    def transform_s(self, s):
-        return s
 
     def _make_state(self):
         return libinference.make_cising_glauber_state(self._state, self.ot,
                                                       self.os, self.params)
 
 class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
-    def __init__(self, g, s, has_zero=False, **kwargs):
+    def __init__(self, s, g=None, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the equilibrium configurations of
         the Ising model, using the Pseudolikelihood approximation and the
         stochastic block model as a prior.
@@ -966,7 +996,8 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
         that in this model "time-series" should be interpreted as a set of
         uncorrelated samples, not a temporal sequence.
         """
-        BPBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
+        BPBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
+                                  directed=False, **kwargs)
 
     def get_bpstate(self, **kwargs):
         return IsingBPState(self.u, x=self.x,
@@ -978,7 +1009,7 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
                                                     self.os, self.params)
 
 class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
-    def __init__(self, g, s, has_zero=False, **kwargs):
+    def __init__(self, s, g=None, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the equilibrium configurations of
         the continuous Ising model, using the Pseudolikelihood approximation and
         the stochastic block model as a prior.
@@ -989,7 +1020,8 @@ class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         parameter should contain property maps of type ``vector<double>``, with
         values in the range :math:`[-1,1]`.
         """
-        DynamicsBlockStateBase.__init__(self, g, s, has_zero=has_zero, **kwargs)
+        DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
+                                        directed=False, **kwargs)
 
     def _make_state(self):
         return libinference.make_pseudo_cising_state(self._state, self.ot,
@@ -998,29 +1030,39 @@ class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
     def get_dyn_state(self, s=None):
         return CIsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
 
-    def transform_s(self, s):
-        return s
-
 class VoterBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, x_range=(-np.inf, 1e-8), theta_range=(-np.inf, 1e-8),
-                 **kwargs):
-        super().__init__(g, s, x_range=x_range, theta_range=theta_range, **kwargs)
+    def __init__(self, s, g=None, x_range=(-np.inf, 1e-8),
+                 theta_range=(-np.inf, 1e-8),  **kwargs):
+        DynamicsBlockStateBase.__init__(self, s, g=g, x_range=x_range,
+                                        theta_range=theta_range, **kwargs)
 
     def _make_state(self):
         return libinference.make_voter_state(self._state, self.ot, self.os,
                                              self.params)
 
+def zero_mean(s, g):
+    if isinstance(s, np.ndarray):
+        s = s.copy()
+        for i in range(s.shape[0]):
+            s[i,:] -= s[i,:].mean()
+    else:
+        if isinstance(s, list):
+            s = [sx.copy("vector<double>") for sx in s]
+        else:
+            s = [s.copy("vector<double>")]
+        for sx in s:
+            for v in g.vertices():
+                sx[v].a -= sx[v].a.mean()
+    return s
+
 
 class PseudoNormalBlockState(BPBlockStateBase):
-    def __init__(self, g, s, fix_mean=True, positive=True, pslack=1e-6,
+    def __init__(self, s, g=None, fix_mean=True, positive=True, pslack=1e-6,
                  **kwargs):
         if fix_mean:
-            s = [sx.copy("vector<double>") for sx in s]
-            for sx in s:
-                for v in g.vertices():
-                    sx[v].a -= sx[v].a.mean()
-        BPBlockStateBase.__init__(self, g, s, positive=positive, pslack=pslack,
-                                  **kwargs)
+            s = zero_mean(s, g)
+        BPBlockStateBase.__init__(self, s, g=g, positive=positive, pslack=pslack,
+                                  directed=False, **kwargs)
 
     def _make_state(self):
         return libinference.make_pseudo_normal_state(self._state, self.ot,
@@ -1076,7 +1118,7 @@ class PseudoNormalBlockState(BPBlockStateBase):
         W = self.get_precision().todense()
         N = W.shape[0]
         D = np.linalg.slogdet(W)[1]
-        return -float(D/2 - N * np.log(2 * np.pi) /2)
+        return -float(D/2 - N * np.log(2 * np.pi)/2)
 
     def get_dstate(self, s=None):
         h = self.get_theta_shifted()
@@ -1090,24 +1132,29 @@ class PseudoNormalBlockState(BPBlockStateBase):
 
 
 class NormalGlauberBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, self_loops=False, **kwargs):
-        super().__init__(g, s, self_loops=self_loops, **kwargs)
+    def __init__(self, s, g=None, self_loops=False, fix_mean=True, **kwargs):
+        if fix_mean:
+            s = zero_mean(s, g)
+        DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
+                                        **kwargs)
 
     def _make_state(self):
         return libinference.make_normal_glauber_state(self._state, self.ot,
                                                       self.os, self.params)
 
 class LinearNormalBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, self_loops=True, **kwargs):
-        super().__init__(g, s, self_loops=self_loops, **kwargs)
+    def __init__(self, s, g=None, self_loops=True, **kwargs):
+        DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
+                                        **kwargs)
 
     def _make_state(self):
         return libinference.make_linear_normal_state(self._state, self.ot,
                                                      self.os, self.params)
 
 class LVBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, self_loops=True, **kwargs):
-        super().__init__(g, s, self_loops=self_loops, **kwargs)
+    def __init__(self, s, g=None, self_loops=True, **kwargs):
+        DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
+                                        **kwargs)
 
     def _make_state(self):
         return libinference.make_lv_state(self._state, self.ot, self.os,

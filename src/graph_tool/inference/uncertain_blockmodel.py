@@ -35,12 +35,14 @@ import scipy.special
 
 import collections.abc
 
+@entropy_state_signature
 class UncertainBaseState(EntropyState):
     r"""Base state for uncertain network inference."""
 
     def __init__(self, g, nested=True, state_args={}, bstate=None,
-                 self_loops=False, init_empty=False, max_m=1 << 16):
-        EntropyState.__init__(self)
+                 self_loops=False, init_empty=False, max_m=1 << 16,
+                 entropy_args={}):
+        EntropyState.__init__(self, entropy_args=entropy_args)
 
         self.g = g
 
@@ -106,6 +108,7 @@ class UncertainBaseState(EntropyState):
                 self.bstate = bstate
 
         self._entropy_args.update(self.bstate._entropy_args)
+        self._entropy_args.update(entropy_args)
 
         edges = self.g.get_edges()
         edges = numpy.concatenate((edges,
@@ -118,9 +121,9 @@ class UncertainBaseState(EntropyState):
 
         init_q_cache()
 
-
     def __getstate__(self):
-        return dict(g=self.g, nested=self.nbstate is not None,
+        state = EntropyState.__getstate__(self)
+        return dict(state, g=self.g, nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None else self.bstate),
                     self_loops=self.self_loops, max_m=self.max_m)
 
@@ -150,8 +153,8 @@ class UncertainBaseState(EntropyState):
             return self.nbstate
 
     @copy_state_wrap
-    def entropy(self, latent_edges=True, density=False, aE=1., sbm=True, **kwargs):
-        """Return the entropy, i.e. negative log-likelihood."""
+    def _entropy(self, latent_edges=True, density=False, aE=1., sbm=True, **kwargs):
+        """Return the description length, i.e. the negative log-likelihood."""
         eargs = self._get_entropy_args(locals())
         S = self._state.entropy(eargs)
         if sbm:
@@ -368,7 +371,7 @@ class UncertainBlockState(UncertainBaseState):
         Arguments to be passed to
         :class:`~graph_tool.inference.NestedBlockState` or
         :class:`~graph_tool.inference.BlockState`.
-    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState` (optional, default: ``None``)
         If passed, this will be used to initialize the block state
         directly.
     self_loops : bool (optional, default: ``False``)

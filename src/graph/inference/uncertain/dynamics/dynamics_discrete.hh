@@ -145,7 +145,6 @@ public:
     }
 
 private:
-    std::vector<gt_hash_map<double_int_t, double>> _cosh_cache;
     bool _has_zero;
 };
 

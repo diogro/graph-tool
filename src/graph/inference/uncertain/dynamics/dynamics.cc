@@ -134,6 +134,11 @@ REGISTER_MOD
                                 {
                                     state.update_edge(u, v, x);
                                 })
+                          .def("update_node",
+                               +[](state_t& state, size_t v, double x)
+                                {
+                                    state.update_node(v, x);
+                                })
                           .def("remove_edge_dS",
                                +[](state_t& state, size_t u, size_t v, int dm,
                                    const dentropy_args_t& ea)
@@ -157,6 +162,18 @@ REGISTER_MOD
                                    const dentropy_args_t& ea)
                                 {
                                     return state.update_node_dS(v, nt, ea, true);
+                                })
+                          .def("edge_diff",
+                               +[](state_t& state, size_t u, size_t v, double h,
+                                   const dentropy_args_t& ea)
+                                {
+                                    return state.edge_diff(u, v, h, ea);
+                                })
+                          .def("node_diff",
+                               +[](state_t& state, size_t v, double h,
+                                   const dentropy_args_t& ea)
+                                {
+                                    return state.node_diff(v, h, ea);
                                 })
                           .def("xvals_sweep",
                                +[](state_t& state, double beta, double r, size_t maxiter, double tol,
