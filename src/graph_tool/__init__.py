@@ -1194,17 +1194,18 @@ def group_vector_property(props, value_type=None, vprop=None, pos=None):
     return vprop
 
 
-def ungroup_vector_property(vprop, pos, props=None):
-    """Ungroup vector property map ``vprop`` into a list of individual property maps.
+def ungroup_vector_property(vprop, pos=None, props=None):
+    """Ungroup vector property map ``vprop`` into a list of non-vector property maps.
 
     Parameters
     ----------
     vprop : :class:`~graph_tool.PropertyMap`
         Vector property map to be ungrouped.
-    pos : list of ints
+    pos : list of ints (optional, default: ``None``)
         A list of indices corresponding to where each element of ``vprop``
-        should be inserted into the ungrouped list.
-    props : list of :class:`~graph_tool.PropertyMap`  (optional, default: None)
+        should be inserted into the ungrouped list. If not provided, it will
+        correspond to the entire range of the first element in the map.
+    props : list of :class:`~graph_tool.PropertyMap`  (optional, default: ``None``)
         If supplied, should contain a list of property maps to which ``vprop``
         should be ungroupped.
 
@@ -1223,13 +1224,16 @@ def ungroup_vector_property(vprop, pos, props=None):
     >>> prop = g.new_vertex_property("vector<int>")
     >>> for v in g.vertices():
     ...    prop[v] = randint(0, 100, 3)
-    >>> uprops = gt.ungroup_vector_property(prop, [0, 1, 2])
+    >>> uprops = gt.ungroup_vector_property(prop)
     >>> print(prop[g.vertex(0)].a)
     [51 92 14]
     >>> print(array([p[g.vertex(0)] for p in uprops]))
     [51 92 14]
+
     """
 
+    if pos is None:
+        pos = range(len(next(iter(vprop))))
     g = vprop.get_graph()
     _check_prop_vector(vprop, name="vprop", scalar=False)
     k = vprop.key_type()
