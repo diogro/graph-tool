@@ -213,6 +213,7 @@ class LatentLayerBaseState(EntropyState):
         return self.mcmc_sweep(multiflip=True, **kwargs)
 
 
+@entropy_state_signature
 class LatentClosureBlockState(LatentLayerBaseState):
     r"""Inference state of the stochastic block model with latent triadic closure
     edges.
@@ -245,17 +246,23 @@ class LatentClosureBlockState(LatentLayerBaseState):
         List of edge property maps of ``g``, each containing a list of integers
         with the ego graph memberships of every edge, for every triadic
         generation.
+    entropy_args: ``dict`` (optional, default: ``{}``)
+        Override default arguments for
+        :meth:`~LatentClosureBlockState.entropy()` method and releated
+        operations.
 
     References
     ----------
     .. [peixoto-disentangling-2022] Tiago P. Peixoto, "Disentangling homophily,
        community structure and triadic closure in networks", Phys. Rev. X 12,
        011004 (2022), :doi:`10.1103/PhysRevX.12.011004`, :arxiv:`2101.02510`
+
     """
 
     def __init__(self, g, L=1, b=None, aE=numpy.nan, nested=True,
-                 state_args={}, g_orig=None, ew=None, ex=None, **kwargs):
-        EntropyState.__init__(self)
+                 state_args={}, g_orig=None, ew=None, ex=None, entropy_args={},
+                 **kwargs):
+        EntropyState.__init__(self, entropy_args=entropy_args)
 
         self.g = g
         self.us = []
@@ -360,7 +367,8 @@ class LatentClosureBlockState(LatentLayerBaseState):
         pstate = self.pstate._state
 
     def __getstate__(self):
-        return dict(g=self.g, L=self.L-1,
+        state = EntropyState.__getstate__(self)
+        return dict(state, g=self.g, L=self.L-1,
                     b=self.bstate.get_bs() if self.nested else self.bstate.b.copy(),
                     aE=self.aE, nested=self.nested,
                     state_args=self.state_args, g_orig=self.g_orig,
@@ -381,7 +389,7 @@ class LatentClosureBlockState(LatentLayerBaseState):
             (", ".join([str(w.fa.sum()) for w in self.ew[1:]]), repr(self.bstate), id(self))
 
     @copy_state_wrap
-    def entropy(self, latent_edges=True, density=True, **kwargs):
+    def _entropy(self, latent_edges=True, density=True, **kwargs):
         """Return the entropy, i.e. negative log-likelihood."""
         S = self._state.entropy(latent_edges, density)
         S += self.bstates[0].entropy(**kwargs)

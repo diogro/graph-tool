@@ -31,6 +31,7 @@ dl_import("from . import libgraph_tool_inference as libinference")
 
 from . blockmodel import *
 
+@entropy_state_signature
 class OverlapBlockState(BlockState):
     r"""The overlapping stochastic block model state of a given graph.
 
@@ -70,12 +71,15 @@ class OverlapBlockState(BlockState):
     dense_bg : ``bool`` (optional, default: ``False``)
         If ``True`` a dense matrix is used for the block graph, otherwise a
         sparse matrix will be used.
+    entropy_args: ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~OverlapBlockState.entropy()`
+        method and releated operations.
     """
 
     def __init__(self, g, b=None, B=None, recs=[], rec_types=[], rec_params=[],
                  clabel=None, pclabel=None, deg_corr=True, dense_bg=False,
-                 **kwargs):
-        EntropyState.__init__(self)
+                 entropy_args={}, **kwargs):
+        EntropyState.__init__(self, entropy_args=entropy_args)
 
         kwargs = kwargs.copy()
 
@@ -320,7 +324,9 @@ class OverlapBlockState(BlockState):
         return state
 
     def __getstate__(self):
-        state = dict(g=self.g,
+        state = EntropyState.__getstate__(self)
+        state = dict(state,
+                     g=self.g,
                      b=self.b,
                      B=self.get_B(),
                      clabel=array(self.clabel.fa),
@@ -429,10 +435,10 @@ class OverlapBlockState(BlockState):
         return bclabel
 
     @copy_state_wrap
-    def entropy(self, adjacency=True, dl=True, partition_dl=True,
-                degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, recs=True,
-                recs_dl=True, beta_dl=1., Bfield=False, exact=True, **kwargs):
+    def _entropy(self, adjacency=True, dl=True, partition_dl=True,
+                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
+                 dense=False, multigraph=True, deg_entropy=True, recs=True,
+                 recs_dl=True, beta_dl=1., Bfield=False, exact=True, **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters

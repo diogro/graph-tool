@@ -175,8 +175,8 @@ class PartitionModeState(object):
         return self._base.relabel()
 
     @copy_state_wrap
-    def entropy(self):
-        r"""Return the model entropy (negative log-likelihood)."""
+    def _entropy(self):
+        r"""Return the description length (negative joint log-likelihood)."""
         return self._base.entropy()
 
     def posterior_entropy(self, MLE=True):
@@ -255,6 +255,7 @@ class PartitionModeState(object):
         otherwise using posterior mean estimates."""
         return self._base.sample_nested_partition(MLE, fix_empty, _get_rng())
 
+@entropy_state_signature
 class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
     r"""The mixed random label model state for a set of labelled partitions, which
     attempts to align them inside clusters with a common group labelling.
@@ -331,7 +332,8 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
 
 
     def __getstate__(self):
-        return dict(bs=self.bs, b=self.b, nested=self.nested)
+        state = EntropyState.__getstate__(self)
+        return dict(state, bs=self.bs, b=self.b, nested=self.nested)
 
     def __setstate__(self, state):
         if not state["nested"]:
@@ -417,8 +419,8 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         return self._state.relabel_modes(epsilon, maxiter)
 
     @copy_state_wrap
-    def entropy(self):
-        r"""Return the model entropy (negative log-likelihood)."""
+    def _entropy(self):
+        r"""Return the description length (negative joint log-likelihood)."""
         return self._state.entropy()
 
     def _gen_args(self, args):

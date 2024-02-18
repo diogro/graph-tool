@@ -30,6 +30,7 @@ dl_import("from . import libgraph_tool_inference as libinference")
 import numpy as np
 import math
 
+@entropy_state_signature
 class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                    GibbsMCMCState, DrawBlockState):
     r"""Obtain the partition of a network according to the Bayesian planted partition
@@ -42,6 +43,9 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Initial partition. If not supplied, a partition into a single group will
         be used.
+    entropy_args: ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~PPBlockState.entropy()`
+        method and releated operations.
 
     References
     ----------
@@ -50,8 +54,8 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
        043271 (2020), :doi:`10.1103/PhysRevResearch.2.043271`, :arxiv:`2006.14493`
     """
 
-    def __init__(self, g, b=None):
-        EntropyState.__init__(self)
+    def __init__(self, g, b=None, entropy_args={}):
+        EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int32_t")
@@ -88,7 +92,8 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                             b=b if b is not None else self.b)
 
     def __getstate__(self):
-        return dict(g=self.g, b=self.b)
+        state = EntropyState.__getstate__(self)
+        return dict(state, g=self.g, b=self.b)
 
     def __setstate__(self, state):
         self.__init__(**state)
@@ -136,7 +141,7 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self._state.move_vertex(int(v), int(s))
 
     @copy_state_wrap
-    def entropy(self, uniform=False, degree_dl_kind="distributed"):
+    def _entropy(self, uniform=False, degree_dl_kind="distributed"):
         r"""Return the model entropy (negative log-likelihood).
 
         Parameters

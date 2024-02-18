@@ -31,6 +31,7 @@ import numpy as np
 import math
 from scipy.stats import rankdata
 
+@entropy_state_signature
 class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                        GibbsMCMCState, DrawBlockState):
     r"""Obtain the ordered partition of a network according to the ranked
@@ -48,6 +49,9 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         label to the unit interval :math:`[0,1]`, inidicating how the groups
         should be ordered. If not supplied, the numeric values of the group
         lalbels will be used to initialize the ordering.
+    entropy_args: ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~RankedBlockState.entropy()`
+        method and releated operations.
 
     References
     ----------
@@ -57,8 +61,8 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     """
 
-    def __init__(self, g, b=None, u=None, **kwargs):
-        EntropyState.__init__(self)
+    def __init__(self, g, b=None, u=None, entropy_args={}, **kwargs):
+        EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = g
         self.ustate = BlockState(self.g, b=b, **kwargs)
         self.b = self.ustate.b
@@ -93,7 +97,8 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return RankedBlockState(**args)
 
     def __getstate__(self):
-        state = self.ustate.__getstate__()
+        state = EntropyState.__getstate__(self)
+        state = dict(state, **self.ustate.__getstate__())
         return dict(state, u=self.u.a.copy())
 
     def __setstate__(self, state):
@@ -245,11 +250,11 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self._state.move_vertex(int(v), int(s))
 
     @copy_state_wrap
-    def entropy(self, adjacency=True, dl=True, partition_dl=True,
-                degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, recs=True,
-                recs_dl=True, beta_dl=1., Bfield=True, exact=True, **kwargs):
-        r"""Return the model entropy (negative log-likelihood). See
+    def _entropy(self, adjacency=True, dl=True, partition_dl=True,
+                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
+                 dense=False, multigraph=True, deg_entropy=True, recs=True,
+                 recs_dl=True, beta_dl=1., Bfield=True, exact=True, **kwargs):
+        r"""Return the description length (negative joint log-likelihood). See
         :meth:`BlockState.entropy` for documentation."""
 
         eargs = self._get_entropy_args(locals())

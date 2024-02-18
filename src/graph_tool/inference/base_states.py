@@ -25,6 +25,8 @@ from . util import *
 import functools
 from abc import ABC, abstractmethod
 import inspect
+import functools
+import textwrap
 import math
 import numpy
 
@@ -60,7 +62,6 @@ def copy_state_wrap(func):
 
     return wrapper
 
-
 def mcmc_sweep_wrap(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -88,20 +89,88 @@ def mcmc_sweep_wrap(func):
         return ret
     return wrapper
 
+def entropy_state_signature(cls):
+    def entropy(self, **kwargs):
+        return self._entropy(**dict(self.get_entropy_args(), **kwargs))
+    entropy.__signature__ = inspect.signature(cls._entropy)
+    intro, br, rest = cls._entropy.__doc__.partition("\n\n")
+    warn = f"""\
+    The default arguments of this function are overriden by those
+    obtained from :meth:`~{cls.__name__}.get_entropy_args`. To update the
+    defaults in a stateful way, :meth:`~{cls.__name__}.update_entropy_args`
+    should be called."""
+    warn = textwrap.dedent(warn)
+    warn = " ".join(warn.splitlines())
+    warn = textwrap.fill(warn, width=60, break_long_words=False,
+                         replace_whitespace=False)
+    warn = f".. warning::\n{warn}"
+    lines = cls._entropy.__doc__.splitlines()
+    m = min((len(l) - len(l.lstrip()) for l in lines[1:] if l.lstrip() != "")) \
+        if len(lines) > 1 else 0
+    warn = "\n".join([" " * (m if j == 0 else m + 4) + l.lstrip() for
+                      j, l in enumerate(warn.splitlines())])
+    entropy.__doc__ = intro + "\n\n" + warn
+    if len(rest) > 0:
+        entropy.__doc__ += "\n\n" + rest
+    setattr(cls, "entropy", entropy)
+    cls.get_entropy_args.__doc__ = \
+        cls.get_entropy_args.__doc__.replace("{entropy}",
+                                             f":meth:`~{cls.__name__}.entropy`")
+    cls.update_entropy_args.__doc__ = \
+        cls.update_entropy_args.__doc__.replace("{entropy}",
+                                                f":meth:`~{cls.__name__}.entropy`")
+    cls.reset_entropy_args.__doc__ = \
+        cls.reset_entropy_args.__doc__.replace("{entropy}",
+                                               f":meth:`~{cls.__name__}.entropy`")
+    return cls
 
 class EntropyState(ABC):
     r"""Base state that implements entropy arguments."""
 
-    def __init__(self, ignore=[]):
+    def __init__(self, entropy_args={}):
         self._entropy_args = {}
-        sig = inspect.signature(self.entropy)
+        self.reset_entropy_args()
+        self._entropy_args.update(entropy_args)
+
+    def get_entropy_args(self):
+        """Return the current default values for the parameters of the function
+        {entropy}, together with other operations that depend on them.
+        """
+        return self._entropy_args.copy()
+
+    def update_entropy_args(self, **kwargs):
+        """Update the default values for the parameters of the function
+        {entropy} from the keyword arguments, in a stateful way, together with
+        other operations that depend on them.
+
+        Values updated in this manner are preserved by the copying or pickling
+        of the state.
+        """
+        for k, v in kwargs.items():
+            if k not in self._entropy_args:
+                raise ValueError(f"unrecognized entropy argument: {k}")
+            self._entropy_args[k] = v
+
+    def reset_entropy_args(self):
+        """Reset the current default values for the parameters of the function
+        {entropy}, together with other operations that depend on them.
+        """
+        sig = inspect.signature(self._entropy)
         for k, v in sig.parameters.items():
-            if k in ignore + ["self", "kwargs"]:
+            if k in ["self", "kwargs"]:
                 continue
             self._entropy_args[k] = v.default
 
+    def __getstate__(self):
+        eargs = self.get_entropy_args()
+        sig = inspect.signature(self.entropy)
+        for k, v in sig.parameters.items():
+            if k in eargs and eargs[k] == v:
+                eargs.pop(k)
+        return dict(entropy_args=eargs)
+
     @abstractmethod
-    def entropy(self):
+    def _entropy(self, **kwargs):
         pass
 
     @abstractmethod

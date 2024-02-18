@@ -116,6 +116,7 @@ def init_q_cache(max_n=None):
         max_n = _q_cache_max_n
     libinference.init_q_cache(min((_q_cache_max_n, max_n)))
 
+@entropy_state_signature
 class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                  GibbsMCMCState, MulticanonicalMCMCState, ExhaustiveSweepState,
                  DrawBlockState):
@@ -195,12 +196,16 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     dense_bg : ``bool`` (optional, default: ``False``)
         If ``True`` a dense matrix is used for the block graph, otherwise a
         sparse matrix will be used.
+    entropy_args: ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~BlockState.entropy()` method and
+        releated operations.
     """
 
     def __init__(self, g, b=None, B=None, eweight=None, vweight=None, recs=[],
                  rec_types=[], rec_params=[], clabel=None, pclabel=None,
-                 bfield=None, Bfield=None, deg_corr=True, dense_bg=False, **kwargs):
-        EntropyState.__init__(self)
+                 bfield=None, Bfield=None, deg_corr=True, dense_bg=False,
+                 entropy_args={}, **kwargs):
+        EntropyState.__init__(self, entropy_args=entropy_args)
 
         kwargs = kwargs.copy()
 
@@ -547,7 +552,9 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
 
     def __getstate__(self):
-        state = dict(g=self.g,
+        state = EntropyState.__getstate__(self)
+        state = dict(state,
+                     g=self.g,
                      eweight=self.eweight if self.is_weighted else None,
                      vweight=self.vweight if self.is_weighted else None,
                      b=self.b,
@@ -790,12 +797,12 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return self.wr
 
     @copy_state_wrap
-    def entropy(self, adjacency=True, dl=True, partition_dl=True,
-                degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, recs=True,
-                recs_dl=True, beta_dl=1., Bfield=True, exact=True, **kwargs):
-        r"""Calculate the entropy (a.k.a. negative log-likelihood) associated
-        with the current block partition.
+    def _entropy(self, adjacency=True, dl=True, partition_dl=True,
+                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
+                 dense=False, multigraph=True, deg_entropy=True, recs=True,
+                 recs_dl=True, beta_dl=1., Bfield=True, exact=True, **kwargs):
+        r"""Calculate the description length (a.k.a. negative joint
+        log-likelihood) associated with the current block partition.
 
         Parameters
         ----------

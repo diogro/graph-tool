@@ -366,7 +366,9 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         return state
 
     def __getstate__(self):
-        state = dict(g=self.g,
+        state = EntropyState.__getstate__(self)
+        state = dict(state,
+                     g=self.g,
                      ec=self.ec,
                      recs=self.rec,
                      drec=self.drec,

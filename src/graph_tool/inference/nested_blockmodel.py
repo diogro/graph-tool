@@ -358,13 +358,16 @@ class NestedBlockState(object):
 
     @copy_state_wrap
     def entropy(self, **kwargs):
-        """Compute the entropy of whole hierarchy.
+        """Obtain the description length (i.e. negative joint log-likelihood)
+        for the hierarchical partition.
 
         The keyword arguments are passed to the ``entropy()`` method of the
         underlying state objects
         (e.g. :class:`graph_tool.inference.BlockState.entropy`,
         :class:`graph_tool.inference.OverlapBlockState.entropy`, or
-        :class:`graph_tool.inference.LayeredBlockState.entropy`).  """
+        :class:`graph_tool.inference.LayeredBlockState.entropy`).
+
+        """
         S = 0
         for l in range(len(self.levels)):
             S += self.level_entropy(l, **dict(kwargs, test=False))

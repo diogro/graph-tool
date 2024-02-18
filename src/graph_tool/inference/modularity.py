@@ -89,6 +89,7 @@ def modularity(g, b, gamma=1., weight=None):
     return Q
 
 
+@entropy_state_signature
 class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                       GibbsMCMCState, DrawBlockState):
     r"""Obtain the partition of a network according to the maximization of Newman's modularity.
@@ -122,11 +123,13 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         be used.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge multiplicities (for multigraphs).
-
+    entropy_args: ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~ModularityState.entropy()`
+        method and releated operations.
     """
 
-    def __init__(self, g, b=None, eweight=None):
-        EntropyState.__init__(self)
+    def __init__(self, g, b=None, eweight=None, entropy_args={}):
+        EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int32_t")
@@ -160,7 +163,8 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                                b=b if b is not None else self.b)
 
     def __getstate__(self):
-        return dict(g=self.g, b=self.b)
+        state = EntropyState.__getstate__(self)
+        return dict(state, g=self.g, b=self.b)
 
     def __setstate__(self, state):
         self.__init__(**state)
@@ -189,7 +193,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def entropy(self, gamma=1.):
+    def _entropy(self, gamma=1.):
         r"""Return the unnormalized negative generalized modularity.
 
         Notes

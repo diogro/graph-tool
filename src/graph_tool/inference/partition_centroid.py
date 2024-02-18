@@ -31,6 +31,7 @@ import numpy as np
 import math
 from scipy.special import gammaln
 
+@entropy_state_signature
 class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
     r"""Obtain the center of a set of partitions, according to the variation of
     information metric or reduced mutual information.
@@ -82,7 +83,8 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState)
 
 
     def __getstate__(self):
-        return dict(bs=self.bs, b=self.b, RMI=self.RMI)
+        state = EntropyState.__getstate__(self)
+        return dict(state, bs=self.bs, b=self.b, RMI=self.RMI)
 
     def __setstate__(self, state):
         self.__init__(**state)
@@ -102,7 +104,8 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState)
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def entropy(self):
+    def _entropy(self):
+        r"""Return the description length (negative joint log-likelihood)."""
         return self._state.entropy()
 
     def _gen_eargs(self, args):

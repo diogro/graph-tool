@@ -29,6 +29,7 @@ from . base_states import *
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 
+@entropy_state_signature
 class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                    GibbsMCMCState, DrawBlockState):
     r"""Obtain the partition of a network according to the normalized cut.
@@ -112,7 +113,7 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def entropy(self):
+    def _entropy(self):
         r"""Return the normalized cut. See :meth:`~NormCutState.norm_cut`."""
 
         eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
