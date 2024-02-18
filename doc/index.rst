@@ -35,7 +35,7 @@ packages:
 
 4. :ref:`Filtered graphs <sec_graph_filtering>`, i.e. graphs where nodes and
    edges are temporarily masked. These are first class citizens in the library,
-   and are accepted by every function. Due to the use C++ template
+   and are accepted by every function. Due to the use of C++ template
    metaprogramming, this functionality comes at no performance cost when
    filtering is not being used.
 
