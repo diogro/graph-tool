@@ -397,11 +397,10 @@ class PropertyMap(object):
                 + " for %s, at 0x%x>") % (k, self.value_type(), g, id(self))
 
     def copy(self, value_type=None, full=True):
-        """Return a copy of the property map. If ``value_type`` is specified, the value
-        type is converted to the chosen type. If ``full == False``, in the case
-        of filtered graphs only the unmasked values are copied (with the
-        remaining ones taking the type-dependent default value).
-
+        """Return a copy of the property map. If ``value_type`` is specified,
+        the value type is converted to the chosen type. If ``full == False``, in
+        the case of filtered graphs only the unmasked values are copied (with
+        the remaining ones taking the type-dependent default value).
         """
         return self.get_graph().copy_property(self, value_type=value_type,
                                               full=full)
@@ -426,11 +425,11 @@ class PropertyMap(object):
             return pmap
 
     def coerce_type(self, full=True):
-        """Return a copy of the property map with the most appropriate type, i.e. the
-        simplest type necessary to accomodate all the values exactly. If ``full
-        == False``, in the case of filtered graphs only the unmasked values are
-        copied (with the remaining ones taking the type-dependent default
-        value).
+        """Return a copy of the property map with the most appropriate type,
+        i.e. the simplest type necessary to accomodate all the values exactly.
+        If ``full == False``, in the case of filtered graphs only the unmasked
+        values are copied (with the remaining ones taking the type-dependent
+        default value).
         """
         types = ["bool", "int16_t", "int32_t", "int64_t", "double",
                  "long double", "vector<bool>", "vector<int16_t>",
