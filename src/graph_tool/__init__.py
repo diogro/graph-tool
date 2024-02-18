@@ -722,6 +722,15 @@ class PropertyMap(object):
         else:
             self[g] = val
 
+    def set_values(self, vals):
+        """Sets values in the property map to the iterable ``vals``."""
+        if self.a is None:
+            it = iter(vals)
+            for v in self._get_iter():
+                self[v] = next(it)
+        else:
+            self.fa = vals
+
     def reserve(self, size):
         """Reserve enough space for ``size`` elements in underlying container. If the
            original size is already equal or larger, nothing will happen."""
