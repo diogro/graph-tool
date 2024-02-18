@@ -711,9 +711,8 @@ class PropertyMap(object):
         """Return True if the property is writable."""
         return self.__map.is_writable()
 
-
     def set_value(self, val):
-        """Sets all values in the property map to ``val``."""
+        """Sets all values in the property map to the same ``val``."""
         g = self.get_graph()
         val = self.__convert(val)
         if self.key_type() == "v":
