@@ -761,6 +761,29 @@ class PropertyMap(object):
             raise ValueError("property maps must have the same value type")
         self.__map.swap(other.__map)
 
+    def transform(self, f, value_type=None, inplace=False):
+        """Return a copy of the property map with the values transformed by the
+        user-supplied function ``f``. If given, ``value_type`` specifies the
+        value type for the new property map.
+
+        If the value type of the original map allows, the values will be passed
+        to ``f`` as a :class:`numpy.array`. Otherwise, they will be passed
+        individually.
+
+        If ``inplace == True`` the transformation happens in-place, without
+        copying the property map. In this case the parameter ``value_type`` is
+        ignored.
+
+        """
+        p = self._new_pmap(value_type=value_type) if not inplace else self
+        vtype = p.value_type()
+        if vtype in ["string", "object"] or "vector" in vtype:
+            for v in self._get_iter():
+                p[v] = f(self[v])
+        else:
+            p.fa = f(self.fa)
+        return p
+
     def data_ptr(self):
         """Return the pointer to memory where the data resides."""
         return self.__map.data_ptr()
@@ -888,9 +911,16 @@ class VertexPropertyMap(PropertyMap):
         except TypeError:
             self._PropertyMap__map[k] = self._PropertyMap__convert(v)
 
-    def __iter__(self):
+    def _new_pmap(self, value_type=None):
         g = self.get_graph()
-        for v in g.vertices():
+        return g.new_vp(self.value_type() if value_type is None else value_type)
+
+    def _get_iter(self):
+        g = self.get_graph()
+        return g.vertices()
+
+    def __iter__(self):
+        for v in self._get_iter():
             yield self[v]
 
     def _get_data(self):
@@ -958,9 +988,16 @@ class EdgePropertyMap(PropertyMap):
             except ArgumentError:
                 raise IndexError(f"nonexistent edge ({u}, {v})")
 
-    def __iter__(self):
+    def _new_pmap(self, value_type=None):
         g = self.get_graph()
-        for e in g.edges():
+        return g.new_ep(self.value_type() if value_type is None else value_type)
+
+    def _get_iter(self):
+        g = self.get_graph()
+        return g.edges()
+
+    def __iter__(self):
+        for e in self._get_iter():
             yield self[e]
 
     def _get_data(self):
@@ -1003,8 +1040,15 @@ class GraphPropertyMap(PropertyMap):
         except TypeError:
             self._PropertyMap__map[g] = self._PropertyMap__convert(v)
 
-    def __iter__(self):
+    def _new_pmap(self, value_type=None):
+        g = self.get_graph()
+        return g.new_gp(self.value_type() if value_type is None else value_type)
+
+    def _get_iter(self):
         return [self.get_graph()]
+
+    def __iter__(self):
+        return _get_iter()
 
     def _get_data(self):
         g = self.get_graph()
