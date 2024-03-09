@@ -23,172 +23,17 @@
 
 #include "idx_map.hh"
 
+#include "../generation/sampler.hh"
+
+#include "quad_tree.hh"
+
 namespace graph_tool
 {
 using namespace std;
 using namespace boost;
 
-template <class Value>
-Value pow2(Value x)
-{
-    return x * x;
-}
-
-template <class Val, class Weight>
-class QuadTree
-{
-public:
-
-    typedef typename std::array<Val, 2> pos_t;
-
-    class TreeNode
-    {
-    public:
-        template <class Pos>
-        TreeNode(const Pos& ll, const Pos& ur, size_t level)
-            : _ll(ll), _ur(ur), _cm{0,0}, _level(level), _count(0) {}
-
-        double get_w()
-        {
-            return sqrt(pow2(_ur[0] - _ll[0]) +
-                        pow2(_ur[1] - _ll[1]));
-        }
-
-        template <class Pos>
-        void get_cm(Pos& cm)
-        {
-            for (size_t i = 0; i < 2; ++i)
-                cm[i] = _cm[i] / _count;
-        }
-
-        Weight get_count()
-        {
-            return _count;
-        }
-
-        friend class QuadTree;
-    private:
-        pos_t _ll;
-        pos_t _ur;
-        std::array<double,2> _cm;
-        size_t _level;
-        Weight _count;
-        size_t _leafs = std::numeric_limits<size_t>::max();
-    };
-
-    QuadTree(): _max_level(0) {}
-
-    template <class Pos>
-    QuadTree(const Pos& ll, const Pos& ur, int max_level, size_t n)
-        : _tree(1, {ll, ur, 0}), _dense_leafs(1), _max_level(max_level)
-    {
-        _tree.reserve(n);
-        _dense_leafs.reserve(n);
-    }
-
-    auto& operator[](size_t pos)
-    {
-        return _tree[pos];
-    }
-
-    size_t get_leafs(size_t pos)
-    {
-        auto& node = _tree[pos];
-
-        size_t level = _tree[pos]._level;
-        if (level >= _max_level)
-            return _tree.size();
-
-        if (node._leafs >= _tree.size())
-        {
-            auto ll = node._ll;
-            auto ur = node._ur;
-            auto level = node._level;
-
-            node._leafs = _tree.size();
-            //_tree.reserve(_tree.size() + 4);
-            for (size_t i = 0; i < 4; ++i)
-            {
-                pos_t lll = ll, lur = ur;
-                if (i % 2)
-                    lll[0] += (ur[0] - ll[0]) / 2;
-                else
-                    lur[0] -= (ur[0] - ll[0]) / 2;
-                if (i / 2)
-                    lll[1] += (ur[1] - ll[1]) / 2;
-                else
-                    lur[1] -= (ur[1] - ll[1]) / 2;
-                _tree.emplace_back(lll, lur, level + 1);
-            }
-            _dense_leafs.resize(_tree.size());
-        }
-
-        return _tree[pos]._leafs;
-    }
-
-    auto& get_dense_leafs(size_t pos)
-    {
-        return _dense_leafs[pos];
-    }
-
-    template <class Pos>
-    size_t get_branch(size_t pos, Pos& p)
-    {
-        auto& n = _tree[pos];
-        int i = p[0] > (n._ll[0] + (n._ur[0] - n._ll[0]) / 2);
-        int j = p[1] > (n._ll[1] + (n._ur[1] - n._ll[1]) / 2);
-        return i + 2 * j;
-    }
-
-    template <class Pos>
-    void put_pos(size_t pos, Pos& p, Weight w)
-    {
-        while (pos < _tree.size())
-        {
-            auto& node = _tree[pos];
-
-            node._count += w;
-            node._cm[0] += p[0] * w;
-            node._cm[1] += p[1] * w;
-
-            if (node._level >= _max_level || node._count == w)
-            {
-                _dense_leafs[pos].emplace_back(pos_t{p[0], p[1]}, w);
-                pos = _tree.size();
-            }
-            else
-            {
-                auto leafs = get_leafs(pos);
-
-                if (!_dense_leafs[pos].empty())
-                {
-                    // move dense leafs down
-                    for (auto& leaf : _dense_leafs[pos])
-                    {
-                        auto& lp = get<0>(leaf);
-                        auto& lw = get<1>(leaf);
-                        put_pos(leafs + get_branch(pos, lp), lp, lw);
-                    }
-                    _dense_leafs[pos].clear();
-                }
-                pos = leafs + get_branch(pos, p);
-            }
-        }
-    }
-
-    size_t size()
-    {
-        return _tree.size();
-    }
-
-private:
-    vector<TreeNode> _tree;
-    vector<vector<std::tuple<pos_t,Weight>>> _dense_leafs;
-    size_t _max_level;
-};
-
 template <class Pos1, class Pos2>
-static double dist(const Pos1& p1, const Pos2& p2)
+double dist(const Pos1& p1, const Pos2& p2)
 {
     double r = 0;
     for (size_t i = 0; i < 2; ++i)
@@ -197,7 +42,7 @@ static double dist(const Pos1& p1, const Pos2& p2)
 }
 
 template <class Pos1, class Pos2>
-static double f_r(double C, double K, double p, const Pos1& p1, const Pos2& p2)
+double f_r(double C, double K, double p, const Pos1& p1, const Pos2& p2)
 {
     double d = dist(p1, p2);
     if (d == 0)
@@ -206,7 +51,7 @@ static double f_r(double C, double K, double p, const Pos1& p1, const Pos2& p2)
 }
 
 template <class Pos1, class Pos2>
-static double fs_r(double C, double l, const Pos1& p1, const Pos2& p2)
+double fs_r(double C, double l, const Pos1& p1, const Pos2& p2)
 {
     double d = dist(p1, p2);
     if (d == 0)
@@ -215,13 +60,13 @@ static double fs_r(double C, double l, const Pos1& p1, const Pos2& p2)
 }
 
 template <class Pos1, class Pos2>
-static double f_a(double K, const Pos1& p1, const Pos2& p2)
+double f_a(double K, const Pos1& p1, const Pos2& p2)
 {
     return pow2(dist(p1, p2)) / K;
 }
 
 template <class Pos1, class Pos2, class Pos3>
-static double get_diff(const Pos1& p1, const Pos2& p2, Pos3& r)
+double get_diff(const Pos1& p1, const Pos2& p2, Pos3& r)
 {
     double abs = 0;
     for (size_t i = 0; i < 2; ++i)
@@ -238,7 +83,7 @@ static double get_diff(const Pos1& p1, const Pos2& p2, Pos3& r)
 }
 
 template <class Pos>
-static double norm(Pos& x)
+double norm(Pos& x)
 {
     double abs = 0;
     for (size_t i = 0; i < 2; ++i)
@@ -248,7 +93,6 @@ static double norm(Pos& x)
     return sqrt(abs);
 }
 
-
 template <class Graph, class PosMap, class VertexWeightMap,
           class EdgeWeightMap, class PinMap, class GroupMaps, class CMap,
           class OrderMap,
@@ -256,11 +100,10 @@ template <class Graph, class PosMap, class VertexWeightMap,
 void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                      EdgeWeightMap eweight, PinMap pin, GroupMaps& groups,
                      double C, double K, double p, double theta, double gamma,
-                     double mu, double kappa, double r, CMap c, double R,
-                     OrderMap yorder,
-                     double init_step, double step_schedule, size_t max_level,
-                     double epsilon, size_t max_iter, bool simple,
-                     bool verbose, RNG& rng)
+                     double mu, double kappa, double r, size_t kc, CMap c, double R,
+                     OrderMap yorder, double init_step, double step_schedule,
+                     size_t max_level, double epsilon, size_t max_iter,
+                     bool simple, bool verbose, RNG& rng)
 {
     typedef typename property_traits<PosMap>::value_type::value_type val_t;
     typedef std::array<val_t, 2> pos_t;
@@ -291,6 +134,8 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         W += get(vweight, v);
     }
 
+    PosMap temp = pos.copy();
+
     ocenter /= W;
     double o_rg = omax - omin;
 
@@ -302,6 +147,20 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
 
     vector<pos_t> ccm;
     vector<size_t> csize;
+
+    vector<size_t> cs;
+    vector<double> cprobs;
+    for (auto v : vertices_range(g))
+    {
+        auto r = c[v];
+        if (r >= cs.size())
+        {
+            cs.resize(r + 1);
+            cprobs.resize(r + 1);
+        }
+        cprobs[r] += 1;
+    }
+    Sampler<size_t> csample(cs, cprobs);
 
     while (delta > epsilon * K && (max_iter == 0 || n_iter < max_iter))
     {
@@ -490,10 +349,11 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                  }
 
                  // inter-component attractive forces
-                 if (r > 0)
+                 if (r > 0 && ccm.size() > 1)
                  {
-                     for (size_t s = 0; s < ccm.size(); ++s)
+                     for (size_t i = 0; i < std::min(kc, ccm.size() - 1); ++i)
                      {
+                         auto s = csample(rng);
                          if (csize[s] == 0)
                              continue;
                          if (s == size_t(c[v]))
@@ -521,11 +381,18 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                  for (size_t l = 0; l < 2; ++l)
                  {
                      ftot[l] *= step;
-                     pos[v][l] += ftot[l];
+                     temp[v][l] += ftot[l];
                  }
 
                  delta += norm(ftot);
                  nmoves++;
+             });
+
+        parallel_loop
+            (vertices,
+             [&](size_t, auto v)
+             {
+                 pos[v] = temp[v];
              });
 
         n_iter++;

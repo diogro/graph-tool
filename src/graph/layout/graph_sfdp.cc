@@ -57,12 +57,13 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
         groups.push_back(get_array<int32_t,1>(spring_parms[6][i]));
 
     double r = python::extract<double>(spring_parms[7]);
+    size_t kc = python::extract<double>(spring_parms[8]);
     typedef vprop_map_t<int32_t>::type c_map_t;
-    c_map_t c_map = boost::any_cast<c_map_t>(python::extract<any&>(spring_parms[8])());
+    c_map_t c_map = boost::any_cast<c_map_t>(python::extract<any&>(spring_parms[9])());
 
-    double R = python::extract<double>(spring_parms[9]);
+    double R = python::extract<double>(spring_parms[10]);
     typedef vprop_map_t<double>::type o_map_t;
-    o_map_t o_map = boost::any_cast<o_map_t>(python::extract<any&>(spring_parms[10])());
+    o_map_t o_map = boost::any_cast<o_map_t>(python::extract<any&>(spring_parms[11])());
 
     if(vweight.empty())
         vweight = vweight_map_t();
@@ -78,7 +79,7 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
          {
              return get_sfdp_layout(graph, pos, vweight, eweight,
                                     pin_map.get_unchecked(num_vertices(g.get_graph())),
-                                    groups, C, K, p, theta, gamma, mu, kappa, r,
+                                    groups, C, K, p, theta, gamma, mu, kappa, r, kc,
                                     c_map.get_unchecked(num_vertices(g.get_graph())),
                                     R, o_map.get_unchecked(num_vertices(g.get_graph())),
                                     init_step,

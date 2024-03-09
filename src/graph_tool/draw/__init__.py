@@ -78,6 +78,7 @@ from .. import Graph, GraphView, _check_prop_vector, _check_prop_scalar, \
 from .. topology import max_cardinality_matching, max_independent_vertex_set, \
     label_components, shortest_distance, make_maximal_planar, is_planar
 from .. generation import predecessor_tree, condensation_graph
+from .. inference import minimize_blockmodel_dl, BlockState, ModularityState
 from .. inference.util import nested_contiguous_map
 import numpy.random
 from numpy import sqrt
@@ -404,9 +405,10 @@ def arf_layout(g, weight=None, d=0.5, a=10, dt=0.001, epsilon=1e-6,
     return pos
 
 
-def _coarse_graph(g, vweight, eweight, mivs=False, groups=None):
+def _coarse_graph(g, vweight, eweight, kind="matching", groups=None):
+    mivs = None
     if groups is None:
-        if mivs:
+        if kind == "mivs":
             mivs = max_independent_vertex_set(g, high_deg=True)
             u = GraphView(g, vfilt=mivs, directed=False)
             c = label_components(u)[0]
@@ -415,8 +417,7 @@ def _coarse_graph(g, vweight, eweight, mivs=False, groups=None):
             infect_vertex_property(u, c,
                                    list(range(1, c.fa.max() + 1)))
             c = g.own_property(c)
-        else:
-            mivs = None
+        elif kind == "ec":
             m = max_cardinality_matching(GraphView(g, directed=False),
                                          heuristic=True, weight=eweight,
                                          minimize=False, edges=True)
@@ -424,10 +425,31 @@ def _coarse_graph(g, vweight, eweight, mivs=False, groups=None):
             c = label_components(u)[0]
             c = g.own_property(c)
             u = GraphView(g, directed=False)
+        elif kind == "modularity":
+            B = max(g.num_vertices() // 2, 1)
+            state = minimize_blockmodel_dl(GraphView(g, directed=False),
+                                           state=ModularityState,
+                                           state_args=dict(eweight=eweight),
+                                           multilevel_mcmc_args=dict(B_min=B,
+                                                                     B_max=B))
+            print(state)
+            c = state.b.copy()
+        elif kind in ["sbm", "dcsbm"]:
+            B = max(g.num_vertices() // 2, 1)
+            w = eweight.copy("int") if eweight is not None else None
+            state = minimize_blockmodel_dl(GraphView(g, directed=False),
+                                           state=BlockState,
+                                           state_args=dict(eweight=w,
+                                                           deg_corr=kind == "dcsbm"),
+                                           multilevel_mcmc_args=dict(B_min=B,
+                                                                     B_max=B))
+            c = state.b.copy()
+        else:
+            raise ValueError("invalid coarsening method:", kind)
     else:
-        mivs = None
         c = g.new_vp("int", vals=groups)
-    cg, cc, vcount, ecount = condensation_graph(g, c, vweight, eweight)[:4]
+    cg, cc, vcount, ecount = condensation_graph(g, c, vweight, eweight,
+                                                self_loops=True)[:4]
     return cg, cc, vcount, ecount, c, mivs
 
 
@@ -448,13 +470,10 @@ def _propagate_pos(g, cg, c, cc, cpos, delta, mivs):
     if mivs is not None:
         g = g.base
         u = GraphView(g, directed=False)
-        try:
-            libgraph_tool_layout.propagate_pos_mivs(u._Graph__graph,
-                                                    _prop("v", u, mivs),
-                                                    _prop("v", u, pos),
-                                                    delta, _get_rng())
-        except ValueError:
-            graph_draw(u, mivs, vertex_fillcolor=mivs)
+        libgraph_tool_layout.propagate_pos_mivs(u._Graph__graph,
+                                                _prop("v", u, mivs),
+                                                _prop("v", u, pos),
+                                                delta, _get_rng())
     return pos
 
 
@@ -467,31 +486,33 @@ def _avg_edge_distance(g, pos):
 
 
 def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
-                  weighted_coarse=False, eweight=None, vweight=None,
+                  weighted_coarse=True, eweight=None, vweight=None,
                   groups=None, verbose=False):
     cg = [[g, None, None, None, None, None]]
     if weighted_coarse:
         cg[-1][2], cg[-1][3] = vweight, eweight
-    mivs = not (method in ["hybrid", "ec"])
+    hybrid = False
+    if method == "hybrid":
+        method = "ec"
+        hybrid = True
     while True:
         if groups is None or len(groups) < len(cg):
             b = None
         else:
             b = groups[len(cg)-1]
-        u = _coarse_graph(cg[-1][0], cg[-1][2], cg[-1][3], mivs, b)
-        thres = mivs_thres if mivs else ec_thres
-        if u[0].num_vertices() >= thres * cg[-1][0].num_vertices():
-            if method == "hybrid" and not mivs:
-                mivs = True
-            else:
-                break
+        u = _coarse_graph(cg[-1][0], cg[-1][2], cg[-1][3], method, b)
+        if hybrid:
+            thres = mivs_thres if method == "mivs" else ec_thres
+            if u[0].num_vertices() >= thres * cg[-1][0].num_vertices():
+                if method == "ec":
+                    method = "mivs"
+                else:
+                    break
         if u[0].num_vertices() <= 2:
             break
         cg.append(u)
         if verbose:
-            print("Coarse level (%s):" % ("MIVS" if mivs else "EC"), end=' ')
-            print(len(cg), " num vertices:", end=' ')
-            print(u[0].num_vertices())
+            print(f"Coarse level ({method}): {len(cg)} N={u[0].num_vertices()}")
     cg.reverse()
     Ks = []
     pos = random_layout(cg[0][0], dim=2)
@@ -525,15 +546,18 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
                 print("propagating...", end=' ')
                 print(mivs.a.sum() if mivs is not None else "")
             pos = _propagate_pos(cg[i + 1][0], u, c, cc, pos,
-                                 Ks[i] / 1000., mivs)
+                                 #Ks[i] / 1000.,
+                                 1e-6,
+                                 mivs)
 
 
 def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
-                K=None, p=2., theta=0.6, max_level=15, r=1., gamma=.3, mu=2.,
-                kappa=1., rmap=None, R=1, init_step=None, cooling_step=0.95,
-                adaptive_cooling=True, epsilon=1e-2, max_iter=0, pos=None,
-                multilevel=None, coarse_method="hybrid", mivs_thres=0.9,
-                ec_thres=0.75, weighted_coarse=False, verbose=False):
+                K=None, p=2., theta=0.6, max_level=15, r=1., kc=10, gamma=.3,
+                mu=2., kappa=1., rmap=None, R=1, init_step=None,
+                cooling_step=0.95, adaptive_cooling=True, epsilon=1e-2,
+                max_iter=0, pos=None, multilevel=None, coarse_method="hybrid",
+                mivs_thres=0.9, ec_thres=0.75, weighted_coarse=True,
+                verbose=False):
     r"""Obtain the SFDP spring-block layout of the graph.
 
     Parameters
@@ -563,6 +587,8 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
         Maximum quadtree level.
     r : float (optional, default: ``1.``)
         Strength of attractive force between connected components.
+    kc : int (optional, default: ``10``)
+        Number of connected components to subsample.
     gamma : float (optional, default: ``.3``)
         Strength of the repulsive force between different groups.
     mu : float (optional, default: ``2``)
@@ -599,7 +625,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
     ec_thres : float (optional, default: ``0.75``)
         If the relative size of the EC coarse graph is above this value, the
         coarsening stops.
-    weighted_coarse : bool (optional, default: ``False``)
+    weighted_coarse : bool (optional, default: ``True``)
         Use weighted coarse graphs.
     verbose : bool (optional, default: ``False``)
         Provide verbose information.
@@ -734,7 +760,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                                      _prop("v", g, vweight),
                                      _prop("e", g, eweight),
                                      _prop("v", g, pin),
-                                     (C, K, p, gamma, mu, kappa, groups, r,
+                                     (C, K, p, gamma, mu, kappa, groups, r, kc,
                                       _prop("v", g, c), R, _prop("v", g, rmap)),
                                      theta, init_step, cooling_step, max_level,
                                      epsilon, max_iter, not adaptive_cooling,

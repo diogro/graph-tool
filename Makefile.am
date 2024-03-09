@@ -637,7 +637,8 @@ libgraph_tool_layout_la_SOURCES = \
 	src/graph/layout/graph_bind_layout.cc
 libgraph_tool_layout_la_include_HEADERS = \
 	src/graph/layout/graph_arf.hh \
-	src/graph/layout/graph_sfdp.hh
+	src/graph/layout/graph_sfdp.hh \
+	src/graph/layout/quad_tree.hh
 
 #####################
 # src/graph/search/ #
