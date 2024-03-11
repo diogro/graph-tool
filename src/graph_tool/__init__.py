@@ -784,6 +784,9 @@ class PropertyMap(object):
             p.fa = f(self.fa)
         return p
 
+    t = _copy_func(transform, "t")
+    t.__doc__ = "Alias to :func:`~graph_tool.PropertyMap.transform`."
+
     def data_ptr(self):
         """Return the pointer to memory where the data resides."""
         return self.__map.data_ptr()
