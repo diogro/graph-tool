@@ -82,6 +82,7 @@ from .. inference import minimize_blockmodel_dl, BlockState, ModularityState
 from .. inference.util import nested_contiguous_map
 import numpy.random
 from numpy import sqrt
+from collections.abc import Iterable
 
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_layout")
@@ -487,7 +488,7 @@ def _avg_edge_distance(g, pos):
 
 def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
                   weighted_coarse=True, eweight=None, vweight=None,
-                  groups=None, verbose=False):
+                  groups=None, gamma=None, verbose=False):
     cg = [[g, None, None, None, None, None]]
     if weighted_coarse:
         cg[-1][2], cg[-1][3] = vweight, eweight
@@ -495,6 +496,8 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
     if method == "hybrid":
         method = "ec"
         hybrid = True
+    if verbose:
+        print(f"Coarse level (none): 0, N={g.num_vertices()}")
     while True:
         if groups is None or len(groups) < len(cg):
             b = None
@@ -512,7 +515,7 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
             break
         cg.append(u)
         if verbose:
-            print(f"Coarse level ({method}): {len(cg)} N={u[0].num_vertices()}")
+            print(f"Coarse level ({method}): {len(cg)}, N={u[0].num_vertices()}")
     cg.reverse()
     Ks = []
     pos = random_layout(cg[0][0], dim=2)
@@ -525,10 +528,15 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
             Ks.append(K)
             continue
         if weighted_coarse:
-            gamma = 1.
+            r = 1.
         else:
-            gamma = 0.75
-        Ks.append(Ks[-1] * gamma)
+            r = 0.75
+        Ks.append(Ks[-1] * r)
+
+    if gamma is None:
+        gamma = [0] * len(cg)
+    else:
+        gamma = list(gamma) + [0] * (len(cg) - len(gamma))
 
     for i in range(len(cg)):
         u, cc, vcount, ecount, c, mivs = cg[i]
@@ -536,7 +544,7 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
             b = None
         else:
             b = groups[len(cg) - 1 - i:]
-        yield u, pos, Ks[i], vcount, ecount, b
+        yield u, pos, Ks[i], vcount, ecount, b, gamma[len(cg)-i-1:]
 
         if verbose:
             print("avg edge distance:", _avg_edge_distance(u, pos))
@@ -551,8 +559,8 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
                                  mivs)
 
 
-def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
-                K=None, p=2., theta=0.6, max_level=15, r=1., kc=10, gamma=.3,
+def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
+                theta=0.6, max_level=15, r=1., kc=10, groups=None, gamma=.1,
                 mu=2., kappa=1., rmap=None, R=1, init_step=None,
                 cooling_step=0.95, adaptive_cooling=True, epsilon=1e-2,
                 max_iter=0, pos=None, multilevel=None, coarse_method="hybrid",
@@ -571,9 +579,6 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
     pin : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map with boolean values, which, if given,
         specify the vertices which will not have their positions modified.
-    groups : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        A vertex property map with group assignments. Vertices belonging to the
-        same group will be put close together.
     C : float (optional, default: ``0.2``)
         Relative strength of repulsive forces.
     K : float (optional, default: ``None``)
@@ -589,12 +594,16 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
         Strength of attractive force between connected components.
     kc : int (optional, default: ``10``)
         Number of connected components to subsample.
-    gamma : float (optional, default: ``.3``)
-        Strength of the repulsive force between different groups.
-    mu : float (optional, default: ``2``)
-        Typical length of the repulsive force between different groups.
-    kappa : float (optional, default: ``1.0``)
-        Multiplicative factor on the attracttive force between nodes of the same group.
+    groups : :class:`~graph_tool.VertexPropertyMap` or list of list of integers (optional, default: ``None``)
+        A vertex property map with group assignments. Vertices belonging to the
+        same group will be put close together. Optionally, this can take an
+        hierarchical partition, represented by a list of lists, where the list
+        above correspond to the partition of the list below.
+    gamma : float or list of floats (optional, default: ``.1``)
+        Strength of the attractive force between nodes of the same group to
+        their center of mass. In case of a hierarchical partition, this should
+        correspond to a list of floats, containing the strenghts for each
+        hierarchical level. This option has no effect if ``groups`` is ``None``.
     rmap : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex rank to be used around to order them preferentially in the
         :math:`y` direction.
@@ -677,9 +686,19 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
     _check_prop_vector(pos, name="pos", floating=True)
 
     if isinstance(groups, VertexPropertyMap):
-        groups = [numpy.asarray(groups.a, dtype="int32")]
+        groups = [numpy.asarray(groups.a.copy(), dtype="int32")]
     elif groups is not None:
+        if isinstance(groups[0], VertexPropertyMap):
+            groups = [groups[0].a.copy()] + list(groups[1:])
         groups = nested_contiguous_map(groups)
+
+    if groups is None:
+        gamma = [0]
+    else:
+        if not isinstance(gamma, Iterable):
+            gamma = [gamma]
+        if len(gamma) < len(groups):
+            gamma = list(gamma) + [0] * (len(groups) - len(gamma))
 
     g_ = g
     g = GraphView(g, directed=False)
@@ -717,18 +736,19 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                             eweight=eweight,
                             vweight=vweight,
                             groups=groups,
+                            gamma=gamma,
                             verbose=verbose)
-        for count, (u, pos, K, vcount, ecount, groups) in enumerate(cgs):
+        for count, (u, pos, K_, vcount, ecount, groups, gamma) in enumerate(cgs):
             if verbose:
-                print("Positioning level:", count, u.num_vertices(), end=' ')
-                print("with K =", K, "...")
-                count += 1
+                print(f"Positioning level: {count}, {u.num_vertices()}", end=" ")
+                print(f"with K={K_}, gamma={gamma} ...")
             pos = sfdp_layout(u, pos=pos,
                               vweight=vcount if weighted_coarse else None,
                               eweight=ecount if weighted_coarse else None,
                               groups=groups,
-                              C=C, K=K, p=p,
-                              theta=theta, gamma=gamma, mu=mu, kappa=kappa,
+                              C=C, K=K_, p=p,
+                              theta=theta,
+                              gamma=gamma,
                               epsilon=epsilon,
                               max_iter=max_iter,
                               cooling_step=cooling_step,
@@ -760,7 +780,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                                      _prop("v", g, vweight),
                                      _prop("e", g, eweight),
                                      _prop("v", g, pin),
-                                     (C, K, p, gamma, mu, kappa, groups, r, kc,
+                                     (C, K, p, gamma, groups, r, kc,
                                       _prop("v", g, c), R, _prop("v", g, rmap)),
                                      theta, init_step, cooling_step, max_level,
                                      epsilon, max_iter, not adaptive_cooling,

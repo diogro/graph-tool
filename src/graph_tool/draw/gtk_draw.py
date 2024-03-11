@@ -131,9 +131,10 @@ def apply_transforms(g, pos, m):
 class GraphWidget(Gtk.DrawingArea):
     def __init__(self, g, pos, vprops=None, eprops=None, vorder=None,
                  eorder=None, nodesfirst=False, update_layout=False,
-                 layout_K=1., multilevel=False, display_props=None,
-                 display_props_size=11, fit_view=True, fit_view_ink=None,
-                 bg_color=None, max_render_time=300, layout_callback=None,
+                 layout_K=1., multilevel=False, coarse_method="hybrid",
+                 sfdp_args={}, display_props=None, display_props_size=11,
+                 fit_view=True, fit_view_ink=None, bg_color=None,
+                 max_render_time=300, layout_callback=None,
                  key_press_callback=None, highlight_color=None, **kwargs):
         r"""Interactive GTK+ widget displaying a given graph.
 
@@ -164,6 +165,10 @@ class GraphWidget(Gtk.DrawingArea):
             Parameter ``K`` passed to :func:`~graph_tool.draw.sfdp_layout`.
         multilevel : bool (optional, default: ``False``)
             Parameter ``multilevel`` passed to :func:`~graph_tool.draw.sfdp_layout`.
+        coarse_method : bool (optional, default: ``hybrid``)
+            Parameter ``coarse_method`` passed to :func:`~graph_tool.draw.sfdp_layout`.
+        sfdp_args : dict (optional, default: ``{}``)
+            Additional parameters to be passed to :func:`~graph_tool.draw.sfdp_layout`.
         display_props : list of :class:`~graph_tool.VertexPropertyMap` instances (optional, default: ``None``)
             List of properties to be displayed when the mouse passes over a vertex.
         display_props_size : float (optional, default: ``11.``)
@@ -308,17 +313,24 @@ class GraphWidget(Gtk.DrawingArea):
 
         self.layout_callback_id = None
         self.layout_K = layout_K
-        self.layout_init_step = self.layout_K
+        self.layout_init_step = self.layout_K / 5
         self.epsilon = 0.01 * self.layout_K
         self.multilevel_layout = multilevel
+        self.sfdp_args = sfdp_args.copy()
+        self.vweight = None
+        self.eweight = None
+        self.groups = self.sfdp_args.pop("groups", None)
+        self.gamma = self.sfdp_args.pop("gamma", 0)
 
         self.layout_user_callback = layout_callback
         self.key_press_user_callback = key_press_callback
 
         if multilevel:
-            self.cgs = coarse_graphs(g)
+            self.cgs = coarse_graphs(g, method=coarse_method,
+                                     groups=self.groups, gamma=self.gamma)
             u = next(self.cgs)
-            self.cg, self.cpos, self.layout_K, self.cvcount, self.cecount = u
+            (self.cg, self.cpos, self.layout_K, self.cvcount, self.cecount,
+             self.groups, self.gamma) = u
             self.ag = self.g
             self.apos = self.pos
             self.g = self.cg
@@ -448,11 +460,18 @@ class GraphWidget(Gtk.DrawingArea):
         if self.layout_callback_id is None or self.g.num_vertices() == 0:
             return False
         pos_temp = ungroup_vector_property(self.pos, [0, 1])
-        sfdp_layout(self.g, K=self.layout_K,
-                    max_iter=5, pos=self.pos,
-                    pin=self.selected,
-                    init_step=self.layout_step,
-                    multilevel=False)
+        sfdp_layout(self.g,
+                    **dict(dict(vweight=self.vweight,
+                                eweight=self.eweight,
+                                K=self.layout_K,
+                                max_iter=5, pos=self.pos,
+                                pin=self.selected,
+                                init_step=self.layout_step,
+                                multilevel=False,
+                                groups=self.groups,
+                                gamma=self.gamma,
+                                epsilon=0),
+                           **self.sfdp_args))
         self.layout_step *= 0.9
         if self.vertex_matrix is not None:
             self.vertex_matrix.update()
@@ -472,14 +491,16 @@ class GraphWidget(Gtk.DrawingArea):
             if self.multilevel_layout:
                 try:
                     u = next(self.cgs)
-                    self.cg, self.cpos, K, self.cvcount, self.cecount = u
+                    (self.cg, self.cpos, K, self.cvcount, self.cecount,
+                     self.groups, self.gamma) = u
                     self.layout_K *= 0.75
                     self.g = self.cg
                     self.pos = self.cpos
+                    self.vweight = self.cvcount
+                    self.eweight = self.cecount
                     self._own_props()
                     self.layout_step = max(self.layout_K,
-                                           _avg_edge_distance(self.g,
-                                                              self.pos) / 10)
+                                           _avg_edge_distance(self.g, self.pos) / 10)
                     if self.vertex_matrix is not None:
                         self.vertex_matrix = VertexMatrix(self.g, self.pos)
                     self.epsilon = 0.05 * self.layout_K * self.g.num_edges()
@@ -499,8 +520,7 @@ class GraphWidget(Gtk.DrawingArea):
                     self.multilevel_layout = False
                     self.layout_init_step = max(self.layout_K,
                                                 _avg_edge_distance(self.g,
-                                                                   self.pos) /
-                                                                   10)
+                                                                   self.pos) / 10)
                     self.epsilon = 0.01 * self.layout_K
 
                 return True

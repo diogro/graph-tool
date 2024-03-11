@@ -24,6 +24,7 @@
 #include "idx_map.hh"
 
 #include "../generation/sampler.hh"
+#include "../inference/support/util.hh"
 
 #include "quad_tree.hh"
 
@@ -51,15 +52,6 @@ double f_r(double C, double K, double p, const Pos1& p1, const Pos2& p2)
 }
 
 template <class Pos1, class Pos2>
-double fs_r(double C, double l, const Pos1& p1, const Pos2& p2)
-{
-    double d = dist(p1, p2);
-    if (d == 0)
-        return 0;
-    return -C * exp(-d/l);
-}
-
-template <class Pos1, class Pos2>
 double f_a(double K, const Pos1& p1, const Pos2& p2)
 {
     return pow2(dist(p1, p2)) / K;
@@ -72,24 +64,23 @@ double get_diff(const Pos1& p1, const Pos2& p2, Pos3& r)
     for (size_t i = 0; i < 2; ++i)
     {
         r[i] = p1[i] - p2[i];
-        abs += r[i] * r[i];
+        abs += pow2(r[i]);
     }
-    if (abs == 0)
-        abs = 1;
     abs = sqrt(abs);
-    for (size_t i = 0; i < 2; ++i)
-        r[i] /= abs;
+    if (abs > 0)
+    {
+        for (size_t i = 0; i < 2; ++i)
+            r[i] /= abs;
+    }
     return abs;
 }
 
 template <class Pos>
-double norm(Pos& x)
+double norm(const Pos& x)
 {
     double abs = 0;
     for (size_t i = 0; i < 2; ++i)
         abs += pow2(x[i]);
-    for (size_t i = 0; i < 2; ++i)
-        x[i] /= sqrt(abs);
     return sqrt(abs);
 }
 
@@ -99,8 +90,8 @@ template <class Graph, class PosMap, class VertexWeightMap,
           class RNG>
 void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                      EdgeWeightMap eweight, PinMap pin, GroupMaps& groups,
-                     double C, double K, double p, double theta, double gamma,
-                     double mu, double kappa, double r, size_t kc, CMap c, double R,
+                     double C, double K, double p, double theta,
+                     std::vector<double> gamma, double r, size_t kc, CMap c, double R,
                      OrderMap yorder, double init_step, double step_schedule,
                      size_t max_level, double epsilon, size_t max_iter,
                      bool simple, bool verbose, RNG& rng)
@@ -111,7 +102,6 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
     typedef typename property_traits<VertexWeightMap>::value_type vweight_t;
 
     vector<size_t> vertices;
-    idx_map<size_t, size_t> rs;
 
     double ocenter = 0;
     double omax = -std::numeric_limits<double>::max();
@@ -126,15 +116,11 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         pos[v].resize(2, 0);
         HN++;
 
-        rs[groups[0][v]]++;
-
         ocenter += yorder[v] * get(vweight, v);
         omax = max(yorder[v], omax);
         omin = min(yorder[v], omin);
         W += get(vweight, v);
     }
-
-    PosMap temp = pos.copy();
 
     ocenter /= W;
     double o_rg = omax - omin;
@@ -145,22 +131,34 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
     val_t step = init_step;
     size_t progress = 0;
 
-    vector<pos_t> ccm;
-    vector<size_t> csize;
+    std::vector<idx_map<size_t, vector<size_t>>> rvs(groups.size());
+    std::vector<idx_map<size_t, pos_t>> rcm(groups.size());
+    std::vector<idx_map<size_t, pos_t>> rftot(groups.size());
 
     vector<size_t> cs;
     vector<double> cprobs;
     for (auto v : vertices_range(g))
     {
-        auto r = c[v];
-        if (r >= cs.size())
-        {
-            cs.resize(r + 1);
-            cprobs.resize(r + 1);
-        }
+        size_t r = c[v];
+        if (r >= cprobs.size())
+            cprobs.resize(r + 1, 0);
         cprobs[r] += 1;
+
+        r = v;
+        for (size_t l = 0; l < groups.size(); ++l)
+        {
+            r = groups[l][r];
+            rvs[l][r].push_back(v);
+        }
     }
+    for (size_t r = 0; r < cprobs.size(); ++r)
+        cs.push_back(r);
     Sampler<size_t> csample(cs, cprobs);
+
+    vector<pos_t> ccm;
+    vector<size_t> csize;
+
+    vector<pos_t> ftots(num_vertices(g));
 
     while (delta > epsilon * K && (max_iter == 0 || n_iter < max_iter))
     {
@@ -212,19 +210,27 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                 ccm[s][j] /= csize[s];
         }
 
-        QuadTree<val_t, vweight_t> qt(ll, ur, max_level, num_vertices(g));
-        idx_map<size_t, QuadTree<val_t, vweight_t>> qtr;
-        for (auto& [r, nr] : rs)
-            qtr[r] = QuadTree<val_t, vweight_t>(ll, ur, max_level, nr);
-
-        for (auto v : vertices_range(g))
+        for (size_t l = 0; l < groups.size(); ++l)
         {
-            if (rs.size() > 1)
-                qtr[groups[0][v]].put_pos(0, pos[v], vweight[v]);
-            qt.put_pos(0, pos[v], vweight[v]);
+            rcm[l].clear();
+            rftot[l].clear();
+            for (auto& [r, vs] : rvs[l])
+            {
+                auto& cm = rcm[l][r];
+                for (auto v : vs)
+                {
+                    for (size_t j = 0; j < 2; ++j)
+                        cm[j] += pos[v][j];
+                }
+                for (size_t j = 0; j < 2; ++j)
+                    cm[j] /= vs.size();
+                rftot[l][r] = {0, 0};
+            }
         }
 
-        std::shuffle(vertices.begin(), vertices.end(), rng);
+        QuadTree<val_t, vweight_t> qt(ll, ur, max_level, num_vertices(g));
+        for (auto v : vertices_range(g))
+            qt.put_pos(0, pos[v], vweight[v]);
 
         size_t nmoves = 0;
         vector<size_t> Q;
@@ -233,7 +239,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         size_t nopen = 0;
 
         auto get_rf_bh =
-            [&](auto v, auto& qt, auto& Q, auto& ftot, bool groups, bool intra)
+            [&](size_t v, auto& qt, auto& Q, auto&& f)
             {
                 pos_t cm{0, 0}, diff{0, 0};
 
@@ -248,25 +254,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                     {
                         for (auto& dleaf : dleafs)
                         {
-                            val_t d = get_diff(get<0>(dleaf), pos[v], diff);
-                            if (d == 0)
-                                continue;
-                            val_t f;
-                            if (groups)
-                            {
-                                if (intra)
-                                    f = -fs_r(gamma, mu, pos[v], get<0>(dleaf));
-                                else
-                                    f = fs_r(gamma, mu, pos[v], get<0>(dleaf)) + f_r(C, K, p, pos[v], get<0>(dleaf));
-                            }
-                            else
-                            {
-                                f = f_r(C, K, p, pos[v], get<0>(dleaf));
-                            }
-                            f *= get<1>(dleaf) * get(vweight, v);
-                            for (size_t l = 0; l < 2; ++l)
-                                ftot[l] += f * diff[l];
-
+                            f(get<0>(dleaf), get<1>(dleaf));
                             nopen++;
                         }
                     }
@@ -287,52 +275,42 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                         }
                         else
                         {
-                            if (d > 0)
-                            {
-                                val_t f;
-                                if (groups)
-                                {
-                                    if (intra)
-                                        f = -fs_r(gamma, mu, pos[v], cm);
-                                    else
-                                        f = fs_r(gamma, mu, pos[v], cm) + f_r(C, K, p, pos[v], cm);
-                                }
-                                else
-                                {
-                                    f = f_r(C, K, p, pos[v], cm);
-                                }
-                                f *= qt[q].get_count() * get(vweight, v);
-                                for (size_t l = 0; l < 2; ++l)
-                                    ftot[l] += f * diff[l];
-
-                                nopen++;
-                            }
+                            f(cm, qt[q].get_count());
+                            nopen++;
                         }
                     }
                 }
             };
 
+        double adist = 0;
+
         #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
-            private(Q) reduction(+:E, delta, nmoves)
+            firstprivate(Q) reduction(+:adist)
         parallel_loop_no_spawn
             (vertices,
              [&](size_t, auto v)
              {
-                 pos_t diff{0, 0}, ftot{0, 0};
+                 pos_t diff{0, 0};
+                 auto& ftot = ftots[v];
+                 ftot = {0, 0};
+
+                 auto& pos_v = pos[v];
 
                  // global repulsive forces
-                 if (rs.size() == 1)
-                 {
-                     get_rf_bh(v, qt, Q, ftot, false, false);
-                 }
-                 else
-                 {
-                     get_rf_bh(v, qt, Q, ftot, true, false);
-                     get_rf_bh(v, qtr[groups[0][v]], Q, ftot, true, true);
-                 }
+                 get_rf_bh(v, qt, Q,
+                           [&](auto& lpos, auto w)
+                           {
+                               auto f = f_r(C, K, p, pos_v, lpos);
+                               if (f == 0)
+                                   return;
+                               f *= w * get(vweight, v);
+                               auto d = get_diff(lpos, pos_v, diff);
+                               for (size_t l = 0; l < 2; ++l)
+                                   ftot[l] += f * diff[l];
+                               adist += d * w;
+                           });
 
                  // local attractive forces
-                 auto& pos_v = pos[v];
                  for (auto e : out_edges_range(v, g))
                  {
                      auto u = target(e, g);
@@ -342,8 +320,6 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                      get_diff(pos_u, pos_v, diff);
                      val_t f = f_a(K, pos_u, pos_v);
                      f *= get(eweight, e) * get(vweight, u) * get(vweight, v);
-                     if (groups[0][v] == groups[0][u])
-                         f *= kappa;
                      for (size_t l = 0; l < 2; ++l)
                          ftot[l] += f * diff[l];
                  }
@@ -358,41 +334,76 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                              continue;
                          if (s == size_t(c[v]))
                              continue;
-                         val_t d = get_diff(ccm[s], pos[v], diff);
+                         val_t d = get_diff(ccm[s], pos_v, diff);
                          if (d == 0)
                              continue;
                          double Kp = K * pow2(HN);
-                         val_t f = f_a(Kp, ccm[s], pos[v]) * r * csize[s] * get(vweight, v);
+                         val_t f = f_a(Kp, ccm[s], pos_v) * r * csize[s] * get(vweight, v);
                          for (size_t l = 0; l < 2; ++l)
                              ftot[l] += f * diff[l];
                      }
+                 }
+
+                 // group average forces
+                 size_t s = v;
+                 for (size_t l = 0; l < groups.size(); ++l)
+                 {
+                     s = groups[l][s];
+                     for (size_t j = 0; j < 2; ++j)
+                         rftot[l][s][j] += ftot[j];
+                 }
+             });
+
+        adist /= vertices.size();
+        for (size_t l = 0; l < groups.size(); ++l)
+        {
+            for (auto& [r, vs] : rvs[l])
+            {
+                for (size_t j = 0; j < 2; ++j)
+                    rftot[l][r][j] /= vs.size();
+            }
+        }
+
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+            reduction(+:E, delta, nmoves)
+        parallel_loop_no_spawn
+            (vertices,
+             [&](size_t, auto v)
+             {
+                 auto& ftot = ftots[v];
+                 auto& pos_v = pos[v];
+
+                 // group segregation force
+                 pos_t diff;
+                 size_t s = v;
+                 for (size_t l = 0; l < groups.size(); ++l)
+                 {
+                     s = groups[l][s];
+                     get_diff(rcm[l][s], pos_v, diff);
+                     for (size_t j = 0; j < 2; ++j)
+                         ftot[j] += diff[j] * gamma[l] * adist;
+
+                     // coherent move
+                     for (size_t j = 0; j < 2; ++j)
+                         ftot[j] += rftot[l][s][j] * 10;
                  }
 
                  // yorder repulsive force
                  if (R > 0)
                  {
                      double dz = (yorder[v] - ocenter)/o_rg;
-                     double dp = (pos[v][1] - ycenter)/y_rg;
-                     ftot[1] +=  R * (dz - dp);
+                     double dp = (pos_v[1] - ycenter)/y_rg;
+                     ftot[1] += adist * R * (dz - dp);
                  }
 
-                 E += pow2(norm(ftot));
+                 double n = norm(ftot);
 
                  for (size_t l = 0; l < 2; ++l)
-                 {
-                     ftot[l] *= step;
-                     temp[v][l] += ftot[l];
-                 }
+                     pos[v][l] += (ftot[l] / n) * step;
 
-                 delta += norm(ftot);
+                 E += pow2(n);
+                 delta += step;
                  nmoves++;
-             });
-
-        parallel_loop
-            (vertices,
-             [&](size_t, auto v)
-             {
-                 pos[v] = temp[v];
              });
 
         n_iter++;
