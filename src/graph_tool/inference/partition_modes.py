@@ -808,11 +808,13 @@ def align_partition_labels(x, y):
     ----------
     x : iterable of ``int`` values
         Partition.
+    y : iterables of ``int`` values
+        Reference partition.
 
     Returns
     -------
-    y : :class:`numpy.ndarray`
-        Partition with aligned labels.
+    z : :class:`numpy.ndarray`
+        Partition ``x`` with labels aligned to ``y``.
 
     Notes
     -----
@@ -850,12 +852,14 @@ def align_nested_partition_labels(x, y):
     Parameters
     ----------
     x : iterable of iterables of ``int`` values
-        Partition.
+        Nexted partition.
+    y : iterable of iterables of ``int`` values
+        Reference nested partition.
 
     Returns
     -------
-    y : list of :class:`numpy.ndarray`
-        Nested partition with aligned labels.
+    z : list of :class:`numpy.ndarray`
+        Nested partition ``x`` with labels aligned to ``y``.
 
     Notes
     -----
