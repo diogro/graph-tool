@@ -38,15 +38,14 @@ struct modularity_entropy_args_t
 };
 
 typedef vprop_map_t<int32_t>::type vmap_t;
-typedef eprop_map_t<int32_t>::type emap_t;
+typedef mpl::vector<eprop_map_t<int32_t>::type,
+                    eprop_map_t<double>::type> emaps_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, never_directed, 1))                                                \
+    ((eweight,, emaps_t, 1))                                                   \
     ((_abg, &, boost::any&, 0))                                                \
-    ((b,, vmap_t, 0))                                                          \
-    ((eweight,, emap_t, 0))                                                    \
-    ((er, &, vector<size_t>&, 0))                                              \
-    ((err, &, vector<size_t>&, 0))
+    ((b,, vmap_t, 0))
 
 GEN_STATE_BASE(ModularityStateBase, BLOCK_STATE_params)
 
@@ -110,8 +109,10 @@ public:
         bg_t;
     bg_t& _bg;
 
+    typedef typename property_traits<eweight_t>::value_type w_t;
+
     size_t _N;
-    size_t _E;
+    w_t _E;
 
     idx_set<size_t> _empty_groups;
     idx_set<size_t> _candidate_groups;
@@ -142,7 +143,7 @@ public:
             return;
 
         size_t k = 0;
-        size_t m = 0;
+        w_t m = 0;
         for (auto e : out_edges_range(v, _g))
         {
             auto ew = _eweight[e];
@@ -205,9 +206,9 @@ public:
         if (r == nr)
             return 0;
 
-        std::array<int, 2> derr({0,0});
-        size_t k = 0;
-        size_t m = 0;
+        std::array<w_t, 2> derr({0,0});
+        w_t k = 0;
+        w_t m = 0;
         for (auto e : out_edges_range(v, _g))
         {
             auto ew = _eweight[e];
@@ -364,9 +365,8 @@ public:
     void clear_next_state() {}
     void relax_update(bool) {}
 
-    //owned by deep copy
-    std::shared_ptr<er_t> _er_p;
-    std::shared_ptr<err_t> _err_p;
+    std::vector<w_t> _er;
+    std::vector<w_t> _err;
 
     template <size_t... Is>
     ModularityState* deep_copy(index_sequence<Is...>)
@@ -384,24 +384,10 @@ public:
                                       return b_;
                                   return a;
                               }
-                              else if (name == "er")
-                              {
-                                  if constexpr (std::is_same_v<a_t, er_t>)
-                                      return *(new er_t(this->_er));
-                                  return a;
-                              }
-                              else if (name == "err")
-                              {
-                                  if constexpr (std::is_same_v<a_t, err_t>)
-                                      return *(new err_t(this->_err));
-                                  return a;
-                              }
                               return a;
                           });
 
         auto state = new ModularityState(std::get<Is>(args)...);
-        state->_er_p = std::shared_ptr<er_t>(&state->_er);
-        state->_err_p = std::shared_ptr<err_t>(&state->_err);
         return state;
     };
 

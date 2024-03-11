@@ -140,16 +140,13 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         if eweight is None:
             eweight = g.new_ep("int", 1)
-        elif eweight.value_type() != "int32_t":
-            eweight = g.own_property(eweight.copy(value_type="int32_t"))
         else:
             eweight = g.own_property(eweight)
         self.eweight = eweight
 
-        self.er = Vector_size_t()
-        self.err = Vector_size_t()
-
-        self.bg = self.g
+        self.bg = self.g.base
+        if self.bg.is_directed():
+            self.bg = GraphView(self.bg, directed=False)
         self._abg = self.bg._get_any()
         self._state = libinference.make_modularity_state(self)
 
