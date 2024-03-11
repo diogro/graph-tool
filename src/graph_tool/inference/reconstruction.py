@@ -24,7 +24,7 @@ from .. spectral import adjacency
 from .. generation import complete_graph, generate_triadic_closure, \
     remove_parallel_edges
 from .. dynamics import IsingGlauberState, NormalState, IsingBPState, \
-    NormalBPState
+    NormalBPState, LinearNormalState, LVState
 
 from . uncertain_blockmodel import *
 from . util import pmap
@@ -1142,6 +1142,11 @@ class NormalGlauberBlockState(DynamicsBlockStateBase):
         return libinference.make_normal_glauber_state(self._state, self.ot,
                                                       self.os, self.params)
 
+    def get_dstate(self, s=None):
+        h = self.get_theta_shifted()
+        h.a = np.exp(h.a)
+        return NormalState(self.u, w=self.x, h=h, s=s)
+
 class LinearNormalBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, self_loops=True, **kwargs):
         DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
@@ -1151,6 +1156,11 @@ class LinearNormalBlockState(DynamicsBlockStateBase):
         return libinference.make_linear_normal_state(self._state, self.ot,
                                                      self.os, self.params)
 
+    def get_dstate(self, s=None):
+        h = self.theta.copy()
+        h.a = np.exp(h.a)
+        return LinearNormalState(self.u, w=self.x, sigma=h, s=s)
+
 class LVBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, self_loops=True, **kwargs):
         DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
@@ -1159,3 +1169,8 @@ class LVBlockState(DynamicsBlockStateBase):
     def _make_state(self):
         return libinference.make_lv_state(self._state, self.ot, self.os,
                                           self.params)
+
+    def get_dstate(self, s=None):
+        h = self.theta.copy()
+        h.a = np.exp(h.a)
+        return LVState(self.u, w=self.x, sigma=h, s=s)

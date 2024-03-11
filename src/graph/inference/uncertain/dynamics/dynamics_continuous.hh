@@ -198,9 +198,9 @@ public:
     [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
     double log_P(double theta, double m, double x, double nx)
     {
-        double sigma = exp(theta);
-        double a = x * (1 + m);
-        return norm_lpdf(nx, a, sigma, theta);
+        double sigma = sqrt(x) * exp(theta);
+        double a = x * m;
+        return norm_lpdf(nx, x + a, sigma, theta);
     }
 };
 
