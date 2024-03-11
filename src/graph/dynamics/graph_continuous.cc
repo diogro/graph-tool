@@ -111,6 +111,12 @@ static void export_cstate()
 REGISTER_MOD
 ([]
  {
+     export_cstate<linear_state>();
+     def("make_linear_state", &make_state<linear_state>);
+
+     export_cstate<LV_state>();
+     def("make_LV_state", &make_state<LV_state>);
+
      export_cstate<kuramoto_state>();
      def("make_kuramoto_state", &make_state<kuramoto_state>);
  });

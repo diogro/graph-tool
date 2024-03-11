@@ -1082,13 +1082,13 @@ public:
     normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
           _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()) {}
+          _sigma(any_cast<hmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
     {
         auto s = _s[v];
-        auto sigma = _h[v];
+        auto sigma = _sigma[v];
         double t;
 
         double m = 0;
@@ -1106,7 +1106,7 @@ public:
 private:
 
     wmap_t _w;
-    hmap_t _h;
+    hmap_t _sigma;
 };
 
 class linear_normal_state: public discrete_state_base<double>
@@ -1120,13 +1120,13 @@ public:
     linear_normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
           _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()) {}
+          _sigma(any_cast<hmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
     {
         auto s = _s[v];
-        auto sigma = _h[v];
+        auto sigma = _sigma[v];
         double t;
 
         double m = 0;
@@ -1145,7 +1145,7 @@ public:
 private:
 
     wmap_t _w;
-    hmap_t _h;
+    hmap_t _sigma;
 };
 
 template <class Graph, class State, class RNG>

@@ -49,6 +49,90 @@ public:
     smap_t _s_diff;
 };
 
+class linear_state: public continuous_state_base<>
+{
+public:
+
+    typedef vprop_map_t<double>::type::unchecked_t vmap_t;
+    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+
+    template <class Graph, class RNG>
+    linear_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
+        : continuous_state_base(s, s_diff),
+          _sigma(any_cast<vmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
+          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked())
+    {}
+
+
+    template <class Graph, class RNG>
+    double get_node_diff(Graph& g, size_t v, double, double dt, RNG& rng)
+    {
+        double diff = 0;
+        for (auto e : in_or_out_edges_range(v, g))
+        {
+            auto u = source(e, g);
+            diff += _w[e] * _s[u];
+        }
+
+        if (_sigma[v] > 0)
+        {
+            std::normal_distribution<> noise(0, sqrt(dt));
+            diff += _sigma[v] * noise(rng);
+        }
+
+        return diff;
+    }
+
+private:
+
+    vmap_t _sigma;
+    wmap_t _w;
+};
+
+class LV_state: public continuous_state_base<>
+{
+public:
+
+    typedef vprop_map_t<double>::type::unchecked_t vmap_t;
+    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+
+    template <class Graph, class RNG>
+    LV_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
+        : continuous_state_base(s, s_diff),
+          _sigma(any_cast<vmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
+          _mig(any_cast<vmap_t::checked_t>(python::extract<any>(params["mig"].attr("_get_any")())()).get_unchecked()),
+          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked())
+    {}
+
+    template <class Graph, class RNG>
+    double get_node_diff(Graph& g, size_t v, double, double dt, RNG& rng)
+    {
+        double diff = 0;
+        for (auto e : in_or_out_edges_range(v, g))
+        {
+            auto u = source(e, g);
+            diff += _w[e] * _s[u];
+        }
+        diff *= _s[v];
+
+        if (_sigma[v] > 0)
+        {
+            std::normal_distribution<> noise(0, sqrt(dt));
+            diff += sqrt(_s[v]) * _sigma[v] * noise(rng);
+        }
+
+        diff += _mig[v];
+
+        return diff;
+    }
+
+private:
+
+    vmap_t _sigma;
+    vmap_t _mig;
+    wmap_t _w;
+};
+
 class kuramoto_state: public continuous_state_base<>
 {
 public:
@@ -61,8 +145,8 @@ public:
         : continuous_state_base(s, s_diff),
           _omega(any_cast<omap_t::checked_t>(python::extract<any>(params["omega"].attr("_get_any")())()).get_unchecked()),
           _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _sigma(python::extract<double>(params["sigma"])) {};
-
+          _sigma(any_cast<omap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked())
+    {}
 
     template <class Graph, class RNG>
     double get_node_diff(Graph& g, size_t v, double, double dt, RNG& rng)
@@ -75,10 +159,10 @@ public:
             diff += _w[e] * std::sin(_s[u] - sv);
         }
 
-        if (_sigma > 0)
+        if (_sigma[v] > 0)
         {
             std::normal_distribution<> noise(0, sqrt(dt));
-            diff += _sigma * noise(rng);
+            diff += _sigma[v] * noise(rng);
         }
 
         return diff;
@@ -88,9 +172,8 @@ private:
 
     omap_t _omega;
     wmap_t _w;
-    double _sigma;
+    omap_t _sigma;
 };
-
 
 template <class Graph, class State, class RNG>
 void get_diff_sync(Graph& g, State state, double t, double dt, RNG& rng_)

@@ -62,6 +62,8 @@ Continuous-time dynamics
    :template: class.rst
 
    ContinuousStateBase
+   LinearState
+   LVState
    KuramotoState
 
 Belief propagation
@@ -1638,40 +1640,40 @@ class BooleanState(DiscreteStateBase):
                                    stype="bool")
 
 class NormalState(DiscreteStateBase):
-    def __init__(self, g, w=0, h=1, s=None):
+    def __init__(self, g, w=0, sigma=1, s=None):
         if isinstance(w, PropertyMap):
             if w.value_type() != "double":
                 w = w.copy("double")
         else:
             w = g.new_ep("double", val=w)
-        if isinstance(h, PropertyMap):
-            if h.value_type() != "double":
-                h = h.copy("double")
+        if isinstance(sigma, PropertyMap):
+            if sigma.value_type() != "double":
+                sigma = sigma.copy("double")
         else:
-            h = g.new_vp("double", val=h)
+            sigma = g.new_vp("double", val=sigma)
         if s is None:
             s = g.new_vp("double")
         DiscreteStateBase.__init__(self, g,
                                    lib_dynamics.make_normal_state,
-                                   dict(w=w, h=h), s, stype="double")
+                                   dict(w=w, sigma=sigma), s, stype="double")
 
 class LinearNormalState(DiscreteStateBase):
-    def __init__(self, g, w=0, h=1, s=None):
+    def __init__(self, g, w=0, sigma=1, s=None):
         if isinstance(w, PropertyMap):
             if w.value_type() != "double":
                 w = w.copy("double")
         else:
             w = g.new_ep("double", val=w)
-        if isinstance(h, PropertyMap):
-            if h.value_type() != "double":
-                h = h.copy("double")
+        if isinstance(sigma, PropertyMap):
+            if sigma.value_type() != "double":
+                sigma = sigma.copy("double")
         else:
-            h = g.new_vp("double", val=h)
+            sigma = g.new_vp("double", val=sigma)
         if s is None:
             s = g.new_vp("double")
         DiscreteStateBase.__init__(self, g,
                                    lib_dynamics.make_linear_normal_state,
-                                   dict(w=w, h=h), s, stype="double")
+                                   dict(w=w, sigma=sigma), s, stype="double")
 
 class ContinuousStateBase(object):
     def __init__(self, g, make_state, params, t0=0, s=None, stype="double"):
@@ -1743,6 +1745,140 @@ class ContinuousStateBase(object):
             self.t = t
             self.s.fa += self.get_diff(dt) * dt
 
+class LinearState(ContinuousStateBase):
+    def __init__(self, g, w=1, sigma=0, t0=0, s=None):
+        r"""Linear dynamical model.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+           Graph to be used for the dynamics
+        w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1``)
+           Coupling strength of each edge. If a scalar is given, it will be
+           used for all edges.
+        sigma : ``float`` (optional, default: ``.0``)
+           Stochastic noise magnitude.
+        s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+           Initial global state. If not provided, a random state will be chosen.
+
+        Notes
+        -----
+
+        This implements Kuramoto's model for synchronization
+        [kuramoto_self-entrainment_1975]_ [rodrigues_kuramoto_2016]_.
+
+        Each node has an angle :math:`\theta_i`, which evolves in time obeying
+        the differential equation:
+
+        .. math::
+
+           \frac{\mathrm{d}\theta_i}{\mathrm{d}t} = \omega_i + \sum_{j}A_{ij}w_{ij}\sin(\theta_j-\theta_i) + \sigma\xi_i(t),
+
+        where :math:`\xi_i(t)` is a Gaussian noise with zero mean and unit
+        variance.
+
+        Examples
+        --------
+
+        .. testsetup:: kuramoto
+
+           gt.seed_rng(49)
+           np.random.seed(49)
+
+        .. doctest:: kuramoto
+
+
+           >>> g = gt.collection.data["karate"]
+           >>> omega = g.new_vp("double", np.random.normal(0, 1, g.num_vertices()))
+           >>> state = gt.KuramotoState(g, omega=omega, w=1.5)
+           >>> thetas = []
+           >>> ts = linspace(0, 40, 1000)
+           >>> for t in ts:
+           ...     ret = state.solve(t, first_step=0.0001)
+           ...     thetas.append(state.get_state().fa % (2 * pi))
+
+           >>> figure(figsize=(6, 4))
+           <...>
+           >>> for v in g.vertices():
+           ...    plot(ts, [t[int(v)] - t.mean() for t in thetas])
+           [...]
+           >>> xlabel(r"Time")
+           Text(...)
+           >>> ylabel(r"$\theta_i - \left<\theta\right>$")
+           Text(...)
+           >>> tight_layout()
+           >>> savefig("karate-kuramoto.svg")
+
+        .. figure:: karate-kuramoto.svg
+           :align: center
+
+           Kuramoto oscillator dynamics on the Karate Club network.
+
+        References
+        ----------
+        .. [kuramoto_self-entrainment_1975] Y. Kuramoto, "Self-entrainment of a
+           population of coupled non-linear oscillators", International
+           Symposium on Mathematical Problems in Theoretical Physics. Lecture
+           Notes in Physics, vol 39. Springer, Berlin, Heidelberg (1975),
+           :doi:`10.1007/BFb0013365`
+        .. [rodrigues_kuramoto_2016] Francisco A. Rodrigues, Thomas K. DM.Peron,
+           Peng Ji, Jürgen Kurth, "The Kuramoto model in complex networks",
+           Physics Reports 610 1-98 (2016) :doi:`10.1016/j.physrep.2015.10.008`,
+           :arxiv:`1511.07139`
+
+        """
+        if not isinstance(sigma, PropertyMap):
+            sigma = g.new_vp("double", val=sigma)
+        elif sigma.value_type() != "double":
+            sigma = sigma.copy("double")
+        if not isinstance(w, PropertyMap):
+            w = g.new_ep("double", val=w)
+        elif w.value_type() != "double":
+            w = w.copy("double")
+        if s is None:
+            s = g.new_vp("double", vals=numpy.random.random(g.num_vertices()))
+
+        ContinuousStateBase.__init__(self, g, lib_dynamics.make_linear_state,
+                                     dict(w=w, sigma=sigma), t0, s)
+
+
+class LVState(ContinuousStateBase):
+    def __init__(self, g, w=1, sigma=0, mig=0, t0=0, s=None):
+        r"""Generalized Lotka-Volterra model.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+           Graph to be used for the dynamics
+        w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1``)
+           Coupling strength of each edge. If a scalar is given, it will be
+           used for all edges.
+        sigma : ``float`` (optional, default: ``.0``)
+           Stochastic noise magnitude.
+        s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+           Initial global state. If not provided, a random state will be chosen.
+
+        Notes
+        -----
+
+        """
+        if not isinstance(sigma, PropertyMap):
+            sigma = g.new_vp("double", val=sigma)
+        elif sigma.value_type() != "double":
+            sigma = sigma.copy("double")
+        if not isinstance(mig, PropertyMap):
+            mig = g.new_vp("double", val=mig)
+        elif mig.value_type() != "double":
+            mig = mig.copy("double")
+        if not isinstance(w, PropertyMap):
+            w = g.new_ep("double", val=w)
+        elif w.value_type() != "double":
+            w = w.copy("double")
+        if s is None:
+            s = g.new_vp("double", vals=numpy.random.random(g.num_vertices()))
+
+        ContinuousStateBase.__init__(self, g, lib_dynamics.make_linear_state,
+                                     dict(w=w, sigma=sigma, mig=mig), t0, s)
 
 class KuramotoState(ContinuousStateBase):
     def __init__(self, g, omega=1, w=1, sigma=0, t0=0, s=None):
@@ -1758,8 +1894,9 @@ class KuramotoState(ContinuousStateBase):
         w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1``)
            Coupling strength of each edge. If a scalar is given, it will be
            used for all edges.
-        sigma : ``float`` (optional, default: ``.0``)
-           Stochastic noise magnitude.
+        sigma : :class:`~graph_tool.VertexPropertyMap` or ``float`` (optional, default: ``0``)
+           Stochastic noise magnitude for each node. If a scalar is given, it will
+           be used for all nodes.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
 
@@ -1834,6 +1971,10 @@ class KuramotoState(ContinuousStateBase):
             omega = g.new_vp("double", val=omega)
         elif omega.value_type() != "double":
             omega = omega.copy("double")
+        if not isinstance(sigma, PropertyMap):
+            sigma = g.new_vp("double", val=sigma)
+        elif sigma.value_type() != "double":
+            sigma = sigma.copy("double")
         if not isinstance(w, PropertyMap):
             w = g.new_ep("double", val=w)
         elif w.value_type() != "double":
