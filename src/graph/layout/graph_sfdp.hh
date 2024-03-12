@@ -249,10 +249,10 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                     size_t q = Q.back();
                     Q.pop_back();
 
-                    auto& dleafs = qt.get_dense_leafs(q);
-                    if (!dleafs.empty())
+                    auto& dleaves = qt.get_dense_leaves(q);
+                    if (!dleaves.empty())
                     {
-                        for (auto& dleaf : dleafs)
+                        for (auto& dleaf : dleaves)
                         {
                             f(get<0>(dleaf), get<1>(dleaf));
                             nopen++;
@@ -265,7 +265,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                         double d = get_diff(cm, pos[v], diff);
                         if (w > theta * d)
                         {
-                            auto leaf = qt.get_leafs(q);
+                            auto leaf = qt.get_leaves(q);
                             for (size_t i = 0; i < 4; ++i)
                             {
                                 if (qt[leaf].get_count() > 0)

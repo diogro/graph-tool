@@ -68,17 +68,17 @@ public:
         std::array<double,2> _cm;
         size_t _level;
         Weight _count;
-        size_t _leafs = std::numeric_limits<size_t>::max();
+        size_t _leaves = std::numeric_limits<size_t>::max();
     };
 
     QuadTree(): _max_level(0) {}
 
     template <class Pos>
     QuadTree(const Pos& ll, const Pos& ur, int max_level, size_t n)
-        : _tree(1, {ll, ur, 0}), _dense_leafs(1), _max_level(max_level)
+        : _tree(1, {ll, ur, 0}), _dense_leaves(1), _max_level(max_level)
     {
         _tree.reserve(n);
-        _dense_leafs.reserve(n);
+        _dense_leaves.reserve(n);
     }
 
     auto& operator[](size_t pos)
@@ -86,7 +86,7 @@ public:
         return _tree[pos];
     }
 
-    size_t get_leafs(size_t pos)
+    size_t get_leaves(size_t pos)
     {
         auto& node = _tree[pos];
 
@@ -94,13 +94,13 @@ public:
         if (level >= _max_level)
             return _tree.size();
 
-        if (node._leafs >= _tree.size())
+        if (node._leaves >= _tree.size())
         {
             auto ll = node._ll;
             auto ur = node._ur;
             auto level = node._level;
 
-            node._leafs = _tree.size();
+            node._leaves = _tree.size();
             //_tree.reserve(_tree.size() + 4);
             for (size_t i = 0; i < 4; ++i)
             {
@@ -115,15 +115,15 @@ public:
                     lur[1] -= (ur[1] - ll[1]) / 2;
                 _tree.emplace_back(lll, lur, level + 1);
             }
-            _dense_leafs.resize(_tree.size());
+            _dense_leaves.resize(_tree.size());
         }
 
-        return _tree[pos]._leafs;
+        return _tree[pos]._leaves;
     }
 
-    auto& get_dense_leafs(size_t pos)
+    auto& get_dense_leaves(size_t pos)
     {
-        return _dense_leafs[pos];
+        return _dense_leaves[pos];
     }
 
     template <class Pos>
@@ -148,25 +148,25 @@ public:
 
             if (node._level >= _max_level || node._count == w)
             {
-                _dense_leafs[pos].emplace_back(pos_t{p[0], p[1]}, w);
+                _dense_leaves[pos].emplace_back(pos_t{p[0], p[1]}, w);
                 pos = _tree.size();
             }
             else
             {
-                auto leafs = get_leafs(pos);
+                auto leaves = get_leaves(pos);
 
-                if (!_dense_leafs[pos].empty())
+                if (!_dense_leaves[pos].empty())
                 {
-                    // move dense leafs down
-                    for (auto& leaf : _dense_leafs[pos])
+                    // move dense leaves down
+                    for (auto& leaf : _dense_leaves[pos])
                     {
                         auto& lp = get<0>(leaf);
                         auto& lw = get<1>(leaf);
-                        put_pos(leafs + get_branch(pos, lp), lp, lw);
+                        put_pos(leaves + get_branch(pos, lp), lp, lw);
                     }
-                    _dense_leafs[pos].clear();
+                    _dense_leaves[pos].clear();
                 }
-                pos = leafs + get_branch(pos, p);
+                pos = leaves + get_branch(pos, p);
             }
         }
     }
@@ -178,7 +178,7 @@ public:
 
 private:
     std::vector<TreeNode> _tree;
-    std::vector<std::vector<std::tuple<pos_t,Weight>>> _dense_leafs;
+    std::vector<std::vector<std::tuple<pos_t,Weight>>> _dense_leaves;
     size_t _max_level;
 };
 
