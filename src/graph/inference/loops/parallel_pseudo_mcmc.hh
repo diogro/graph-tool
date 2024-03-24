@@ -46,10 +46,8 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
     parallel_rng<rng_t> prng(rng_);
 
     std::mutex move_lock;
-    std::vector<std::tuple<move_t, bool>> moves(vlist.size(),
-                                                {state._null_move, false});
 
-    double Sa = state.entropy();
+    double S = 0;
 
     for (size_t iter = 0; iter < state.get_niter(); ++iter)
     {
@@ -58,7 +56,8 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
         if (!state.is_deterministic())
             std::shuffle(vlist.begin(), vlist.end(), rng_);
 
-        #pragma omp parallel for schedule(runtime) reduction(+: nattempts)
+        #pragma omp parallel for schedule(runtime) \
+            reduction(+: S, nattempts, nmoves)
         for (size_t i = 0; i < vlist.size(); ++i)
         {
             auto& rng = prng.get(rng_);
@@ -68,10 +67,7 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
             bool locked = state.stage_proposal(v, rng);
 
             if (!locked)
-            {
-                moves[i] = {state._null_move, false};
                 continue;
-            }
 
             move_t s = state.move_proposal(v, rng);
 
@@ -79,38 +75,26 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
 
             if (s == state._null_move)
             {
-                moves[i] = {s, false};
+                state.proposal_unlock(v);
                 continue;
             }
 
             auto [dS, mP] = state.virtual_move_dS(v, s);
 
-            moves[i] = {s, metropolis_accept(dS, mP, beta, rng)};
-        }
-
-        #pragma omp parallel for schedule(runtime) reduction(+: nmoves)
-        for (size_t i = 0; i < vlist.size(); ++i)
-        {
-            auto v = vlist[i];
-            auto [s, accept] = moves[i];
-
-            state.proposal_unlock(v);
-
-            if (!accept)
-                continue;
-
+            if (metropolis_accept(dS, mP, beta, rng))
             {
+                nmoves++;
                 std::unique_lock lock(move_lock);
+                std::tie(dS, mP) = state.virtual_move_dS(v, s);
+                S += dS;
                 state.perform_move(v, s, lock); // optional: unlock internally before parallel tail
             }
 
-            nmoves++;
+            state.proposal_unlock(v);
         }
     }
 
-    double Sb = state.entropy();
-
-    return make_tuple(Sb - Sa, nattempts, nmoves);
+    return make_tuple(S, nattempts, nmoves);
 }
 
 } // graph_tool namespace
