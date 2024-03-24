@@ -327,10 +327,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
     def edge_mcmc_sweep(self, beta=np.inf, niter=1, k=1, elist_args={},
                         keep_elist=False, pold=1, pnew=1, pxu=.1, pm=1,
                         premove=1, maxiter=0, tol=1e-7, binary=False,
-                        verbose=False, deterministic=None, sequential=True,
+                        verbose=False, deterministic=False, sequential=True,
                         parallel=True, **kwargs):
-        if deterministic is None:
-            deterministic = np.isinf(beta)
         kwargs = dict(**kwargs)
         entropy_args = kwargs.pop("entropy_args", {})
         elist_args = dict(elist_args, entropy_args=entropy_args)
@@ -353,10 +351,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
     @mcmc_sweep_wrap
     def swap_mcmc_sweep(self, beta=np.inf, niter=1, k=5, elist_args={},
                         keep_elist=False, pmove=1, ptmove=1, pswap=1,
-                        verbose=False, deterministic=None, sequential=True,
+                        verbose=False, deterministic=False, sequential=True,
                         parallel=True, **kwargs):
-        if deterministic is None:
-            deterministic = np.isinf(beta)
         kwargs = dict(**kwargs)
         entropy_args = kwargs.pop("entropy_args", {})
         elist_args = dict(elist_args, entropy_args=entropy_args)
@@ -433,10 +429,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
     @mcmc_sweep_wrap
     def theta_mcmc_sweep(self, beta=np.inf, niter=1, pold=1, pnew=1,
-                         maxiter=0, tol=1e-7, verbose=False, deterministic=None,
+                         maxiter=0, tol=1e-7, verbose=False, deterministic=False,
                          sequential=True, parallel=True, **kwargs):
-        if deterministic is None:
-            deterministic = np.isinf(beta)
         entropy_args = kwargs.pop("entropy_args", {})
         entropy_args = self._get_entropy_args(entropy_args)
         state = self._state
@@ -594,9 +588,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
     def get_candidate_edges(self, k=1, r=1, max_rk="k", epsilon=0.01,
                             c_stop=False, max_iter=0, knn=False, gradient=None,
                             h=1e-6, f_max_iter=10, tol=1e-6, allow_edges=False,
-                            include_edges=True, nrandom=0, keep_all=False,
-                            entropy_args={}, exact=False, return_graph=False,
-                            keep_iter=False, verbose=False):
+                            include_edges=True, use_hint=True, nrandom=0,
+                            keep_all=False, entropy_args={}, exact=False,
+                            return_graph=False, keep_iter=False, verbose=False):
         g = Graph(self.g.num_vertices(), fast_edge_removal=True)
         w = g.new_ep("double")
         ei = g.new_ep("int32_t")
@@ -620,7 +614,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
                                                 keep_iter, ea, exact, knn,
                                                 keep_all, gradient, h,
                                                 f_max_iter, tol, allow_edges,
-                                                include_edges, nrandom, verbose,
+                                                include_edges, use_hint,
+                                                nrandom, verbose,
                                                 _get_rng())
         if return_graph:
             if not knn and not self.u.is_directed():

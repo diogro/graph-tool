@@ -132,6 +132,7 @@ struct Dynamics
         DynamicsState(BlockState& block_state, ATs&&... args)
             : DynamicsStateBase<Ts...>(std::forward<ATs>(args)...),
               _block_state(block_state),
+              _dummy_hint(num_vertices(_u)),
               _xc(_x.get_checked()),
               _e_mutex(num_vertices(_u)),
               _v_mutex(num_vertices(_u))
@@ -174,6 +175,7 @@ struct Dynamics
         typedef BlockState block_state_t;
         BlockState& _block_state;
         typename BlockState::g_t& _u = _block_state._g;
+        adj_list<> _dummy_hint;
         typename BlockState::eweight_t& _eweight = _block_state._eweight;
         GraphInterface::edge_t _null_edge;
 
@@ -1112,8 +1114,8 @@ struct Dynamics
                             IMap ei, const dentropy_args_t& ea, bool exact,
                             bool knn, bool keep_all, bool gradient, double h,
                             size_t f_max_iter, double tol, bool allow_edges,
-                            bool include_edges, size_t nrandom, bool verbose,
-                            RNG& rng_)
+                            bool include_edges, bool use_hint, size_t nrandom,
+                            bool verbose, RNG& rng_)
         {
             bool directed = graph_tool::is_directed(_u);
 
@@ -1237,18 +1239,26 @@ struct Dynamics
                 {
                     if (exact)
                         n_tot = gen_k_nearest_exact<true>(g_, d, k, directed, w);
-                    else
+                    else if (use_hint)
                         std::tie(n_tot, n_iter) =
                             gen_k_nearest<true>(g_, d, k, r, max_rk, epsilon, c_stop,
                                                 max_iter, w, _u, directed, verbose, rng_);
+                    else
+                        std::tie(n_tot, n_iter) =
+                            gen_k_nearest<true>(g_, d, k, r, max_rk, epsilon, c_stop,
+                                                max_iter, w, _dummy_hint, directed,
+                                                verbose, rng_);
                 }
                 else
                 {
                     if (exact)
                         n_tot = gen_knn_exact<true>(g_, d, k, w);
-                    else
+                    else if (use_hint)
                         n_tot = gen_knn<true>(g_, d, k, r, max_rk, epsilon, c_stop,
                                               max_iter, w, _u, verbose, rng_);
+                    else
+                        n_tot = gen_knn<true>(g_, d, k, r, max_rk, epsilon, c_stop,
+                                              max_iter, w, _dummy_hint, verbose, rng_);
                 }
             }
 

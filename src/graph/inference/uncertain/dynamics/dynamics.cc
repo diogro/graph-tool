@@ -298,7 +298,7 @@ REGISTER_MOD
                                    dentropy_args_t ea, bool exact,
                                    bool knn, bool keep_all, bool gradient, double h,
                                    size_t f_max_iter, double tol, bool allow_edges,
-                                   bool include_edges,  size_t nrandom,
+                                   bool include_edges, bool use_hint, size_t nrandom,
                                    bool verbose, rng_t& rng)
                                 {
                                     typedef eprop_map_t<double>::type wmap_t;
@@ -316,14 +316,14 @@ REGISTER_MOD
                                                            w, ei, ea, exact, knn, keep_all,
                                                            gradient, h, f_max_iter, tol,
                                                            allow_edges, include_edges,
-                                                           nrandom, verbose, rng);
+                                                           use_hint, nrandom, verbose, rng);
                                              else
                                                  ret = state.template get_candidate_edges<false>
                                                           (g, k, r, max_rk, epsilon, c_stop, max_iter,
                                                            w, ei, ea, exact, knn, keep_all,
                                                            gradient, h, f_max_iter, tol,
                                                            allow_edges, include_edges,
-                                                           nrandom, verbose, rng);
+                                                           use_hint, nrandom, verbose, rng);
                                          })();
                                     return python::make_tuple(get<0>(ret), get<1>(ret), get<2>(ret));
                                 })
