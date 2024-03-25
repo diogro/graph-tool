@@ -45,7 +45,7 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
 
     parallel_rng<rng_t> prng(rng_);
 
-    std::mutex move_lock;
+    std::shared_mutex move_lock;
 
     double S = 0;
 
@@ -69,6 +69,8 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
             if (!locked)
                 continue;
 
+            std::shared_lock rlock(move_lock);
+
             move_t s = state.move_proposal(v, rng);
 
             nattempts++;
@@ -84,10 +86,14 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
             if (metropolis_accept(dS, mP, beta, rng))
             {
                 nmoves++;
-                std::unique_lock lock(move_lock);
+                rlock.unlock();
+                std::unique_lock wlock(move_lock);
                 std::tie(dS, mP) = state.virtual_move_dS(v, s);
-                S += dS;
-                state.perform_move(v, s, lock); // optional: unlock internally before parallel tail
+                if (std::isinf(beta) && dS < 0)
+                {
+                    state.perform_move(v, s, wlock); // optional: unlock internally before parallel tail
+                    S += dS;
+                }
             }
 
             state.proposal_unlock(v);
