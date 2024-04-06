@@ -1,5 +1,5 @@
-Network reconstruction
-----------------------
+Uncertain network reconstruction
+--------------------------------
 
 An important application of generative models is to be able to
 generalize from observations and make predictions that go beyond what is
@@ -69,8 +69,8 @@ and 3. Extraneously obtained edge probabilities (via
 :class:`~graph_tool.inference.UncertainBlockState`),
 which we describe in the following.
 
-In addition, it is also possible to reconstruct networks from observed
-dynamical, as described in :ref:`reconstruction_dynamics`.
+In addition, it is also possible to reconstruct networks from observed dynamics
+and behavioral observation, as described in :ref:`reconstruction_dynamics`.
 
 .. _measured_networks:
 
@@ -721,4 +721,3 @@ Which yields the following output:
    Posterior probability of non-edge (15, 73): 0.021802...
    Estimated average local clustering: 0.575943 ± 0.007209...
 
-.. include:: _reconstruction_dynamics.rst

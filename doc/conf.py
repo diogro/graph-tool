@@ -38,10 +38,10 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               #'matplotlib.sphinxext.plot_directive'
               ]
 
-mathjax_path = "MathJax/tex-chtml-full.js"
+mathjax_path = "MathJax/es5/tex-chtml-full.js"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['.templates']
+templates_path = ['_templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -148,10 +148,12 @@ html_theme_options = {
     "logo": {
         "image_light": "graph-tool-logo.svg",
         "image_dark": "graph-tool-logo.svg",
-        "text": f"""graph-tool documentation
-({version})"""
+        "text": f"""graph-tool documentation<br/>({version})"""
     }
 }
+
+html_static_path = ["_static"]
+html_css_files = ["custom.css", "fonts.css"]
 
 html_context = {
     "gitlab_url": "https://git.skewed.de",
@@ -160,6 +162,8 @@ html_context = {
     "gitlab_version": "master",
     "doc_path": "/doc"
 }
+
+navigation_with_keys = False
 
 html_logo = "graph-tool-logo.svg"
 
@@ -186,7 +190,7 @@ favicons = [
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['.static']
+html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -260,6 +264,9 @@ numpydoc_show_class_members = False
 autodoc_docstring_signature = False
 autoclass_content = 'both'
 imported_members = True
+
+add_module_names = True
+toc_object_entries_show_parents = "hide"
 
 ogp_site_url = "https://graph-tool.skewed.de/static/doc/index.html"
 ogp_image = "https://graph-tool.skewed.de/static/img/graph-tool-logo.png"

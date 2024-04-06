@@ -12,7 +12,7 @@ algorithms, are written in C++ for performance, using `template metaprogramming
 specialization, and the `Boost Graph Library <http://www.boost.org>`_.
 
 ``graph-tool`` can be `orders of magnitude faster
-<https://graph-tool.skewed.de/performance>`_ than Python-only alternatives, and
+<https://graph-tool.skewed.de/performance.html>`_ than Python-only alternatives, and
 therefore it is specially suited for large-scale network analysis.
 
 Besides superior performance, ``graph-tool`` contains the following set of
@@ -50,7 +50,7 @@ Installing graph-tool
 ---------------------
 
 Detailed installation instructions for various platforms are available `here
-<https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions>`__.
+<https://graph-tool.skewed.de/installation.html>`__.
 
 The easiest option is to use `conda <https://docs.conda.io>`__:
 

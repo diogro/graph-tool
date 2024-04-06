@@ -5,7 +5,10 @@ all: html latex test
 check: test-noninteractive test
 
 html:
-	sphinx-build -E -b html . build/html
+	sphinx-build -j auto -E -b html . build/html
+
+update:
+	sphinx-build -j auto -b html . build/html
 
 latex:
 	sphinx-build -E -b latex . build/pdf

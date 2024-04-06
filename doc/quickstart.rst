@@ -1123,8 +1123,8 @@ and likewise for the iteration over the neighborhood of a vertex:
    4
 
 
-Even faster, loopless iteration over vertices and edges using arrays
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Even faster, "loopless" iteration over vertices and edges using arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 While more convenient, looping over the graph as described in the previous
 sections are not quite the most efficient approaches to operate on graphs. This
