@@ -581,7 +581,6 @@ dist_graph_inference_uncertain_HEADERS = \
 	src/graph/inference/uncertain/uncertain_marginal.hh \
 	src/graph/inference/uncertain/uncertain_mcmc.hh \
 	src/graph/inference/uncertain/uncertain_util.hh \
-	src/graph/inference/uncertain/sample_edge.hh \
 	src/graph/inference/uncertain/sample_edge_sbm.hh
 
 noinst_HEADERS = \
