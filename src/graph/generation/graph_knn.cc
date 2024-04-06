@@ -53,7 +53,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                      auto d = make_dist_cache<is_directed_::apply<g_t>::type::value, true, false>
                          (d_e, num_vertices(g));
                      gen_knn<true>(g, d, k, r, max_rk, epsilon, c_stop,
-                                   max_iter, w, h,  verbose, rng);
+                                   max_iter, w, h, verbose, rng);
                  })();
     }
     catch (InvalidNumpyConversion&)
