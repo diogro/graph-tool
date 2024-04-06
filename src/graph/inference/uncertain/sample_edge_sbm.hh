@@ -233,11 +233,13 @@ public:
                 }
             }
 
+            r = _state._b[u];
             _v_out_sampler[r].remove(_v_out_pos[u]);
             _v_out_pos[u] = _v_out_sampler[r].insert(u, ku + 1);
 
             if (u != v || graph_tool::is_directed(_state._g))
             {
+                s = _state._b[v];
                 if (graph_tool::is_directed(_state._g))
                 {
                     _v_in_sampler[s].remove(_v_in_pos[v]);
