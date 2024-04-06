@@ -767,7 +767,7 @@ class PropertyMap(object):
         value type for the new property map.
 
         If the value type of the original map allows, the values will be passed
-        to ``f`` as a :class:`numpy.array`. Otherwise, they will be passed
+        to ``f`` as a :class:`numpy.ndarray`. Otherwise, they will be passed
         individually.
 
         If ``inplace == True`` the transformation happens in-place, without

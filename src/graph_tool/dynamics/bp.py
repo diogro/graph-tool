@@ -30,8 +30,8 @@ import numpy.random
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_dynamics as lib_dynamics")
 
-
 class BPBaseState(ABC):
+    """Base class for belief propagation (BP) states."""
 
     @abstractmethod
     def __init__(self):

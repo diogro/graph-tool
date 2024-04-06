@@ -75,6 +75,7 @@ Abstract base classes
    :toctree: autosummary
    :template: class.rst
 
+   EntropyState
    MCMCState
    MultiflipMCMCState
    MultilevelMCMCState
@@ -248,6 +249,7 @@ __all__ = ["minimize_blockmodel_dl",
            "MixedMeasuredBlockState",
            "DynamicsBlockStateBase",
            "EpidemicsBlockState",
+           "BPBlockStateBase",
            "IsingBlockStateBase",
            "IsingGlauberBlockState",
            "PseudoIsingBlockState",
@@ -263,6 +265,7 @@ __all__ = ["minimize_blockmodel_dl",
            "MeasuredClosureBlockState",
            "HistState",
            "CliqueState",
+           "EntropyState",
            "MCMCState",
            "MultiflipMCMCState",
            "MultilevelMCMCState",

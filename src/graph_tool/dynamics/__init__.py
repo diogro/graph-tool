@@ -74,6 +74,7 @@ Belief propagation
    :toctree: autosummary
    :template: class.rst
 
+   BPBaseState
    GenPottsBPState
    IsingBPState
    NormalBPState
@@ -104,7 +105,8 @@ __all__ = ["DiscreteStateBase", "EpidemicStateBase", "SIState", "SISState",
            "IsingMetropolisState", "PottsGlauberState", "PottsMetropolisState",
            "AxelrodState", "BooleanState", "KirmanState", "NormalState",
            "LinearNormalState", "GeneralizedBinaryState", "ContinuousStateBase",
-           "KuramotoState", "GenPottsBPState", "IsingBPState", "NormalBPState"]
+           "KuramotoState", "BPBaseState", "GenPottsBPState", "IsingBPState",
+           "NormalBPState"]
 
 class DiscreteStateBase(object):
     def __init__(self, g, make_state, params, s=None, stype="int32_t"):
