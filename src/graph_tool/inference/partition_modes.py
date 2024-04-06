@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Graph, _get_rng, Vector_int32_t, Vector_size_t
+from .. import Graph, PropertyMap, _get_rng, Vector_int32_t, Vector_size_t
 from . blockmodel import DictState
 from . base_states import *
 
@@ -27,6 +27,7 @@ dl_import("from . import libgraph_tool_inference as libinference")
 
 import numpy as np
 import math
+from functools import wraps
 
 class PartitionModeState(object):
     r"""The random label model state for a set of labelled partitions, which attempts
@@ -475,15 +476,52 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
                                                                   self._state,
                                                                   _get_rng())
 
+def _get_array(x):
+    if isinstance(x, PropertyMap):
+        return x.fa
+    return x
+
+def _handle_props(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        nargs = (_get_array(x) for x in args)
+        ret = func(*nargs, **kwargs)
+        if isinstance(ret, np.ndarray) and isinstance(args[0], PropertyMap):
+            nret = args[0].copy()
+            nret.fa = ret
+            return nret
+        return ret
+    return wrapper
+
+def _handle_nprops(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        nargs = ([_get_array(xl) for xl in x] for x in args)
+        ret = func(*nargs, **kwargs)
+        if isinstance(ret, list):
+            nret = []
+            for i in range(len(ret)):
+                val = ret[i]
+                if isinstance(val, np.ndarray) and isinstance(args[0][i], PropertyMap):
+                    nval = args[0][i].copy()
+                    nval.fa = val
+                    nret.append(nval)
+                else:
+                    nret.append(val)
+            return nret
+        return ret
+    return wrapper
+
+@_handle_props
 def partition_overlap(x, y, norm=True):
     r"""Returns the maximum overlap between partitions, according to an optimal
     label alignment.
 
     Parameters
     ----------
-    x : iterable of ``int`` values
+    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         First partition.
-    y : iterable of ``int`` values
+    y : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Second partition.
     norm : (optional, default: ``True``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
@@ -551,15 +589,16 @@ def partition_overlap(x, y, norm=True):
         m /= max((len(x), len(y)))
     return m
 
+@_handle_nprops
 def nested_partition_overlap(x, y, norm=True):
     r"""Returns the hierarchical maximum overlap between nested partitions, according
     to an optimal recursive label alignment.
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
         First partition.
-    y : iterable of iterables of ``int`` values
+    y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
         Second partition.
     norm : (optional, default: ``True``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
@@ -643,14 +682,15 @@ def nested_partition_overlap(x, y, norm=True):
         return 1 - (N - m) / (N - L)
     return m
 
+@_handle_props
 def contingency_graph(x, y):
     r"""Returns the contingency graph between both partitions.
 
     Parameters
     ----------
-    x : iterable of ``int`` values
+    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         First partition.
-    y : iterable of ``int`` values
+    y : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Second partition.
 
     Returns
@@ -702,17 +742,18 @@ def contingency_graph(x, y):
                                        x, y)
     return g
 
+@_handle_props
 def shuffle_partition_labels(x):
     r"""Returns a copy of partition ``x``, with the group labels randomly shuffled.
 
     Parameters
     ----------
-    x : iterable of ``int`` values
+    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap
         Partition.
 
     Returns
     -------
-    y : :class:`numpy.ndarray`
+    y : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`s
         Partition with shuffled labels.
 
     Examples
@@ -726,17 +767,18 @@ def shuffle_partition_labels(x):
     libinference.partition_shuffle_labels(x, _get_rng())
     return x
 
+@_handle_nprops
 def shuffle_nested_partition_labels(x):
     r"""Returns a copy of nested partition ``x``, with the group labels randomly shuffled.
 
     Parameters
     ----------
-    x : iterable iterable of ``int`` values
+    x : iterable iterable of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
         Partition.
 
     Returns
     -------
-    y : list of :class:`numpy.ndarray`
+    y : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`s
         Nested partition with shuffled labels.
 
     Examples
@@ -750,18 +792,19 @@ def shuffle_nested_partition_labels(x):
     x = libinference.nested_partition_shuffle_labels(x, _get_rng())
     return x
 
+@_handle_props
 def order_partition_labels(x):
     r"""Returns a copy of partition ``x``, with the group labels ordered decreasingly
     according to group size.
 
     Parameters
     ----------
-    x : iterable of ``int`` values
+    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Partition.
 
     Returns
     -------
-    y : :class:`numpy.ndarray`
+    y : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`
         Partition with ordered labels.
 
     Examples
@@ -775,18 +818,19 @@ def order_partition_labels(x):
     libinference.partition_order_labels(x)
     return x
 
+@_handle_nprops
 def order_nested_partition_labels(x):
     r"""Returns a copy of nested partition ``x``, with the group labels ordered
     decreasingly according to group size at each level.
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
         Partition.
 
     Returns
     -------
-    y : list of :class:`numpy.ndarray`
+    y : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`s
         Nested partition with ordered labels.
 
     Examples
@@ -800,20 +844,21 @@ def order_nested_partition_labels(x):
     x = libinference.nested_partition_order_labels(x)
     return x
 
+@_handle_props
 def align_partition_labels(x, y):
     r"""Returns a copy of partition ``x``, with the group labels aligned as to
     maximize the overlap with ``y``.
 
     Parameters
     ----------
-    x : iterable of ``int`` values
+    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Partition.
-    y : iterables of ``int`` values
+    y : iterables of ``int`` values or :class:`~graph_tool.PropertyMap`
         Reference partition.
 
     Returns
     -------
-    z : :class:`numpy.ndarray`
+    z : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`
         Partition ``x`` with labels aligned to ``y``.
 
     Notes
@@ -845,20 +890,21 @@ def align_partition_labels(x, y):
     libinference.align_partition_labels(x, y)
     return x
 
+@_handle_nprops
 def align_nested_partition_labels(x, y):
     r"""Returns a copy of nested partition ``x``, with the group labels aligned as to
     maximize the overlap with ``y``.
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
         Nexted partition.
-    y : iterable of iterables of ``int`` values
+    y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
         Reference nested partition.
 
     Returns
     -------
-    z : list of :class:`numpy.ndarray`
+    z : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`s
         Nested partition ``x`` with labels aligned to ``y``.
 
     Notes
@@ -890,7 +936,7 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
 
     Parameters
     ----------
-    bs : list of iterables of ``int`` values
+    bs : list of iterables of ``int`` values or list of :class:`~graph_tool.PropertyMap`s
         List of partitions.
     init : iterable of ``int`` values (optional, default: ``None``)
         If given, it will determine the initial partition.
@@ -960,9 +1006,8 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
     """
 
-    if relabel_bs:
-        bs = np.asarray(bs, dtype="int32")
-    else:
+    bs = _get_array(bs)
+    if not relabel_bs:
         bs = np.array(bs, dtype="int32")
     if init is None:
         c = np.zeros(len(bs[0]), dtype="int32")
@@ -978,7 +1023,7 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
 
     Parameters
     ----------
-    bs : list of list of iterables of ``int`` values
+    bs : list of list of iterables of ``int`` values or list of list of :class:`~graph_tool.PropertyMap`s
         List of nested partitions.
     init : iterable of iterables of ``int`` values (optional, default: ``None``)
         If given, it will determine the initial nested partition.
@@ -1051,7 +1096,7 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
     """
 
-    bs = [[np.asarray(bs[m][l], dtype="int32") for l in range(len(bs[m]))] for m in range(len(bs))]
+    bs = [[_get_array(bs[m][l]) for l in range(len(bs[m]))] for m in range(len(bs))]
     if init is None:
         c = [np.zeros(len(bs[0][l]), dtype="int32") for l in range(len(bs[0]))]
     else:
@@ -1062,13 +1107,14 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
     else:
         return c, r
 
+@_handle_nprops
 def nested_partition_clear_null(x):
     r"""Returns a copy of nested partition ``x`` where the null values ``-1`` are
     replaced with ``0``.
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values
+    x : iterable of iterables of ``int`` values or list of :class:`~graph_tool.PropertyMap`s
         Partition.
 
     Returns
