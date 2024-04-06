@@ -104,7 +104,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
        For a more detailed explanation see `“Modularity maximization
        considered harmful”
        <https://skewed.de/tiago/blog/modularity-harmful>`_, as well as
-       [peixoto-descriptive-2021]_.
+       [peixoto-descriptive-2023]_.
 
        Do not use this approach in the analysis of networks without
        understanding the consequences. This algorithm is included only for

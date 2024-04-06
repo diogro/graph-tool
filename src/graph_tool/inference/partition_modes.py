@@ -596,9 +596,9 @@ def nested_partition_overlap(x, y, norm=True):
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         First partition.
-    y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
+    y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         Second partition.
     norm : (optional, default: ``True``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
@@ -748,12 +748,12 @@ def shuffle_partition_labels(x):
 
     Parameters
     ----------
-    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap
+    x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Partition.
 
     Returns
     -------
-    y : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`s
+    y : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`
         Partition with shuffled labels.
 
     Examples
@@ -773,12 +773,12 @@ def shuffle_nested_partition_labels(x):
 
     Parameters
     ----------
-    x : iterable iterable of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
+    x : iterable iterable of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         Partition.
 
     Returns
     -------
-    y : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`s
+    y : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`
         Nested partition with shuffled labels.
 
     Examples
@@ -825,12 +825,12 @@ def order_nested_partition_labels(x):
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         Partition.
 
     Returns
     -------
-    y : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`s
+    y : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`
         Nested partition with ordered labels.
 
     Examples
@@ -897,14 +897,14 @@ def align_nested_partition_labels(x, y):
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
-        Nexted partition.
-    y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`s
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
+        Nested partition.
+    y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         Reference nested partition.
 
     Returns
     -------
-    z : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`s
+    z : list of :class:`numpy.ndarray` or list of :class:`~graph_tool.PropertyMap`
         Nested partition ``x`` with labels aligned to ``y``.
 
     Notes
@@ -936,7 +936,7 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
 
     Parameters
     ----------
-    bs : list of iterables of ``int`` values or list of :class:`~graph_tool.PropertyMap`s
+    bs : list of iterables of ``int`` values or list of :class:`~graph_tool.PropertyMap`
         List of partitions.
     init : iterable of ``int`` values (optional, default: ``None``)
         If given, it will determine the initial partition.
@@ -1023,7 +1023,7 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
 
     Parameters
     ----------
-    bs : list of list of iterables of ``int`` values or list of list of :class:`~graph_tool.PropertyMap`s
+    bs : list of list of iterables of ``int`` values or list of list of :class:`~graph_tool.PropertyMap`
         List of nested partitions.
     init : iterable of iterables of ``int`` values (optional, default: ``None``)
         If given, it will determine the initial nested partition.
@@ -1114,7 +1114,7 @@ def nested_partition_clear_null(x):
 
     Parameters
     ----------
-    x : iterable of iterables of ``int`` values or list of :class:`~graph_tool.PropertyMap`s
+    x : iterable of iterables of ``int`` values or list of :class:`~graph_tool.PropertyMap`
         Partition.
 
     Returns
