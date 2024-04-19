@@ -97,10 +97,14 @@ class PartitionModeState(object):
     def add_partition(self, b, relabel=True):
         r"""Adds partition ``b`` to the ensemble, after relabelling it if
         ``relabel=True``, and returns its index in the population."""
+        def c(x):
+            if isinstance(x, PropertyMap):
+                return x.fa
+            return x
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int32_t(init=c(x)) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int32_t(init=c(b))]
         i = self._base.add_partition(b, relabel)
         self.bs[i] = b
         return i
@@ -424,8 +428,8 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         r"""Return the description length (negative joint log-likelihood)."""
         return self._state.entropy()
 
-    def _gen_args(self, args):
-        return DictState({})
+    def _gen_eargs(self, eargs):
+        return ""
 
     def posterior_entropy(self, MLE=True):
         r"""Return the entropy of the random label model, using maximum likelihood
@@ -1096,7 +1100,7 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
     """
 
-    bs = [[_get_array(bs[m][l]) for l in range(len(bs[m]))] for m in range(len(bs))]
+    bs = [[np.asarray(_get_array(bs[m][l]), dtype="int32") for l in range(len(bs[m]))] for m in range(len(bs))]
     if init is None:
         c = [np.zeros(len(bs[0][l]), dtype="int32") for l in range(len(bs[0]))]
     else:
