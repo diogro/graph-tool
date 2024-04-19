@@ -230,7 +230,7 @@ struct LatentClosure
         typename vprop_map_t<int32_t>::type::unchecked_t _E;
         size_t _Nm = 0;
         size_t _Ne = 0;
-        size_t _i;
+        size_t _i = std::numeric_limits<size_t>::max();
 
         void set_cstates(std::vector<LatentClosureState*>& cstates)
         {
@@ -331,6 +331,8 @@ struct LatentClosure
                 auto me = get_m(u, v, true);
                 if (!me.empty())
                     _i = uniform_sample(me, rng);
+                else
+                    _i = std::numeric_limits<size_t>::max();
             }
 
             if (_l + 1 < _L)
@@ -565,6 +567,8 @@ struct LatentClosure
         template <bool Add, class Edge>
         void modify_edge_g(size_t u, size_t v, Edge& new_e)
         {
+            assert (_i != std::numeric_limits<size_t>::max());
+
             auto e = edge(u, v, _gc);
             if (!e.second)
             {

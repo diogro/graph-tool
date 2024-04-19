@@ -297,12 +297,12 @@ class LatentClosureBlockState(LatentLayerBaseState):
             self.ew[0] = self.bstate.eweight
             self.b = self.bstate.b
 
-        self._entropy_args.update(self.bstate._entropy_args)
-
         if nested:
             self.pstate = self.bstate.levels[0]
         else:
             self.pstate = self.bstate
+
+        self._entropy_args.update(self.pstate._entropy_args)
 
         self.aE = aE
         if numpy.isnan(aE):
@@ -389,9 +389,10 @@ class LatentClosureBlockState(LatentLayerBaseState):
             (", ".join([str(w.fa.sum()) for w in self.ew[1:]]), repr(self.bstate), id(self))
 
     @copy_state_wrap
-    def _entropy(self, latent_edges=True, density=True, **kwargs):
+    def _entropy(self, latent_edges=True, density=False, aE=1., sbm=True, **kwargs):
         """Return the entropy, i.e. negative log-likelihood."""
-        S = self._state.entropy(latent_edges, density)
+        eargs = self._get_entropy_args(locals())
+        S = self._state.entropy(eargs)
         S += self.bstates[0].entropy(**kwargs)
         for s in self._cstates[1:]:
             S += s.entropy()

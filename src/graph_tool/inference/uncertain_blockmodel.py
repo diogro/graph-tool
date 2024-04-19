@@ -727,9 +727,11 @@ class MixedMeasuredBlockState(UncertainBaseState):
 
             density = False
 
-            Sb = self._state.entropy(latent_edges, density)
+            ea = self._gen_eargs(dict(latent_edges=latent_edges,
+                                      density=density))
+            Sb = self._state.entropy(ea)
             self.set_hparams(*hs)
-            Sa = self._state.entropy(latent_edges, density)
+            Sa = self._state.entropy(ea)
 
             nt += 1
             if Sa < Sb or numpy.random.random() < exp(-(Sa-Sb) + log(pb) - log(pf)):

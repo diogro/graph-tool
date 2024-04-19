@@ -117,10 +117,10 @@ struct Uncertain
             return _get_edge<insert>(u, v, _g, _edges);
         }
 
-        double entropy(bool latent_edges, bool density, double aE)
+        double entropy(const uentropy_args_t& ea)
         {
             double S = 0;
-            if (latent_edges)
+            if (ea.latent_edges)
             {
                 for (auto m : edges_range(_g))
                 {
@@ -146,8 +146,8 @@ struct Uncertain
                 S += _S_const;
             }
 
-            if (density)
-                S += _E * log(aE) - lgamma_fast(_E + 1) + aE;
+            if (ea.density)
+                S += _E * log(ea.aE) - lgamma_fast(_E + 1) + ea.aE;
 
             return -S;
         }

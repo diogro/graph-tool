@@ -212,9 +212,13 @@ struct MCMC
                     size_t k1 = 0, k2 = 0;
                     for (size_t i = 0; i < m; ++i)
                     {
-                        dS += _state.remove_edge_dS(l, u, v, _entropy_args);
-                        if (std::isinf(dS))
+                        double ddS = _state.remove_edge_dS(l, u, v, _entropy_args);
+                        if (std::isinf(ddS))
+                        {
+                            dS = std::numeric_limits<double>::infinity();
                             break;
+                        }
+                        dS += ddS;
                         _state.remove_edge(l, u, v);
                         ++k1;
                     }
@@ -223,9 +227,13 @@ struct MCMC
                     {
                         for (size_t i = 0; i < m; ++i)
                         {
-                            dS += _state.add_edge_dS(nl, u, v, _entropy_args);
-                            if (std::isinf(dS))
+                            double ddS = _state.add_edge_dS(nl, u, v, _entropy_args);
+                            if (std::isinf(ddS))
+                            {
+                                dS = std::numeric_limits<double>::infinity();
                                 break;
+                            }
+                            dS += ddS;
                             _state.add_edge(nl, u, v);
                             ++k2;
                         }
