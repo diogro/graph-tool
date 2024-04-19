@@ -22,6 +22,7 @@ from .. import Vector_size_t, Vector_double
 
 import numpy
 from . util import *
+from . base_states import *
 from . nested_blockmodel import NestedBlockState
 
 def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
@@ -51,8 +52,9 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
         If ``True``, each step will call ``state.gibbs_sweep`` instead of
         ``state.mcmc_sweep``.
     multiflip : ``bool`` (optional, default: ``True``)
-        If ``True``, each step will call ``state.multiflip_mcmc_sweep`` instead of
-        ``state.mcmc_sweep``.
+        If ``True`` and ``state`` is an instance of
+        :class:`~graph_tool.inference.MultiflipMCMCState`, each step will call
+        ``state.multiflip_mcmc_sweep`` instead of ``state.mcmc_sweep``.
     mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to ``state.mcmc_sweep`` (or ``state.gibbs_sweep``).
     history : ``bool`` (optional, default: ``False``)
@@ -119,7 +121,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     while count < wait:
         if gibbs:
             delta, nattempts, nmoves = state.gibbs_sweep(**mcmc_args)
-        elif multiflip:
+        elif multiflip and hasattr(state, "multiflip_mcmc_sweep"):
             delta, nattempts, nmoves = state.multiflip_mcmc_sweep(**mcmc_args)
         else:
             delta, nattempts, nmoves = state.mcmc_sweep(**mcmc_args)
