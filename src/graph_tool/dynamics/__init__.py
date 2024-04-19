@@ -143,6 +143,10 @@ class DiscreteStateBase(object):
         """Returns list of "active" nodes, for states where this concept is used."""
         return self._state.get_active()
 
+    def set_active(self, active):
+        """Sets the list of "active" nodes, for states where this concept is used."""
+        self._state.set_active(numpy.asarray(active, dtype="int64"), _get_rng())
+
     def reset_active(self):
         """Resets list of "active" nodes, for states where this concept is used."""
         self._state.reset_active(_get_rng())
@@ -154,7 +158,6 @@ class DiscreteStateBase(object):
 
         If enabled during compilation, this algorithm runs in parallel
         (i.e. using more than one thread.)
-
         """
         return self._state.iterate_sync(niter, _get_rng())
 

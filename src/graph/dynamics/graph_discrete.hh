@@ -1162,8 +1162,7 @@ size_t discrete_iter_sync(Graph& g, State state, size_t niter, RNG& rng_)
         if (active.empty())
             break;
 
-        #pragma omp parallel if (active.size() > OPENMP_MIN_THRESH)     \
-             firstprivate(state) reduction(+:nflips)
+        #pragma omp parallel firstprivate(state) reduction(+:nflips)
         parallel_loop_no_spawn
             (active,
              [&] (auto, auto v)

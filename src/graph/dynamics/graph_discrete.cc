@@ -58,6 +58,15 @@ public:
         std::shuffle(active.begin(), active.end(), rng);
     }
 
+    void set_active(boost::python::object oa, rng_t& rng)
+    {
+        auto a = get_array<int64_t, 1>(oa);
+        auto& active = *_state._active;
+        active.clear();
+        active.insert(active.end(), a.begin(), a.end());
+        std::shuffle(active.begin(), active.end(), rng);
+    }
+
     python::object get_active()
     {
         return wrap_vector_not_owned(*_state._active);
@@ -82,6 +91,7 @@ public:
              python::init<Graph&, smap_t, smap_t, python::dict, rng_t&>())
             .def("reset_active", &WrappedState<Graph,State>::reset_active)
             .def("get_active", &WrappedState<Graph,State>::get_active)
+            .def("set_active", &WrappedState<Graph,State>::set_active)
             .def("iterate_sync", &WrappedState<Graph,State>::iterate_sync)
             .def("iterate_async", &WrappedState<Graph,State>::iterate_async);
     }
