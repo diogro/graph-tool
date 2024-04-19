@@ -110,8 +110,8 @@ show in the example below.
 
 .. testoutput:: model-evidence
 
-   Model log-evidence for deg_corr = True: -678.153636...
-   Model log-evidence for deg_corr = False: -673.376428...
+   Model log-evidence for deg_corr = True: -679.235944...
+   Model log-evidence for deg_corr = False: -673.018588...
 
 The outcome shows a preference for the non-degree-corrected model.
 
@@ -143,10 +143,10 @@ approach for the same network, using the nested model.
            bs.append(s.get_state())
            dls.append(s.entropy())
 
-       # Now we collect 2000 partitions; but the larger this is, the
+       # Now we collect 5000 partitions; but the larger this is, the
        # more accurate will be the calculation
        
-       gt.mcmc_equilibrate(state, force_niter=2000, mcmc_args=dict(niter=10),
+       gt.mcmc_equilibrate(state, force_niter=5000, mcmc_args=dict(niter=10),
                            callback=collect_partitions)
 
        # Infer partition modes
@@ -168,11 +168,11 @@ approach for the same network, using the nested model.
 
 .. testoutput:: nested-model-evidence
 
-   Model log-evidence for deg_corr = True: -664.271777...
-   Model log-evidence for deg_corr = False: -655.768987...
+   Model log-evidence for deg_corr = True: -664.838927...
+   Model log-evidence for deg_corr = False: -658.156320...
 
-The results are similar: The non-degree-corrected model possesses the
-largest evidence. Note also that we observe a better evidence for the
-nested models themselves, when comparing to the evidences for the
-non-nested model --- which is not quite surprising, since the non-nested
-model is a special case of the nested one.
+The situation is now inverted: The degree-corrected model possesses the largest
+evidence. Note also that we observe a better evidence for the nested models
+themselves, when comparing to the evidences for the non-nested model --- which
+is not quite surprising, since the non-nested model is a special case of the
+nested one.

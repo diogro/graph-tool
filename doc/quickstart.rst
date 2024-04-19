@@ -626,6 +626,14 @@ these communities. We can do so by computing the `betweenness centrality
 This returns an vertex and edge property map with the respective betweenness
 values. We can visualize them with:
 
+.. tip::
+   :class: margin
+
+   The function :func:`~graph_tool.draw.prop_to_size` provides a convenient way
+   to transformation the property map values to ranges more appropriate for
+   sizes in :func:`~graph_tool.draw.graph_draw`. See also
+   :ref:`sec_property_trans`.
+
 .. doctest:: facebook
 
    >>> graph_draw(g, g.vp._pos, vertex_fill_color=prop_to_size(vb, 0, 1, power=.1),
@@ -763,6 +771,38 @@ Property maps with scalar value types can also be accessed as a
 
     # or more conveniently (this is equivalent to the above)
     vprop.a = random(g.num_vertices())
+
+.. _sec_property_trans:
+
+Transformations
+^^^^^^^^^^^^^^^
+
+We usually want to apply transformations to the values of property maps. This
+can be achieved via iteration (see :ref:`sec_iteration`), but since this is a
+such a common operation, there's a more convenient way to do this via the
+:meth:`~graph_tool.PropertyMap.transform` method (or is shorter alias
+:meth:`~graph_tool.PropertyMap.t`), which takes a function and returns a
+copy of the property map with the function applied to its values:
+
+.. doctest:: facebook
+    from numpy import abs
+    from numpy.random import random
+
+    # Vertex property map with random values in the range [-.5, .5]
+    rand = g.new_vp("double", vals=random(g.num_vertices()) - .5)
+
+    # The following returns a copy of `rand` but containing only the absolute values
+    m = rand.t(abs)
+
+.. tip::
+
+   Transformations are particularly useful to pass temporary properties to
+   functions, e.g.
+
+   .. doctest:: facebook
+
+      erand = g.new_ep("double", vals=random(g.num_edges()) - .5)
+      pos = sfdp_layout(g, eweight=erand.t(abs))
 
 .. _sec_internal_props:
 

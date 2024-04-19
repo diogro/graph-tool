@@ -60,8 +60,8 @@ from a random partition into 20 groups
 
 .. testoutput:: model-averaging
 
-   Change in description length: -67.747649...
-   Number of accepted vertex moves: 143407
+   Change in description length: -87.911162...
+   Number of accepted vertex moves: 116620
 
 Although the above is sufficient to implement sampling from the
 posterior, there is a convenience function called
@@ -195,8 +195,8 @@ network as above.
 
 .. testoutput:: nested-model-averaging
 
-   Change in description length: -76.639728...
-   Number of accepted vertex moves: 465959
+   Change in description length: -63.576553...
+   Number of accepted vertex moves: 495367
 
 .. warning::
 
@@ -340,6 +340,16 @@ clusters. Collective, such "modes" represent the different stories that
 the data is telling us through the model. Here is an example using again
 the Les Misérables network:
 
+.. testsetup:: partition-modes
+
+   import os
+   try:
+      os.chdir("demos/inference")
+   except FileNotFoundError:
+       pass
+   np.random.seed(42)
+   gt.seed_rng(42)
+
 .. testcode:: partition-modes
 
    g = gt.collection.data["lesmis"]
@@ -383,19 +393,18 @@ corresponding to their collective posterior probability.
 
 .. testoutput:: partition-modes
 
-    Mode 0 with size 0.625625...
-    Mode 1 with size 0.309309...
-    Mode 2 with size 0.065065...
+    Mode 0 with size 0.462462...
+    Mode 1 with size 0.343343...
+    Mode 2 with size 0.117117...
+    Mode 3 with size 0.077077...
 
 Below are the marginal node distributions representing the partitions that belong to each inferred mode:
        
 .. image:: lesmis-partition-mode-0.svg
-   :width: 19%
+   :width: 24%
 .. image:: lesmis-partition-mode-1.svg
-   :width: 19%
+   :width: 24%
 .. image:: lesmis-partition-mode-2.svg
-   :width: 19%
+   :width: 24%
 .. image:: lesmis-partition-mode-3.svg
-   :width: 19%
-.. image:: lesmis-partition-mode-4.svg
-   :width: 19%
+   :width: 24%

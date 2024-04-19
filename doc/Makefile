@@ -14,7 +14,7 @@ latex:
 	sphinx-build -E -b latex . build/pdf
 
 test:
-	sphinx-build -b doctest . build/test
+	sphinx-build -j auto -b doctest . build/test
 
 test-noninteractive:
 	sphinx-build -b doctest . build/test-ni *.rst demos/inference/inference.rst

@@ -21,8 +21,8 @@ network of American football teams, which we load from the
       os.chdir("demos/inference")
    except FileNotFoundError:
        pass
-   np.random.seed(42)
-   gt.seed_rng(42)
+   np.random.seed(43)
+   gt.seed_rng(43)
 
 .. testcode:: football
 
@@ -95,7 +95,7 @@ which yields:
 
 .. testoutput:: football
 
-   99
+   4
 
 .. note::
 
@@ -190,7 +190,7 @@ clustering using the
    Most likely hierarchical partition of the neural network of
    the *C. elegans* worm according to the nested degree-corrected SBM.
 
-.. note::
+.. tip::
 
    If the ``output`` parameter to
    :meth:`~graph_tool.inference.NestedBlockState.draw` is omitted, an
@@ -207,9 +207,9 @@ which shows the number of nodes and groups in all levels:
 
 .. testoutput:: celegans
 
-   l: 0, N: 297, B: 24
-   l: 1, N: 24, B: 8
-   l: 2, N: 8, B: 3
+   l: 0, N: 297, B: 22
+   l: 1, N: 22, B: 9
+   l: 2, N: 9, B: 3
    l: 3, N: 3, B: 1
    l: 4, N: 1, B: 1
 
@@ -227,10 +227,10 @@ The hierarchical levels themselves are represented by individual
 
 .. testoutput:: celegans
 
-   <BlockState object with 297 blocks (24 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges, 2 internal vertex properties, 1 internal edge property, 2 internal graph properties, at 0x...>, at 0x...>
-   <BlockState object with 24 blocks (8 nonempty), for graph <Graph object, directed, with 297 vertices and 271 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-   <BlockState object with 8 blocks (3 nonempty), for graph <Graph object, directed, with 24 vertices and 49 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-   <BlockState object with 3 blocks (1 nonempty), for graph <Graph object, directed, with 8 vertices and 9 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+   <BlockState object with 297 blocks (22 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges, 2 internal vertex properties, 1 internal edge property, 2 internal graph properties, at 0x...>, at 0x...>
+   <BlockState object with 22 blocks (9 nonempty), for graph <Graph object, directed, with 297 vertices and 235 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+   <BlockState object with 9 blocks (3 nonempty), for graph <Graph object, directed, with 22 vertices and 73 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+   <BlockState object with 3 blocks (1 nonempty), for graph <Graph object, directed, with 9 vertices and 9 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
    <BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 3 vertices and 1 edge, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
 
 This means that we can inspect the hierarchical partition just as before:
@@ -246,9 +246,9 @@ This means that we can inspect the hierarchical partition just as before:
 
 .. testoutput:: celegans
 
-   248
-   14
-   4
+   209
+   13
+   5
 
 Refinements using merge-split MCMC
 ++++++++++++++++++++++++++++++++++
@@ -283,7 +283,7 @@ to the above minimization for the `C. elegans` network is the following:
 
 .. testoutput:: celegans-mcmc
 
-   Improvement: -81.412028...
+   Improvement: -78.222240...
 
 Whenever possible, this procedure should be repeated several times, and
 the result with the smallest description length (obtained via the

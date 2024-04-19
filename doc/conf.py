@@ -135,7 +135,7 @@ html_theme_options = {
         {
             "name": "graph-tool",
             "url": "https://graph-tool.skewed.de",
-            "icon": "_static/graph-tool-logo.svg",
+            "icon": "_static/graph-tool-logo-circle.svg",
             "type": "local",
         },
     ],
@@ -146,8 +146,8 @@ html_theme_options = {
     "show_toc_level": 4,
     'use_sidenotes': True,
     "logo": {
-        "image_light": "graph-tool-logo.svg",
-        "image_dark": "graph-tool-logo.svg",
+        "image_light": "_static/graph-tool-logo-circle.svg",
+        "image_dark": "_static/graph-tool-logo-circle.svg",
         "text": f"""graph-tool documentation<br/>({version})"""
     }
 }
@@ -165,7 +165,7 @@ html_context = {
 
 navigation_with_keys = False
 
-html_logo = "graph-tool-logo.svg"
+html_logo = "_static/graph-tool-logo-circle.svg"
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
