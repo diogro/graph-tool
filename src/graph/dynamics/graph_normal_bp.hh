@@ -37,13 +37,14 @@ public:
     typedef vprop_map_t<double>::type::unchecked_t vmap_t;
     typedef eprop_map_t<double>::type::unchecked_t emap_t;
     typedef eprop_map_t<std::vector<double>>::type::unchecked_t emmap_t;
+    typedef vprop_map_t<uint8_t>::type::unchecked_t vfmap_t;
 
     template <class Graph, class RNG>
     NormalBPState(Graph& g, emap_t x, vmap_t mu, vmap_t theta, emmap_t em_m,
                   emmap_t em_s, vmap_t vm_m, vmap_t vm_s, bool marginal_init,
-                  RNG&)
+                  vfmap_t frozen, RNG&)
         : _x(x), _mu(mu), _theta(theta), _em_m(em_m), _em_s(em_s), _vm_m(vm_m),
-          _vm_s(vm_s)
+          _vm_s(vm_s), _frozen(frozen)
     {
         std::normal_distribution<> mrand(0, 1);
         std::exponential_distribution<> srand(1);
@@ -93,6 +94,7 @@ public:
         else
             return m[1];
     }
+
     template <class Graph>
     std::tuple<double, double>
     get_sums(Graph& g, size_t s, size_t t)
@@ -136,8 +138,12 @@ public:
         auto& mvu_m = get_message(g, e, me_m, v);
         auto& muv_s = get_message(g, e, me_s, u);
         auto& mvu_s = get_message(g, e, me_s, v);
-        return (update_message(g, muv_m, muv_s, u, v) +
-                update_message(g, mvu_m, mvu_s, v, u));
+        double delta = 0;
+        if (!_frozen[v])
+            delta += update_message(g, muv_m, muv_s, u, v);
+        if (!_frozen[u])
+            delta += update_message(g, mvu_m, mvu_s, v, u);
+        return delta;
     }
 
     template <class Graph>
@@ -205,6 +211,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  auto [mt, st] = get_sums(g, v, _null);
                  double a = (_theta[v] - st)/2;
                  double b = mt - _mu[v];
@@ -219,15 +227,25 @@ public:
                  auto u = source(e, g);
                  auto v = target(e, g);
                  auto [mt, st] = get_sums(g, u, v);
-                 double a = (_theta[u] - st)/2;
-                 double b = mt - _mu[u];
-                 auto lZ_e = (b * b)/(4 * a) - log(a)/2 + log(M_PI)/2;
 
-                 std::tie(mt, st) = get_sums(g, u, _null);
-                 a = (_theta[u] - st)/2;
-                 b = mt - _mu[u];
-                 auto lZ_u = (b * b)/(4 * a) - log(a)/2 + log(M_PI)/2;
-                 lZ -= lZ_u - lZ_e;
+                 auto get_lZ =
+                     [&](auto w)
+                     {
+                         double a = (_theta[w] - st)/2;
+                         double b = mt - _mu[w];
+                         auto lZ_e = (b * b)/(4 * a) - log(a)/2; //+ log(M_PI)/2;
+
+                         std::tie(mt, st) = get_sums(g, w, _null);
+                         a = (_theta[w] - st)/2;
+                         b = mt - _mu[w];
+                         auto lZ_w = (b * b)/(4 * a) - log(a)/2; //+ log(M_PI)/2;
+                         return lZ_w - lZ_e;
+                     };
+
+                 if (!_frozen[u])
+                     lZ -= get_lZ(u);
+                 else if (!_frozen[v])
+                     lZ -= get_lZ(v);
              });
 
         return lZ;
@@ -242,6 +260,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  auto sv = s[v];
                  H += (_theta[v] * sv * sv) / 2 - _mu[v] * sv;
 
@@ -254,6 +274,8 @@ public:
              {
                  auto u = source(e, g);
                  auto v = target(e, g);
+                 if (_frozen[u] && _frozen[v])
+                     return;
                  H += _x[e] * s[u] * s[v];
              });
 
@@ -269,6 +291,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  for (auto s : ss[v])
                      H += (_theta[v] * s * s) / 2 - _mu[v] * s;
              });
@@ -280,6 +304,8 @@ public:
              {
                  auto u = source(e, g);
                  auto v = target(e, g);
+                 if (_frozen[u] && _frozen[v])
+                     return;
                  auto& s_u = ss[u];
                  auto& s_v = ss[v];
                  auto xe = _x[e];
@@ -299,6 +325,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  auto m_m = _vm_m[v];
                  auto m_s = _vm_s[v];
                  double a = (s[v] - m_m);
@@ -316,6 +344,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  auto m_m = _vm_m[v];
                  auto m_s = _vm_s[v];
                  for (auto s : ss[v])
@@ -351,6 +381,7 @@ private:
     emmap_t _temp_s;
     vmap_t _vm_m;
     vmap_t _vm_s;
+    vfmap_t _frozen;
     constexpr static size_t _null = std::numeric_limits<size_t>::max();
 };
 

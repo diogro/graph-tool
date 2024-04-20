@@ -38,11 +38,14 @@ public:
     typedef vprop_map_t<std::vector<double>>::type::unchecked_t vmmap_t;
     typedef eprop_map_t<double>::type::unchecked_t emap_t;
     typedef vprop_map_t<std::vector<double>>::type::unchecked_t vmap_t;
+    typedef vprop_map_t<uint8_t>::type::unchecked_t vfmap_t;
 
     template <class Graph, class RNG>
-    PottsBPState(Graph& g, boost::multi_array_ref<double, 2> f, emap_t x, vmap_t theta,
-                 emmap_t em, vmmap_t vm, bool marginal_init, RNG& rng)
-        : _f(f), _x(x), _theta(theta), _em(em), _vm(vm), _q(f.shape()[0])
+    PottsBPState(Graph& g, boost::multi_array_ref<double, 2> f, emap_t x,
+                 vmap_t theta, emmap_t em, vmmap_t vm, bool marginal_init,
+                 vfmap_t frozen, RNG& rng)
+        : _f(f), _x(x), _theta(theta), _em(em), _vm(vm), _q(f.shape()[0]),
+          _frozen(frozen)
     {
         std::uniform_real_distribution<> rand;
 
@@ -61,6 +64,7 @@ public:
 
         for (auto e : edges_range(g))
         {
+            _em[e].resize(2 * (_q + 1));
             if (marginal_init)
             {
                 auto u = source(e, g);
@@ -75,7 +79,6 @@ public:
             }
             else
             {
-                _em[e].resize(2 * (_q + 1));
                 for (size_t r = 0; r < _q; ++r)
                 {
                     _em[e][r] = log(rand(rng));
@@ -159,8 +162,12 @@ public:
         auto v = target(e, g);
         auto muv = get_message(g, e, me, u);
         auto mvu = get_message(g, e, me, v);
-        return (update_message(g, muv, u, v) +
-                update_message(g, mvu, v, u));
+        double delta = 0;
+        if (!_frozen[v])
+            delta += update_message(g, muv, u, v);
+        if (!_frozen[u])
+            delta += update_message(g, mvu, v, u);
+        return delta;
     }
 
     template <class Graph>
@@ -170,6 +177,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  auto m = _vm[v].begin();
                  update_message(g, m, v, _null);
              });
@@ -225,6 +234,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  update_message(g, _vm[v].begin(), v, _null);
                  lZ += _vm[v][_q];
              });
@@ -235,8 +246,17 @@ public:
              [&] (const auto& e)
              {
                  auto u = source(e, g);
-                 auto muv = get_message(g, e, _em, u);
-                 lZ -= _vm[u][_q] - *(muv + _q);
+                 auto v = target(e, g);
+                 if (!_frozen[u])
+                 {
+                     auto muv = get_message(g, e, _em, u);
+                     lZ -= _vm[u][_q] - *(muv + _q);
+                 }
+                 else if (!_frozen[v])
+                 {
+                     auto mvu = get_message(g, e, _em, v);
+                     lZ -= _vm[v][_q] - *(mvu + _q);
+                 }
              });
 
         return lZ;
@@ -251,6 +271,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  H += _theta[v][s[v]];
              });
 
@@ -261,6 +283,8 @@ public:
              {
                  auto u = source(e, g);
                  auto v = target(e, g);
+                 if (_frozen[u] && _frozen[v])
+                     return;
                  H += _x[e] * _f[s[u]][s[v]];
              });
 
@@ -276,6 +300,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  for (auto s : ss[v])
                      H += _theta[v][s];
              });
@@ -287,6 +313,8 @@ public:
              {
                  auto u = source(e, g);
                  auto v = target(e, g);
+                 if (_frozen[u] && _frozen[v])
+                     return;
                  auto& s_u = ss[u];
                  auto& s_v = ss[v];
                  auto xe = _x[e];
@@ -306,6 +334,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  L += _vm[v][s[v]];
              });
         return L;
@@ -320,6 +350,8 @@ public:
             (g,
              [&] (auto v)
              {
+                 if (_frozen[v])
+                     return;
                  for (auto s : ss[v])
                      L += _vm[v][s];
              });
@@ -357,6 +389,7 @@ private:
     emmap_t _temp;
     vmmap_t _vm;
     size_t _q;
+    vfmap_t _frozen;
     constexpr static size_t _null = std::numeric_limits<size_t>::max();
     constexpr static double _inf = std::numeric_limits<double>::infinity();
 };

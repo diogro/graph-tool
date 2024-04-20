@@ -34,10 +34,11 @@ using namespace boost;
 using namespace graph_tool;
 
 python::object make_normal_bp_state(GraphInterface& gi, boost::any ax,
-                                      boost::any amu, boost::any atheta,
-                                      boost::any aem_m, boost::any aem_s,
-                                      boost::any avm_m, boost::any avm_s,
-                                      bool marginal_init, rng_t& rng)
+                                    boost::any amu, boost::any atheta,
+                                    boost::any aem_m, boost::any aem_s,
+                                    boost::any avm_m, boost::any avm_s,
+                                    bool marginal_init,
+                                    boost::any afrozen, rng_t& rng)
 {
     NormalBPState::emap_t x =
         boost::any_cast<NormalBPState::emap_t::checked_t>(ax).get_unchecked();
@@ -53,6 +54,8 @@ python::object make_normal_bp_state(GraphInterface& gi, boost::any ax,
         boost::any_cast<NormalBPState::vmap_t::checked_t>(avm_m).get_unchecked();
     NormalBPState::vmap_t vm_s =
         boost::any_cast<NormalBPState::vmap_t::checked_t>(avm_s).get_unchecked();
+    NormalBPState::vfmap_t frozen =
+        boost::any_cast<NormalBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
 
     python::object state;
     run_action<>()
@@ -60,8 +63,8 @@ python::object make_normal_bp_state(GraphInterface& gi, boost::any ax,
          [&](auto& g)
          {
              state = python::object(NormalBPState(g, x, mu, theta, em_m, em_s,
-                                                    vm_m, vm_s, marginal_init,
-                                                    rng));
+                                                  vm_m, vm_s, marginal_init,
+                                                  frozen, rng));
          })();
     return state;
 }

@@ -157,7 +157,7 @@ class BPBaseState(ABC):
 
 class GenPottsBPState(BPBaseState):
     def __init__(self, g, f, x=1, theta=0, em=None, vm=None, marginal_init=False,
-                 converge=True):
+                 frozen=None, converge=True):
         r"""Belief-propagtion equations for a genralized Potts model.
 
         Parameters
@@ -185,6 +185,10 @@ class GenPottsBPState(BPBaseState):
             of type ``vector<double>``, containing the node marginals.
         marginal_init : ``boolean`` (optional, default: ``False``)
            If ``True``, the messages will be initialized from the node marginals.
+        frozen : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
+            of type ``bool``, where a value `True` means that a vertex is not
+            a variable, but a fixed field.
         converge : ``boolean`` (optional, default: ``True``)
            If ``True``, the function :meth:`GenPottsBPState.converge()` will be
            called just after construction.
@@ -263,6 +267,7 @@ class GenPottsBPState(BPBaseState):
         .. [mezard_information_2009] Marc Mézard, and Andrea Montanari,
            "Information, physics, and computation", Oxford University Press, 2009.
            https://web.stanford.edu/~montanar/RESEARCH/book.html
+
         """
 
         self.g = g
@@ -286,23 +291,30 @@ class GenPottsBPState(BPBaseState):
         if vm is None:
             vm = g.new_vp("vector<double>")
         self.vm = vm
+        if frozen is None:
+            frozen = g.new_vp("bool")
+        elif frozen.value_type() != "bool":
+            frozen = frozen.copy("bool")
+        self.frozen = frozen
         self._state = lib_dynamics.make_potts_bp_state(self.g._Graph__graph,
                                                        self.f,
                                                        _prop("e", g, self.x),
                                                        _prop("v", g, self.theta),
                                                        _prop("e", g, self.em),
                                                        _prop("v", g, self.vm),
-                                                       marginal_init, _get_rng())
+                                                       marginal_init,
+                                                       _prop("v", g, self.frozen),
+                                                       _get_rng())
         if converge:
             self.converge()
 
     def __getstate__(self):
         return dict(g=self.g, f=self.f, x=self.x, theta=self.theta, em=self.em,
-                    vm=self.vm)
+                    vm=self.vm, frozen=self.frozen)
 
 class IsingBPState(GenPottsBPState):
     def __init__(self, g, x=1, theta=0, em=None, vm=None, marginal_init=False,
-                 has_zero=False, converge=True):
+                 frozen=None, has_zero=False, converge=True):
         r"""Belief-propagation equations for the Ising model.
 
         Parameters
@@ -325,6 +337,10 @@ class IsingBPState(GenPottsBPState):
             of type ``vector<double>``, containing the node marginals.
         marginal_init : ``boolean`` (optional, default: ``False``)
            If ``True``, the messages will be initialized from the node marginals.
+        frozen : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
+            of type ``bool``, where a value `True` means that a vertex is not
+            a variable, but a fixed field.
         converge : ``boolean`` (optional, default: ``True``)
            If ``True``, the function :meth:`GenPottsBPState.converge()` will be
            called just after construction.
@@ -410,11 +426,13 @@ class IsingBPState(GenPottsBPState):
             theta = theta.copy("vector<double>")
         self.has_zero = has_zero
         super().__init__(g=g, f=f, x=x, theta=theta, em=em, vm=vm,
-                         marginal_init=marginal_init, converge=converge)
+                         marginal_init=marginal_init, frozen=frozen,
+                         converge=converge)
 
     def __getstate__(self):
         return dict(g=self.g, x=self.x, theta=self.theta, em=self.em,
-                    vm=self.vm, has_zero=self.has_zero, coverge=False)
+                    vm=self.vm, frozen=self.frozen, has_zero=self.has_zero,
+                    coverge=False)
 
     def from_spin(self, s):
         s = s.copy()
@@ -452,7 +470,7 @@ class IsingBPState(GenPottsBPState):
 
 class NormalBPState(BPBaseState):
     def __init__(self, g, x=1, mu=0, theta=1, em_m=None, em_s=None, vm_m=None,
-                 vm_s=None, marginal_init=False, converge=True):
+                 vm_s=None, marginal_init=False, frozen=None, converge=True):
         r"""Belief-propagation equations for the multivariate Normal distribution.
 
         Parameters
@@ -487,6 +505,10 @@ class NormalBPState(BPBaseState):
             of type ``vector<double>``, containing the node marginal variances.
         marginal_init : ``boolean`` (optional, default: ``False``)
            If ``True``, the messages will be initialized from the node marginals.
+        frozen : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
+            of type ``bool``, where a value `True` means that a vertex is not
+            a variable, but a fixed field.
         converge : ``boolean`` (optional, default: ``True``)
            If ``True``, the function :meth:`GenPottsBPState.converge()` will be
            called just after construction.
@@ -619,6 +641,11 @@ class NormalBPState(BPBaseState):
             vm_s = g.new_vp("double")
         self.vm_m = vm_m
         self.vm_s = vm_s
+        if frozen is None:
+            frozen = g.new_vp("bool")
+        elif frozen.value_type() != "bool":
+            frozen = frozen.copy("bool")
+        self.frozen = frozen
         self._state = lib_dynamics.make_normal_bp_state(self.g._Graph__graph,
                                                         _prop("e", g, self.x),
                                                         _prop("v", g, self.mu),
@@ -627,14 +654,16 @@ class NormalBPState(BPBaseState):
                                                         _prop("e", g, self.em_s),
                                                         _prop("v", g, self.vm_m),
                                                         _prop("v", g, self.vm_s),
-                                                        marginal_init, _get_rng())
+                                                        marginal_init,
+                                                        _prop("v", g, self.frozen),
+                                                        _get_rng())
         if converge:
             self.converge()
 
     def __getstate__(self):
         return dict(g=self.g, x=self.x, mu=self.mu, theta=self.theta,
                     em_m=self.em_m, em_s=self.em_s, vm_m=self.vm_m,
-                    vm_s=self.vm_s)
+                    vm_s=self.vm_s, frozen=self.frozen)
 
     def sample(self, update_marginals=True):
         return BPBaseState.sample(self, update_marginals=update_marginals,

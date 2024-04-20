@@ -35,7 +35,8 @@ using namespace graph_tool;
 
 python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
                                    boost::any ax, boost::any atheta, boost::any aem,
-                                   boost::any avm, bool marginal_init, rng_t& rng)
+                                   boost::any avm, bool marginal_init,
+                                   boost::any afrozen, rng_t& rng)
 {
     PottsBPState::emap_t x =
         boost::any_cast<PottsBPState::emap_t::checked_t>(ax).get_unchecked();
@@ -45,6 +46,8 @@ python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
         boost::any_cast<PottsBPState::emmap_t::checked_t>(aem).get_unchecked();
     PottsBPState::vmmap_t vm =
         boost::any_cast<PottsBPState::vmmap_t::checked_t>(avm).get_unchecked();
+    PottsBPState::vfmap_t frozen =
+        boost::any_cast<PottsBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
 
     auto f = get_array<double, 2>(of);
 
@@ -54,7 +57,7 @@ python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
          [&](auto& g)
          {
              state = python::object(PottsBPState(g, f, x, theta, em, vm,
-                                                 marginal_init, rng));
+                                                 marginal_init, frozen, rng));
          })();
     return state;
 }
