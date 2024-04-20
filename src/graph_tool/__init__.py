@@ -926,6 +926,10 @@ class VertexPropertyMap(PropertyMap):
         for v in self._get_iter():
             yield self[v]
 
+    def __len__(self):
+        g = self.get_graph()
+        return g.num_vertices()
+
     def _get_data(self):
         g = self.get_graph()
         if g is None:
@@ -1003,6 +1007,10 @@ class EdgePropertyMap(PropertyMap):
         for e in self._get_iter():
             yield self[e]
 
+    def __len__(self):
+        g = self.get_graph()
+        return g.num_edges()
+
     def _get_data(self):
         g = self.get_graph()
         if g is None:
@@ -1052,6 +1060,9 @@ class GraphPropertyMap(PropertyMap):
 
     def __iter__(self):
         return _get_iter()
+
+    def __len__(self):
+        return 1
 
     def _get_data(self):
         g = self.get_graph()
