@@ -776,12 +776,12 @@ class PropertyMap(object):
 
         """
         p = self._new_pmap(value_type=value_type) if not inplace else self
-        vtype = p.value_type()
-        if vtype in ["string", "object"] or "vector" in vtype:
+        a = self.fa
+        if a is None or p.fa is None:
             for v in self._get_iter():
                 p[v] = f(self[v])
         else:
-            p.fa = f(self.fa)
+            p.fa = f(a)
         return p
 
     t = _copy_func(transform, "t")
