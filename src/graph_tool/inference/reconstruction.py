@@ -117,7 +117,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
             g = GraphView(g, directed=directed)
 
         if isinstance(s, np.ndarray):
-            s = g.new_vp("vector<double>", vals=s)
+            if kwargs.pop("discrete", False):
+                s = g.new_vp("vector<int>", vals=s)
+            else:
+                s = g.new_vp("vector<double>", vals=s)
 
         UncertainBaseState.__init__(self, g, nested=nested,
                                     state_args=state_args, bstate=bstate,
@@ -800,7 +803,7 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
         self.update_entropy_args(alpha=self.alpha)
 
     def get_S_bp(self, **kwargs):
-        bstate = self.get_bpstate(converge=False)
+        bstate = self.get_bp_state(converge=False)
         bstate.converge(**kwargs)
         S = 0
         for s in self.s:
@@ -839,7 +842,7 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
     entropy.__signature__ = inspect.signature(DynamicsBlockStateBase.entropy)
 
     @abstractmethod
-    def get_bpstate(**kwargs):
+    def get_bp_state(**kwargs):
         pass
 
 class EpidemicsBlockState(DynamicsBlockStateBase):
@@ -892,7 +895,8 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         DynamicsBlockStateBase.__init__(self, s, g=g, exposed=exposed,
                                         theta=theta, x_range=x_range,
                                         theta_range=theta_range,
-                                        directed=directed, **kwargs)
+                                        directed=directed, discrete=True,
+                                        **kwargs)
 
     def _make_state(self):
         return libinference.make_epidemics_state(self._state, self.ot, self.os,
@@ -956,7 +960,8 @@ class IsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
 
         See documentation for :class:`IsingBlockStateBase` for details.
         """
-        DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero, **kwargs)
+        DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
+                                        discrete=True, **kwargs)
 
     def _make_state(self):
         return libinference.make_ising_glauber_state(self._state, self.ot,
@@ -992,9 +997,9 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
         uncorrelated samples, not a temporal sequence.
         """
         BPBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
-                                  directed=False, **kwargs)
+                                  directed=False, discrete=True, **kwargs)
 
-    def get_bpstate(self, **kwargs):
+    def get_bp_state(self, **kwargs):
         return IsingBPState(self.u, x=self.x,
                             theta=self.theta,
                             has_zero=self.params.get("has_zero"), **kwargs)
@@ -1029,7 +1034,8 @@ class VoterBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, x_range=(-np.inf, 1e-8),
                  theta_range=(-np.inf, 1e-8),  **kwargs):
         DynamicsBlockStateBase.__init__(self, s, g=g, x_range=x_range,
-                                        theta_range=theta_range, **kwargs)
+                                        theta_range=theta_range, discrete=True,
+                                        **kwargs)
 
     def _make_state(self):
         return libinference.make_voter_state(self._state, self.ot, self.os,
@@ -1120,7 +1126,7 @@ class PseudoNormalBlockState(BPBlockStateBase):
         h.a = np.exp(h.a)
         return NormalState(self.u, w=self.x, h=h, s=s)
 
-    def get_bpstate(self, **kwargs):
+    def get_bp_state(self, **kwargs):
         theta = self.get_theta_shifted()
         theta.fa = np.exp(-2 * theta.fa)
         return NormalBPState(self.u, x=self.x, theta=theta, **kwargs)
