@@ -46,7 +46,7 @@ class BPBaseState(ABC):
         pass
 
     def __setstate__(self, state):
-        self.__init__(**state)
+        self.__init__(**state, converge=False)
 
     def iterate(self, niter=1, parallel=True, update_marginals=True):
         """Updates meassages synchronously (or asyncrhonously if
@@ -276,7 +276,7 @@ class GenPottsBPState(BPBaseState):
             x = g.new_ep("double", val=x)
         elif x.value_type() != "double":
             x = x.copy("double")
-        self.x = x
+        self.x = self.g.own_property(x)
         if not isinstance(theta, VertexPropertyMap):
             if isinstance(theta, Iterable):
                 theta = g.new_vp("vector<double>", val=theta)
@@ -284,18 +284,18 @@ class GenPottsBPState(BPBaseState):
                 theta = g.new_vp("vector<double>", val=[theta] * self.f.shape[0])
         elif theta.value_type() != "vector<double>":
             theta = theta.copy("vector<double>")
-        self.theta = theta
+        self.theta = self.g.own_property(theta)
         if em is None:
             em = g.new_ep("vector<double>")
         self.em = em
         if vm is None:
             vm = g.new_vp("vector<double>")
-        self.vm = vm
+        self.vm = self.g.own_property(vm)
         if frozen is None:
             frozen = g.new_vp("bool")
         elif frozen.value_type() != "bool":
             frozen = frozen.copy("bool")
-        self.frozen = frozen
+        self.frozen = self.g.own_property(frozen)
         self._state = lib_dynamics.make_potts_bp_state(self.g._Graph__graph,
                                                        self.f,
                                                        _prop("e", g, self.x),
@@ -431,8 +431,7 @@ class IsingBPState(GenPottsBPState):
 
     def __getstate__(self):
         return dict(g=self.g, x=self.x, theta=self.theta, em=self.em,
-                    vm=self.vm, frozen=self.frozen, has_zero=self.has_zero,
-                    coverge=False)
+                    vm=self.vm, frozen=self.frozen, has_zero=self.has_zero)
 
     def from_spin(self, s):
         s = s.copy()
@@ -618,34 +617,34 @@ class NormalBPState(BPBaseState):
             x = g.new_ep("double", val=x)
         elif x.value_type() != "double":
             x = x.copy("double")
-        self.x = x
+        self.x = self.g.own_property(x)
         if not isinstance(mu, VertexPropertyMap):
             mu = g.new_vp("double", val=mu)
         elif mu.value_type() != "double":
             mu = theta.copy("double")
-        self.mu = mu
+        self.mu = self.g.own_property(mu)
         if not isinstance(theta, VertexPropertyMap):
             theta = g.new_vp("double", val=theta)
         elif theta.value_type() != "double":
             theta = theta.copy("double")
-        self.theta = theta
+        self.theta = self.g.own_property(theta)
         if em_m is None:
             em_m = g.new_ep("vector<double>")
         if em_s is None:
             em_s = g.new_ep("vector<double>")
-        self.em_m = em_m
-        self.em_s = em_s
+        self.em_m = self.g.own_property(em_m)
+        self.em_s = self.g.own_property(em_s)
         if vm_m is None:
             vm_m = g.new_vp("double")
         if vm_s is None:
             vm_s = g.new_vp("double")
-        self.vm_m = vm_m
-        self.vm_s = vm_s
+        self.vm_m = self.g.own_property(vm_m)
+        self.vm_s = self.g.own_property(vm_s)
         if frozen is None:
             frozen = g.new_vp("bool")
         elif frozen.value_type() != "bool":
             frozen = frozen.copy("bool")
-        self.frozen = frozen
+        self.frozen = self.g.own_property(frozen)
         self._state = lib_dynamics.make_normal_bp_state(self.g._Graph__graph,
                                                         _prop("e", g, self.x),
                                                         _prop("v", g, self.mu),
