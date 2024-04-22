@@ -344,7 +344,7 @@ def choose_cm(prop, cm):
             cm = matplotlib.cm.magma
     return cm, is_seq
 
-def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
+def _convert(attr, val, cmap, vnorm, pmap_default=False, g=None, k=None):
     try:
         cmap, alpha = cmap
     except TypeError:
@@ -456,11 +456,16 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                     vrange = [int(g.vertex(0, use_index=False)),
                               int(g.vertex(g.num_vertices() - 1,
                                            use_index=False))]
-                if not is_seq:
-                    cnorm = lambda x : x % cmap.N
+                if vnorm is None:
+                    if not is_seq:
+                        cnorm = lambda x : x % cmap.N
+                    else:
+                        cnorm = matplotlib.colors.Normalize(vmin=vrange[0],
+                                                            vmax=vrange[1])
                 else:
-                    cnorm = matplotlib.colors.Normalize(vmin=vrange[0],
-                                                        vmax=vrange[1])
+                    cnorm = vnorm
+                    cnorm(vrange) # for auto-scale, if needed
+
                 g = val.get_graph()
                 if val.key_type() == "v":
                     prop = g.new_vertex_property("vector<double>")
@@ -506,7 +511,7 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
     return val
 
 
-def _attrs(attrs, d, g, cmap):
+def _attrs(attrs, d, g, cmap, vnorm):
     nattrs = {}
     defaults = {}
     for k, v in attrs.items():
@@ -519,12 +524,12 @@ def _attrs(attrs, d, g, cmap):
             warnings.warn("Unknown attribute: " + str(k), UserWarning)
             continue
         if isinstance(v, PropertyMap):
-            nattrs[int(attr)] = _prop(d, g, _convert(attr, v, cmap))
+            nattrs[int(attr)] = _prop(d, g, _convert(attr, v, cmap, vnorm))
         else:
-            defaults[int(attr)] = _convert(attr, v, cmap)
+            defaults[int(attr)] = _convert(attr, v, cmap, vnorm)
     return nattrs, defaults
 
-def _convert_props(props, d, g, cmap, pmap_default=False):
+def _convert_props(props, d, g, cmap, vnorm, pmap_default=False):
     nprops = {}
     for k, v in props.items():
         try:
@@ -532,7 +537,7 @@ def _convert_props(props, d, g, cmap, pmap_default=False):
                 attr = getattr(vertex_attrs, k)
             else:
                 attr = getattr(edge_attrs, k)
-            nprops[k] = _convert(attr, v, cmap, pmap_default=pmap_default,
+            nprops[k] = _convert(attr, v, cmap, vnorm, pmap_default=pmap_default,
                                  g=g, k=d)
         except AttributeError:
             kind = "vertex" if d == k else "edge"
@@ -589,8 +594,8 @@ def parse_props(prefix, args):
     return props, others
 
 def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
-               nodesfirst=False, vcmap=None, ecmap=None,
-               loop_angle=numpy.nan, parallel_distance=None, res=0,
+               nodesfirst=False, vcmap=None, vcnorm=None, ecmap=None,
+               ecnorm=None, loop_angle=numpy.nan, parallel_distance=None, res=0,
                max_render_time=-1, **kwargs):
     r"""Draw a graph to a :mod:`cairo` context.
 
@@ -620,9 +625,15 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
     vcmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: ``None``)
         Vertex color map. Optionally, this may be a
         (:class:`matplotlib.colors.Colormap`, alpha) tuple.
+    vcnorm : :class:`matplotlib.colors.Normalize` (optional, default: ``None``)
+        An object which, when called, normalizes vertex property values into the
+        :math:`[0.0, 1.0]` interval, before passing to the ``vcmap`` colormap.
     ecmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: ``None``)
         Edge color map. Optionally, this may be a
         (:class:`matplotlib.colors.Colormap`, alpha) tuple.
+    ecnorm : :class:`matplotlib.colors.Normalize` (optional, default: ``None``)
+        An object which, when called, normalizes edge property values into the
+        :math:`[0.0, 1.0]` interval, before passing to the ``ecmap`` colormap.
     loop_angle : float or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``numpy.nan``)
         Angle used to draw self-loops. If ``nan`` is given, they will be placed
         radially from the center of the layout.
@@ -697,11 +708,11 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
             toffset = group_vector_property([xo, yo])
             vprops["text_offset"] = toffset
 
-    vattrs, vdefaults = _attrs(vprops, "v", g, vcmap)
-    eattrs, edefaults = _attrs(eprops, "e", g, ecmap)
-    vdefs = _attrs(_vdefaults, "v", g, vcmap)[1]
+    vattrs, vdefaults = _attrs(vprops, "v", g, vcmap, vcnorm)
+    eattrs, edefaults = _attrs(eprops, "e", g, ecmap, ecnorm)
+    vdefs = _attrs(_vdefaults, "v", g, vcmap, vcnorm)[1]
     vdefs.update(vdefaults)
-    edefs = _attrs(_edefaults, "e", g, ecmap)[1]
+    edefs = _attrs(_edefaults, "e", g, ecmap, ecnorm)[1]
     edefs.update(edefaults)
 
     if "control_points" not in eprops:
@@ -1061,10 +1072,12 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     eprops = eprops.copy() if eprops is not None else {}
 
     props, kwargs = parse_props("vertex", kwargs)
-    props = _convert_props(props, "v", g, kwargs.get("vcmap", None))
+    props = _convert_props(props, "v", g, kwargs.get("vcmap", None),
+                           kwargs.get("vcnorm", None))
     vprops.update(props)
     props, kwargs = parse_props("edge", kwargs)
-    props = _convert_props(props, "e", g, kwargs.get("ecmap", None))
+    props = _convert_props(props, "e", g, kwargs.get("ecmap", None),
+                           kwargs.get("ecnorm", None))
     eprops.update(props)
 
     if pos is None:
@@ -1111,7 +1124,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         vcmap = kwargs.get("vcmap", None)
         bg = _convert(vertex_attrs.fill_color,
                       vprops.get("fill_color", _vdefaults["fill_color"]),
-                      vcmap)
+                      vcmap, vcnorm)
         vprops["text_color"] = auto_colors(g, bg,
                                            vprops.get("text_position",
                                                       _vdefaults["text_position"]),
@@ -1950,7 +1963,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
 
     vprops = _convert_props(vprops, "v", g, kwargs.get("vcmap", None),
-                            pmap_default=True)
+                            kwargs.get("vcnorm", None), pmap_default=True)
 
     props, kwargs = parse_props("edge", kwargs)
     eprops.update(props)
@@ -1959,7 +1972,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     eprops.setdefault("color", list(_edefaults["color"][:-1]) + [.6])
     eprops.setdefault("end_marker", "arrow" if g.is_directed() else "none")
     eprops = _convert_props(eprops, "e", g, kwargs.get("ecmap", None),
-                            pmap_default=True)
+                            kwargs.get("ecnorm", None), pmap_default=True)
 
     hvprops = hvprops.copy() if hvprops is not None else {}
     heprops = heprops.copy() if heprops is not None else {}
@@ -1988,7 +2001,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
             hvprops["text_offset"] = toffset
 
     hvprops = _convert_props(hvprops, "v", t, kwargs.get("vcmap", None),
-                             pmap_default=True)
+                             kwargs.get("vcnorm", None), pmap_default=True)
 
     props, kwargs = parse_props("hedge", kwargs)
     heprops.update(props)
@@ -1999,7 +2012,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     heprops.setdefault("pen_width", s / 10)
 
     heprops = _convert_props(heprops, "e", t, kwargs.get("ecmap", None),
-                             pmap_default=True)
+                             kwargs.get("ecnorm", None), pmap_default=True)
 
     vcmap = kwargs.get("vcmap", None)
     ecmap = kwargs.get("ecmap", vcmap)
