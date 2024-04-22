@@ -136,7 +136,7 @@ _edefaults = {
     "font_weight": cairo.FONT_WEIGHT_NORMAL,
     "font_size": 12.,
     "sloppy": False,
-    "seamless": True
+    "seamless": False
     }
 
 _vtypes = {
