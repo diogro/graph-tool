@@ -313,7 +313,7 @@ class GraphWidget(Gtk.DrawingArea):
 
         self.layout_callback_id = None
         self.layout_K = layout_K
-        self.layout_init_step = self.layout_K / 5
+        self.layout_init_step = self.layout_K / 3
         self.epsilon = 0.01 * self.layout_K
         self.multilevel_layout = multilevel
         self.sfdp_args = sfdp_args.copy()
