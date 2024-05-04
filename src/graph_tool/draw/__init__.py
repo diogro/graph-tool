@@ -487,7 +487,7 @@ def _avg_edge_distance(g, pos):
 
 
 def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
-                  weighted_coarse=True, eweight=None, vweight=None,
+                  weighted_coarse=False, eweight=None, vweight=None,
                   groups=None, gamma=None, verbose=False):
     cg = [[g, None, None, None, None, None]]
     if weighted_coarse:
@@ -564,7 +564,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
                 mu=2., kappa=1., rmap=None, R=1, init_step=None,
                 cooling_step=0.95, adaptive_cooling=True, epsilon=1e-2,
                 max_iter=0, pos=None, multilevel=None, coarse_method="hybrid",
-                mivs_thres=0.9, ec_thres=0.75, weighted_coarse=True,
+                mivs_thres=0.9, ec_thres=0.75, weighted_coarse=False,
                 verbose=False):
     r"""Obtain the SFDP spring-block layout of the graph.
 
@@ -634,7 +634,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
     ec_thres : float (optional, default: ``0.75``)
         If the relative size of the EC coarse graph is above this value, the
         coarsening stops.
-    weighted_coarse : bool (optional, default: ``True``)
+    weighted_coarse : bool (optional, default: ``False``)
         Use weighted coarse graphs.
     verbose : bool (optional, default: ``False``)
         Provide verbose information.
