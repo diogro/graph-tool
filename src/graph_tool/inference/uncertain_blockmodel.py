@@ -165,28 +165,55 @@ class UncertainBaseState(EntropyState):
         return S
 
     def virtual_remove_edge(self, u, v, dm=1, entropy_args={}):
+        """Return the difference in description length if edge :math:`(u, v)`
+        with multiplicity ``dm`` would be removed.
+        """
         entropy_args = self._get_entropy_args(entropy_args)
         return self._state.remove_edge_dS(int(u), int(v), dm, entropy_args)
 
     def virtual_add_edge(self, u, v, dm=1, entropy_args={}):
+        """Return the difference in description length if edge :math:`(u, v)`
+        would be added with multiplicity ``dm``.
+        """
         entropy_args = self._get_entropy_args(entropy_args)
         return self._state.add_edge_dS(int(u), int(v), dm, entropy_args)
 
     def remove_edge(self, u, v, dm=1):
+        r"""Remove edge :math:`(u, v)` with multiplicity ``dm``."""
         return self._state.remove_edge(int(u), int(v), dm)
 
     def add_edge(self, u, v, dm=1):
+        r"""Add edge :math:`(u, v)` with multiplicity ``dm``."""
         return self._state.add_edge(int(u), int(v), dm)
 
     def set_state(self, g, w):
+        r"""Set all edge multiplicities via :class:`~graph_tool.EdgePropertyMap` ``w``."""
         if w.value_type() != "int32_t":
             w = w.copy("int32_t")
         self._state.set_state(g._Graph__graph, w._get_any())
 
 
     @mcmc_sweep_wrap
-    def edge_mcmc_sweep(self, beta=1, niter=1, dx=.01, verbose=False,
-                        **kwargs):
+    def edge_mcmc_sweep(self, beta=1, niter=1, verbose=False, **kwargs):
+        r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
+        sampling MCMC to sample latent edges.
+
+        Parameters
+        ----------
+        beta : ``float`` (optional, default: ``np.inf``)
+            Inverse temperature parameter.
+        niter : ``int`` (optional, default: ``1``)
+            Number of sweeps.
+        verbose : ``boolean`` (optional, default: ``False``)
+            If ``verbose == True``, detailed information will be displayed.
+
+        Returns
+        -------
+        dS : ``float``
+            Entropy difference after the sweeps.
+        nmoves : ``int``
+            Number of variables moved.
+        """
         kwargs = kwargs.copy()
         edges_only = kwargs.pop("edges_only", False)
         slist = self.slist
@@ -206,6 +233,13 @@ class UncertainBaseState(EntropyState):
 
     #@mcmc_sweep_wrap
     def sbm_mcmc_sweep(self, multiflip=True, **kwargs):
+        r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
+        sampling MCMC to sample node partitions. The remaining keyword
+        parameters will be passed to
+        :meth:`~graph_tool.inference.BlockState.mcmc_sweep` or
+        :meth:`~graph_tool.inference.BlockState.multiflip_mcmc_sweep`, if
+        ``multiflip=True``.
+        """
         if self.nbstate is None:
             self.bstate._clear_egroups()
         else:

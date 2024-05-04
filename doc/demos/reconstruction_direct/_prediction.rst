@@ -60,7 +60,7 @@ above).
 
    import os
    try:
-      os.chdir("demos/inference")
+      os.chdir("demos/reconstruction_direct")
    except FileNotFoundError:
        pass
 

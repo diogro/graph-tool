@@ -191,17 +191,28 @@ public:
     using typename ContinuousStateBase<LVState, false, true>::base_t;
 
     template <class... Args>
-    LVState(python::dict, Args&&... s)
+    LVState(python::dict p, Args&&... s)
         : ContinuousStateBase<LVState, false, true>(s...)
-    {};
+    {
+        set_params(p);
+    };
+
+    virtual void set_params(python::dict p)
+    {
+        _sigma = python::extract<double>(p["sigma"]);
+        _lsigma = log(_sigma);
+    }
 
     [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
     double log_P(double theta, double m, double x, double nx)
     {
-        double sigma = sqrt(x) * exp(theta);
-        double a = x * m;
-        return norm_lpdf(nx, x + a, sigma, theta);
+        double diff = x * (theta + m);
+        double sigma = _sigma * sqrt(x);
+        return norm_lpdf(nx, x + diff, sigma, _lsigma + log(x)/2);
     }
+
+    double _sigma = 1;
+    double _lsigma = 0;
 };
 
 } // graph_tool namespace

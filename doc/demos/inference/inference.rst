@@ -24,8 +24,6 @@ networks, and how they contrast with descriptive approaches.
 .. include:: _layers.rst
 .. include:: _assortative.rst
 .. include:: _ranked.rst
-.. include:: _reconstruction.rst
-.. include:: _prediction.rst
 
 References
 ----------
@@ -102,66 +100,3 @@ References
    in directed networks", Phys. Rev. E 106, 024305 (2022),
    :doi:`10.1103/PhysRevE.106.024305`, :arxiv:`2203.16460`
 
-.. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing
-   networks with unknown and heterogeneous errors", Phys. Rev. X 8
-   041011 (2018). :doi:`10.1103/PhysRevX.8.041011`, :arxiv:`1806.07956`
-
-.. [peixoto-disentangling-2022] Tiago P. Peixoto, "Disentangling homophily,
-   community structure and triadic closure in networks", Phys. Rev. X 12,
-   011004 (2022), :doi:`10.1103/PhysRevX.12.011004`, :arxiv:`2101.02510`
-
-.. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
-   community detection from dynamics", Phys. Rev. Lett. 123 128301
-   (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
-
-.. [peixoto-latent-2020] Tiago P. Peixoto, "Latent Poisson models for
-   networks with heterogeneous density", Phys. Rev. E 102 012309 (2020)
-   :doi:`10.1103/PhysRevE.102.012309`, :arxiv:`2002.07803`
-
-.. [martin-structural-2015] Travis Martin, Brian Ball, M. E. J. Newman,
-   "Structural inference for uncertain networks", Phys. Rev. E 93,
-   012306 (2016). :doi:`10.1103/PhysRevE.93.012306`, :arxiv:`1506.05490`
-   
-.. [clauset-hierarchical-2008] Aaron Clauset, Cristopher
-   Moore, M. E. J. Newman, "Hierarchical structure and the prediction of
-   missing links in networks", Nature 453, 98-101 (2008).
-   :doi:`10.1038/nature06830`
-
-.. [guimera-missing-2009] Roger Guimerà, Marta Sales-Pardo, "Missing and
-   spurious interactions and the reconstruction of complex networks", PNAS
-   vol. 106 no. 52 (2009). :doi:`10.1073/pnas.0908366106`
-          
-.. [valles-catala-consistencies-2018] Toni Vallès-Català,
-   Tiago P. Peixoto, Roger Guimerà, Marta Sales-Pardo, "Consistencies
-   and inconsistencies between model selection and link prediction in
-   networks", Phys. Rev. E 97 062316 (2018),
-   :doi:`10.1103/PhysRevE.97.062316`, :arxiv:`1705.07967`
-
-.. [guimera-modularity-2004] Roger Guimerà, Marta Sales-Pardo, and
-   Luís A. Nunes Amaral, "Modularity from fluctuations in random graphs
-   and complex networks", Phys. Rev. E 70, 025101(R) (2004),
-   :doi:`10.1103/PhysRevE.70.025101`
-
-.. [hayes-connecting-2006] Brian Hayes, "Connecting the dots. can the
-   tools of graph theory and social-network studies unravel the next big
-   plot?", American Scientist, 94(5):400-404, 2006.
-   http://www.jstor.org/stable/27858828
-
-.. [ulanowicz-network-2005] Robert E. Ulanowicz, and
-   Donald L. DeAngelis. "Network analysis of trophic dynamics in south
-   florida ecosystems." US Geological Survey Program on the South
-   Florida Ecosystem 114 (2005).
-   https://fl.water.usgs.gov/PDF_files/ofr99_181_gerould.pdf#page=125
-
-.. [read-cultures-1954] Kenneth E. Read, "Cultures of the Central
-   Highlands, New Guinea", Southwestern J. of Anthropology,
-   10(1):1-43 (1954). :doi:`10.1086/soutjanth.10.1.3629074`
-
-.. rubric:: Footnotes
-
-.. [#prediction_posterior] Note that the posterior of Eq. :eq:`posterior-missing`
-   cannot be used to sample the reconstruction :math:`\delta \boldsymbol
-   G`, as it is not informative of the overall network density
-   (i.e. absolute number of missing and spurious edges). It can,
-   however, be used to compare different reconstructions with the same
-   density.

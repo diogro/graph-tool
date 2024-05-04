@@ -61,7 +61,7 @@ The easiest option is to use `conda <https://docs.conda.io>`__:
 
 For HPC systems it is also straightforward to use :mod:`graph_tool` with
 `Apptainer/Singularity
-<https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions#installing-using-apptainersingularity-useful-for-hpc-systems>`_.
+<https://graph-tool.skewed.de/installation.html#installing-using-apptainer-n%C3%A9e-singularity>`_.
 
 Getting started
 ---------------

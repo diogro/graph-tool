@@ -1,1 +1,0 @@
-../template/state.cc

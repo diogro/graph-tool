@@ -180,34 +180,6 @@ public:
     }
 };
 
-class VoterState
-    : public DiscreteStateBase<VoterState, true, true, 0>
-{
-public:
-    using typename DiscreteStateBase<VoterState, true, true, 0>::base_t;
-
-    typedef vprop_map_t<int>::type::unchecked_t theta_t;
-
-    template <class... Args>
-    VoterState(python::dict, Args&&... s)
-        : DiscreteStateBase<VoterState, true, true, 0>(s...)
-    {
-    };
-
-    virtual void set_params(python::dict) {}
-
-    [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, double k, int, int ns)
-    {
-        if (k == 0)
-            return -log(2);
-        double p = (ns == 1) ? m / k : 1 - m / k;
-        double lr = theta;
-        return log_sum_exp(lr - log(2), log(p) + log1p(-exp(lr)));
-    }
-};
-
-
 } // graph_tool namespace
 
 #endif //DYNAMICS_DISCRETE_HH

@@ -10,7 +10,8 @@ Contents:
    :glob:
 
    inference/inference
-   reconstruction/reconstruction
+   reconstruction_direct/reconstruction
+   reconstruction_indirect/reconstruction
    animation/animation
    matplotlib/matplotlib
    cppextensions/cppextensions

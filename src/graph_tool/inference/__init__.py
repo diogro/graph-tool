@@ -163,8 +163,8 @@ Auxiliary classes
 Nonparametric network reconstruction
 ++++++++++++++++++++++++++++++++++++
 
-State classes
-=============
+Reconstruction from direct measurements
+=======================================
 
 .. autosummary::
    :nosignatures:
@@ -179,7 +179,30 @@ State classes
    MixedMeasuredBlockState
    UncertainBlockState
    UncertainBaseState
+
+Expectation-maximization inference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :nosignatures:
+   :toctree: autosummary
+
+   latent_multigraph
+
+Reconstruction from dynamics and behavior
+=========================================
+
+.. autosummary::
+   :nosignatures:
+   :toctree: autosummary
+   :template: class.rst
+
    DynamicsBlockStateBase
+   BPBlockStateBase
+   PseudoNormalBlockState
+   NormalGlauberBlockState
+   LinearNormalBlockState
+   LVBlockState
    EpidemicsBlockState
    IsingBlockStateBase
    IsingGlauberBlockState
@@ -187,14 +210,6 @@ State classes
    PseudoIsingBlockState
    PseudoCIsingBlockState
 
-Expectation-maximization Inference
-==================================
-
-.. autosummary::
-   :nosignatures:
-   :toctree: autosummary
-
-   latent_multigraph
 
 Semiparametric stochastic block model inference
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -259,7 +274,6 @@ __all__ = ["minimize_blockmodel_dl",
            "LinearNormalBlockState",
            "NormalGlauberBlockState",
            "LVBlockState",
-           "VoterBlockState",
            "LatentLayerBaseState",
            "LatentClosureBlockState",
            "MeasuredClosureBlockState",

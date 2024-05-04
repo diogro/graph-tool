@@ -457,7 +457,6 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/pseudo_cising/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_ising/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/state.cc \
-	src/graph/inference/uncertain/dynamics/voter/state.cc \
 	src/graph/inference/uncertain/latent_closure.cc \
 	src/graph/inference/uncertain/latent_closure_mcmc.cc \
 	src/graph/inference/uncertain/measured.cc \
@@ -486,8 +485,7 @@ libgraph_tool_inference_fast_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/linear_normal/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/lotka_volterra/base_vec.cc \
-	src/graph/inference/uncertain/dynamics/normal_glauber/base_vec.cc \
-	src/graph/inference/uncertain/dynamics/voter/base_vec.cc
+	src/graph/inference/uncertain/dynamics/normal_glauber/base_vec.cc
 
 graph_inference_blockmodeldir = $(MOD_DIR)/include/inference/blockmodel
 dist_graph_inference_blockmodel_HEADERS = \
@@ -592,8 +590,7 @@ noinst_HEADERS = \
 	src/graph/inference/uncertain/dynamics/pseudo_cising/setup.hh \
 	src/graph/inference/uncertain/dynamics/pseudo_ising/setup.hh \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/setup.hh \
-	src/graph/inference/uncertain/dynamics/normal_glauber/setup.hh \
-	src/graph/inference/uncertain/dynamics/voter/setup.hh
+	src/graph/inference/uncertain/dynamics/normal_glauber/setup.hh
 
 graph_inference_loopsdir = $(MOD_DIR)/include/inference/loops
 dist_graph_inference_loops_HEADERS = \
