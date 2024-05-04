@@ -50,21 +50,14 @@ Below we show how this model can be inferred for a :ns:`faculty_hiring` network.
 
    # We can use sfdp_layout() to obtain a ranked visualization.
 
-   pos = gt.sfdp_layout(g, cooling_step=0.99, multilevel=False, R=50000,
-                        rmap=state.levels[0].get_vertex_order())
+   pos = gt.sfdp_layout(g, cooling_step=0.99, multilevel=False, R=20,
+                        rmap=state.levels[0].get_vertex_order(),
+                        groups=state.levels[0].b, gamma=1)
 
-   # Stretch the layout somewhat
-   for v in g.vertices():
-       pos[v][1] *= 2
-                        
    state.levels[0].draw(pos=pos, edge_pen_width=gt.prop_to_size(ew, 1, 5),
-                        output="hiring.pdf")
+                        output="hiring.svg")
 
-.. testcleanup:: ordered
-
-   conv_png("hiring.pdf")
-
-.. figure:: hiring.*
+.. figure:: hiring.svg
    :align: center
    :width: 450px
 

@@ -176,14 +176,9 @@ clustering using the
 
 .. testcode:: celegans
 
-   state.draw(output="celegans-hsbm-fit.pdf")
+   state.draw(output="celegans-hsbm-fit.svg")
 
-.. testcleanup:: celegans
-
-   conv_png("celegans-hsbm-fit.pdf")
-                 
-
-.. figure:: celegans-hsbm-fit.png
+.. figure:: celegans-hsbm-fit.svg
    :align: center
    :width: 80%
 

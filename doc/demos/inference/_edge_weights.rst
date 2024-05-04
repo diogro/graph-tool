@@ -47,7 +47,7 @@ A variety of weight models is supported, reflecting different kinds of
 edge covariates:
 
 .. csv-table::
-   :header: "Name", "Domain", "Bounds", "Shape"
+   :header: Name | Domain | Bounds | Shape
    :widths: 10, 5, 5, 5
    :delim: |
    :align: center
@@ -124,13 +124,9 @@ the weights, as follows:
 
    state.draw(edge_color=g.ep.weight, ecmap=(matplotlib.cm.inferno, .6),
               eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 2, 8, power=1),
-              edge_gradient=[], output="moreno-train-wsbm.pdf")
+              edge_gradient=[], output="moreno-train-wsbm.svg")
 
-.. testcleanup:: weighted-model
-
-   conv_png("moreno-train-wsbm.pdf")
-
-.. figure:: moreno-train-wsbm.png
+.. figure:: moreno-train-wsbm.svg
    :align: center
    :width: 450px
 
@@ -184,13 +180,9 @@ follows:
 
    state.draw(edge_color=gt.prop_to_size(g.ep.weight, power=1, log=True), ecmap=(matplotlib.cm.inferno, .6),
               eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 1, 4, power=1, log=True),
-              edge_gradient=[], output="foodweb-wsbm.pdf")
+              edge_gradient=[], output="foodweb-wsbm.svg")
 
-.. testcleanup:: food-web
-
-   conv_png("foodweb-wsbm.pdf")
-              
-.. figure:: foodweb-wsbm.png
+.. figure:: foodweb-wsbm.svg
    :align: center
    :width: 450px
 
@@ -228,13 +220,9 @@ can fit this alternative model simply by using the transformed weights:
 
    state_ln.draw(edge_color=gt.prop_to_size(g.ep.weight, power=1, log=True), ecmap=(matplotlib.cm.inferno, .6),
                  eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 1, 4, power=1, log=True),
-                 edge_gradient=[], output="foodweb-wsbm-lognormal.pdf")
+                 edge_gradient=[], output="foodweb-wsbm-lognormal.svg")
 
-.. testcleanup:: food-web
-
-   conv_png("foodweb-wsbm-lognormal.pdf")
-                 
-.. figure:: foodweb-wsbm-lognormal.png
+.. figure:: foodweb-wsbm-lognormal.svg
    :align: center
    :width: 450px
 

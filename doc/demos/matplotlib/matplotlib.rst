@@ -70,14 +70,13 @@ Drawing with matplotlib is done by calling
    ax[1,1].set_ylabel("$y$ coordinate")
 
    plt.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.06)
-   fig.savefig("gt-mpl.pdf")
+   fig.savefig("gt-mpl.svg")
 
 .. testcleanup::
 
    plt.switch_backend(backend)
-   conv_png("gt-mpl.pdf")
 
-.. figure:: gt-mpl.png
+.. figure:: gt-mpl.svg
    :width: 90%
 
    Four subplots showing networks drawn using graph-tool.
