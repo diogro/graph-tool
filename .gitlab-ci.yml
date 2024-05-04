@@ -242,6 +242,25 @@ build_mantic_git:
     BASE: ubuntu:mantic
     PLATFORM: amd64
 
+build_noble:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:noble
+    PLATFORM: amd64
+
+build_noble_arm:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:noble
+    PLATFORM: arm64
+  needs: ["build_noble"]
+
+build_noble_git:
+  extends: .build_deb_git
+  variables:
+    BASE: ubuntu:noble
+    PLATFORM: amd64
+
 build_docker:
   script:
     - cd release/docker
