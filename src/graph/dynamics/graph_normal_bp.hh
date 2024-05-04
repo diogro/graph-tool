@@ -226,8 +226,13 @@ public:
              {
                  auto u = source(e, g);
                  auto v = target(e, g);
+#ifdef __clang__
+                 auto ret = get_sums(g, u, v);
+                 auto mt = get<0>(ret);
+                 auto st = get<1>(ret);
+#else
                  auto [mt, st] = get_sums(g, u, v);
-
+#endif
                  auto get_lZ =
                      [&](auto w)
                      {
