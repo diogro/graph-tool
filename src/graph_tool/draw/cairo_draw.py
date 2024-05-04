@@ -1124,7 +1124,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         vcmap = kwargs.get("vcmap", None)
         bg = _convert(vertex_attrs.fill_color,
                       vprops.get("fill_color", _vdefaults["fill_color"]),
-                      vcmap, vcnorm)
+                      vcmap, kwargs.get("vcnorm", None))
         vprops["text_color"] = auto_colors(g, bg,
                                            vprops.get("text_position",
                                                       _vdefaults["text_position"]),
