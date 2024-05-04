@@ -104,9 +104,9 @@ __all__ = ["DiscreteStateBase", "EpidemicStateBase", "SIState", "SISState",
            "BinaryThresholdState", "IsingGlauberState", "CIsingGlauberState",
            "IsingMetropolisState", "PottsGlauberState", "PottsMetropolisState",
            "AxelrodState", "BooleanState", "KirmanState", "NormalState",
-           "LinearNormalState", "GeneralizedBinaryState", "ContinuousStateBase",
-           "KuramotoState", "BPBaseState", "GenPottsBPState", "IsingBPState",
-           "NormalBPState"]
+           "LinearNormalState", "LinearState", "LVState",
+           "GeneralizedBinaryState", "ContinuousStateBase", "KuramotoState",
+           "BPBaseState", "GenPottsBPState", "IsingBPState", "NormalBPState"]
 
 class DiscreteStateBase(object):
     def __init__(self, g, make_state, params, s=None, stype="int32_t"):
@@ -896,18 +896,14 @@ class BinaryThresholdState(DiscreteStateBase):
            >>> state = gt.BinaryThresholdState(g, r=0.25)
            >>> ret = state.iterate_sync(niter=1000)
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
-           ...               output="binary-threshold.pdf")
+           ...               output="binary-threshold.svg")
            <...>
 
-        .. testcleanup:: binary-threshold
-
-           conv_png("binary-threshold.pdf")
-
-        .. figure:: binary-threshold.png
+        .. figure:: binary-threshold.svg
            :align: center
            :width: 80%
 
-           State of a binary threshold dynamics on a political blog network.
+           State of a binary threshold dynamics on a :ns:`political blog <polblogs>` network.
         """
 
         if isinstance(w, PropertyMap):
@@ -977,18 +973,14 @@ class IsingGlauberState(DiscreteStateBase):
            >>> state = gt.IsingGlauberState(g, beta=.05)
            >>> ret = state.iterate_async(niter=1000 * g.num_vertices())
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
-           ...               output="glauber-ising.pdf")
+           ...               output="glauber-ising.svg")
            <...>
 
-        .. testcleanup:: glauber-ising
-
-           conv_png("glauber-ising.pdf")
-
-        .. figure:: glauber-ising.png
+        .. figure:: glauber-ising.svg
            :align: center
            :width: 80%
 
-           State of a Glauber Ising dynamics on a political blog network.
+           State of a Glauber Ising dynamics on a :ns:`political blog <polblogs>` network.
 
         References
         ----------
@@ -1063,18 +1055,14 @@ class CIsingGlauberState(DiscreteStateBase):
            >>> state = gt.CIsingGlauberState(g, beta=.2)
            >>> ret = state.iterate_async(niter=1000 * g.num_vertices())
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s, vcmap=cm.magma,
-           ...               output="glauber-cising.pdf")
+           ...               output="glauber-cising.svg")
            <...>
 
-        .. testcleanup:: glauber-cising
-
-           conv_png("glauber-cising.pdf")
-
-        .. figure:: glauber-cising.png
+        .. figure:: glauber-cising.svg
            :align: center
            :width: 80%
 
-           State of a continuous Glauber Ising dynamics on a political blog network.
+           State of a continuous Glauber Ising dynamics on a :ns:`political blog <polblogs>` network.
 
         References
         ----------
@@ -1147,18 +1135,14 @@ class IsingMetropolisState(DiscreteStateBase):
            >>> state = gt.IsingMetropolisState(g, beta=.1)
            >>> ret = state.iterate_async(niter=1000 * g.num_vertices())
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
-           ...               output="metropolis-ising.pdf")
+           ...               output="metropolis-ising.svg")
            <...>
 
-        .. testcleanup:: metropolis-ising
-
-           conv_png("metropolis-ising.pdf")
-
-        .. figure:: metropolis-ising.png
+        .. figure:: metropolis-ising.svg
            :align: center
            :width: 80%
 
-           State of a Metropolis-Hastings Ising dynamics on a political blog network.
+           State of a Metropolis-Hastings Ising dynamics on a :ns:`political blog <polblogs>` network.
 
         References
         ----------
@@ -1240,14 +1224,10 @@ class PottsGlauberState(DiscreteStateBase):
            >>> state = gt.PottsGlauberState(g, f)
            >>> ret = state.iterate_async(niter=1000 * g.num_vertices())
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
-           ...               output="glauber-potts.pdf")
+           ...               output="glauber-potts.svg")
            <...>
 
-        .. testcleanup:: glauber-potts
-
-           conv_png("glauber-potts.pdf")
-
-        .. figure:: glauber-potts.png
+        .. figure:: glauber-potts.svg
            :align: center
            :width: 80%
 
@@ -1338,19 +1318,15 @@ class PottsMetropolisState(DiscreteStateBase):
            >>> state = gt.PottsGlauberState(g, f)
            >>> ret = state.iterate_async(niter=1000 * g.num_vertices())
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
-           ...               output="metropolis-potts.pdf")
+           ...               output="metropolis-potts.svg")
            <...>
 
-        .. testcleanup:: metropolis-potts
-
-           conv_png("metropolis-potts.pdf")
-
-        .. figure:: metropolis-potts.png
+        .. figure:: metropolis-potts.svg
            :align: center
            :width: 80%
 
            State of a Metropolis-Hastings Potts dynamics with :math:`q=4` on a
-           political blog network.
+           :ns:`political blog <polblogs>` network.
 
         References
         ----------
@@ -1440,18 +1416,14 @@ class KirmanState(DiscreteStateBase):
            >>> state = gt.KirmanState(g)
            >>> ret = state.iterate_sync(niter=1000)
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
-           ...               output="kirman.pdf")
+           ...               output="kirman.svg")
            <...>
 
-        .. testcleanup:: kirman
-
-           conv_png("kirman.pdf")
-
-        .. figure:: kirman.png
+        .. figure:: kirman.svg
            :align: center
            :width: 80%
 
-           State of Kirman's model on a political blog network.
+           State of Kirman's model on a :ns:`political blog <polblogs>` network.
 
         References
         ----------
@@ -1546,18 +1518,14 @@ class AxelrodState(DiscreteStateBase):
            >>> ret = state.iterate_async(niter=10000000)
            >>> gt.graph_draw(g, g.vp.pos,
            ...               vertex_fill_color=gt.perfect_prop_hash([state.s])[0],
-           ...               vcmap=cm.magma, output="axelrod.pdf")
+           ...               vcmap=cm.magma, output="axelrod.svg")
            <...>
 
-        .. testcleanup:: axelrod
-
-           conv_png("axelrod.pdf")
-
-        .. figure:: axelrod.png
+        .. figure:: axelrod.svg
            :align: center
            :width: 80%
 
-           State of Axelrod's model on a political blog network.
+           State of Axelrod's model on a :ns:`political blog <polblogs>` network.
 
         References
         ----------
@@ -1646,6 +1614,75 @@ class BooleanState(DiscreteStateBase):
 
 class NormalState(DiscreteStateBase):
     def __init__(self, g, w=0, sigma=1, s=None):
+        r"""Multivariate Normal distribution.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+           Graph represening the conditional dependencies.
+        w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``0``)
+           Inverse covariance (i.e. coupling strength) between nodes.
+        sigma : :class:`~graph_tool.VertexPropertyMap` or ``float`` (optional, default: ``1``)
+           Node standard deviation.
+        s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+           Initial global state. If not provided, a random state will be chosen.
+
+        Notes
+        -----
+
+        This implements a zero-mean multivariate Normal distribution.
+
+        If a node :math:`i` is updated at time :math:`t`, the transition
+        to state :math:`s_i(t+1)` is given by
+
+        .. math::
+
+           P(s_i(t+1)|\boldsymbol s(t), \boldsymbol A, \boldsymbol w, \boldsymbol \sigma)
+           = \frac{\exp\left[-\frac{\left(s_i(t+1)+\sigma_i^2\sum_jA_{ij}w_{ij}s_j(t)\right)^2}
+                                   {2\sigma_i^2}\right]}
+                  {\sqrt{2\pi}\sigma_i}
+
+        which will lead, asymptotically with :math:`t\to\infty`, to a zero-mean
+        multivariate Normal distribution:
+
+        .. math::
+
+           P(\boldsymbol s | \boldsymbol W) =
+           \frac{\mathrm{e}^{-\frac{1}{2} {\boldsymbol x}^{\top}\boldsymbol W \boldsymbol x}}
+                {\sqrt{(2\pi)^N |\boldsymbol W^{-1}|}},
+
+        where :math:`W_{ij}=w_{ij}` for :math:`i\neq j` and :math:`W_{ii}=1/\sigma_i^2`.
+
+        Examples
+        --------
+
+        .. testsetup:: polblogs-normal
+
+           gt.seed_rng(42)
+           np.random.seed(42)
+
+        .. doctest:: polblogs-normal
+
+           >>> g = gt.GraphView(gt.collection.data["polblogs"].copy(), directed=False)
+           >>> gt.remove_parallel_edges(g)
+           >>> g = gt.extract_largest_component(g, prune=True)
+           >>> state = gt.NormalState(g, sigma=0.001, w=-100)
+           >>> ret = state.iterate_sync(niter=1000)
+           >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
+           ...               output="polblogs-normal.svg")
+           <...>
+
+        .. figure:: polblogs-normal.svg
+           :align: center
+           :width: 80%
+
+           Sample of a multivariate Normal on a :ns:`political blog <polblogs>` network.
+
+        References
+        ----------
+        .. [normal] https://en.wikipedia.org/wiki/Multivariate_normal_distribution
+        """
+
         if isinstance(w, PropertyMap):
             if w.value_type() != "double":
                 w = w.copy("double")
@@ -1664,6 +1701,75 @@ class NormalState(DiscreteStateBase):
 
 class LinearNormalState(DiscreteStateBase):
     def __init__(self, g, w=0, sigma=1, s=None):
+        r"""Linear distrecte-time dynamical system with noise.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+           Graph to be used for the dynamics
+        w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1``)
+           Coupling strength of each edge. If a scalar is given, it will be
+           used for all edges.
+        sigma : ``float`` (optional, default: ``.0``)
+           Stochastic noise magnitude.
+        s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+           Initial global state. If not provided, a random state will be chosen.
+
+        Notes
+        -----
+
+        This implements a distrecte time linear dynamical system with noise,
+        i.e. each node has an variable :math:`s_i`, which evolves in time
+        according to a Markov chain with transitio probabilities:
+
+        .. math::
+
+           P(s_i(t+1)|\boldsymbol s, \boldsymbol A, \boldsymbol w, \sigma)
+           = \frac{\exp\left[-\frac{\left(s_i(t+1)-\sum_{j}A_{ij}w_{ij}s_j\right)^2}{2\sigma^2}\right]}{\sqrt{2\pi}\sigma}
+
+        Examples
+        --------
+
+        .. testsetup:: linear-discrete
+
+           gt.seed_rng(49)
+           np.random.seed(49)
+
+        .. doctest:: linear-discrete
+
+
+           >>> g = gt.collection.data["karate"].copy()
+           >>> s = g.new_vp("double", np.random.normal(0, 1, g.num_vertices()))
+           >>> w = g.new_ep("double", vals=np.random.normal(0, .1, g.num_edges()))
+           >>> state = gt.LinearNormalState(g, s=s, w=w)
+           >>> ss = []
+           >>> for t in range(10):
+           ...     ret = state.iterate_sync()
+           ...     ss.append(state.get_state().fa.copy())
+
+           >>> figure(figsize=(6, 4))
+           <...>
+           >>> for v in g.vertices():
+           ...    plot(np.arange(len(ss)), [s[int(v)] for s in ss], "-o")
+           [...]
+           >>> xlabel(r"Time")
+           Text(...)
+           >>> ylabel(r"$s_i$")
+           Text(...)
+           >>> tight_layout()
+           >>> savefig("karate-linear-discrete.svg")
+
+        .. figure:: karate-linear-discrete.svg
+           :align: center
+
+           Linear dynamics on the :ns:`Karate Club <karate>` network.
+
+        References
+        ----------
+        .. [linear] https://en.wikipedia.org/wiki/Linear_dynamical_system
+
+        """
+
         if isinstance(w, PropertyMap):
             if w.value_type() != "double":
                 w = w.copy("double")
@@ -1752,7 +1858,7 @@ class ContinuousStateBase(object):
 
 class LinearState(ContinuousStateBase):
     def __init__(self, g, w=1, sigma=0, t0=0, s=None):
-        r"""Linear dynamical model.
+        r"""Linear dynamical system with noise.
 
         Parameters
         ----------
@@ -1769,68 +1875,58 @@ class LinearState(ContinuousStateBase):
         Notes
         -----
 
-        This implements Kuramoto's model for synchronization
-        [kuramoto_self-entrainment_1975]_ [rodrigues_kuramoto_2016]_.
-
-        Each node has an angle :math:`\theta_i`, which evolves in time obeying
-        the differential equation:
+        This implements a linear dynamical system with noise, i.e. each node has
+        an variable :math:`s_i`, which evolves in time obeying the
+        differential equation:
 
         .. math::
 
-           \frac{\mathrm{d}\theta_i}{\mathrm{d}t} = \omega_i + \sum_{j}A_{ij}w_{ij}\sin(\theta_j-\theta_i) + \sigma\xi_i(t),
+           \frac{\mathrm{d}s_i}{\mathrm{d}t} = \sum_{j}A_{ij}w_{ij}s_j + \sigma\xi_i(t),
 
         where :math:`\xi_i(t)` is a Gaussian noise with zero mean and unit
-        variance.
+        variance (implemented according to the Itô definition).
 
         Examples
         --------
 
-        .. testsetup:: kuramoto
+        .. testsetup:: linear
 
            gt.seed_rng(49)
            np.random.seed(49)
 
-        .. doctest:: kuramoto
+        .. doctest:: linear
 
 
-           >>> g = gt.collection.data["karate"]
-           >>> omega = g.new_vp("double", np.random.normal(0, 1, g.num_vertices()))
-           >>> state = gt.KuramotoState(g, omega=omega, w=1.5)
-           >>> thetas = []
-           >>> ts = linspace(0, 40, 1000)
+           >>> g = gt.collection.data["karate"].copy()
+           >>> s = g.new_vp("double", np.random.normal(0, 1, g.num_vertices()))
+           >>> w = g.new_ep("double", vals=np.random.normal(0, .1, g.num_edges()))
+           >>> state = gt.LinearState(g, s=s, w=w)
+           >>> ss = []
+           >>> ts = linspace(0, 10, 1000)
            >>> for t in ts:
            ...     ret = state.solve(t, first_step=0.0001)
-           ...     thetas.append(state.get_state().fa % (2 * pi))
+           ...     ss.append(state.get_state().fa.copy())
 
            >>> figure(figsize=(6, 4))
            <...>
            >>> for v in g.vertices():
-           ...    plot(ts, [t[int(v)] - t.mean() for t in thetas])
+           ...    plot(ts, [s[int(v)] for s in ss])
            [...]
            >>> xlabel(r"Time")
            Text(...)
-           >>> ylabel(r"$\theta_i - \left<\theta\right>$")
+           >>> ylabel(r"$s_i$")
            Text(...)
            >>> tight_layout()
-           >>> savefig("karate-kuramoto.svg")
+           >>> savefig("karate-linear.svg")
 
-        .. figure:: karate-kuramoto.svg
+        .. figure:: karate-linear.svg
            :align: center
 
-           Kuramoto oscillator dynamics on the Karate Club network.
+           Linear dynamics on the :ns:`Karate Club <karate>` network.
 
         References
         ----------
-        .. [kuramoto_self-entrainment_1975] Y. Kuramoto, "Self-entrainment of a
-           population of coupled non-linear oscillators", International
-           Symposium on Mathematical Problems in Theoretical Physics. Lecture
-           Notes in Physics, vol 39. Springer, Berlin, Heidelberg (1975),
-           :doi:`10.1007/BFb0013365`
-        .. [rodrigues_kuramoto_2016] Francisco A. Rodrigues, Thomas K. DM.Peron,
-           Peng Ji, Jürgen Kurth, "The Kuramoto model in complex networks",
-           Physics Reports 610 1-98 (2016) :doi:`10.1016/j.physrep.2015.10.008`,
-           :arxiv:`1511.07139`
-
+        .. [linear] https://en.wikipedia.org/wiki/Linear_dynamical_system
         """
         if not isinstance(sigma, PropertyMap):
             sigma = g.new_vp("double", val=sigma)
@@ -1848,7 +1944,7 @@ class LinearState(ContinuousStateBase):
 
 
 class LVState(ContinuousStateBase):
-    def __init__(self, g, w=1, sigma=0, mig=0, t0=0, s=None):
+    def __init__(self, g, w=1, r=1, sigma=0, mig=0, t0=0, s=None):
         r"""Generalized Lotka-Volterra model.
 
         Parameters
@@ -1858,6 +1954,9 @@ class LVState(ContinuousStateBase):
         w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1``)
            Coupling strength of each edge. If a scalar is given, it will be
            used for all edges.
+        r : :class:`~graph_tool.VertexPropertyMap` or ``float`` (optional, default: ``1``)
+           Intrinsic birth or death rates. If a scalar is given, it will be
+           used for all nodes.
         sigma : ``float`` (optional, default: ``.0``)
            Stochastic noise magnitude.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
@@ -1865,12 +1964,70 @@ class LVState(ContinuousStateBase):
 
         Notes
         -----
+        This implements a generalized Lotka-Volterra (gLV) dynamical system with
+        demographic noise, i.e. each node has an variable :math:`s_i`, which
+        evolves in time obeying the differential equation:
+
+        .. math::
+
+           \frac{\mathrm{d}s_i}{\mathrm{d}t} = s_i\left(r_i + \sum_{j}A_{ij}w_{ij}s_j\right) + \sigma\sqrt{s_i}\xi_i(t),
+
+        where :math:`\xi_i(t)` is a Gaussian noise with zero mean and unit
+        variance (implemented according to the Itô definition).
+
+        Examples
+        --------
+
+        .. testsetup:: glv
+
+           gt.seed_rng(42)
+           np.random.seed(42)
+
+        .. doctest:: glv
+
+           >>> g = gt.collection.data["karate"].copy()
+           >>> s = g.new_vp("double", vals=1 + 10 * np.random.random(g.num_vertices()))
+           >>> r = g.new_vp("double", val=-1)
+           >>> w = g.new_ep("double", vals=np.random.normal(0, .5, g.num_edges()))
+           >>> for v in g.vertices():
+           ...     e = g.add_edge(v,v)
+           ...     w[e] = -.7
+           >>> state = gt.LVState(g, s=s, r=r, w=w)
+           >>> ss = []
+           >>> ts = linspace(0, .4, 1000)
+           >>> for t in ts:
+           ...     ret = state.solve(t, first_step=1e-6)
+           ...     ss.append(state.get_state().fa.copy())
+           >>> figure(figsize=(6, 4))
+           <...>
+           >>> for v in g.vertices():
+           ...    plot(ts, [s[int(v)] for s in ss])
+           [...]
+           >>> xlabel(r"Time")
+           Text(...)
+           >>> ylabel(r"$s_i$")
+           Text(...)
+           >>> tight_layout()
+           >>> savefig("karate-glv.svg")
+
+        .. figure:: karate-glv.svg
+           :align: center
+
+           gLV dynamics on the :ns:`Karate Club <karate>` network.
+
+        References
+        ----------
+        .. [glv] https://en.wikipedia.org/wiki/Generalized_Lotka%E2%80%93Volterra_equation
 
         """
         if not isinstance(sigma, PropertyMap):
             sigma = g.new_vp("double", val=sigma)
         elif sigma.value_type() != "double":
             sigma = sigma.copy("double")
+        if not isinstance(r, PropertyMap):
+            r = g.new_vp("double", val=r)
+        elif r.value_type() != "double":
+            r = r.copy("double")
         if not isinstance(mig, PropertyMap):
             mig = g.new_vp("double", val=mig)
         elif mig.value_type() != "double":
@@ -1882,8 +2039,8 @@ class LVState(ContinuousStateBase):
         if s is None:
             s = g.new_vp("double", vals=numpy.random.random(g.num_vertices()))
 
-        ContinuousStateBase.__init__(self, g, lib_dynamics.make_linear_state,
-                                     dict(w=w, sigma=sigma, mig=mig), t0, s)
+        ContinuousStateBase.__init__(self, g, lib_dynamics.make_LV_state,
+                                     dict(w=w, r=r, sigma=sigma, mig=mig), t0, s)
 
 class KuramotoState(ContinuousStateBase):
     def __init__(self, g, omega=1, w=1, sigma=0, t0=0, s=None):
@@ -1931,7 +2088,6 @@ class KuramotoState(ContinuousStateBase):
 
         .. doctest:: kuramoto
 
-
            >>> g = gt.collection.data["karate"]
            >>> omega = g.new_vp("double", np.random.normal(0, 1, g.num_vertices())) 
            >>> state = gt.KuramotoState(g, omega=omega, w=1.5)
@@ -1956,7 +2112,7 @@ class KuramotoState(ContinuousStateBase):
         .. figure:: karate-kuramoto.svg
            :align: center
 
-           Kuramoto oscillator dynamics on the Karate Club network.
+           Kuramoto oscillator dynamics on the :ns:`Karate Club <karate>` network.
 
         References
         ----------

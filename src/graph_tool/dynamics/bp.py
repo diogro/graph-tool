@@ -236,8 +236,8 @@ class GenPottsBPState(BPBaseState):
 
         .. testsetup:: BPPotts
 
-           gt.seed_rng(42)
-           np.random.seed(42)
+           gt.seed_rng(43)
+           np.random.seed(43)
 
         .. doctest:: BPPotts
 
@@ -249,14 +249,10 @@ class GenPottsBPState(BPBaseState):
            ...                                        [ 1,  1, -1.25]])/20)
            >>> s = state.sample()
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=s,
-           ...               output="bp-potts.pdf")
+           ...               output="bp-potts.svg")
            <...>
 
-        .. testcleanup:: BPPotts
-
-           conv_png("bp-potts.pdf")
-
-        .. figure:: bp-potts.png
+        .. figure:: bp-potts.svg
            :align: center
            :width: 80%
 
@@ -382,14 +378,10 @@ class IsingBPState(GenPottsBPState):
            ...                         theta=g.vp.value.t(lambda x: np.arctanh((2*x-1)*.9)))
            >>> s = state.sample()
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=s,
-           ...               output="bp-ising.pdf")
+           ...               output="bp-ising.svg")
            <...>
 
-        .. testcleanup:: BPIsing
-
-           conv_png("bp-ising.pdf")
-
-        .. figure:: bp-ising.png
+        .. figure:: bp-ising.svg
            :align: center
            :width: 80%
 
@@ -591,14 +583,10 @@ class NormalBPState(BPBaseState):
            >>> state = gt.NormalBPState(g, x=1/200, mu=g.vp.value.t(lambda x: arctanh((2*x-1)*.9)))
            >>> s = state.sample()
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=s,
-           ...               output="bp-normal.pdf")
+           ...               output="bp-normal.svg")
            <...>
 
-        .. testcleanup:: BPnormal
-
-           conv_png("bp-normal.pdf")
-
-        .. figure:: bp-normal.png
+        .. figure:: bp-normal.svg
            :align: center
            :width: 80%
 

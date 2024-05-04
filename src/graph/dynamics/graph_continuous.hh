@@ -101,13 +101,14 @@ public:
         : continuous_state_base(s, s_diff),
           _sigma(any_cast<vmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
           _mig(any_cast<vmap_t::checked_t>(python::extract<any>(params["mig"].attr("_get_any")())()).get_unchecked()),
+          _r(any_cast<vmap_t::checked_t>(python::extract<any>(params["r"].attr("_get_any")())()).get_unchecked()),
           _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked())
     {}
 
     template <class Graph, class RNG>
     double get_node_diff(Graph& g, size_t v, double, double dt, RNG& rng)
     {
-        double diff = 0;
+        double diff = _r[v];
         for (auto e : in_or_out_edges_range(v, g))
         {
             auto u = source(e, g);
@@ -130,6 +131,7 @@ private:
 
     vmap_t _sigma;
     vmap_t _mig;
+    vmap_t _r;
     wmap_t _w;
 };
 
