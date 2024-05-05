@@ -599,7 +599,8 @@ dist_graph_inference_loops_HEADERS = \
 	src/graph/inference/loops/gibbs_loop.hh \
 	src/graph/inference/loops/mcmc_loop.hh \
 	src/graph/inference/loops/merge_split.hh \
-	src/graph/inference/loops/multilevel.hh
+	src/graph/inference/loops/multilevel.hh \
+	src/graph/inference/loops/parallel_pseudo_mcmc.hh
 
 graph_inference_supportdir = $(MOD_DIR)/include/inference/support
 dist_graph_inference_support_HEADERS = \
