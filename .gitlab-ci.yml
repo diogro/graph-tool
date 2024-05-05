@@ -130,12 +130,16 @@ build_bookworm_git:
 
 build_bullseye:
   extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: debian:bullseye
     PLATFORM: amd64
 
 build_bullseye_arm:
   extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: debian:bullseye
     PLATFORM: arm64
@@ -143,18 +147,24 @@ build_bullseye_arm:
 
 build_bullseye_git:
   extends: .build_deb_git
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: debian:bullseye
     PLATFORM: amd64
 
 build_buster:
   extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: debian:buster
     PLATFORM: amd64
 
 build_buster_arm:
   extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: debian:buster
     PLATFORM: arm64
@@ -162,18 +172,24 @@ build_buster_arm:
 
 build_buster_git:
   extends: .build_deb_git
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: debian:buster
     PLATFORM: amd64
 
 build_focal:
   extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: ubuntu:focal
     PLATFORM: amd64
 
 build_focal_arm:
   extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: ubuntu:focal
     PLATFORM: arm64
@@ -181,6 +197,8 @@ build_focal_arm:
 
 build_focal_git:
   extends: .build_deb_git
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
   variables:
     BASE: ubuntu:focal
     PLATFORM: amd64
