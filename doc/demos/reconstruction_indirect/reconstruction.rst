@@ -119,7 +119,7 @@ on the simulation of the `Kinetic Ising model
    g = gt.collection.data["dolphins"]
    E = g.num_edges()
    N = g.num_vertices()
-   w = g.new_ep("double", vals=np.random.normal(N/(2**E), .05, E))  # True edge weights
+   w = g.new_ep("double", vals=np.random.normal(N/(2*E), .05, E))  # True edge weights
    istate = gt.IsingGlauberState(g, w=w)
 
    M = 1000
