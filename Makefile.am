@@ -560,6 +560,7 @@ dist_graph_inference_layers_HEADERS = \
 graph_inference_uncertaindir = $(MOD_DIR)/include/inference/uncertain
 dist_graph_inference_uncertain_HEADERS = \
 	src/graph/inference/uncertain/dynamics/dynamics.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_imp.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_base.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
