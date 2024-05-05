@@ -1049,25 +1049,6 @@ public:
         }
     }
 
-    bool is_transparent()
-    {
-        vertex_shape_t shape = _attrs.template get<vertex_shape_t>(VERTEX_SHAPE);
-        if (shape != SHAPE_PIE)
-        {
-            return get<3>(_attrs.template get<color_t>(VERTEX_FILL_COLOR)) < 1.;
-        }
-        else
-        {
-            vector<color_t> fcolors = _attrs.template get<vector<color_t>>(VERTEX_PIE_COLORS);
-            for (auto& c : fcolors)
-            {
-                if (get<3>(c) < 1.)
-                    return true;
-            }
-            return false;
-        }
-    }
-
     template <class, class>
     friend class EdgeShape;
 
@@ -1209,8 +1190,7 @@ public:
         if (!sloppy)
         {
             if ((_s.get_size(cr) < get_user_dist(cr, res) &&
-                 _t.get_size(cr) < get_user_dist(cr, res)) ||
-                (!_s.is_transparent() && !_t.is_transparent()))
+                 _t.get_size(cr) < get_user_dist(cr, res)))
                 sloppy = true;
         }
 
