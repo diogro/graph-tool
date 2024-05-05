@@ -102,10 +102,10 @@ We can visualize the graph we created so far with the
 
 .. doctest:: two-nodes
 
-   >>> graph_draw(g, vertex_text=g.vertex_index, output="two-nodes.pdf")
+   >>> graph_draw(g, vertex_text=g.vertex_index, output="two-nodes.svg")
    <...>
 
-.. figure:: two-nodes.png
+.. figure:: two-nodes.svg
    :align: center
    :width: 200px
 
@@ -136,15 +136,10 @@ and edge properties, for example:
 .. doctest:: two-nodes
 
    >>> graph_draw(g, vertex_text=g.vertex_index, vertex_fill_color=vcolor,
-   ...            edge_pen_width=eweight, output="two-nodes-color.pdf")
+   ...            edge_pen_width=eweight, output="two-nodes-color.svg")
    <...>
 
-.. testcleanup:: two-nodes
-
-    conv_png("two-nodes.pdf")
-    conv_png("two-nodes-color.pdf")
-
-.. figure:: two-nodes-color.png
+.. figure:: two-nodes-color.svg
    :align: center
    :width: 200px
 
