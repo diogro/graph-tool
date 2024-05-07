@@ -109,6 +109,25 @@ build_sid_git:
     BASE: debian:sid
     PLATFORM: amd64
 
+build_trixie:
+  extends: .build_deb
+  variables:
+    BASE: debian:trixie
+    PLATFORM: amd64
+
+build_trixie_arm:
+  extends: .build_deb
+  variables:
+    BASE: debian:trixie
+    PLATFORM: arm64
+  needs: ["build_trixie"]
+
+build_trixie_git:
+  extends: .build_deb_git
+  variables:
+    BASE: debian:trixie
+    PLATFORM: amd64
+
 build_bookworm:
   extends: .build_deb
   variables:
