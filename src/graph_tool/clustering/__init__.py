@@ -57,8 +57,7 @@ __all__ = ["local_clustering", "global_clustering", "extended_clustering",
 
 
 def local_clustering(g, weight=None, prop=None, undirected=True):
-    r"""
-    Return the local clustering coefficients for all vertices.
+    r"""Return the local clustering coefficients for all vertices.
 
     Parameters
     ----------
@@ -90,18 +89,27 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     defined as
 
     .. math::
-       c_i = \frac{|\{e_{jk}\}|}{k_i(k_i-1)} :\, v_j,v_k \in N_i,\, e_{jk} \in E
+       c_i = \frac{|\{(j,k)\}|}{d_i(d_i-1)} :\, j,k \in N_i,\, (j,k) \in E
 
-    where :math:`k_i` is the out-degree of vertex :math:`i`, and
+    where :math:`d_i` is the out-degree of vertex :math:`i`, and
 
     .. math::
-       N_i = \{v_j : e_{ij} \in E\}
+       N_i = \{j : (i,j) \in E\}
 
     is the set of out-neighbors of vertex :math:`i`. For undirected graphs the
-    value of :math:`c_i` is normalized as
+    value of :math:`c_i` further normalized as
 
     .. math::
-       c'_i = 2c_i.
+       c_i \leftarrow  2c_i.
+
+    If weights are given, the following definition is used:
+
+    .. math::
+       c_i = \frac{\sum_{jk}A_{ij}A_{jk}A_{ik}}{\sum_{j\ne k}A_{ij}A_{ik}},
+
+    where :math:`\boldsymbol A` is the weighted adjacency matrix, and it is
+    assumed that the weights are normalized in the unit interval, i.e.
+    :math:`A_{ij} \in [0,1]`.
 
     The implemented algorithm runs in :math:`O(|V|\left<k^2\right>)` time,
     where :math:`\left<k^2\right>` is second moment of the degree distribution.
@@ -120,6 +128,7 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     .. [watts-collective-1998] D. J. Watts and Steven Strogatz, "Collective
        dynamics of 'small-world' networks", Nature, vol. 393, pp 440-442, 1998.
        :doi:`10.1038/30918`
+
     """
 
     if prop is None:
@@ -181,7 +190,8 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
        c = \frac{\mathrm{Tr}{{\boldsymbol A}^3}}{\sum_{i\ne j}[{\boldsymbol A}^2]_{ij}},
 
     where :math:`\boldsymbol A` is the weighted adjacency matrix, and it is
-    assumed that the weights are normalized, i.e. :math:`A_{ij} \le 1`.
+    assumed that the weights are normalized in the unit interval, i.e.
+    :math:`A_{ij} \in [0,1]`.
 
     The implemented algorithm runs in time :math:`O(|V|\left<k^2\right>)`,
     where :math:`\left< k^2\right>` is the second moment of the degree

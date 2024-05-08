@@ -49,7 +49,7 @@ auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
                    EWeight& eweight, VProp& mark, const Graph& g)
 {
     typedef typename property_traits<EWeight>::value_type val_t;
-    val_t triangles = 0, k = 0;
+    val_t triangles = 0, k = 0, k2 = 0;
 
     if (out_degree(v, g) > 1)
     {
@@ -59,7 +59,9 @@ auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
             if (u == v)
                 continue;
             mark[u] = 1;
-            k += eweight[e];
+            auto w = eweight[e];
+            k += w;
+            k2 += w * w;
         }
 
         for (auto e : out_edges_range(v, g))
@@ -82,9 +84,9 @@ auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
     }
 
     if (graph_tool::is_directed(g))
-        return make_pair(val_t(triangles), val_t((k * (k - 1))));
+        return make_pair(val_t(triangles), val_t(k * k - k2));
     else
-        return make_pair(val_t(triangles / 2), val_t((k * (k - 1)) / 2));
+        return make_pair(val_t(triangles / 2), val_t((k * k - k2) / 2));
 }
 
 
