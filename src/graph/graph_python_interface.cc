@@ -416,7 +416,7 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
 
     python::object ret;
     auto dispatch =
-        [&](auto&& vrange)
+        [&](auto&& vrange, bool check=true)
         {
             mpl::for_each<scalar_types>(
                 [&](auto t)
@@ -434,6 +434,12 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
                     run_action<>()(gi,
                                    [&](auto& g)
                                    {
+                                       if (check)
+                                       {
+                                           if (!is_valid_vertex(v, g))
+                                               throw ValueException("invalid vertex: " + std::to_string(v));
+                                       }
+
                                        for (auto u: vrange(g))
                                        {
                                            vlist.push_back(u);
@@ -448,7 +454,7 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
     switch (kind)
     {
     case 0:
-        dispatch([&](auto& g){return vertices_range(g);});
+        dispatch([&](auto& g){return vertices_range(g);}, false);
         break;
     case 1:
         dispatch([&](auto& g){return out_neighbors_range(v, g);});
@@ -465,11 +471,21 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
 enum range_t { FULL, OUT, IN, ALL };
 
 template <int kind>
-python::object get_vertex_iter(GraphInterface& gi, int v, python::list ovprops)
+python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprops)
 {
 #ifdef HAVE_BOOST_COROUTINE
-    auto dispatch = [&](auto&& vrange)
+    auto dispatch = [&](auto&& vrange, bool check=true)
         {
+            auto do_check =
+                [&](auto& g)
+                {
+                    if (check)
+                    {
+                        if (!is_valid_vertex(v, g))
+                            throw ValueException("invalid vertex: " + std::to_string(v));
+                    }
+                };
+
             auto yield_dispatch = [&](auto& yield)
                 {
                     if (python::len(ovprops) == 0)
@@ -477,7 +493,9 @@ python::object get_vertex_iter(GraphInterface& gi, int v, python::list ovprops)
                         run_action<>()(gi,
                                        [&](auto& g)
                                        {
-                                           for (auto v: vrange(g))
+                                           do_check(g);
+
+                                           for (auto v : vrange(g))
                                                yield(python::object(v));
                                        })();
                     }
@@ -494,7 +512,9 @@ python::object get_vertex_iter(GraphInterface& gi, int v, python::list ovprops)
                         run_action<>()(gi,
                                        [&](auto& g)
                                        {
-                                           for (auto v: vrange(g))
+                                           do_check(g);
+
+                                           for (auto v : vrange(g))
                                            {
                                                python::list vlist;
                                                vlist.append(python::object(v));
@@ -511,13 +531,13 @@ python::object get_vertex_iter(GraphInterface& gi, int v, python::list ovprops)
     switch (kind)
     {
     case range_t::FULL:
-        return dispatch([&](auto& g){return vertices_range(g);});
+        return dispatch([&](auto& g){return vertices_range(g);}, false);
     case range_t::OUT:
-        return dispatch([&](auto& g){return out_neighbors_range(v, g);});
+        return dispatch([&](auto& g){return out_neighbors_range(v, g);}, true);
     case range_t::IN:
-        return dispatch([&](auto& g){return in_neighbors_range(v, g);});
+        return dispatch([&](auto& g){return in_neighbors_range(v, g);}, true);
     case range_t::ALL:
-        return dispatch([&](auto& g){return all_neighbors_range(v, g);});
+        return dispatch([&](auto& g){return all_neighbors_range(v, g);}, true);
     }
 #else
     throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
@@ -541,7 +561,7 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
 
     python::object ret;
     auto dispatch =
-        [&](auto&& erange)
+        [&](auto&& erange, bool check=true)
         {
             mpl::for_each<scalar_types>(
                 [&](auto t)
@@ -559,6 +579,12 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
                     run_action<>()(gi,
                                    [&](auto& g)
                                    {
+                                       if (check)
+                                       {
+                                           if (!is_valid_vertex(v, g))
+                                               throw ValueException("invalid vertex: " + std::to_string(v));
+                                       }
+
                                        for (auto e: erange(g))
                                        {
                                            elist.push_back(source(e, g));
@@ -573,7 +599,7 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
     switch (kind)
     {
     case range_t::FULL:
-        dispatch([&](auto& g){return edges_range(g);});
+        dispatch([&](auto& g){return edges_range(g);}, false);
         break;
     case range_t::OUT:
         dispatch([&](auto& g){return out_edges_range(v, g);});
@@ -591,7 +617,7 @@ template <int kind>
 python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
 {
 #ifdef HAVE_BOOST_COROUTINE
-   auto dispatch = [&](auto&&erange)
+   auto dispatch = [&](auto&& erange, bool check = true)
         {
             auto yield_dispatch = [&](auto& yield)
                 {
@@ -606,6 +632,12 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
                     run_action<>()(gi,
                                    [&](auto& g)
                                    {
+                                       if (check)
+                                       {
+                                           if (!is_valid_vertex(v, g))
+                                               throw ValueException("invalid vertex: " + std::to_string(v));
+                                       }
+
                                        for (auto e: erange(g))
                                        {
                                            python::list elist;
@@ -622,7 +654,7 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
    switch (kind)
     {
     case range_t::FULL:
-        return dispatch([&](auto& g){return edges_range(g);});
+        return dispatch([&](auto& g){return edges_range(g);}, false);
     case range_t::OUT:
         return dispatch([&](auto& g){return out_edges_range(v, g);});
     case range_t::IN:

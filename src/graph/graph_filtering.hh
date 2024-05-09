@@ -642,9 +642,10 @@ add_edge(Vertex s, Vertex t, filt_graph<Graph,
 // Used to skip filtered vertices
 
 template <class Graph, class EP, class VP, class Vertex>
-bool is_valid_vertex(Vertex v, const boost::filt_graph<Graph,EP,VP>&)
+bool is_valid_vertex(Vertex v, const boost::filt_graph<Graph,EP,VP>& g)
 {
-    return v != graph_traits<boost::filt_graph<Graph,EP,VP>>::null_vertex();
+    return (v < num_vertices(g) &&
+            vertex(v, g) != graph_traits<boost::filt_graph<Graph,EP,VP>>::null_vertex());
 }
 
 template <class Graph, class Vertex>
@@ -660,9 +661,9 @@ bool is_valid_vertex(Vertex v, const boost::undirected_adaptor<Graph>& g)
 }
 
 template <class Graph, class Vertex>
-bool is_valid_vertex(Vertex, const Graph&)
+bool is_valid_vertex(Vertex v, const Graph& g)
 {
-    return true;
+    return v < num_vertices(g);
 }
 
 
