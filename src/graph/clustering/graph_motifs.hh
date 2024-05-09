@@ -378,16 +378,23 @@ struct get_all_motifs
                 make_subgraph(subgraphs[j], g, usub);
                 get_sig(usub, sig);
 
+                auto iso_map =
+                    boost::make_shared_array_property_map
+                    (num_vertices(usub), size_t(),
+                     boost::get(boost::vertex_index, usub));
+
                 #pragma omp critical (gather)
                 {
                     bool skip = false;
                     auto iter = sub_list.find(sig);
-                    if(iter == sub_list.end())
+                    if (iter == sub_list.end())
                     {
                         if (!fill_list)
                             skip = true; // avoid inserting an element in sub_list
                         sub_list[sig].clear();
                     }
+
+                    d_graph_t* motif = nullptr;
 
                     if (!skip)
                     {
@@ -398,21 +405,22 @@ struct get_all_motifs
                         {
                             for (auto& mpos : sl->second)
                             {
-                                d_graph_t& motif = mpos.second;
+                                motif = &mpos.second;
                                 typename wrap_directed::apply<Graph,d_graph_t>::type
-                                    umotif(motif);
+                                    umotif(*motif);
+
                                 if (comp_iso)
                                 {
-                                    if (isomorphism(umotif, usub,
-                                                    vertex_index1_map(get(boost::vertex_index, umotif)).
-                                                    vertex_index2_map(get(boost::vertex_index, usub))))
-                                        found = true;
+                                    found = isomorphism(umotif, usub,
+                                                        vertex_index1_map(get(boost::vertex_index, umotif)).
+                                                        vertex_index2_map(get(boost::vertex_index, usub)).
+                                                        isomorphism_map(iso_map));
                                 }
                                 else
                                 {
-                                    if (graph_cmp(umotif, usub))
-                                        found = true;
+                                    found = graph_cmp(umotif, usub);
                                 }
+
                                 if (found)
                                 {
                                     pos = mpos.first;
@@ -422,13 +430,19 @@ struct get_all_motifs
                             }
                         }
 
-                        if (found == false && fill_list)
+                        if (!found && fill_list)
                         {
                             subgraph_list.push_back(sub);
                             sub_list[sig].emplace_back(subgraph_list.size() - 1,
                                                        sub);
                             hist.push_back(1);
                             pos = hist.size() - 1;
+                            if (collect_vmaps)
+                            {
+                                motif = &subgraph_list.back();
+                                for (auto v : vertices_range(*motif))
+                                    iso_map[v] = v;
+                            }
                             found = true;
                         }
 
@@ -437,8 +451,9 @@ struct get_all_motifs
                             if (pos >= vmaps.size())
                                 vmaps.resize(pos + 1);
                             vmaps[pos].push_back(VMap(get(boost::vertex_index,sub)));
-                            for (size_t vi = 0; vi < num_vertices(sub); ++vi)
-                                vmaps[pos].back()[vertex(vi, sub)] = subgraphs[j][vi];
+                            auto& vmap = vmaps[pos].back();
+                            for (auto v : vertices_range(*motif))
+                                vmap[v] = subgraphs[j][iso_map[v]];
                         }
                     }
                 }

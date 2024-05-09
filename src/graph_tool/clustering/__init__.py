@@ -415,9 +415,8 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
     hist = []
     vertex_maps = []
     was_directed = g.is_directed()
-    _gt.get_motifs(g._Graph__graph, k, sub_list, hist, vertex_maps,
-                   return_maps,  pd, True, len(sub_list) == 0,
-                   _get_rng())
+    _gt.get_motifs(g._Graph__graph, k, sub_list, hist, vertex_maps, return_maps,
+                   pd, True, len(sub_list) == 0, _get_rng())
 
     # assemble graphs
     temp = []
