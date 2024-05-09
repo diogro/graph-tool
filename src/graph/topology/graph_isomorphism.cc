@@ -93,11 +93,19 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
             (
                 [&](auto&& graph, auto&& a2)
                 {
-                    return check_iso()
+                    vprop_map_t<size_t>::type imap(get(vertex_index, graph));
+
+                    check_iso()
                         (std::forward<decltype(graph)>(graph),
                          std::forward<decltype(a2)>(a2), inv_map1, inv_map2,
-                         max_inv, iso_map, gi1.get_vertex_index(),
+                         max_inv, imap, gi1.get_vertex_index(),
                          gi2.get_vertex_index(), result);
+
+                    if (result)
+                    {
+                        for (auto v : vertices_range(graph))
+                            iso_map[v] = imap[v];
+                    }
                 },
                 always_directed(),
                 always_directed())(gi1.get_graph_view(), gi2.get_graph_view());
@@ -108,11 +116,19 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
             (
                 [&](auto&& graph, auto&& a2)
                 {
-                    return check_iso()
+                    vprop_map_t<size_t>::type imap(get(vertex_index, graph));
+
+                    check_iso()
                         (std::forward<decltype(graph)>(graph),
                          std::forward<decltype(a2)>(a2), inv_map1, inv_map2,
-                         max_inv, iso_map, gi1.get_vertex_index(),
+                         max_inv, imap, gi1.get_vertex_index(),
                          gi2.get_vertex_index(), result);
+
+                    if (result)
+                    {
+                        for (auto v : vertices_range(graph))
+                            iso_map[v] = imap[v];
+                    }
                 },
                 never_directed(),
                 never_directed())(gi1.get_graph_view(), gi2.get_graph_view());

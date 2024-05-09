@@ -709,7 +709,7 @@ def isomorphism(g1, g2, vertex_inv1=None, vertex_inv2=None, isomap=False):
     else:
         vertex_inv2 = perfect_prop_hash([vertex_inv2])[0].copy("int64_t")
 
-    inv_max = max(vertex_inv1.fa.max(),vertex_inv2.fa.max()) + 1
+    inv_max = max(vertex_inv1.fa.max(), vertex_inv2.fa.max()) + 1
 
     l1 = label_self_loops(g1, mark_only=True)
     if l1.fa.max() > 0:
