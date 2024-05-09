@@ -2104,7 +2104,7 @@ class Graph(object):
         return v
 
     def edge(self, s, t, all_edges=False, add_missing=False):
-        """Return the edge from vertex ``s`` to ``t``, if it exists. If
+        r"""Return the edge from vertex ``s`` to ``t``, if it exists. If
         ``all_edges=True`` then a list is returned with all the parallel edges
         from ``s`` to ``t``, otherwise only one edge is returned.
 

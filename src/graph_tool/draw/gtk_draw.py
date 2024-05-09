@@ -145,11 +145,11 @@ class GraphWidget(Gtk.DrawingArea):
         pos : :class:`~graph_tool.VertexPropertyMap`
             Vector-valued vertex property map containing the x and y coordinates of
             the vertices.
-        vprops : dict (optional, default: ``None``)
+        vprops : ``dict`` (optional, default: ``None``)
             Dictionary with the vertex properties. Individual properties may also be
             given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
             the name of the property.
-        eprops : dict (optional, default: ``None``)
+        eprops : ``dict`` (optional, default: ``None``)
             Dictionary with the edge properties. Individual properties may also be
             given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
             the name of the property.
@@ -157,29 +157,29 @@ class GraphWidget(Gtk.DrawingArea):
             If provided, defines the relative order in which the vertices are drawn.
         eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, defines the relative order in which the edges are drawn.
-        nodesfirst : bool (optional, default: ``False``)
+        nodesfirst : ``bool`` (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
-        update_layout : bool (optional, default: ``False``)
+        update_layout : ``bool`` (optional, default: ``False``)
             If ``True``, the layout will be updated dynamically.
         layout_K : float (optional, default: ``1.0``)
             Parameter ``K`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        multilevel : bool (optional, default: ``False``)
+        multilevel : ``bool`` (optional, default: ``False``)
             Parameter ``multilevel`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        coarse_method : bool (optional, default: ``hybrid``)
+        coarse_method : ``bool`` (optional, default: ``hybrid``)
             Parameter ``coarse_method`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        sfdp_args : dict (optional, default: ``{}``)
+        sfdp_args : ``dict`` (optional, default: ``{}``)
             Additional parameters to be passed to :func:`~graph_tool.draw.sfdp_layout`.
-        display_props : list of :class:`~graph_tool.VertexPropertyMap` instances (optional, default: ``None``)
+        display_props : ``list`` of :class:`~graph_tool.VertexPropertyMap` instances (optional, default: ``None``)
             List of properties to be displayed when the mouse passes over a vertex.
         display_props_size : float (optional, default: ``11.``)
             Font size used to display the vertex properties.
-        fit_view : bool, float or tuple (optional, default: ``True``)
+        fit_view : ``bool``, float or tuple (optional, default: ``True``)
             If ``True``, the layout will be scaled to fit the entire clip region.
             If a float value is given, it will be interpreted as ``True``, and in
             addition the viewport will be scaled out by that factor. If a tuple
             value is given, it should have four values ``(x, y, w, h)`` that
             specify the view in user coordinates.
-        fit_view_ink : bool (optional, default: ``None``)
+        fit_view_ink : ``bool`` (optional, default: ``None``)
             If ``True``, and ``fit_view == True`` the drawing will be performed
             once to figure out the bounding box, before the actual drawing is
             made. Otherwise, only the vertex positions will be used for this
@@ -188,7 +188,7 @@ class GraphWidget(Gtk.DrawingArea):
             assumed ``False``.
         bg_color : str or sequence (optional, default: ``None``)
             Background color. The default is white.
-        max_render_time : int (optional, default: ``300``)
+        max_render_time : ``int`` (optional, default: ``300``)
             Maximum amount of time (in milliseconds) spent rendering portions of
             the graph.
         layout_callback : function (optional, default: ``Node``)
@@ -202,8 +202,9 @@ class GraphWidget(Gtk.DrawingArea):
 
             where ``g`` is the graph being drawn, ``picked`` is either a single
             vertex or a boolean vertex property map representing the vertices
-            currently selected, and ``vprops`` and ``eprops`` are dictionaries with
-            the vertex and edge properties currently being used by the layout.
+            currently selected, ``pos`` the vertex positions, and ``vprops`` and
+            ``eprops`` are dictionaries with the vertex and edge properties
+            currently being used by the layout.
         key_press_callback : function (optional, default: ``Node``)
 
             User-supplied callback to be called whenever a key-press event has
@@ -215,10 +216,13 @@ class GraphWidget(Gtk.DrawingArea):
                    ...
 
             where ``g`` is the graph being drawn, ``keyval`` is the key id,
-            ``picked`` is either a single vertex or a boolean vertex property map
-            representing the vertices currently selected, and ``vprops`` and
-            ``eprops`` are dictionaries with the vertex and edge properties
-            currently being used by the layout.
+            ``picked`` is either a single vertex or a boolean vertex property
+            map representing the vertices currently selected, ``pos`` the vertex
+            positions, and ``vprops`` and ``eprops`` are dictionaries with the
+            vertex and edge properties currently being used by the layout.
+        highligth_color : str or sequence (optional, default: ``None``)
+            Color used to highlight the currently selected node and its incident
+            edges. The default is red.
         vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
             Parameters following the pattern ``vertex_<prop-name>`` specify the
             vertex property with name ``<prop-name>``, as an alternative to the
@@ -1221,11 +1225,11 @@ class GraphWindow(Gtk.Window):
             the vertices.
         geometry : tuple
             Widget geometry.
-        vprops : dict (optional, default: ``None``)
+        vprops : ``dict`` (optional, default: ``None``)
             Dictionary with the vertex properties. Individual properties may also be
             given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
             the name of the property.
-        eprops : dict (optional, default: ``None``)
+        eprops : ``dict`` (optional, default: ``None``)
             Dictionary with the edge properties. Individual properties may also be
             given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
             the name of the property.
@@ -1233,9 +1237,9 @@ class GraphWindow(Gtk.Window):
             If provided, defines the relative order in which the vertices are drawn.
         eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, defines the relative order in which the edges are drawn.
-        nodesfirst : bool (optional, default: ``False``)
+        nodesfirst : ``bool`` (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
-        update_layout : bool (optional, default: ``True``)
+        update_layout : ``bool`` (optional, default: ``True``)
             If ``True``, the layout will be updated dynamically.
         **kwargs
             Any extra parameters are passed to :class:`~graph_tool.draw.GraphWidget` and
@@ -1271,30 +1275,30 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
     pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector-valued vertex property map containing the x and y coordinates of
         the vertices. If not given, it will be computed using :func:`sfdp_layout`.
-    vprops : dict (optional, default: ``None``)
+    vprops : ``dict`` (optional, default: ``None``)
         Dictionary with the vertex properties. Individual properties may also be
         given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
-    eprops : dict (optional, default: ``None``)
-        Dictionary with the vertex properties. Individual properties may also be
+    eprops : ``dict`` (optional, default: ``None``)
+        Dictionary with the edge properties. Individual properties may also be
         given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
     vorder : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the vertices are drawn.
     eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the edges are drawn.
-    nodesfirst : bool (optional, default: ``False``)
+    nodesfirst : ``bool`` (optional, default: ``False``)
         If ``True``, the vertices are drawn first, otherwise the edges are.
     geometry : tuple (optional, default: ``(500, 400)``)
         Window geometry.
-    update_layout : bool (optional, default: ``True``)
+    update_layout : ``bool`` (optional, default: ``True``)
         If ``True``, the layout will be updated dynamically.
-    main : bool (optional, default: ``True``)
+    main : ``bool`` (optional, default: ``True``)
         If ``False``, the GTK+ main loop will not be called.
     window : :class:`~graph_tool.draw.GraphWindow` (optional, default: ``None``)
         If provided, specifies the window where the drawing will
         occur. Otherwise a new one will be created.
-    return_window : bool (optional, default: ``False``)
+    return_window : ``bool`` (optional, default: ``False``)
         If ``True``, the GTK+ window will be returned.
     **kwargs
         Any extra parameters are passed to :class:`~graph_tool.draw.GraphWindow`,
