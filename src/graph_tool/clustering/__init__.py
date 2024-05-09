@@ -102,7 +102,8 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     .. math::
        c_i \leftarrow  2c_i.
 
-    If weights are given, the following definition is used:
+    If weights are given, the following definition is used
+    [zhang-general-2005]_:
 
     .. math::
        c_i = \frac{\sum_{jk}A_{ij}A_{jk}A_{ik}}{\sum_{j\ne k}A_{ij}A_{ik}},
@@ -128,6 +129,9 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     .. [watts-collective-1998] D. J. Watts and Steven Strogatz, "Collective
        dynamics of 'small-world' networks", Nature, vol. 393, pp 440-442, 1998.
        :doi:`10.1038/30918`
+    .. [zhang-general-2005] Zhang B, Horvath S, "A general framework for
+       weighted gene co-expression network analysis", Stat Appl Genet Mol Biol. 4
+       17 (2005) :doi:`10.2202/1544-6115.1128`
 
     """
 
@@ -184,7 +188,8 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
        c = 3 \times \frac{\text{number of triangles}}
                           {\text{number of connected triples}}
 
-    If weights are given, the following definition is used:
+    If weights are given, the following definition is used
+    [zhang-general-2005]_:
 
     .. math::
        c = \frac{\mathrm{Tr}{{\boldsymbol A}^3}}{\sum_{i\ne j}[{\boldsymbol A}^2]_{ij}},
@@ -210,7 +215,9 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
     .. [newman-structure-2003] M. E. J. Newman, "The structure and function of
        complex networks", SIAM Review, vol. 45, pp. 167-256, 2003,
        :doi:`10.1137/S003614450342480`
-
+    .. [zhang-general-2005] Zhang B, Horvath S, "A general framework for
+       weighted gene co-expression network analysis", Stat Appl Genet Mol Biol. 4
+       17 (2005) :doi:`10.2202/1544-6115.1128`
     """
 
     if g.is_directed():

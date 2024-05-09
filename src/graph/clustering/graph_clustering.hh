@@ -45,8 +45,10 @@ using namespace std;
 
 // calculates the number of triangles to which v belongs
 template <class Graph, class EWeight, class VProp>
-auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
-                   EWeight& eweight, VProp& mark, const Graph& g)
+std::pair<typename property_traits<EWeight>::value_type,
+          typename property_traits<EWeight>::value_type>
+get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
+              EWeight& eweight, VProp& mark, const Graph& g)
 {
     typedef typename property_traits<EWeight>::value_type val_t;
     val_t triangles = 0, k = 0, k2 = 0;
@@ -58,8 +60,8 @@ auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
             auto u = target(e, g);
             if (u == v)
                 continue;
-            mark[u] = 1;
             auto w = eweight[e];
+            mark[u] = w;
             k += w;
             k2 += w * w;
         }
@@ -73,8 +75,9 @@ auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
             for (auto e2 : out_edges_range(u, g))
             {
                 auto w = target(e2, g);
-                if (mark[w] > 0 && w != u)
-                    t += eweight[e2];
+                auto mw = mark[w];
+                if (mw > 0 && w != u)
+                    t += mw * eweight[e2];
             }
             triangles += t * eweight[e];
         }
@@ -84,9 +87,9 @@ auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
     }
 
     if (graph_tool::is_directed(g))
-        return make_pair(val_t(triangles), val_t(k * k - k2));
+        return {triangles, k * k - k2};
     else
-        return make_pair(val_t(triangles / 2), val_t((k * k - k2) / 2));
+        return {triangles / 2, (k * k - k2) / 2};
 }
 
 
@@ -96,16 +99,16 @@ auto get_global_clustering(const Graph& g, EWeight eweight)
 {
     typedef typename property_traits<EWeight>::value_type val_t;
     val_t triangles = 0, n = 0;
-    vector<uint8_t> mask(num_vertices(g), 0);
+    vector<val_t> mark(num_vertices(g), 0);
     vector<std::pair<val_t, val_t>> ret(num_vertices(g));
 
     #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
-        firstprivate(mask) reduction(+:triangles, n)
+        firstprivate(mark) reduction(+:triangles, n)
     parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
              {
-                 auto temp = get_triangles(v, eweight, mask, g);
+                 auto temp = get_triangles(v, eweight, mark, g);
                  triangles += temp.first;
                  n += temp.second;
                  ret[v] = temp;
@@ -135,17 +138,18 @@ void set_clustering_to_property(const Graph& g, EWeight eweight,
                                 ClustMap clust_map)
 {
     typedef typename property_traits<EWeight>::value_type val_t;
-    vector<val_t> mask(num_vertices(g), false);
+    typedef typename property_traits<ClustMap>::value_type cval_t;
+    vector<val_t> mark(num_vertices(g), false);
 
     #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
-        firstprivate(mask)
+        firstprivate(mark)
     parallel_vertex_loop_no_spawn
         (g,
          [&](auto v)
          {
-             auto triangles = get_triangles(v, eweight, mask, g);
-             double clustering = (triangles.second > 0) ?
-                 double(triangles.first)/triangles.second :
+             auto triangles = get_triangles(v, eweight, mark, g);
+             cval_t clustering = (triangles.second > 0) ?
+                 cval_t(triangles.first)/triangles.second :
                  0.0;
              clust_map[v] = clustering;
          });
