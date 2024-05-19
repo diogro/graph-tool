@@ -778,7 +778,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                nodesfirst=False, output_size=(600, 600), fit_view=True,
                fit_view_ink=None, adjust_aspect=True, ink_scale=1,
                inline=has_draw_inline, inline_scale=2, mplfig=None, output=None,
-               fmt="auto", bg_color=None, **kwargs):
+               fmt="auto", bg_color=None, antialias=None, **kwargs):
     r"""Draw a graph to screen or to a file using :mod:`cairo`.
 
     Parameters
@@ -842,6 +842,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         guessed from the ``output`` parameter.
     bg_color : str or sequence (optional, default: ``None``)
         Background color. The default is transparent.
+    antialias : :class:`cairo.Antialias` (optional, default: ``None``)
+        If supplied, this will set the antialising mode of the cairo context.
     vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``vertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
@@ -1240,6 +1242,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
             raise ValueError("Invalid format type: " + fmt)
 
         cr = cairo.Context(srf)
+        if antialias is not None:
+            cr.set_antialias(antialias)
 
         cr.scale(zoom, zoom)
         cr.translate(-x, -y)
