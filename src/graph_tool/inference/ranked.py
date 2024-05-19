@@ -317,12 +317,13 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def _gibbs_sweep_dispatch(self, gibbs_state):
         return libinference.ranked_gibbs_sweep(gibbs_state, self._state,
                                                _get_rng())
-    def draw(self, **kwargs):
-        r"""Convenience wrapper to :func:`~graph_tool.draw.graph_draw` that
-        draws the state of the graph as colors on the vertices and edges."""
 
+    def get_edge_colors(self):
+        """Return :class:`~graph_tool.EdgePropertyMap` containing the edge
+        colors according to their rank direction: upstream (blue), downstream
+        (red), lateral (grey).
+        """
         edir = self.get_edge_dir()
-
         ecolor = self.g.new_ep("vector<double>")
         for e in self.g.edges():
             if edir[e] == 0:
@@ -331,6 +332,14 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                 ecolor[e] = (0.2823529411764706, 0.47058823529411764, 0.8156862745098039, .6)
             else:
                 ecolor[e] = (0.8392156862745098, 0.37254901960784315, 0.37254901960784315, .8)
+        return ecolor
+
+    def draw(self, **kwargs):
+        r"""Convenience wrapper to :func:`~graph_tool.draw.graph_draw` that
+        draws the state of the graph as colors on the vertices and edges."""
+
+        edir = self.get_edge_dir()
+        ecolor = self.get_edge_colors()
 
         Es = self.get_Es()
         if Es[-1] < Es[0]:
