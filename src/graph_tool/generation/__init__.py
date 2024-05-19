@@ -496,7 +496,7 @@ def random_graph(N, deg_sampler, directed=True,
 @_limit_args({"model": ["erdos", "configuration", "constrained-configuration",
                         "probabilistic-configuration", "blockmodel-degree",
                         "blockmodel", "blockmodel-micro"]})
-def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
+def random_rewire(g, model="configuration", n_iter=10, edge_sweep=True,
                   parallel_edges=False, self_loops=False, configuration=True,
                   edge_probs=None, block_membership=None, cache_probs=True,
                   persist=False, pin=None, ret_fail=False, verbose=False):
@@ -539,7 +539,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         ``blockmodel-micro``
            This is like ``blockmodel``, but the exact number of edges between
            groups is preserved as well.
-    n_iter : int (optional, default: ``1``)
+    n_iter : int (optional, default: ``10``)
         Number of iterations. If ``edge_sweep == True``, each iteration
         corresponds to an entire "sweep" over all edges. Otherwise this
         corresponds to the total number of edges which are randomly chosen for a
