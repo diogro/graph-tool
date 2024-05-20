@@ -93,6 +93,8 @@ public:
           _coupled_state(nullptr),
           _args(std::forward<ATs>(args)...)
     {
+        GILRelease gil_release;
+
         for (auto r : vertices_range(_bg))
         {
             _wr[r] = _overlap_stats.get_block_size(r);

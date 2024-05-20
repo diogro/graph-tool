@@ -104,6 +104,8 @@ struct LatentLayers
               _eweight_c(_eweight.get_checked()),
               _g_orig(boost::any_cast<std::reference_wrapper<g_t>>(_ag_orig).get())
         {
+            GILRelease gil_release;
+
             _edges.resize(num_vertices(_g));
             for (auto e : edges_range(_g))
                 get_edge<true>(source(e, _g), target(e, _g)) = e;

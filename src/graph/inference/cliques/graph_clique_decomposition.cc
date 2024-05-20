@@ -42,11 +42,13 @@ clique_iter_mh(GraphInterface& gi, boost::any ac, boost::any ax,
     multi_array_ref<int32_t, 1> Ed = get_array<int32_t, 1>(oEd);
 
     boost::python::object pret;
-    gt_dispatch<>()
+    gt_dispatch<>(false)
         ([&](auto& g){
+             GILRelease gil_release;
              auto ret = iter_mh(g, x.get_unchecked(), c.get_unchecked(),
                                 is_fac.get_unchecked(), is_max.get_unchecked(),
                                 Ed, N, E, beta, niter, rng);
+             gil_release.restore();
              pret = boost::python::make_tuple(get<0>(ret), get<1>(ret));
          },
          all_graph_views())

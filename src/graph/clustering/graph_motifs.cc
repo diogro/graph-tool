@@ -124,7 +124,6 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
         bool done = false;
         while (!done)
         {
-
             GraphInterface sub;
             sub.set_directed(g.get_directed());
             typedef graph_tool::detail::get_all_graph_views::apply

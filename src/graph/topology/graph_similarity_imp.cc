@@ -55,12 +55,14 @@ python::object similarity_fast(GraphInterface& gi1, GraphInterface& gi2,
     if (weight2.empty())
         weight2 = ecmap_t();
     python::object s;
-    gt_dispatch<>()
+    gt_dispatch<>(false)
         ([&](const auto& g1, const auto& g2, auto ew1, auto l1)
          {
+             GILRelease gil_release;
              auto l2 = uncheck(l1, label2);
              auto ew2 = uncheck(ew1, weight2);
              auto ret = get_similarity_fast(g1, g2, ew1, ew2, l1, l2, norm, asym);
+             gil_release.restore();
              s = python::object(ret);
          },
          all_graph_views(),

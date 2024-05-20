@@ -58,13 +58,15 @@ python::object make_normal_bp_state(GraphInterface& gi, boost::any ax,
         boost::any_cast<NormalBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
 
     python::object state;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto& g)
          {
-             state = python::object(NormalBPState(g, x, mu, theta, em_m, em_s,
-                                                  vm_m, vm_s, marginal_init,
-                                                  frozen, rng));
+             GILRelease gil_release;
+             NormalBPState pstate(g, x, mu, theta, em_m, em_s, vm_m, vm_s,
+                                  marginal_init, frozen, rng);
+             gil_release.restore();
+             state = python::object(pstate);
          })();
     return state;
 }

@@ -38,11 +38,11 @@ python::object sampled_distance_histogram(GraphInterface& gi, boost::any weight,
 
     if (weight.empty())
     {
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph)
              {
-                 return get_sampled_distance_histogram()
+                 get_sampled_distance_histogram()
                      (std::forward<decltype(graph)>(graph),
                       gi.get_vertex_index(), no_weightS(), n_samples, bins, ret,
                       rng);
@@ -50,11 +50,11 @@ python::object sampled_distance_histogram(GraphInterface& gi, boost::any weight,
     }
     else
     {
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph, auto&& a2)
              {
-                 return get_sampled_distance_histogram()
+                 get_sampled_distance_histogram()
                      (std::forward<decltype(graph)>(graph),
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       n_samples, bins, ret, rng);

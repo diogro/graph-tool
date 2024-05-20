@@ -136,7 +136,7 @@ struct get_extended_clustering
                      if (u == v) // no self-loops
                          continue;
                      if (neighbors.find(u) != neighbors.end()) // avoid parallel
-                         continue;                               // edges
+                         continue;                             // edges
 
                      neighbors.insert(u);
                      if (targets.find(u) != targets.end())

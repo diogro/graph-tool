@@ -70,6 +70,8 @@ struct MCMC
              _parallel(false),
              _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
         {
+            GILRelease gil_release;
+
             _state.init_mcmc(*this);
 
             for (auto v : _vlist)

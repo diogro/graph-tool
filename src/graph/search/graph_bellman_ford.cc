@@ -151,7 +151,7 @@ bool bellman_ford_search(GraphInterface& g, size_t source, boost::any dist_map,
                          python::object inf)
 {
     bool ret = false;
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<graph_tool::all_graph_views, mpl::true_>(false)
         (g,
          [&](auto&& graph, auto&& a2)
          {

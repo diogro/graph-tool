@@ -186,6 +186,8 @@ struct do_infect_vertex_property
             }
         }
 
+        GILRelease gil_release(!std::is_same_v<val_t,boost::python::object>);
+
         unchecked_vector_property_map<bool, IndexMap>
             marked(index, num_vertices(g));
 
@@ -219,7 +221,7 @@ struct do_infect_vertex_property
 void infect_vertex_property(GraphInterface& gi, boost::any prop,
                             boost::python::object val)
 {
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {

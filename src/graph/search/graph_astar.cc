@@ -92,7 +92,7 @@ void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
     typedef typename property_map_type::
         apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_t;
     pred_t pred = any_cast<pred_t>(pred_map);
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<graph_tool::all_graph_views, mpl::true_>(false)
         (g,
          [&](auto&& graph, auto&& a2)
          {
@@ -143,7 +143,7 @@ boost::python::object astar_search_generator(GraphInterface& g,
     auto dispatch = [&](auto& yield)
         {
             AStarGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::all_graph_views, mpl::true_>()
+            run_action<graph_tool::all_graph_views, mpl::true_>(false)
                 (g,
                  [&](auto&& graph, auto&& a2)
                  {
@@ -173,7 +173,7 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
     auto dispatch = [&](auto& yield)
         {
             AStarGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::all_graph_views, mpl::true_>()
+            run_action<graph_tool::all_graph_views, mpl::true_>(false)
                 (g,
                  [&](auto&& graph, auto&& a2, auto&& a3)
                  {
@@ -220,7 +220,7 @@ boost::python::object astar_search_array(GraphInterface& g,
 {
     std::vector<std::array<size_t, 2>> edges;
     AStarArrayVisitor vis(edges);
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<graph_tool::all_graph_views, mpl::true_>(false)
         (g,
          [&](auto&& graph, auto&& a2)
          {
@@ -244,7 +244,7 @@ boost::python::object astar_search_array_fast(GraphInterface& g,
 {
     std::vector<std::array<size_t, 2>> edges;
     AStarArrayVisitor vis(edges);
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<graph_tool::all_graph_views, mpl::true_>(false)
         (g,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

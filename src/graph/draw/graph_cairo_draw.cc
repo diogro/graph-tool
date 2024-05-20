@@ -1857,7 +1857,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
             populate_attrs<vertex_t, vertex_properties>(ovattrs, vattrs);
             populate_defaults(ovdefaults, vdefaults);
 
-            run_action<>()
+            run_action<>(false)
                 (gi,
                  [&](auto&& graph)
                  {
@@ -1886,7 +1886,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
             Cairo::Context cr(PycairoContext_GET(ocr.ptr()));
 
             if (nodesfirst)
-                run_action<>()
+                run_action<>(false)
                     (gi,
                      [&](auto&& graph, auto&& a2, auto&& a3)
                      {
@@ -1900,7 +1900,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                      vertex_scalar_vector_properties(),
                      vorder_t())(pos, vorder);
 
-            run_action<>()
+            run_action<>(false)
                 (gi,
                  [&](auto&& graph, auto&& a2, auto&& a3)
                  {
@@ -1915,7 +1915,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
 
             if (!nodesfirst)
             {
-                run_action<>()
+                run_action<>(false)
                     (gi,
                      [&](auto&& graph, auto&& a2, auto&& a3)
                      {

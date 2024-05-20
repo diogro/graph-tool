@@ -660,7 +660,7 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 
     auto dispatch = [&](auto& yield)
         {
-            run_action<>()
+            run_action<>(false)
                 (gi, [&](auto& g, auto pred, auto weight)
                      {get_all_shortest_paths(gi, g, s, t, pred, weight, edges,
                                              yield);},
@@ -813,7 +813,7 @@ python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
     vprop_t visited = boost::any_cast<vprop_t>(avisited);
     auto dispatch = [&](auto& yield)
         {
-            run_action<>()
+            run_action<>(false)
                 (gi, [&](auto& g)
                 {
                     if (edges)

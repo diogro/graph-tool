@@ -48,12 +48,14 @@ boost::python::tuple global_clustering(GraphInterface& g, boost::any weight)
         weight = weight_map_t();
 
     boost::python::tuple oret;
-    run_action<graph_tool::detail::never_directed>()
+    run_action<graph_tool::detail::never_directed>(false)
         (g,
          [&](auto&& graph, auto&& a2)
          {
+             GILRelease gil_release;
              auto ret = get_global_clustering(std::forward<decltype(graph)>(graph),
                                               std::forward<decltype(a2)>(a2));
+             gil_release.restore();
              oret = boost::python::make_tuple(get<0>(ret), get<1>(ret),
                                               get<2>(ret), get<3>(ret));
          },

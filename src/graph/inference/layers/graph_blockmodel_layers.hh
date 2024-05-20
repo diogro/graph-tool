@@ -105,6 +105,7 @@ struct Layers
                   _block_rmap(block_rmap),
                   _l(l), _E(0), _bmap_mutex(new std::mutex())
             {
+                GILRelease gil_release;
                 for (auto e : edges_range(BaseState::_g))
                     _E += BaseState::_eweight[e];
             }

@@ -33,7 +33,7 @@ find_vertex_range(GraphInterface& gi, GraphInterface::deg_t deg,
                   python::tuple range)
 {
     python::list ret;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -57,7 +57,7 @@ find_edge_range(GraphInterface& gi, boost::any eprop, python::tuple range)
 
     GraphInterface::edge_index_map_t eindex =
         any_cast<GraphInterface::edge_index_map_t>(gi.get_edge_index());
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {

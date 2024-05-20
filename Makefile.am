@@ -105,6 +105,7 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/demangle.hh \
 	src/graph/fast_vector_property_map.hh \
 	src/graph/gml.hh \
+	src/graph/gil_release.hh \
 	src/graph/graph.hh \
 	src/graph/graph_adjacency.hh \
 	src/graph/graph_adaptor.hh \

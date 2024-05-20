@@ -98,7 +98,7 @@ assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
-             return get_assortativity_coefficient()
+             get_assortativity_coefficient()
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), a, a_err);
@@ -126,7 +126,7 @@ scalar_assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
-             return get_scalar_assortativity_coefficient()
+             get_scalar_assortativity_coefficient()
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), a, a_err);

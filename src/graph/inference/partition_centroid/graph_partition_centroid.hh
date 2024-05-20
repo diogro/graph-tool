@@ -67,6 +67,8 @@ public:
           _pclabel(_N),
           _args(args...)
     {
+        GILRelease gil_release;
+
         for (size_t r : _b)
             _wr[r]++;
 

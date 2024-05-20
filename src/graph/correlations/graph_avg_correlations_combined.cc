@@ -42,10 +42,11 @@ get_vertex_avg_combined_correlation(GraphInterface& gi,
     boost::python::object avg, dev;
     boost::python::object ret_bins;
 
-    run_action<>()(gi, get_avg_correlation<GetCombinedPair>
-                   (avg, dev, bins, ret_bins),
-                   scalar_selectors(), scalar_selectors(),
-                   boost::mpl::vector<dummy_weight>())
+    run_action<>(false)
+        (gi, get_avg_correlation<GetCombinedPair>
+         (avg, dev, bins, ret_bins),
+         scalar_selectors(), scalar_selectors(),
+         boost::mpl::vector<dummy_weight>())
         (any(degree_selector(deg1)), any(degree_selector(deg2)),
          any(dummy_weight()));
     return boost::python::make_tuple(avg, dev, ret_bins);

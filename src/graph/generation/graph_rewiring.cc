@@ -147,7 +147,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
 
     if (strat == "erdos")
     {
-        run_action<graph_tool::detail::never_reversed>()
+        run_action<graph_tool::detail::never_reversed>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -160,7 +160,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "configuration")
     {
-        run_action<graph_tool::detail::never_reversed>()
+        run_action<graph_tool::detail::never_reversed>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -175,7 +175,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         if (block.empty())
         {
-            run_action<graph_tool::detail::never_reversed>()
+            run_action<graph_tool::detail::never_reversed>(false)
                 (gi,
                  [&](auto&& graph)
                  {
@@ -189,7 +189,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         }
         else
         {
-            run_action<graph_tool::detail::never_reversed>()
+            run_action<graph_tool::detail::never_reversed>(false)
                 (gi,
                  [&](auto&& graph, auto&& a2)
                  {
@@ -206,7 +206,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "probabilistic-configuration")
     {
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -219,7 +219,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "blockmodel")
     {
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph, auto&& a2)
              {

@@ -74,6 +74,8 @@ struct get_sampled_distance_histogram
         for (size_t i = 0; i < obins.size(); ++i)
             bins[0][i] = obins[i];
 
+        GILRelease gil_release;
+
         hist_t hist(bins);
         SharedHistogram<hist_t> s_hist(hist);
 
@@ -121,6 +123,7 @@ struct get_sampled_distance_histogram
         }
         s_hist.gather();
 
+        gil_release.restore();
         python::list ret;
         ret.append(wrap_multi_array_owned(hist.get_array()));
         ret.append(wrap_vector_owned<val_type>(hist.get_bins()[0]));

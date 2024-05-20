@@ -80,6 +80,8 @@ public:
           _next_state(_M),
           _args(args...)
     {
+        GILRelease gil_release;
+
         for (int i = 0; i < python::len(_obs); ++i)
         {
             PartitionModeState::bv_t bv;

@@ -35,22 +35,22 @@ python::object distance_histogram(GraphInterface& gi, boost::any weight,
 
     if (weight.empty())
     {
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph)
              {
-                 return get_distance_histogram()
+                 get_distance_histogram()
                      (std::forward<decltype(graph)>(graph),
                       gi.get_vertex_index(), no_weightS(), bins, ret);
              })();
     }
     else
     {
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph, auto&& a2)
              {
-                 return get_distance_histogram()
+                 get_distance_histogram()
                      (std::forward<decltype(graph)>(graph),
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       bins, ret);

@@ -86,6 +86,7 @@ struct do_set_vertex_property
         typedef typename property_traits<PropertyMap>::value_type val_t;
         val_t val = boost::python::extract<val_t>(oval);
 
+        GILRelease gil_release;
         for (auto v : vertices_range(g))
             prop[v] = val;
     }
@@ -94,7 +95,7 @@ struct do_set_vertex_property
 void set_vertex_property(GraphInterface& gi, boost::any prop,
                          boost::python::object val)
 {
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -113,6 +114,7 @@ struct do_set_edge_property
         typedef typename property_traits<PropertyMap>::value_type val_t;
         val_t val = boost::python::extract<val_t>(oval);
 
+        GILRelease gil_release;
         for (auto e : edges_range(g))
             prop[e] = val;
     }
@@ -121,7 +123,7 @@ struct do_set_edge_property
 void set_edge_property(GraphInterface& gi, boost::any prop,
                        boost::python::object val)
 {
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {

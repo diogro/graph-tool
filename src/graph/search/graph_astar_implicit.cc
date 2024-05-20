@@ -70,7 +70,7 @@ void a_star_search_implicit(GraphInterface& g, size_t source,
                             python::object cmb, python::object zero,
                             python::object inf, python::object h)
 {
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<graph_tool::all_graph_views, mpl::true_>(false)
         (g,
          [&](auto&& graph, auto&& a2)
          {

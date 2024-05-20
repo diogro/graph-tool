@@ -134,6 +134,8 @@ struct get_average
     template <class Graph, class DegreeSelector>
     void dispatch(Graph& g, DegreeSelector deg, std::true_type) const
     {
+        GILRelease gil_release;
+
         typedef typename get_avg_type::apply<typename DegreeSelector::value_type>::type val_t;
         val_t a = 0., aa = 0.;
         size_t count = 0;
@@ -148,6 +150,7 @@ struct get_average
                  traverse(g, v, deg, a, aa, count);
              });
 
+        gil_release.restore();
         _a = boost::python::object(a);
         _dev = boost::python::object(aa);
         _count = count;
@@ -156,6 +159,8 @@ struct get_average
     template <class Graph, class DegreeSelector>
     void dispatch(Graph& g, DegreeSelector deg, std::false_type) const
     {
+        GILRelease gil_release;
+
         typedef typename get_avg_type::apply<typename DegreeSelector::value_type>::type val_t;
         val_t a, aa;
         init_avg(a);
@@ -166,6 +171,7 @@ struct get_average
         for (auto v : vertices_range(g))
             traverse(g, v, deg, a, aa, count);
 
+        gil_release.restore();
         _a = boost::python::object(a);
         _dev = boost::python::object(aa);
         _count = count;

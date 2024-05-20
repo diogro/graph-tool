@@ -120,6 +120,7 @@ struct LatentClosure
               _M(boost::any_cast<vmap_t>(python::extract<boost::any>(_oM[_l])()).get_unchecked()),
               _E(boost::any_cast<vmap_t>(python::extract<boost::any>(_oE[_l])()).get_unchecked())
         {
+            GILRelease gil_release;
 
             if (_l > 0)
             {

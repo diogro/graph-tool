@@ -66,6 +66,8 @@ struct Measured
             : MeasuredStateBase<Ts...>(std::forward<ATs>(args)...),
               _block_state(block_state)
         {
+            GILRelease gil_release;
+
             _u_edges.resize(num_vertices(_u));
             for (auto e : edges_range(_u))
             {

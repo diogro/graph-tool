@@ -76,6 +76,8 @@ struct MCMC
               _edge_sampler(_block_state, _measured ? .25 : 1),
               _vlist(num_vertices(_state._g))
         {
+            GILRelease gil_release;
+
             for (auto e : edges_range(_state._g))
             {
                 auto u = source(e, _state._g);

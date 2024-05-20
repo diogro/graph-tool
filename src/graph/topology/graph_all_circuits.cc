@@ -48,7 +48,7 @@ boost::python::object get_all_circuits(GraphInterface& gi, bool unique)
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
-            run_action<>()
+            run_action<>(false)
                 (gi,
                  [&](auto& g)
                  {

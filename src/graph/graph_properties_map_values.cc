@@ -37,7 +37,7 @@ void property_map_values(GraphInterface& g, boost::any src_prop,
 {
     if (!edge)
     {
-        run_action<graph_tool::detail::always_directed_never_reversed>()
+        run_action<graph_tool::detail::always_directed_never_reversed>(false)
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {

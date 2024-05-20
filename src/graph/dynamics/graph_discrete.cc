@@ -110,7 +110,7 @@ python::object make_state(GraphInterface& gi, boost::any as, boost::any as_temp,
     smap_t s_temp = boost::any_cast<smap_t>(as_temp);
 
     python::object state;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto& g)
          {

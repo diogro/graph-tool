@@ -146,7 +146,7 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {
-                 return get_weighted_betweenness()
+                 get_weighted_betweenness()
                      (std::forward<decltype(graph)>(graph), pivots,
                       g.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3), weight,
@@ -161,7 +161,7 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {
-                 return get_betweenness()
+                 get_betweenness()
                      (std::forward<decltype(graph)>(graph), pivots,
                       g.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3));

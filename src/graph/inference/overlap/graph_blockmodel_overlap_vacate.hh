@@ -64,6 +64,8 @@ struct Merge
             _g(_state._g),
             _null_move(std::numeric_limits<size_t>::max())
         {
+            GILRelease gil_release;
+
             _state.clear_egroups();
 
             gt_hash_map<int, gt_hash_map<int, std::vector<size_t>>>

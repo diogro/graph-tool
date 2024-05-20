@@ -32,6 +32,7 @@
 #include "graph_reverse.hh"
 #include "graph_util.hh"
 #include "mpl_nested_loop.hh"
+#include "gil_release.hh"
 
 #include <type_traits>
 
@@ -370,7 +371,7 @@ BOOST_MPL_ASSERT_RELATION(n_views::value, == , boost::mpl::int_<6>::value);
 template <class Action, class Wrap>
 struct action_wrap
 {
-    action_wrap(Action a) : _a(a) {}
+    action_wrap(Action a, bool gil_release) : _a(a), _gil_release(gil_release) {}
 
     template <class Type, class IndexMap>
     auto& uncheck(boost::checked_vector_property_map<Type,IndexMap>& a,
@@ -427,10 +428,12 @@ struct action_wrap
     template <class... Ts>
     void operator()(Ts&&... as) const
     {
+        GILRelease gil(_gil_release);
         _a(deference(uncheck(std::forward<Ts>(as), Wrap()))...);
     }
 
     Action _a;
+    bool _gil_release;
 };
 
 //
@@ -511,7 +514,7 @@ bool dispatch_loop(F&&                       f,
 template <class Action, class Wrap, class... TRS>
 struct action_dispatch
 {
-    action_dispatch(Action a) : _a(a) {}
+    action_dispatch(Action a, bool gil_release=true) : _a(a, gil_release) {}
 
     template <class... Args>
     void operator()(Args&&... args) const
@@ -534,26 +537,37 @@ struct action_dispatch
 } // details namespace
 
 // dispatch "Action" across all type combinations
-template <class GraphViews = detail::all_graph_views, class Wrap = boost::mpl::false_>
+template <class GraphViews = detail::all_graph_views,
+          class Wrap = boost::mpl::false_>
 struct run_action
 {
+    run_action(bool gil_release=true)
+        : _gil_release(gil_release) {};
+
     template <class Action, class... TRS>
     auto operator()(GraphInterface& gi, Action a, TRS...)
     {
-        auto dispatch = detail::action_dispatch<Action,Wrap,GraphViews,TRS...>(a);
+        auto dispatch = detail::action_dispatch<Action,Wrap,GraphViews,TRS...>(a, _gil_release);
         auto wrap = [dispatch, &gi](auto&&... args) { dispatch(gi.get_graph_view(), args...); };
         return wrap;
     }
+
+    bool _gil_release;
 };
 
 template <class Wrap = boost::mpl::false_>
 struct gt_dispatch
 {
+    gt_dispatch(bool gil_release=true)
+        : _gil_release(gil_release) {};
+
     template <class Action, class... TRS>
     auto operator()(Action a, TRS...)
     {
-        return detail::action_dispatch<Action,Wrap,TRS...>(a);
+        return detail::action_dispatch<Action,Wrap,TRS...>(a, _gil_release);
     }
+
+    bool _gil_release;
 };
 
 typedef detail::all_graph_views all_graph_views;

@@ -139,6 +139,8 @@ public:
           _m_entries(num_vertices(_bg)),
           _args(std::forward<ATs>(args)...)
     {
+        GILRelease gil_release;
+
         for (auto r : vertices_range(_bg))
         {
             if (_wr[r] == 0)

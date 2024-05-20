@@ -75,6 +75,7 @@ struct get_histogram
     template <class Graph, class DegreeSelector>
     void operator()(const Graph& g, DegreeSelector deg) const
     {
+        GILRelease gil_release;
         typedef typename DegreeSelector::value_type value_type;
         typedef Histogram<value_type, size_t, 1> hist_t;
 
@@ -128,6 +129,8 @@ struct get_histogram
         s_hist.gather();
 
         bin_list = hist.get_bins();
+
+        gil_release.restore();
         python::object ret_bins = wrap_vector_owned(bin_list[0]);
         _ret_bins = ret_bins;
         _hist = wrap_multi_array_owned(hist.get_array());

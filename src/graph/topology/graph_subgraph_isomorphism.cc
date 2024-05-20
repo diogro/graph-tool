@@ -230,7 +230,7 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
         gt_dispatch<>()
             ([&](auto&& graph, auto&& a2, auto&& a3, auto&& a4)
              {
-                 return get_subgraphs()
+                 get_subgraphs()
                      (std::forward<decltype(graph)>(graph),
                       std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3), vertex_label2,
@@ -251,11 +251,11 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
 #ifdef HAVE_BOOST_COROUTINE
         auto dispatch = [&](auto& yield)
         {
-            run_action<>()
+            run_action<>(false)
                 (gi1,
                  [&](auto&& graph, auto&& a2, auto&& a3, auto&& a4)
                  {
-                     return get_subgraphs()
+                     get_subgraphs()
                          (std::forward<decltype(graph)>(graph),
                           std::forward<decltype(a2)>(a2),
                           std::forward<decltype(a3)>(a3), vertex_label2,

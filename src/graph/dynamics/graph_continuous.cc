@@ -47,6 +47,7 @@ public:
 
     void get_diff_sync(double t, double dt, rng_t& rng)
     {
+        GILRelease release;
         graph_tool::get_diff_sync(_g, _state, t, dt, rng);
     }
 
@@ -72,7 +73,7 @@ python::object make_state(GraphInterface& gi, boost::any as, boost::any as_diff,
     smap_t s_diff = boost::any_cast<smap_t>(as_diff);
 
     python::object state;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto& g)
          {

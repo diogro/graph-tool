@@ -212,6 +212,7 @@ REGISTER_MOD
          {
              auto x = get_array<int32_t, 1>(ox);
              auto y = get_array<int32_t, 1>(oy);
+             GILRelease gil_release;
              return partition_overlap(x, y);
          });
 
@@ -219,6 +220,7 @@ REGISTER_MOD
         +[](object ox, rng_t& rng)
          {
              auto x = get_array<int32_t, 1>(ox);
+             GILRelease gil_release;
              partition_shuffle_labels(x, rng);
          });
 
@@ -232,7 +234,10 @@ REGISTER_MOD
                  x.emplace_back(a.begin(), a.end());
              }
 
-             nested_partition_shuffle_labels(x, rng);
+             {
+                 GILRelease gil_release;
+                 nested_partition_shuffle_labels(x, rng);
+             }
 
              python::list onx;
              for (auto& xl : x)
@@ -245,6 +250,7 @@ REGISTER_MOD
         +[](object ox)
          {
              auto x = get_array<int32_t, 1>(ox);
+             GILRelease gil_release;
              partition_order_labels(x);
          });
 
@@ -258,7 +264,10 @@ REGISTER_MOD
                  x.emplace_back(a.begin(), a.end());
              }
 
-             nested_partition_order_labels(x);
+             {
+                 GILRelease gil_release;
+                 nested_partition_order_labels(x);
+             }
 
              python::list onx;
              for (auto& xl : x)
@@ -272,6 +281,7 @@ REGISTER_MOD
          {
              auto x = get_array<int32_t, 1>(ox);
              auto y = get_array<int32_t, 1>(oy);
+             GILRelease gil_release;
              partition_align_labels(x, y);
          });
 
@@ -291,7 +301,10 @@ REGISTER_MOD
                  y.emplace_back(a.begin(), a.end());
              }
 
-             nested_partition_align_labels(x, y);
+             {
+                 GILRelease gil_release;
+                 nested_partition_align_labels(x, y);
+             }
 
              python::list onx;
              for (auto& xl : x)
@@ -306,6 +319,7 @@ REGISTER_MOD
              auto c = get_array<int32_t, 1>(oc);
              auto bs = get_array<int32_t, 2>(obs);
 
+             GILRelease gil_release;
              return partition_overlap_center(c, bs);
          });
 
@@ -332,7 +346,9 @@ REGISTER_MOD
                  }
              }
 
+             GILRelease gil_release;
              double r = nested_partition_overlap_center(c, bs);
+             gil_release.restore();
 
              python::list onx;
              for (auto& xl : c)

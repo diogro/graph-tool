@@ -166,7 +166,8 @@ public:
                         typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const PMap& weight, boost::python::object& deg) const
         {
-            deg = boost::python::object(DegSelector()(v, g, weight));
+            auto ret = DegSelector()(v, g, weight);
+            deg = boost::python::object(ret);
         }
     };
 
@@ -188,11 +189,11 @@ public:
         boost::python::object in_deg;
         if (!belongs<edge_scalar_properties>()(pmap))
             throw ValueException("edge weight property must be of scalar type");
-        gt_dispatch<>()([&g, &in_deg, this](auto const & v)
-                        {
-                            return get_degree<in_degreeS>()(g, _v, v, in_deg);
-                        },
-                        edge_scalar_properties())(pmap);
+        gt_dispatch<>(false)
+            ([&g, &in_deg, this](auto const & v)
+             {
+                 return get_degree<in_degreeS>()(g, _v, v, in_deg);
+             }, edge_scalar_properties())(pmap);
         return in_deg;
     }
 
@@ -215,11 +216,11 @@ public:
         boost::python::object out_deg;
         if (!belongs<edge_scalar_properties>()(pmap))
             throw ValueException("edge weight property must be of scalar type");
-        gt_dispatch<>()([&g, &out_deg, this](auto const & v)
-                        {
-                            return get_degree<out_degreeS>()(g, _v, v, out_deg);
-                        },
-                        edge_scalar_properties())(pmap);
+        gt_dispatch<>(false)
+            ([&g, &out_deg, this](auto const & v)
+             {
+                 return get_degree<out_degreeS>()(g, _v, v, out_deg);
+             },edge_scalar_properties())(pmap);
         return out_deg;
     }
 
@@ -740,34 +741,6 @@ private:
 };
 
 bool hasattr(boost::python::object obj, std::string const& attrName);
-
-class GILRelease
-{
-public:
-    GILRelease(bool release = true)
-    {
-        size_t tid = get_thread_num();
-        if (release && tid == 0)
-            _state = PyEval_SaveThread();
-    }
-
-    void restore()
-    {
-        if (_state != nullptr)
-        {
-            PyEval_RestoreThread(_state);
-            _state = nullptr;
-        }
-    }
-
-    ~GILRelease()
-    {
-        restore();
-    }
-
-private:
-    PyThreadState *_state = nullptr;
-};
 
 } //graph_tool namespace
 

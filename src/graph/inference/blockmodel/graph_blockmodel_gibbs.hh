@@ -65,6 +65,7 @@ struct Gibbs
            : GibbsBlockStateBase<Ts...>(as...),
             _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
         {
+            GILRelease gil_release;
             _state.init_mcmc(*this);
         }
 

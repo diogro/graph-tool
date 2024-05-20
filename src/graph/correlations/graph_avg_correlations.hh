@@ -39,6 +39,8 @@ struct get_avg_correlation
     void operator()(Graph& g, DegreeSelector1 deg1, DegreeSelector2 deg2,
                     WeightMap weight) const
     {
+        GILRelease gil_release;
+
         GetDegreePair put_point;
 
         typedef typename DegreeSelector1::value_type type1;
@@ -88,6 +90,8 @@ struct get_avg_correlation
         }
 
         bins = sum.get_bins();
+
+        gil_release.restore();
         python::list ret_bins;
         ret_bins.append(wrap_vector_owned(bins[0]));
         _ret_bins = ret_bins;

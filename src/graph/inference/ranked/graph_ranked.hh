@@ -69,6 +69,8 @@ public:
               _u_c(_u.get_checked()),
               _args(std::forward<ATs>(args)...)
         {
+            GILRelease gil_release;
+
             for (auto e : edges_range(_g))
             {
                 auto u = source(e, _g);

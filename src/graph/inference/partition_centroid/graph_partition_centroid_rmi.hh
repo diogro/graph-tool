@@ -118,6 +118,8 @@ public:
           _args(args...),
           _move_mutex(new std::mutex())
     {
+        GILRelease gil_release;
+
         for (size_t r : _b)
             _wr[r]++;
 

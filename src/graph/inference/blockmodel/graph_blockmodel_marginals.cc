@@ -111,7 +111,7 @@ void collect_edge_marginals(GraphInterface& gi, boost::any ob,
         emap_t;
     auto pe = any_cast<emap_t>(op).get_unchecked(gi.get_edge_index_range());
 
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto& g)
          {
@@ -169,7 +169,7 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, boost::any op,
     auto pe = any_cast<emap_t>(op).get_unchecked();
 
     double H=0, Hmf=0;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto& g)
          {
@@ -265,6 +265,7 @@ public:
 
 static double log_n_permutations(const vector<int32_t>& b)
 {
+    GILRelease gil_release;
     std::vector<int32_t> count(b.size());
     for (auto bi : b)
         count[bi]++;
@@ -276,6 +277,7 @@ static double log_n_permutations(const vector<int32_t>& b)
 
 static vector<int32_t> unlabel_partition(vector<int32_t> b)
 {
+    GILRelease gil_release;
     std::vector<int32_t> map(b.size(), -1);
     size_t pos = 0;
     for (auto& bi : b)

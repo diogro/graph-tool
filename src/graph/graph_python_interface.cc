@@ -47,7 +47,7 @@ struct get_vertex_iterator
 python::object get_vertices(GraphInterface& gi)
 {
     python::object iter;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -96,7 +96,7 @@ python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
 {
     python::object v;
     if (!use_index)
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -104,7 +104,7 @@ python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
                      (std::forward<decltype(graph)>(graph), gi, i, v);
              })();
     else
-        run_action<>()
+        run_action<>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -130,7 +130,7 @@ struct get_edge_iterator
 python::object get_edges(GraphInterface& gi)
 {
     python::object iter;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -164,7 +164,7 @@ struct add_new_vertex
 python::object add_vertex(GraphInterface& gi, size_t n)
 {
     python::object v;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -239,7 +239,7 @@ struct add_new_edge
 python::object add_edge(GraphInterface& gi, size_t s, size_t t)
 {
     python::object new_e;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -253,7 +253,7 @@ void remove_edge(GraphInterface& gi, EdgeBase& e)
 {
     e.check_valid();
     auto edge = e.get_descriptor();
-    run_action<>()(gi, [&](auto& g) { remove_edge(edge, g); })();
+    run_action<>(false)(gi, [&](auto& g) { remove_edge(edge, g); })();
     e.invalidate();
 }
 
@@ -299,7 +299,7 @@ struct get_edge_dispatch
 python::object get_edge(GraphInterface& gi, size_t s, size_t t, bool all_edges)
 {
     python::list es;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -316,6 +316,7 @@ struct get_degree_map
     template <class Graph, class DegS, class Weight>
     void operator()(const Graph& g, python::object& odeg_map, DegS deg, Weight weight) const
     {
+        GILRelease gil_release;
         typedef typename detail::get_weight_type<Weight>::type weight_t;
         typedef typename mpl::if_<std::is_same<weight_t, size_t>, int32_t, weight_t>::type deg_t;
 
@@ -331,6 +332,7 @@ struct get_degree_map
                  deg_map[v] = deg(v, g, weight);
              });
 
+        gil_release.restore();
         odeg_map = python::object(PythonPropertyMap<map_t>(cdeg_map));
     }
 };
@@ -346,7 +348,7 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
         weight = detail::no_weightS();
 
     if (deg == "in")
-        run_action<>()
+        run_action<>(false)
             (const_cast<GraphInterface&>(*this),
              [&](auto&& graph, auto&& a2)
              {
@@ -356,7 +358,7 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
              },
              weight_t())(weight);
     else if (deg == "out")
-        run_action<>()
+        run_action<>(false)
             (const_cast<GraphInterface&>(*this),
              [&](auto&& graph, auto&& a2)
              {
@@ -366,7 +368,7 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
              },
              weight_t())(weight);
     else if (deg == "total")
-        run_action<>()
+        run_action<>(false)
             (const_cast<GraphInterface&>(*this),
              [&](auto&& graph, auto&& a2)
              {
@@ -384,16 +386,16 @@ int value_type_promotion(std::vector<boost::any>& props)
     int type_pos = boost::mpl::find<value_types,int64_t>::type::pos::value;
     for (auto& aep : props)
     {
-        gt_dispatch<>()([&](auto& ep)
-                        {
-                            typedef std::remove_reference_t<decltype(ep)> pmap_t;
-                            typedef typename property_traits<pmap_t>::value_type val_t;
-                            if (std::is_same<val_t, size_t>::value)
-                                return;
-                            constexpr int ep_t = boost::mpl::find<value_types,val_t>::type::pos::value;
-                            type_pos = std::max(type_pos, ep_t);
-                        },
-                        PMaps())(aep);
+        gt_dispatch<>(false)
+            ([&](auto& ep)
+             {
+                 typedef std::remove_reference_t<decltype(ep)> pmap_t;
+                 typedef typename property_traits<pmap_t>::value_type val_t;
+                 if (std::is_same<val_t, size_t>::value)
+                     return;
+                 constexpr int ep_t = boost::mpl::find<value_types,val_t>::type::pos::value;
+                 type_pos = std::max(type_pos, ep_t);
+             }, PMaps())(aep);
     }
     return type_pos;
 }
@@ -490,14 +492,14 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                 {
                     if (python::len(ovprops) == 0)
                     {
-                        run_action<>()(gi,
-                                       [&](auto& g)
-                                       {
-                                           do_check(g);
-
-                                           for (auto v : vrange(g))
-                                               yield(python::object(v));
-                                       })();
+                        run_action<>(false)
+                            (gi,
+                             [&](auto& g)
+                             {
+                                 do_check(g);
+                                 for (auto v : vrange(g))
+                                     yield(python::object(v));
+                             })();
                     }
                     else
                     {
@@ -509,20 +511,21 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                         for (int i = 0; i < python::len(ovprops); ++i)
                             vprops.emplace_back(python::extract<boost::any>(ovprops[i])(),
                                                 vertex_properties());
-                        run_action<>()(gi,
-                                       [&](auto& g)
-                                       {
-                                           do_check(g);
+                        run_action<>(false)
+                            (gi,
+                             [&](auto& g)
+                             {
+                                 do_check(g);
 
-                                           for (auto v : vrange(g))
-                                           {
-                                               python::list vlist;
-                                               vlist.append(python::object(v));
-                                               for (auto& vp : vprops)
-                                                   vlist.append(get(vp, v));
-                                               yield(vlist);
-                                           }
-                                       })();
+                                 for (auto v : vrange(g))
+                                 {
+                                     python::list vlist;
+                                     vlist.append(python::object(v));
+                                     for (auto& vp : vprops)
+                                         vlist.append(get(vp, v));
+                                     yield(vlist);
+                                 }
+                             })();
                     }
                 };
             return boost::python::object(CoroGenerator(yield_dispatch));
@@ -629,25 +632,26 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
                     for (int i = 0; i < python::len(oeprops); ++i)
                         eprops.emplace_back(python::extract<boost::any>(oeprops[i])(),
                                             edge_properties());
-                    run_action<>()(gi,
-                                   [&](auto& g)
-                                   {
-                                       if (check)
-                                       {
-                                           if (!is_valid_vertex(v, g))
-                                               throw ValueException("invalid vertex: " + std::to_string(v));
-                                       }
+                    run_action<>(false)
+                        (gi,
+                         [&](auto& g)
+                         {
+                             if (check)
+                             {
+                                 if (!is_valid_vertex(v, g))
+                                     throw ValueException("invalid vertex: " + std::to_string(v));
+                             }
 
-                                       for (auto e: erange(g))
-                                       {
-                                           python::list elist;
-                                           elist.append(python::object(source(e, g)));
-                                           elist.append(python::object(target(e, g)));
-                                           for (auto& ep : eprops)
-                                               elist.append(get(ep, e));
-                                           yield(elist);
-                                       }
-                                   })();
+                             for (auto e: erange(g))
+                             {
+                                 python::list elist;
+                                 elist.append(python::object(source(e, g)));
+                                 elist.append(python::object(target(e, g)));
+                                 for (auto& ep : eprops)
+                                     elist.append(get(ep, e));
+                                 yield(elist);
+                             }
+                         })();
                 };
             return boost::python::object(CoroGenerator(yield_dispatch));
         };
@@ -691,9 +695,10 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
 
     auto get_degs = [&](auto deg)
         {
-            run_action<>()(gi,
+            run_action<>(false)(gi,
                            [&](auto& g, auto& ew)
                            {
+                               GILRelease gil_release;
                                typedef typename std::remove_reference
                                    <decltype(ew)>::type::value_type val_t;
                                std::vector<val_t> dlist;
@@ -705,6 +710,7 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
                                                             lexical_cast<string>(v));
                                    dlist.push_back(val_t(deg(v, g, ew)));
                                }
+                               gil_release.restore();
                                ret = wrap_vector_owned(dlist);
                            }, eprops_t())(eprop);
         };

@@ -112,7 +112,7 @@ void do_dfs(Graph& g, size_t s, Visitor&& vis)
 
 void dfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<graph_tool::all_graph_views, mpl::true_>(false)
         (gi, [&](auto &g) { do_dfs(g, s, DFSVisitorWrapper(gi, vis));})();
 }
 
@@ -146,7 +146,7 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
     auto dispatch = [&](auto& yield)
         {
             DFSGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::all_graph_views,mpl::true_>()
+            run_action<graph_tool::all_graph_views,mpl::true_>(false)
                 (g, [&](auto &g) { do_dfs(g, s, vis);})();
         };
     return boost::python::object(CoroGenerator(dispatch));

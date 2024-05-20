@@ -67,7 +67,7 @@ void generate_graph(GraphInterface& gi, size_t N,
     if (undirected)
         gi.set_directed(false);
 
-    run_action<graph_views>()
+    run_action<graph_views>(false)
         (gi,
          [&](auto&& graph)
          {

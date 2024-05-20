@@ -77,6 +77,8 @@ public:
                            num_vertices(_g), _vweight, _eweight, _degs),
           _args(std::forward<ATs>(args)...)
     {
+        GILRelease gil_release;
+
         _wr.resize(num_vertices(_g), 0);
         _er.resize(num_vertices(_g), 0);
         _err.resize(num_vertices(_g), 0);

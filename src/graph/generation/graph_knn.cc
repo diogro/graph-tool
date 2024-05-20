@@ -66,7 +66,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                 return d;
             };
 
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<always_directed_never_filtered_never_reversed>(false)
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -109,7 +109,7 @@ void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
     }
     catch (InvalidNumpyConversion&)
     {
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<always_directed_never_filtered_never_reversed>(false)
             (gi, [&](auto& g) { gen_knn_exact<false>(g,
                                               [&](auto u, auto v)
                                               {
@@ -161,7 +161,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                 return d;
             };
 
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<always_directed_never_filtered_never_reversed>(false)
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -190,7 +190,7 @@ void generate_k_nearest_exact(GraphInterface& gi, boost::python::object om, size
     }
     catch (InvalidNumpyConversion&)
     {
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<always_directed_never_filtered_never_reversed>(false)
             (gi, [&](auto& g) { gen_k_nearest_exact<false>(g,
                                                            [&](auto u, auto v)
                                                            {

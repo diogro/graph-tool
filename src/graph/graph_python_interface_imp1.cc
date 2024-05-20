@@ -69,8 +69,9 @@ struct add_edge_list
                 for (; iter != end; ++iter)
                     eprops.emplace_back(*iter, writable_edge_properties());
 
-                size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
+                GILRelease gil_release;
 
+                size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
                 for (const auto& e : edge_list)
                 {
                     size_t s = e[0];
@@ -113,7 +114,7 @@ void do_add_edge_list(GraphInterface& gi, python::object aedge_list,
                         int8_t, int16_t, int32_t, int64_t, uint64_t, double,
                         long double> vals_t;
     bool found = false;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -197,7 +198,7 @@ struct add_edge_list_iter
 void do_add_edge_list_iter(GraphInterface& gi, python::object edge_list,
                            python::object eprops)
 {
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph)
          {
@@ -251,8 +252,9 @@ struct add_edge_list_hash
         for (; iter != end; ++iter)
             eprops.emplace_back(*iter, writable_edge_properties());
 
-        size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
+        GILRelease gil_release;
 
+        size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
         auto get_vertex = [&] (const val_t& r) -> size_t
             {
                 auto iter = vertices.find(r);
@@ -370,7 +372,7 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
                              boost::any& vertex_map,
                              python::object eprops)
 {
-    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {

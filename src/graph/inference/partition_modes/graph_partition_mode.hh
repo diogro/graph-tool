@@ -34,89 +34,89 @@ namespace graph_tool
 template <class BV>
 size_t partition_overlap(BV& x, BV& y)
 {
-        adj_list<> g;
-        typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-        typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-        typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+    adj_list<> g;
+    typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
+    typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
+    typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
 
-        get_contingency_graph<false>(g, partition, label, mrs, x, y);
+    get_contingency_graph<false>(g, partition, label, mrs, x, y);
 
-        typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-        typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+    typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
+    typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
 
-        auto u = undirected_adaptor<adj_list<>>(g);
-        //maximum_weighted_matching(u, mrs, match);
-        maximum_bipartite_weighted_matching(u, partition, mrs, match);
+    auto u = undirected_adaptor<adj_list<>>(g);
+    //maximum_weighted_matching(u, mrs, match);
+    maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
-        size_t m = 0;
-        for (auto v : vertices_range(g))
-        {
-            if (partition[v])
-                continue;
-            auto w = match[v];
-            if (w == graph_traits<adj_list<>>::null_vertex())
-                continue;
-            m += mrs[edge(v, w, u).first];
-        }
-        return m;
+    size_t m = 0;
+    for (auto v : vertices_range(g))
+    {
+        if (partition[v])
+            continue;
+        auto w = match[v];
+        if (w == graph_traits<adj_list<>>::null_vertex())
+            continue;
+        m += mrs[edge(v, w, u).first];
+    }
+    return m;
 }
 
 template <class BX, class BY>
 void partition_align_labels(BX&& x, BY&& y)
 {
-        adj_list<> g;
-        typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-        typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-        typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+    adj_list<> g;
+    typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
+    typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
+    typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
 
-        get_contingency_graph<false>(g, partition, label, mrs, x, y);
+    get_contingency_graph<false>(g, partition, label, mrs, x, y);
 
-        typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-        typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+    typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
+    typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
 
-        auto u = undirected_adaptor<adj_list<>>(g);
-        maximum_bipartite_weighted_matching(u, partition, mrs, match);
+    auto u = undirected_adaptor<adj_list<>>(g);
+    maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
-        idx_set<int> used;
-        idx_map<size_t, size_t> vertices, umatch;
-        for (auto v : vertices_range(u))
-        {
-            if (partition[v])
-                continue;
-            vertices[label[v]] = v;
-            auto w = match[v];
-            if (w == graph_traits<adj_list<>>::null_vertex())
-                continue;
-            used.insert(label[w]);
-        }
+    idx_set<int> used;
+    idx_map<size_t, size_t> vertices, umatch;
+    for (auto v : vertices_range(u))
+    {
+        if (partition[v])
+            continue;
+        vertices[label[v]] = v;
+        auto w = match[v];
+        if (w == graph_traits<adj_list<>>::null_vertex())
+            continue;
+        used.insert(label[w]);
+    }
 
-        std::vector<int> unused;
-        for (size_t r = 0; r < x.size(); ++r)
-        {
-            if (used.find(r) != used.end())
-                continue;
-            unused.push_back(r);
-        }
-        auto iter = unused.begin();
-        for (auto v : vertices_range(u))
-        {
-            if (partition[v])
-                continue;
-            auto w = match[v];
-            if (w == graph_traits<adj_list<>>::null_vertex())
-                umatch[label[v]] = *iter++;
-        }
+    std::vector<int> unused;
+    for (size_t r = 0; r < x.size(); ++r)
+    {
+        if (used.find(r) != used.end())
+            continue;
+        unused.push_back(r);
+    }
+    auto iter = unused.begin();
+    for (auto v : vertices_range(u))
+    {
+        if (partition[v])
+            continue;
+        auto w = match[v];
+        if (w == graph_traits<adj_list<>>::null_vertex())
+            umatch[label[v]] = *iter++;
+    }
 
-        for (auto& r : x)
-        {
-            if (r == -1)
-                continue;
-            auto w = match[vertices[r]];
-            if (w == graph_traits<adj_list<>>::null_vertex())
-                r = umatch[r];
-            else
-                r = label[w];
-        }
+    for (auto& r : x)
+    {
+        if (r == -1)
+            continue;
+        auto w = match[vertices[r]];
+        if (w == graph_traits<adj_list<>>::null_vertex())
+            r = umatch[r];
+        else
+            r = label[w];
+    }
 }
 
 template <class BT>

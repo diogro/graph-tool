@@ -63,7 +63,8 @@ struct Gibbs
                                             sizeof...(Ts)>* = nullptr>
         GibbsBlockState(ATs&&... as)
            : GibbsBlockStateBase<Ts...>(as...),
-            _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))        {
+            _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+        {
             _state.init_mcmc(*this);
         }
 

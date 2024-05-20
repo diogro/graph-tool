@@ -53,8 +53,8 @@ get_vertex_average(GraphInterface& gi, GraphInterface::deg_t deg)
                            mpl::back_inserter<degree_selectors> >::type
         numeric_selectors;
 
-    run_action<>()(gi, get_average<VertexAverageTraverse>(a,dev,count),
-                   numeric_selectors())(degree_selector(deg));
+    run_action<>(false)(gi, get_average<VertexAverageTraverse>(a,dev,count),
+                        numeric_selectors())(degree_selector(deg));
     return python::make_tuple(a, dev, count);
 }
 
@@ -76,7 +76,7 @@ get_edge_average(GraphInterface& gi, boost::any prop)
 
     python::object a, dev;
     size_t count;
-    run_action<graph_tool::detail::always_directed>()
+    run_action<graph_tool::detail::always_directed>(false)
         (gi, get_average<EdgeAverageTraverse>(a, dev, count),
          edge_numeric_properties())(prop);
     return python::make_tuple(a, dev, count);

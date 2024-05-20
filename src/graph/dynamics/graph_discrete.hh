@@ -103,6 +103,8 @@ public:
             _beta = python::extract<beta_t>(obeta);
         }
 
+        GILRelease release;
+
         if constexpr (!weighted)
         {
             size_t M = 0;
@@ -948,6 +950,8 @@ public:
           _f(python::extract<int32_t>(params["f"])),
           _r(python::extract<double>(params["r"]))
     {
+        GILRelease release;
+
         std::uniform_int_distribution<int32_t> sample(0, _q - 1);
         for (auto v : vertices_range(g))
         {
@@ -1030,6 +1034,8 @@ public:
           _r(python::extract<double>(params["r"]))
     {
         double p = python::extract<double>(params["p"]);
+
+        GILRelease release;
         std::bernoulli_distribution random(p);
         for (auto v : vertices_range(g))
         {

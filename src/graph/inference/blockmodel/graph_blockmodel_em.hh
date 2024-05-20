@@ -63,6 +63,8 @@ public:
     EMBlockState(RNG& rng, ATs&&... args)
       : EMBlockStateBase<Ts...>(std::forward<ATs>(args)...)
     {
+        GILRelease gil_release;
+
         _B = _prs.shape()[0];
         _N = HardNumVertices()(_g);
 

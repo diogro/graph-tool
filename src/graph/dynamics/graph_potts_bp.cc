@@ -52,12 +52,14 @@ python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
     auto f = get_array<double, 2>(of);
 
     python::object state;
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto& g)
          {
-             state = python::object(PottsBPState(g, f, x, theta, em, vm,
-                                                 marginal_init, frozen, rng));
+             GILRelease gil_release;
+             PottsBPState pstate(g, f, x, theta, em, vm, marginal_init, frozen, rng);
+             gil_release.restore();
+             state = python::object(pstate);
          })();
     return state;
 }
