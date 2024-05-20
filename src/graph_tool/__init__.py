@@ -98,6 +98,11 @@ __copyright__ = "Copyright 2006-2024 Tiago de Paula Peixoto"
 __license__ = "LGPL version 3 or above"
 __URL__ = "https://graph-tool.skewed.de"
 
+# set default OMP_WAIT_POLICY to "passive"
+import os
+if "OMP_WAIT_POLICY" not in os.environ:
+    os.environ["OMP_WAIT_POLICY"] = "passive"
+
 # import numpy and scipy before everything to avoid weird segmentation faults
 # depending on the order things are imported.
 
@@ -114,7 +119,6 @@ __version__ = libcore.mod_info().version
 from . import gt_io  # sets up libcore io routines
 
 import sys
-import os
 import re
 import gzip
 import bz2
