@@ -378,9 +378,9 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
     >>> g = gt.random_graph(1000, lambda: (5,5))
     >>> motifs, counts = gt.motifs(gt.GraphView(g, directed=False), 4)
     >>> print(len(motifs))
-    13
+    11
     >>> print(counts)
-    [115812, 390706, 642, 729, 2656, 1662, 811, 6, 16, 4, 2, 7, 12]
+    [115626, 390445, 662, 763, 2816, 1686, 776, 10, 5, 11, 3]
 
     References
     ----------
@@ -548,9 +548,9 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
     >>> g = gt.random_graph(100, lambda: (3,3))
     >>> motifs, zscores = gt.motif_significance(g, 3)
     >>> print(len(motifs))
-    12
+    11
     >>> print(zscores)
-    [0.9356448791848487, 0.8189579649509503, 0.2720861155829026, -0.5086069434054314, -1.091630710611107, -0.8379737597626044, 1.092607157633067, 0.87, 0.89, -0.34, -0.16, -0.01]
+    [0.6047878414563249, 0.6094680990819686, 1.0229305974010572, 0.39872798688563355, -0.6865659282127776, -0.7003194037662325, -1.1702999575943225, -0.15, -0.15, -0.29, -0.15]
 
     References
     ----------

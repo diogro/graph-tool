@@ -359,10 +359,10 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     >>> g = gt.random_graph(100, lambda: (3, 3))
     >>> hist = gt.distance_histogram(g)
     >>> print(hist)
-    [array([   0.,  300.,  866., 2189., 3825., 2525.,  195.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
+    [array([   0.,  300.,  862., 2205., 3787., 2532.,  214.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
     >>> hist = gt.distance_histogram(g, samples=10)
     >>> print(hist)
-    [array([  0.,  30.,  87., 221., 400., 236.,  16.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
+    [array([  0.,  30.,  87., 224., 377., 253.,  19.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
 
     """
 
