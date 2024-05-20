@@ -131,10 +131,10 @@ def apply_transforms(g, pos, m):
 class GraphWidget(Gtk.DrawingArea):
     def __init__(self, g, pos, vprops=None, eprops=None, vorder=None,
                  eorder=None, nodesfirst=False, update_layout=False,
-                 layout_K=1., multilevel=False, coarse_method="hybrid",
-                 sfdp_args={}, display_props=None, display_props_size=11,
-                 fit_view=True, fit_view_ink=None, bg_color=None,
-                 max_render_time=300, layout_callback=None,
+                 layout_K=1., layout_init_step=.1, multilevel=False,
+                 coarse_method="hybrid", sfdp_args={}, display_props=None,
+                 display_props_size=11, fit_view=True, fit_view_ink=None,
+                 bg_color=None, max_render_time=300, layout_callback=None,
                  key_press_callback=None, highlight_color=None, **kwargs):
         r"""Interactive GTK+ widget displaying a given graph.
 
@@ -163,6 +163,8 @@ class GraphWidget(Gtk.DrawingArea):
             If ``True``, the layout will be updated dynamically.
         layout_K : float (optional, default: ``1.0``)
             Parameter ``K`` passed to :func:`~graph_tool.draw.sfdp_layout`.
+        layout_init_step : float (optional, default: ``0.1``)
+            Initial speed of the layout algorithm.
         multilevel : ``bool`` (optional, default: ``False``)
             Parameter ``multilevel`` passed to :func:`~graph_tool.draw.sfdp_layout`.
         coarse_method : ``bool`` (optional, default: ``hybrid``)
@@ -317,7 +319,7 @@ class GraphWidget(Gtk.DrawingArea):
 
         self.layout_callback_id = None
         self.layout_K = layout_K
-        self.layout_init_step = self.layout_K / 3
+        self.layout_init_step = layout_init_step
         self.epsilon = 0.01 * self.layout_K
         self.multilevel_layout = multilevel
         self.sfdp_args = sfdp_args.copy()
@@ -445,7 +447,7 @@ class GraphWidget(Gtk.DrawingArea):
         if self.layout_callback_id is not None:
             gobject.source_remove(self.layout_callback_id)
             self.layout_callback_id = None
-        self.layout_step = self.layout_init_step
+        self.layout_step = _avg_edge_distance(self.g, self.pos) * self.layout_init_step
         self.layout_callback_id = gobject.idle_add(self.layout_callback)
 
     def _own_props(self):
@@ -468,15 +470,16 @@ class GraphWidget(Gtk.DrawingArea):
                     **dict(dict(vweight=self.vweight,
                                 eweight=self.eweight,
                                 K=self.layout_K,
-                                max_iter=5, pos=self.pos,
+                                max_iter=1, pos=self.pos,
                                 pin=self.selected,
                                 init_step=self.layout_step,
+                                adaptive_cooling=True,
                                 multilevel=False,
                                 groups=self.groups,
                                 gamma=self.gamma,
                                 epsilon=0),
                            **self.sfdp_args))
-        self.layout_step *= 0.9
+        self.layout_step *= 0.97
         if self.vertex_matrix is not None:
             self.vertex_matrix.update()
         self.regenerate_surface(reset=True, complete=True)
@@ -504,7 +507,7 @@ class GraphWidget(Gtk.DrawingArea):
                     self.eweight = self.cecount
                     self._own_props()
                     self.layout_step = max(self.layout_K,
-                                           _avg_edge_distance(self.g, self.pos) / 10)
+                                           _avg_edge_distance(self.g, self.pos))
                     if self.vertex_matrix is not None:
                         self.vertex_matrix = VertexMatrix(self.g, self.pos)
                     self.epsilon = 0.05 * self.layout_K * self.g.num_edges()

@@ -536,6 +536,8 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
     if gamma is None:
         gamma = [0] * len(cg)
     else:
+        if not isinstance(gamma, Iterable):
+            gamma = [gamma]
         gamma = list(gamma) + [0] * (len(cg) - len(gamma))
 
     for i in range(len(cg)):
