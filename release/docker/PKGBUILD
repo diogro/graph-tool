@@ -21,7 +21,7 @@ prepare() {
   git checkout $GIT_REF
   ./autogen.sh
   CXXFLAGS=${CXXFLAGS/-Wp,-D_GLIBCXX_ASSERTIONS/}
-  export CXXFLAGS="$CXXFLAGS -O3 -flto=auto -fno-fat-lto-objects"
+  export CXXFLAGS="$CXXFLAGS -O3"
   ./configure --enable-openmp --prefix=/usr --docdir="/usr/share/doc/$pkgname"
 }
 
