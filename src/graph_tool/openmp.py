@@ -64,7 +64,7 @@ def openmp_set_thresh(n):
 
 @contextmanager
 def openmp_context(nthreads=None, schedule=None, chunk=0, thresh=None):
-    """Return a context manager that sets the tuntime OpenMP paramters, and
+    """Return a context manager that sets the tuntime OpenMP parameters, and
     restores the original values when exited."""
     nthreads_ = openmp_get_num_threads()
     schedule_, chunk_ = openmp_get_schedule()

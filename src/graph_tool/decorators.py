@@ -112,8 +112,9 @@ def _parallel(f):
     text = """.. admonition:: Parallel implementation.
 
     If enabled during compilation, this algorithm will run in parallel using
-    `OpenMP <https://en.wikipedia.org/wiki/OpenMP>`_. See
-    :ref:`parallel_algorithms` for information about controlling parallelization.
+    `OpenMP <https://en.wikipedia.org/wiki/OpenMP>`_. See the :ref:`parallel
+    algorithms <parallel_algorithms>` section for information about how to
+    control several aspects of parallelization.
     """
     lines = f.__doc__.split("\n")
     f.__doc__ = ""

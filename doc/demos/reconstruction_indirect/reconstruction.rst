@@ -60,28 +60,6 @@ In ``graph-tool``, a variety of models are implemented, as given by the followin
    Continuous kinetic Ising model | :class:`~graph_tool.inference.CIsingGlauberBlockState` | :math:`[-1,1]` | Dynamic
 
 
-.. warning::
-
-   For optimal parallel performance, the following environmental variable should
-   be set **before the Python interpreted is evoked**:
-
-   .. code:: bash
-
-      export OMP_WAIT_POLICY=passive
-
-   or alternatively from Python **before** ``graph-tool`` **is imported**:
-
-   .. code::
-
-      import os
-      os.environ["OMP_WAIT_POLICY"] = "passive"
-
-   Due to an OpenMP API limitation, this can no longer be changed after ``graph-tool``
-   has been imported.
-
-   Without passing this option, the parallel performance might be severely degraded.
-
-
 Reconstruction with synthetic data
 ----------------------------------
 
