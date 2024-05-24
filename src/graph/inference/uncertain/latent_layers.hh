@@ -132,6 +132,7 @@ struct LatentLayers
 
             if (_measured)
             {
+                gil_release.restore();
                 _dummy = std::make_shared<DummyBlockState<g_t, eweight_t>>(_g, _eweight);
                 _mstate.emplace_back(*_dummy, _g_orig, _n.get_checked(),
                                      _x.get_checked(), _n_default, _x_default,
