@@ -102,7 +102,7 @@ auto get_global_clustering(const Graph& g, EWeight eweight)
     vector<val_t> mark(num_vertices(g), 0);
     vector<std::pair<val_t, val_t>> ret(num_vertices(g));
 
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
         firstprivate(mark) reduction(+:triangles, n)
     parallel_vertex_loop_no_spawn
             (g,
@@ -117,7 +117,7 @@ auto get_global_clustering(const Graph& g, EWeight eweight)
 
     // "jackknife" variance
     double c_err = 0.0;
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
         reduction(+:c_err)
     parallel_vertex_loop_no_spawn
             (g,
@@ -141,7 +141,7 @@ void set_clustering_to_property(const Graph& g, EWeight eweight,
     typedef typename property_traits<ClustMap>::value_type cval_t;
     vector<val_t> mark(num_vertices(g), false);
 
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
         firstprivate(mark)
     parallel_vertex_loop_no_spawn
         (g,

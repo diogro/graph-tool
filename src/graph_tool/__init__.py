@@ -81,6 +81,8 @@ OpenMP configuration
    openmp_set_num_threads
    openmp_get_schedule
    openmp_set_schedule
+   openmp_get_thresh
+   openmp_set_thresh
 
 System information
 ++++++++++++++++++
@@ -140,7 +142,7 @@ import csv
 import contextlib
 import threading
 
-from .decorators import _require, _limit_args, _copy_func
+from .decorators import _require, _limit_args, _copy_func, _parallel
 
 __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
            "Vector_bool", "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
@@ -153,8 +155,9 @@ __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
            "edge_endpoint_property", "incident_edges_op", "perfect_prop_hash",
            "seed_rng", "show_config", "openmp_enabled",
            "openmp_get_num_threads", "openmp_set_num_threads",
-           "openmp_get_schedule", "openmp_set_schedule", "__author__",
-           "__copyright__", "__URL__", "__version__"]
+           "openmp_get_schedule", "openmp_set_schedule", "openmp_get_thresh",
+           "openmp_set_thresh", "openmp_context", "__author__", "__copyright__",
+           "__URL__", "__version__"]
 
 # this is rather pointless, but it works around a sphinx bug
 graph_tool = sys.modules[__name__]
@@ -4174,31 +4177,7 @@ seed_rng(0)
 def _get_rng():
     return libcore.get_rng()
 
-# OpenMP Setup
-
-def openmp_enabled():
-    """Return ``True`` if OpenMP was enabled during compilation."""
-    return libcore.openmp_enabled()
-
-def openmp_get_num_threads():
-    """Return the number of OpenMP threads."""
-    return libcore.openmp_get_num_threads()
-
-def openmp_set_num_threads(n):
-    """Set the number of OpenMP threads."""
-    from graph_tool.inference import libinference
-    libcore.openmp_set_num_threads(n)
-    libinference.init_cache()
-
-def openmp_get_schedule():
-    """Return the runtime OpenMP schedule and chunk size. The schedule can by
-    any of: ``"static"``, ``"dynamic"``, ``"guided"``, ``"auto"``."""
-    return libcore.openmp_get_schedule()
-
-def openmp_set_schedule(schedule, chunk=0):
-    """Set the runtime OpenMP schedule and chunk size. The schedule can by
-    any of: ``"static"``, ``"dynamic"``, ``"guided"``, ``"auto"``."""
-    return libcore.openmp_set_schedule(schedule, chunk)
+from . openmp import *
 
 if openmp_enabled() and os.environ.get("OMP_SCHEDULE") is None:
     openmp_set_schedule("static", 0)

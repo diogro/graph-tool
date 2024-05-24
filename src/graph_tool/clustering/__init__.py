@@ -44,7 +44,7 @@ Summary
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_clustering as _gt")
 
-from .. import _prop, Graph, GraphView, VertexPropertyMap, _get_rng
+from .. import _prop, Graph, GraphView, VertexPropertyMap, _get_rng, _parallel
 from .. topology import isomorphism
 from .. generation import random_rewire
 from .. stats import vertex_hist
@@ -56,6 +56,7 @@ __all__ = ["local_clustering", "global_clustering", "extended_clustering",
            "motifs", "motif_significance"]
 
 
+@_parallel
 def local_clustering(g, weight=None, prop=None, undirected=True):
     r"""Return the local clustering coefficients for all vertices.
 
@@ -115,7 +116,7 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     The implemented algorithm runs in :math:`O(|V|\left<k^2\right>)` time,
     where :math:`\left<k^2\right>` is second moment of the degree distribution.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -144,6 +145,7 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     return prop
 
 
+@_parallel
 def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
     r"""Return the global clustering coefficient.
 
@@ -202,7 +204,7 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
     where :math:`\left< k^2\right>` is the second moment of the degree
     distribution.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -232,6 +234,7 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
         return c[:2]
 
 
+@_parallel
 def extended_clustering(g, props=None, max_depth=3, undirected=False):
     r"""
     Return the extended clustering coefficients for all vertices.
@@ -283,7 +286,7 @@ def extended_clustering(g, props=None, max_depth=3, undirected=False):
     :math:`O(|V|\left<k\right>^{2+\text{max-depth}})` worst time, where
     :math:`\left< k\right>` is the average out-degree.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -315,6 +318,7 @@ def extended_clustering(g, props=None, max_depth=3, undirected=False):
     return props
 
 
+@_parallel
 def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
     r"""
     Count the occurrence of k-size node-induced subgraphs (motifs). A tuple with
@@ -365,7 +369,7 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
     This functions implements the ESU and RAND-ESU algorithms described in
     [wernicke-efficient-2006]_.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -466,6 +470,7 @@ def _graph_sig(g):
     return sig
 
 
+@_parallel
 def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
                        threshold=0, self_loops=False, parallel_edges=False,
                        full_output=False, shuffle_model="configuration"):
@@ -537,9 +542,9 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
     many standard deviations is each motif count, in respect to an ensemble of
     randomly shuffled graphs with the same degree sequence.
 
-    The z-scores values are not normalized.
+    The z-score values are not normalized.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------

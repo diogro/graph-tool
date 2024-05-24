@@ -27,7 +27,8 @@ packages:
    available in other software packages.)
 
 2. Support for `OpenMP <https://en.wikipedia.org/wiki/OpenMP>`_ shared memory
-   parallelism for several algorithms.
+   parallelism for several algorithms. See the :ref:`parallel algorithms
+   <parallel_algorithms>` section fore more information.
 
 3. High-quality :ref:`network visualization <draw>`, both static and
    interactive, supporting :ref:`animations <animation>` and :ref:`matplotlib
@@ -129,6 +130,7 @@ Contents
    :maxdepth: 3
 
    quickstart
+   parallel
    demos/index
    modules
    gt_format

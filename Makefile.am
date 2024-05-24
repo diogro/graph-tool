@@ -28,6 +28,7 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/stats.rst \
 	doc/graph_tool.rst \
 	doc/modules.rst \
+	doc/parallel.rst \
 	doc/topology.rst \
 	doc/conf.py \
 	doc/pyenv.py \
@@ -95,6 +96,7 @@ libgraph_tool_core_la_SOURCES = \
 	src/graph/graph_python_interface_export.cc \
 	src/graph/graph_selectors.cc \
 	src/graph/graphml.cpp \
+	src/graph/openmp.cc \
 	src/graph/random.cc \
 	src/graph/read_graphviz_new.cpp
 libgraph_tool_core_la_includedir = $(MOD_DIR)/include
@@ -771,10 +773,11 @@ libgraph_tool_util_la_include_HEADERS = \
 
 graph_tool_PYTHON = \
 	src/graph_tool/__init__.py \
+	src/graph_tool/all.py \
 	src/graph_tool/dl_import.py \
 	src/graph_tool/decorators.py \
 	src/graph_tool/gt_io.py \
-	src/graph_tool/all.py
+	src/graph_tool/openmp.py
 graph_tooldir = $(MOD_DIR)
 
 graph_tool_generation_PYTHON = \

@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Graph, PropertyMap, _get_rng, Vector_int32_t, Vector_size_t
+from .. import Graph, PropertyMap, _get_rng, Vector_int32_t, Vector_size_t, \
+    _parallel
 from . blockmodel import DictState
 from . base_states import *
 
@@ -934,6 +935,7 @@ def align_nested_partition_labels(x, y):
     x = libinference.align_nested_partition_labels(x, y)
     return x
 
+@_parallel
 def partition_overlap_center(bs, init=None, relabel_bs=False):
     r"""Find a partition with a maximal overlap to all items of the list of
     partitions given.
@@ -985,7 +987,7 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
     number of partitions, :math:`N` is the length of the partitions and
     :math:`B` is the number of labels used.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -1021,6 +1023,7 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
     r = libinference.partition_overlap_center(bs, c)
     return c, r
 
+@_parallel
 def nested_partition_overlap_center(bs, init=None, return_bs=False):
     r"""Find a nested partition with a maximal overlap to all items of the list of
     nested partitions given.
@@ -1074,7 +1077,7 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
     is the number of partitions, :math:`N_l` is the length of the partitions and
     :math:`B_l` is the number of labels used, in level :math:`l`.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------

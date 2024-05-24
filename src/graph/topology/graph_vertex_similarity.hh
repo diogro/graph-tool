@@ -166,7 +166,7 @@ void all_pairs_similarity(Graph& g, VMap s, Sim&& f, Weight& weight)
 {
     vector<typename property_traits<Weight>::value_type>
         mask(num_vertices(g));
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
         firstprivate(mask)
     parallel_vertex_loop_no_spawn
         (g,
@@ -184,7 +184,7 @@ void some_pairs_similarity(Graph& g, Vlist& vlist, Slist& slist, Sim&& f,
 {
     vector<typename property_traits<Weight>::value_type>
         mark(num_vertices(g));
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
         firstprivate(mark)
     parallel_loop_no_spawn
         (vlist,

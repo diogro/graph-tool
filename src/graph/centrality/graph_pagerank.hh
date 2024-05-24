@@ -58,13 +58,13 @@ struct get_pagerank
             delta = 0;
 
             double p_sink = 0;
-            #pragma omp parallel if (sinks.size() > OPENMP_MIN_THRESH)      \
+            #pragma omp parallel if (sinks.size() > get_openmp_min_thresh())      \
                 reduction(+:p_sink)
             parallel_loop_no_spawn
                 (sinks,
                  [&](auto, auto v){ p_sink += get(rank, v); });
 
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+            #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
                 reduction(+:delta)
             parallel_vertex_loop_no_spawn
                 (g,

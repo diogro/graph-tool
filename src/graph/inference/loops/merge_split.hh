@@ -142,7 +142,7 @@ struct MergeSplit: public State
     void pop_b()
     {
         auto& back = _bstack.back();
-        #pragma omp parallel for if (_parallel)
+        #pragma omp parallel for schedule(runtime) if (_parallel)
         for (size_t i = 0; i < back.size(); ++i)
         {
             auto& [v, s] = back[i];
@@ -237,7 +237,7 @@ struct MergeSplit: public State
         {
             std::vector<Node> vrs;
             get_group_vs<>(r, vrs);
-            #pragma omp parallel for if (_parallel)
+            #pragma omp parallel for schedule(runtime) if (_parallel)
             for (size_t i = 0; i < vrs.size(); ++i)
                 move_node(vrs[i], s);
             r = s;
@@ -255,7 +255,7 @@ struct MergeSplit: public State
         std::shuffle(vs.begin(), vs.end(), rng_);
 
         parallel_rng<rng_t> prng(rng_);
-        #pragma omp parallel for if (_parallel) reduction(+: dS, lp) firstprivate(p)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS, lp) firstprivate(p)
         for (size_t i = 0; i < vs.size(); ++i)
         {
             // parallel
@@ -324,7 +324,7 @@ struct MergeSplit: public State
 
         parallel_rng<rng_t> prng(rng_);
         std::shuffle(vs.begin(), vs.end(), rng_);
-        #pragma omp parallel for if (_parallel) reduction(+: dS)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS)
         for (size_t i = 0; i < vs.size(); ++i)
         {
             //parallel
@@ -381,7 +381,7 @@ struct MergeSplit: public State
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
 
-        #pragma omp parallel for if (_parallel) reduction(+: dS)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS)
         for (size_t i = 0; i < vrs.size(); ++i)
         {
             const auto& v = vrs[i];
@@ -394,7 +394,7 @@ struct MergeSplit: public State
         {
             get_group_vs<>(s, vrs);
 
-            #pragma omp parallel for if (_parallel) reduction(+: dS)
+            #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS)
             for (size_t i = 0; i < vrs.size(); ++i)
             {
                 const auto& v = vrs[i];
@@ -407,7 +407,7 @@ struct MergeSplit: public State
         std::shuffle(vs.begin(), vs.end(), rng_);
 
         parallel_rng<rng_t> prng(rng_);
-        #pragma omp parallel for if (_parallel) reduction(+: dS) firstprivate(ps)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS) firstprivate(ps)
         for (size_t i = 0; i < vs.size(); ++i)
         {
             //parallel
@@ -486,7 +486,7 @@ struct MergeSplit: public State
         get_group_vs<>(r, vrs);
 
         parallel_rng<rng_t> prng(rng_);
-        #pragma omp parallel for if (_parallel) reduction(+: dS)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS)
         for (size_t i = 0; i < vrs.size(); ++i)
         {
             //parallel
@@ -509,7 +509,7 @@ struct MergeSplit: public State
         {
             get_group_vs<>(s, vrs);
 
-            #pragma omp parallel for if (_parallel) reduction(+: dS)
+            #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS)
             for (size_t i = 0; i < vrs.size(); ++i)
             {
                 // parallel
@@ -529,7 +529,7 @@ struct MergeSplit: public State
         }
 
         std::shuffle(vs.begin(), vs.end(), rng_);
-        #pragma omp parallel for if (_parallel) reduction(+: dS) firstprivate(ps)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: dS) firstprivate(ps)
         for (size_t i = 0; i < vs.size(); ++i)
         {
             // parallel
@@ -674,7 +674,7 @@ struct MergeSplit: public State
 
                     pop_b();
 
-                    #pragma omp parallel for if (_parallel)
+                    #pragma omp parallel for schedule(runtime) if (_parallel)
                     for (size_t i = 0; i < vs.size(); ++i)
                     {
                         const auto& v = vs[i];
@@ -688,7 +688,7 @@ struct MergeSplit: public State
 
                     lp = log_sum_exp(lp1, lp2) - log(2);
 
-                    #pragma omp parallel for if (_parallel)
+                    #pragma omp parallel for schedule(runtime) if (_parallel)
                     for (size_t i = 0; i < vs.size(); ++i)
                     {
                         const auto& v = vs[i];
@@ -736,7 +736,7 @@ struct MergeSplit: public State
 
                 pop_b();
 
-                #pragma omp parallel for if (_parallel)
+                #pragma omp parallel for schedule(runtime) if (_parallel)
                 for (size_t i = 0; i < vs.size(); ++i)
                 {
                     const auto& v = vs[i];
@@ -750,7 +750,7 @@ struct MergeSplit: public State
 
                 lp = log_sum_exp(lp1, lp2) - log(2);
 
-                #pragma omp parallel for if (_parallel)
+                #pragma omp parallel for schedule(runtime) if (_parallel)
                 for (size_t i = 0; i < vs.size(); ++i)
                 {
                     const auto& v = vs[i];
@@ -759,7 +759,7 @@ struct MergeSplit: public State
             }
         }
 
-        #pragma omp parallel for if (_parallel)
+        #pragma omp parallel for schedule(runtime) if (_parallel)
         for (size_t i = 0; i < vs.size(); ++i)
         {
             const auto& v = vs[i];
@@ -773,7 +773,7 @@ struct MergeSplit: public State
                             const std::vector<Node>& vs)
     {
         double lp = 0;
-        #pragma omp parallel for if (_parallel) reduction(+: lp)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+: lp)
         for (size_t i = 0; i < vs.size(); ++i)
         {
             if (std::isinf(lp))
@@ -843,7 +843,7 @@ struct MergeSplit: public State
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
 
-        #pragma omp parallel for if (_parallel) reduction(+:dS)
+        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+:dS)
         for (size_t i = 0; i < vrs.size(); ++i)
         {
             // parallel
@@ -886,7 +886,7 @@ struct MergeSplit: public State
         for (const auto& v : vs)
             vs_.push_back(v);
 
-        #pragma omp parallel for if (_parallel)
+        #pragma omp parallel for schedule(runtime) if (_parallel)
         for (size_t i = 0; i < vs_.size(); ++i)
         {
             const auto& v = vs_[i];

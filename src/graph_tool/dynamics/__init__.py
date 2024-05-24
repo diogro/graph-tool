@@ -86,7 +86,7 @@ Contents
 """
 
 from .. import _degree, _prop, Graph, GraphView, _get_rng, PropertyMap, \
-    EdgePropertyMap, VertexPropertyMap, _check_prop_scalar
+    EdgePropertyMap, VertexPropertyMap, _check_prop_scalar, _parallel
 from .. generation import label_self_loops
 import numpy
 import numpy.random
@@ -151,13 +151,13 @@ class DiscreteStateBase(object):
         """Resets list of "active" nodes, for states where this concept is used."""
         self._state.reset_active(_get_rng())
 
+    @_parallel
     def iterate_sync(self, niter=1):
         """Updates nodes synchronously (i.e. a full "sweep" of all nodes in parallel),
         `niter` number of times. This function returns the number of nodes that
         changed state.
 
-        If enabled during compilation, this algorithm runs in parallel
-        (i.e. using more than one thread.)
+        @parallel@
         """
         return self._state.iterate_sync(niter, _get_rng())
 
@@ -1817,12 +1817,13 @@ class ContinuousStateBase(object):
         state."""
         return self.s
 
+    @_parallel
     def get_diff(self, dt):
         r"""Returns the current time derivative for all the nodes. The parameter ``dt``
         is the time interval in consideration, which is used only if the ODE has
         a stochastic component.
 
-        If enabled during compilation, this algorithm runs in parallel.
+        @parallel@
         """
         self._state.get_diff_sync(self.t, dt, _get_rng())
         return self.s_diff.fa

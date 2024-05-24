@@ -18,13 +18,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import _prop
+from .. import _prop, _parallel
 
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 
 from numpy import sqrt
 
+@_parallel
 def latent_multigraph(g, epsilon=1e-8, max_niter=0, verbose=False):
     r"""Infer latent Poisson multigraph model given an "erased" simple graph.
 
@@ -77,8 +78,9 @@ def latent_multigraph(g, epsilon=1e-8, max_niter=0, verbose=False):
     :math:`\theta_i^{\pm}=\frac{d_i^{\pm}}{\sqrt{\sum_jd_j^{\pm}}}`, with
     :math:`d^+_i = \sum_jw_{ji}` and :math:`d^-_i = \sum_jw_{ij}`.
 
-    A single EM iteration takes time :math:`O(V + E)`. If enabled during
-    compilation, this algorithm runs in parallel.
+    A single EM iteration takes time :math:`O(V + E)`.
+
+    @parallel@
 
     Examples
     --------

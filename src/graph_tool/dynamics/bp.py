@@ -20,7 +20,7 @@
 
 from .. import _prop, Graph, GraphView, _get_rng, EdgePropertyMap, \
     VertexPropertyMap, group_vector_property, _check_prop_vector, \
-    _check_prop_scalar
+    _check_prop_scalar, _parallel
 
 from collections.abc import Iterable
 from abc import ABC, abstractmethod
@@ -48,6 +48,8 @@ class BPBaseState(ABC):
     def __setstate__(self, state):
         self.__init__(**state, converge=False)
 
+
+    @_parallel
     def iterate(self, niter=1, parallel=True, update_marginals=True):
         """Updates meassages synchronously (or asyncrhonously if
         ``parallel=False``), `niter` number of times. This function returns the
@@ -56,8 +58,7 @@ class BPBaseState(ABC):
         If ``update_marignals=True``, this function calls
         :meth:`~BPBaseState.update_marginals()` at the end.
 
-        If enabled during compilation, this algorithm runs in parallel
-        (i.e. using more than one thread.)
+        @parallel@
         """
         if parallel:
             delta = self._state.iterate_parallel(self.g._Graph__graph, niter)

@@ -141,7 +141,7 @@ struct get_average
         size_t count = 0;
 
         AverageTraverse traverse;
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+:a,aa,count)
         parallel_vertex_loop_no_spawn
             (g,

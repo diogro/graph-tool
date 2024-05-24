@@ -50,7 +50,7 @@ struct get_assortativity_coefficient
         map_t a, b;
 
         SharedMap<map_t> sa(a), sb(b);
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             firstprivate(sa, sb) reduction(+:e_kk, n_edges)
         parallel_vertex_loop_no_spawn
             (g,
@@ -96,7 +96,7 @@ struct get_assortativity_coefficient
         // "jackknife" variance
         double err = 0;
         size_t one = (graph_tool::is_directed(g)) ? 1 : 2;
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+:err)
         parallel_vertex_loop_no_spawn
             (g,
@@ -146,7 +146,7 @@ struct get_scalar_assortativity_coefficient
         double e_xy = 0;
         double a = 0, b = 0, da = 0, db = 0;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+:e_xy,n_edges,a,b,da,db)
         parallel_vertex_loop_no_spawn
             (g,
@@ -203,7 +203,7 @@ struct get_scalar_assortativity_coefficient
 
         double err = 0.0;
         size_t one = (graph_tool::is_directed(g)) ? 1 : 2;
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+:err)
         parallel_vertex_loop_no_spawn
             (g,

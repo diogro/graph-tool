@@ -60,7 +60,7 @@ struct get_correlation_histogram
         {
             SharedHistogram<hist_t> s_hist(hist);
 
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
                 firstprivate(s_hist)
             parallel_vertex_loop_no_spawn
                 (g,

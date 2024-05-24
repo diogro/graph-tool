@@ -33,7 +33,7 @@ struct get_reciprocity
         typedef typename property_traits<Weight>::value_type val_t;
         val_t L = 0, Lbd = 0;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+: L, Lbd)
         parallel_edge_loop_no_spawn
             (g,

@@ -79,7 +79,7 @@ struct get_distance_histogram
         typename hist_t::point_t point;
         get_vertex_dists_t get_vertex_dists;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             firstprivate(s_hist)
         parallel_vertex_loop_no_spawn
             (g,

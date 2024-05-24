@@ -67,7 +67,7 @@ struct get_avg_correlation
         SharedHistogram<sum_t> s_sum2(sum2);
         SharedHistogram<count_t> s_count(count);
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             firstprivate(s_sum, s_sum2, s_count)
         parallel_vertex_loop_no_spawn
             (g,

@@ -44,7 +44,7 @@ Summary
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_correlations")
 
-from .. import _degree, _prop, _check_prop_scalar, VertexPropertyMap
+from .. import _degree, _prop, _check_prop_scalar, VertexPropertyMap, _parallel
 from numpy import *
 
 __all__ = ["assortativity", "scalar_assortativity", "corr_hist",
@@ -52,6 +52,7 @@ __all__ = ["assortativity", "scalar_assortativity", "corr_hist",
            "avg_combined_corr"]
 
 
+@_parallel
 def assortativity(g, deg, eweight=None):
     r"""Obtain the assortativity coefficient for the given graph.
 
@@ -96,7 +97,7 @@ def assortativity(g, deg, eweight=None):
 
     The variance is obtained with the `jackknife method`_.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -120,6 +121,7 @@ def assortativity(g, deg, eweight=None):
                                      _prop("e", g, eweight))
 
 
+@_parallel
 def scalar_assortativity(g, deg, eweight=None):
     r"""
     Obtain the scalar assortativity coefficient for the given graph.
@@ -164,7 +166,7 @@ def scalar_assortativity(g, deg, eweight=None):
 
     The variance is obtained with the `jackknife method`_.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -189,6 +191,7 @@ def scalar_assortativity(g, deg, eweight=None):
                                             _prop("e", g, eweight))
 
 
+@_parallel
 def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
               float_count=True):
     r"""
@@ -241,7 +244,7 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
     property) 'source_deg', the number of out-neighbors with degree (or scalar
     property) 'target_deg'.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -293,6 +296,7 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
             [ret[1][0], ret[1][1]]]
 
 
+@_parallel
 def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
     r"""
     Obtain the single-vertex combined correlation histogram for the given graph.
@@ -326,7 +330,7 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
 
     Notes
     -----
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     See Also
     --------
@@ -385,6 +389,7 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
             [ret[1][0], ret[1][1]]]
 
 
+@_parallel
 def avg_neighbor_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
     r"""
     Obtain the average neighbor-neighbor correlation for the given graph.
@@ -432,7 +437,7 @@ def avg_neighbor_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
     scalar property) 'source_deg', the of the 'target_deg' degree (or
     scalar property) of its neighbors.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -481,6 +486,7 @@ def avg_neighbor_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
 
 avg_neighbour_corr = avg_neighbor_corr
 
+@_parallel
 def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
     r"""
     Obtain the single-vertex combined correlation histogram for the given graph.
@@ -509,8 +515,7 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
 
     Notes
     -----
-    If enabled during compilation, this algorithm runs in parallel.
-
+    @parallel@
 
     See Also
     --------

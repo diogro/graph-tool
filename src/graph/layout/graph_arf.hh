@@ -45,7 +45,7 @@ struct get_arf_layout
         while (delta > epsilon && (max_iter == 0 || n_iter < max_iter))
         {
             delta = 0;
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
                 reduction(+:delta)
             parallel_vertex_loop_no_spawn
                 (g,

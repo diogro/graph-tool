@@ -116,4 +116,6 @@ void export_openmp()
     def("openmp_set_num_threads", &openmp_set_num_threads);
     def("openmp_get_schedule", &openmp_get_schedule);
     def("openmp_set_schedule", &openmp_set_schedule);
+    def("openmp_get_thresh", &get_openmp_min_thresh);
+    def("openmp_set_thresh", &set_openmp_min_thresh);
 };

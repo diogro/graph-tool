@@ -743,7 +743,7 @@ struct Dynamics
 
             double dS = 0;
             std::vector<double> xs, nxs;
-            #pragma omp parallel for reduction(+:dS) firstprivate(xs, nxs)
+            #pragma omp parallel for schedule(runtime) reduction(+:dS) firstprivate(xs, nxs)
             for (size_t i = 0; i < temp.size(); ++i)
             {
                 auto& [v, us] = temp[i];
@@ -962,7 +962,7 @@ struct Dynamics
                 temp.emplace_back(v, &us);
 
             std::vector<double> xs, nxs;
-            #pragma omp parallel for firstprivate(xs, nxs)
+            #pragma omp parallel for schedule(runtime) firstprivate(xs, nxs)
             for (size_t i = 0; i < temp.size(); ++i)
             {
                 auto& [v, us] = temp[i];
@@ -1038,7 +1038,7 @@ struct Dynamics
             double dx = nx - x;
             double dS = 0;
             std::vector<size_t> vs(vs_.begin(), vs_.end());
-            #pragma omp parallel for reduction(+:dS)
+            #pragma omp parallel for schedule(runtime) reduction(+:dS)
             for (size_t i = 0; i < vs.size(); ++i)
                 dS += dstate_node_dS(vs[i], dx, ea);
             if (ea.tdist && !_disable_tdist)

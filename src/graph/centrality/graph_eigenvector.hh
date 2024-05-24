@@ -56,7 +56,7 @@ struct get_eigenvector
         while (delta >= epsilon)
         {
             norm = 0;
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
                 reduction(+:norm)
             parallel_vertex_loop_no_spawn
                 (g,
@@ -74,7 +74,7 @@ struct get_eigenvector
             norm = sqrt(norm);
 
             delta = 0;
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
                 reduction(+:delta)
             parallel_vertex_loop_no_spawn
                 (g,

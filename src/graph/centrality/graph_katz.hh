@@ -44,7 +44,7 @@ struct get_katz
         while (delta >= epsilon)
         {
             delta = 0;
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
                 reduction(+:delta)
             parallel_vertex_loop_no_spawn
                 (g,

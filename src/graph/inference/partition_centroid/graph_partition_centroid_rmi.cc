@@ -81,7 +81,7 @@ REGISTER_MOD
 
              double EMI = 0;
 
-             #pragma omp parallel for reduction(+:EMI) collapse(2)
+             #pragma omp parallel for schedule(runtime) reduction(+:EMI) collapse(2)
              for (size_t r = 0; r < nr.size(); ++r)
              {
                  for (size_t s = 0; s < ns.size(); ++s)

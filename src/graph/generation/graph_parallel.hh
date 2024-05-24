@@ -38,7 +38,7 @@ void label_parallel_edges(const Graph& g, ParallelMap parallel, bool mark_only)
     gt_hash_map<vertex_t, edge_t> vset;
     gt_hash_map<size_t, bool> self_loops;
 
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
         firstprivate(vset) firstprivate(self_loops)
     parallel_vertex_loop_no_spawn
         (g,

@@ -19,6 +19,8 @@
 #define OPENMP_HH
 #include "config.h"
 
+#include <cstddef>
+
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -46,5 +48,8 @@ inline int get_thread_num()
     return 0;
 #endif
 }
+
+size_t get_openmp_min_thresh();
+void set_openmp_min_thresh(size_t);
 
 #endif // OPENMP_HH

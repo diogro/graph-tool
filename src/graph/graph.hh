@@ -41,6 +41,8 @@ using std::iterator_traits;
 #include <boost/mpl/bool_fwd.hpp>
 #include "graph_properties.hh"
 
+#include "openmp.hh"
+
 namespace graph_tool
 {
 

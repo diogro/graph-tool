@@ -38,7 +38,7 @@ void gen_triadic_closure(Graph& g, EMap curr, ETMap ego, EV& Es, bool probs,
     std::vector<uint8_t> mark(num_vertices(g));
     std::vector<std::vector<std::tuple<size_t, size_t>>> edges(num_vertices(g));
 
-    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
         firstprivate(mark)
     parallel_vertex_loop_no_spawn
         (g,

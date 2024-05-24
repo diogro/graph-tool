@@ -157,7 +157,7 @@ struct do_out_edges_op
             nt = 1; // python is not thread-safe
         #endif
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             num_threads(nt)
         parallel_vertex_loop_no_spawn
             (g,

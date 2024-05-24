@@ -112,7 +112,7 @@ struct get_trust_transitivity
                  t[v].resize((source == -1 && target == -1) ? N : 1);
              });
 
-        #pragma omp parallel for if (num_vertices(g) > OPENMP_MIN_THRESH)
+        #pragma omp parallel for schedule(runtime) if (num_vertices(g) > get_openmp_min_thresh())
         for (size_t i = (target == -1) ? 0 : target; i < N; ++i)
         {
             vertex_t tgt = vertex(i, g);

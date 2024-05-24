@@ -57,7 +57,7 @@ Operator objects
 """
 
 from .. import _degree, _prop, Graph, GraphView, _limit_args, Vector_int64_t, \
-    Vector_double
+    Vector_double, _parallel
 from .. generation import label_self_loops
 import numpy
 import scipy.sparse
@@ -71,6 +71,29 @@ __all__ = ["adjacency", "AdjacencyOperator", "laplacian", "LaplacianOperator",
            "modularity_matrix", "hashimoto", "HashimotoOperator",
            "CompactHashimotoOperator"]
 
+def _operator(f):
+    text = """.. note:: :class:`~scipy.sparse.linalg.LinearOperator` vs. sparse matrices
+
+        For many linear algebra computations it is more efficient to pass
+        ``operator=True`` to this function. In this case, it will return a
+        :class:`scipy.sparse.linalg.LinearOperator` subclass, which implements
+        matrix-vector and matrix-matrix multiplication, and is sufficient for
+        the sparse linear algebra operations available in the scipy module
+        :mod:`scipy.sparse.linalg`. This avoids copying the whole graph as a
+        sparse matrix, and performs the multiplication operations in parallel
+        (if enabled during compilation) --- see note below.
+
+    @parallel@
+
+        (The above is only applicable if ``operator == True``, and when the
+        object returned is used to perform matrix-vector or matrix-matrix
+        multiplications.)
+    """
+    f.__doc__ = f.__doc__.replace("@operator@", text)
+    return f
+
+@_parallel
+@_operator
 def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
     r"""Return the adjacency matrix of the graph.
 
@@ -135,16 +158,7 @@ def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
         i`. Although this is a typical definition in network and graph theory
         literature, many also use the transpose of this matrix.
 
-    .. note::
-
-        For many linear algebra computations it is more efficient to pass
-        ``operator=True``. This makes this function return a
-        :class:`scipy.sparse.linalg.LinearOperator` subclass, which implements
-        matrix-vector and matrix-matrix multiplication, and is sufficient for
-        the sparse linear algebra operations available in the scipy module
-        :mod:`scipy.sparse.linalg`. This avoids copying the whole graph as a
-        sparse matrix, and performs the multiplication operations in parallel
-        (if enabled during compilation).
+    @operator@
 
     Examples
     --------
@@ -262,6 +276,8 @@ class AdjacencyOperator(scipy.sparse.linalg.LinearOperator):
             return self
 
 @_limit_args({"deg": ["total", "in", "out"]})
+@_parallel
+@_operator
 def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=False,
               csr=True):
     r"""Return the Laplacian (or Bethe Hessian if :math:`r > 1`) matrix of the graph.
@@ -348,16 +364,7 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
         i`. Although this is a typical definition in network and graph theory
         literature, many also use the transpose of this matrix.
 
-    .. note::
-
-        For many linear algebra computations it is more efficient to pass
-        ``operator=True``. This makes this function return a
-        :class:`scipy.sparse.linalg.LinearOperator` subclass, which implements
-        matrix-vector and matrix-matrix multiplication, and is sufficient for
-        the sparse linear algebra operations available in the scipy module
-        :mod:`scipy.sparse.linalg`. This avoids copying the whole graph as a
-        sparse matrix, and performs the multiplication operations in parallel
-        (if enabled during compilation).
+    @operator@
 
     Examples
     --------
@@ -546,6 +553,8 @@ class LaplacianOperator(scipy.sparse.linalg.LinearOperator):
             return self
 
 
+@_parallel
+@_operator
 def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
     r"""Return the incidence matrix of the graph.
 
@@ -595,16 +604,7 @@ def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
             0 & \text{otherwise}
         \end{cases}
 
-    .. note::
-
-        For many linear algebra computations it is more efficient to pass
-        ``operator=True``. This makes this function return a
-        :class:`scipy.sparse.linalg.LinearOperator` subclass, which implements
-        matrix-vector and matrix-matrix multiplication, and is sufficient for
-        the sparse linear algebra operations available in the scipy module
-        :mod:`scipy.sparse.linalg`. This avoids copying the whole graph as a
-        sparse matrix, and performs the multiplication operations in parallel
-        (if enabled during compilation).
+    @operator@
 
     Examples
     --------
@@ -745,6 +745,8 @@ class IncidenceOperator(scipy.sparse.linalg.LinearOperator):
         return IncidenceOperator(self.g, vindex=self.vindex, eindex=self.eindex,
                                  transpose=not self.transpose)
 
+@_parallel
+@_operator
 def transition(g, weight=None, vindex=None, operator=False, csr=True):
     r"""Return the transition matrix of the graph.
 
@@ -791,16 +793,7 @@ def transition(g, weight=None, vindex=None, operator=False, csr=True):
         i`. Although this is a typical definition in network and graph theory
         literature, many also use the transpose of this matrix.
 
-    .. note::
-
-        For many linear algebra computations it is more efficient to pass
-        ``operator=True``. This makes this function return a
-        :class:`scipy.sparse.linalg.LinearOperator` subclass, which implements
-        matrix-vector and matrix-matrix multiplication, and is sufficient for
-        the sparse linear algebra operations available in the scipy module
-        :mod:`scipy.sparse.linalg`. This avoids copying the whole graph as a
-        sparse matrix, and performs the multiplication operations in parallel
-        (if enabled during compilation).
+    @operator@
 
     Examples
     --------
@@ -932,6 +925,8 @@ class TransitionOperator(scipy.sparse.linalg.LinearOperator):
                                   vindex=self.vindex)
 
 
+@_parallel
+@_operator
 def modularity_matrix(g, weight=None, vindex=None):
     r"""Return the modularity matrix of the graph.
 
@@ -1035,6 +1030,8 @@ def modularity_matrix(g, weight=None, vindex=None):
 
     return B
 
+@_parallel
+@_operator
 def hashimoto(g, index=None, compact=False, operator=False, csr=True):
     r"""Return the Hashimoto (or non-backtracking) matrix of a graph.
 
@@ -1092,16 +1089,7 @@ def hashimoto(g, index=None, compact=False, operator=False, csr=True):
     where :math:`\boldsymbol A` is the adjacency matrix, and :math:`\boldsymbol
     D` is the diagonal matrix with the node degrees [krzakala_spectral]_.
 
-    .. note::
-
-        For many linear algebra computations it is more efficient to pass
-        ``operator=True``. This makes this function return a
-        :class:`scipy.sparse.linalg.LinearOperator` subclass, which implements
-        matrix-vector and matrix-matrix multiplication, and is sufficient for
-        the sparse linear algebra operations available in the scipy module
-        :mod:`scipy.sparse.linalg`. This avoids copying the whole graph as a
-        sparse matrix, and performs the multiplication operations in parallel
-        (if enabled during compilation).
+    @operator@
 
     Examples
     --------

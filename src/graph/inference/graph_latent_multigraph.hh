@@ -50,7 +50,7 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
     {
         double M = 0;
         delta = 0;
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
             reduction(+:M) reduction(max:delta)
         parallel_edge_loop_no_spawn
             (g,
@@ -67,7 +67,7 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
                  M += ew;
              });
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
             reduction(max:delta)
         parallel_vertex_loop_no_spawn
             (g,

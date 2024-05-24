@@ -34,6 +34,8 @@
 
 #include "transform_iterator.hh"
 
+#include "openmp.hh"
+
 namespace boost
 {
 
@@ -1174,7 +1176,7 @@ void remove_vertex(Vertex v, adj_list<Vertex>& g)
     if (v == N)
         return;
 
-    #pragma omp parallel for schedule(runtime) if (N > 1000)
+    #pragma omp parallel for schedule(runtime) if (N > get_openmp_min_thresh())
     for (size_t i = 0; i < N; ++i)
     {
         for (auto& e : g._edges[i].second)

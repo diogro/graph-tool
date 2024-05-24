@@ -140,7 +140,8 @@ dl_import("from . import libgraph_tool_topology")
 
 from .. import _prop, Vector_int32_t, Vector_size_t, _check_prop_writable, \
      _check_prop_scalar, _check_prop_vector, Graph, VertexPropertyMap, \
-     PropertyMap, GraphView, libcore, _get_rng, perfect_prop_hash, _limit_args
+     PropertyMap, GraphView, libcore, _get_rng, perfect_prop_hash, \
+     _limit_args, _parallel
 from .. generation import label_self_loops
 import numpy, collections.abc
 
@@ -158,6 +159,7 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "is_bipartite", "is_DAG", "is_planar", "make_maximal_planar",
            "similarity", "vertex_similarity", "edge_reciprocity"]
 
+@_parallel
 def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
                norm=True, p=1., distance=False, asymmetric=False):
     r"""Return the Jaccard adjacency similarity between two graphs.
@@ -281,8 +283,10 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
 
     The algorithm runs with complexity :math:`O(E_1 + V_1 + E_2 + V_2)`.
 
-    If enabled during compilation, and the vertex labels are integers bounded by
-    the sizes of the graphs, this algorithm runs in parallel.
+    @parallel@
+
+        (The above is applicable only if the vertex labels are integers bounded
+        by the sizes of the graphs.)
 
     Examples
     --------
@@ -372,6 +376,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         return s / E if E > 0 else numpy.nan
     return s
 
+@_parallel
 @_limit_args({"sim_type": ["dice", "salton", "hub-promoted", "hub-suppressed",
                            "jaccard", "inv-log-weight", "resource-allocation",
                            "leicht-holme-newman"]})
@@ -521,7 +526,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
     ``vertex_pairs is None``, otherwise with :math:`O(\left<k\right>P)` where
     :math:`P` is the length of ``vertex_pairs``.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -3228,6 +3233,7 @@ def max_independent_vertex_set(g, high_deg=False, mivs=None):
     return mivs
 
 
+@_parallel
 def edge_reciprocity(g, weight=None):
     r"""Calculate the edge reciprocity of the graph.
 
@@ -3256,7 +3262,7 @@ def edge_reciprocity(g, weight=None):
 
     The algorithm runs with complexity :math:`O(E + V)`.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------

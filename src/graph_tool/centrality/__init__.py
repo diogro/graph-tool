@@ -46,7 +46,7 @@ Summary
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_centrality")
 
-from .. import _prop, ungroup_vector_property, Vector_size_t
+from .. import _prop, ungroup_vector_property, Vector_size_t, _parallel
 from .. topology import shortest_distance
 import numpy
 import numpy.linalg
@@ -55,6 +55,7 @@ __all__ = ["pagerank", "betweenness", "central_point_dominance", "closeness",
            "eigentrust", "eigenvector", "katz", "hits", "trust_transitivity"]
 
 
+@_parallel
 def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
              max_iter=None, ret_iter=False):
     r"""Calculate the PageRank of each vertex.
@@ -132,7 +133,7 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
     it no longer changes, according to the parameter epsilon. It has a
     topology-dependent running time.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -216,7 +217,7 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
     else:
         return prop
 
-
+@_parallel
 def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
     r"""Calculate the betweenness centrality for each vertex and edge.
 
@@ -275,7 +276,7 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
     :math:`O(PE)` for unweighted graphs and :math:`O(PE + P(V+E)\log V)` for
     weighted graphs, where :math:`P` is the number of pivot vertices.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -342,6 +343,7 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
                              _prop("v", g, vprop))
     return vprop, eprop
 
+@_parallel
 def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False):
     r"""
     Calculate the closeness centrality for each vertex.
@@ -407,7 +409,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     specified, this drops to :math:`O(V + E)` and :math:`O((V+E)\log V)`
     respectively.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -528,6 +530,7 @@ def central_point_dominance(g, betweenness):
                                        _prop("v", g, betweenness))
 
 
+@_parallel
 def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
     r"""
     Calculate the eigenvector centrality of each vertex in the graph, as well as
@@ -583,7 +586,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
     parameter, and :math:`\lambda_1` and :math:`\lambda_2` are the largest and
     second largest eigenvalues of the (weighted) adjacency matrix, respectively.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -642,6 +645,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
     return ee, vprop
 
 
+@_parallel
 def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
          max_iter=None, norm=True):
     r"""
@@ -701,7 +705,7 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
     The algorithm uses successive iterations of the equation above, which has a
     topology-dependent convergence complexity.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -757,6 +761,7 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
     return vprop
 
 
+@_parallel
 def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
     r"""
     Calculate the authority and hub centralities of each vertex in the graph.
@@ -819,7 +824,7 @@ def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
     parameter, and :math:`\lambda_1` and :math:`\lambda_2` are the largest and
     second largest eigenvalues of the (weighted) cocitation matrix, respectively.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -887,6 +892,7 @@ def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
     return 1. / l, xprop, yprop
 
 
+@_parallel
 def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
                ret_iter=False):
     r"""
@@ -940,7 +946,7 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
 
     The algorithm has a topology-dependent complexity.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -999,7 +1005,7 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
     else:
         return vprop
 
-
+@_parallel
 def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     r"""
     Calculate the pervasive trust transitivity between chosen (or all) vertices
@@ -1067,7 +1073,7 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     the complete trust matrix is :math:`O(EV\log V)`, where :math:`E` is the
     number of edges in the network.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------

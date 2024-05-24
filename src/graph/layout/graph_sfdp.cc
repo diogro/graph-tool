@@ -221,7 +221,7 @@ struct do_avg_dist
     {
         size_t count = 0;
         double d = 0;
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+: d, count)
         parallel_vertex_loop_no_spawn
                 (g,

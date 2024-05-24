@@ -111,7 +111,7 @@ struct do_all_pairs_search_unweighted
         typedef typename property_traits<DistMap>::value_type dist_t;
 
         vector<vertex_t> pred_map(num_vertices(g));
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             firstprivate(pred_map)
         parallel_vertex_loop_no_spawn
                 (g,

@@ -107,3 +107,21 @@ def _copy_func(f, name=None):
                             f.__defaults__, f.__closure__)
     fn.__dict__.update(f.__dict__)
     return fn
+
+def _parallel(f):
+    text = """.. admonition:: Parallel implementation.
+
+    If enabled during compilation, this algorithm will run in parallel using
+    `OpenMP <https://en.wikipedia.org/wiki/OpenMP>`_. See
+    :ref:`parallel_algorithms` for information about controlling parallelization.
+    """
+    lines = f.__doc__.split("\n")
+    f.__doc__ = ""
+    for line in lines:
+        if "@parallel@" in line:
+            indent = line.replace("@parallel@", "")
+            for l in text.split("\n"):
+                f.__doc__ += indent + l + "\n"
+        else:
+            f.__doc__ += line + "\n"
+    return f

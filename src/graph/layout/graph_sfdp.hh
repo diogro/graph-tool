@@ -284,7 +284,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
 
         double adist = 0;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
             firstprivate(Q) reduction(+:adist)
         parallel_loop_no_spawn
             (vertices,
@@ -364,7 +364,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
             }
         }
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
             reduction(+:E, delta, nmoves)
         parallel_loop_no_spawn
             (vertices,

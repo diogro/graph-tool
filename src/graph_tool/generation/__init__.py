@@ -103,7 +103,7 @@ from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_generation")
 
 from .. import Graph, GraphView, _check_prop_scalar, _prop, _limit_args, \
-    _gt_type, _get_rng, Vector_double, VertexPropertyMap
+    _gt_type, _get_rng, Vector_double, VertexPropertyMap, _parallel
 import inspect
 import types
 import numpy
@@ -1556,7 +1556,7 @@ def remove_random_edges(g, M, weight=None, counts=True):
         remove_random_edges(g._Graph__graph, M, _prop("e", g, weight), counts,
                             _get_rng())
 
-
+@_parallel
 def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
                  max_rk=None, epsilon=.001, c_stop=False, max_iter=0,
                  directed=False, verbose=False):
@@ -1622,7 +1622,7 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     If ``pairs is True``, the :math:`k` closest pairs are found from the nearest
     neighbors problem as described in [lenhof-k-closest]_.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     References
     ----------

@@ -317,7 +317,7 @@ double nested_partition_overlap_center(BT& c, BS& bs)
             size_t Nl = 0;
             double pl = 0;
             #pragma omp parallel for schedule(runtime) firstprivate(nr)        \
-                reduction(+:delta, pl, Nl) if (cl.size() > OPENMP_MIN_THRESH)
+                reduction(+:delta, pl, Nl) if (cl.size() > get_openmp_min_thresh())
             for (size_t i = 0; i < cl.size(); ++i)
             {
                 size_t M = 0;

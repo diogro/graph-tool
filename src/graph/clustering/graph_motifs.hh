@@ -356,7 +356,7 @@ struct get_all_motifs
         }
 
         size_t N = (p < 1) ? V.size() : num_vertices(g);
-        #pragma omp parallel for if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel for schedule(runtime) if (num_vertices(g) > get_openmp_min_thresh()) \
             private(sig)
         for (size_t i = 0; i < N; ++i)
         {

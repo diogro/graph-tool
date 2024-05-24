@@ -190,7 +190,7 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
     idx_map<label_t, val_t, false, false> adj1(N), adj2(N);
 
     val_t s = 0;
-    #pragma omp parallel if (num_vertices(g1) > OPENMP_MIN_THRESH) \
+    #pragma omp parallel if (num_vertices(g1) > get_openmp_min_thresh()) \
         reduction(+:s) firstprivate(keys, adj1, adj2)
     parallel_loop_no_spawn
         (lmap1,
@@ -209,7 +209,7 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
 
     if (!asym)
     {
-        #pragma omp parallel if (num_vertices(g2) > OPENMP_MIN_THRESH)  \
+        #pragma omp parallel if (num_vertices(g2) > get_openmp_min_thresh())  \
             reduction(+:s) firstprivate(keys, adj1, adj2)
         parallel_loop_no_spawn
             (lmap2,

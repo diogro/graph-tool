@@ -188,7 +188,7 @@ public:
         Sa += (xlogx_fast(_wr[r]-1) + xlogx_fast(_wr[nr]+1)) * _mrs.size();
 
         #pragma omp parallel for schedule(runtime) reduction(+:Sa, Sb) \
-            if (_mrs.size() > OPENMP_MIN_THRESH)
+            if (_mrs.size() > get_openmp_min_thresh())
         for (size_t i = 0; i < _mrs.size(); ++i)
         {
             auto& mrsi = _mrs[i];

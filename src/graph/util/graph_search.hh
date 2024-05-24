@@ -76,7 +76,7 @@ struct find_vertices
         auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) num_threads(nt)
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) num_threads(nt)
         parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
@@ -120,7 +120,7 @@ struct find_edges
         auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             num_threads(nt)
         parallel_edge_loop_no_spawn
             (g,

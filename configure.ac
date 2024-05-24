@@ -71,7 +71,6 @@ dnl disable annoying boost warnings
 [CPPFLAGS="-DBOOST_ALLOW_DEPRECATED_HEADERS ${CPPFLAGS}"]
 
 dnl OpenMP
-AC_DEFINE([OPENMP_MIN_THRESH], 300, [default minimum number of vertices for parallel loops])
 AC_MSG_CHECKING(whether to enable parallel algorithms with openmp)
 AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[disable openmp [default=enabled] ])],
               if test $enableval = yes; then

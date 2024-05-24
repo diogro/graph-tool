@@ -42,7 +42,7 @@ Summary
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_stats")
 
-from .. import _degree, _prop, _get_rng, GraphView, PropertyMap
+from .. import _degree, _prop, _get_rng, GraphView, PropertyMap, _parallel
 from .. generation import libgraph_tool_generation
 from numpy import *
 
@@ -50,6 +50,7 @@ __all__ = ["vertex_hist", "edge_hist", "vertex_average", "edge_average",
            "distance_histogram"]
 
 
+@_parallel
 def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     """
     Return the vertex histogram of the given degree type or property.
@@ -90,7 +91,7 @@ def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     -----
     The algorithm runs in :math:`O(|V|)` time.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -114,6 +115,7 @@ def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     return [array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
 
 
+@_parallel
 def edge_hist(g, eprop, bins=[0, 1], float_count=True):
     """
     Return the edge histogram of the given property.
@@ -152,7 +154,7 @@ def edge_hist(g, eprop, bins=[0, 1], float_count=True):
     -----
     The algorithm runs in :math:`O(|E|)` time.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -177,6 +179,7 @@ def edge_hist(g, eprop, bins=[0, 1], float_count=True):
     return [array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
 
 
+@_parallel
 def vertex_average(g, deg):
     """
     Return the average of the given degree or vertex property.
@@ -208,7 +211,7 @@ def vertex_average(g, deg):
     -----
     The algorithm runs in :math:`O(|V|)` time.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -238,6 +241,7 @@ def vertex_average(g, deg):
     return a, aa
 
 
+@_parallel
 def edge_average(g, eprop):
     """
     Return the average of the given degree or vertex property.
@@ -267,7 +271,7 @@ def edge_average(g, eprop):
     -----
     The algorithm runs in :math:`O(|E|)` time.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------
@@ -300,6 +304,7 @@ def edge_average(g, eprop):
     aa = sqrt((aa / count - a ** 2) / count)
     return a, aa
 
+@_parallel
 def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
                        float_count=True):
     r"""
@@ -346,7 +351,7 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     :math:`O(\text{samples}\times V)`  and
     :math:`O(\text{samples}\times V\log V)`, respectively.
 
-    If enabled during compilation, this algorithm runs in parallel.
+    @parallel@
 
     Examples
     --------

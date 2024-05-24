@@ -132,7 +132,7 @@ struct get_geometric
             boxes.insert(make_pair(box, v));
         }
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             private(box)
         parallel_vertex_loop_no_spawn
             (g,

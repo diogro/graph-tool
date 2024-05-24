@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Graph, _get_rng, Vector_size_t
+from .. import Graph, _get_rng, Vector_size_t, _parallel
 from .. decorators import _limit_args
 from . blockmodel import DictState
 from . base_states import *
@@ -283,8 +283,9 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
     This algorithm runs in time :math:`O(N)` where :math:`N` is
     the length of :math:`\boldsymbol x` and :math:`\boldsymbol y`.
 
-    If ``adjusted == True``, the algorithm runs in parallel if this was enabled
-    during compilation.
+    @parallel@
+
+        If ``adjusted == False``, the algorith will not run in parallel.
 
     Examples
     --------
