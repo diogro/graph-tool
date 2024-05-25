@@ -840,7 +840,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         If ``mplfig is not None``, and ``fit_view != False``, then the y
         direction of the axis will be flipped, reproducing the same output as
         when ``mplfig is None``.
-w    output : string or file object (optional, default: ``None``)
+    output : string or file object (optional, default: ``None``)
         Output file name (or object). If not given, the graph will be displayed via
         :func:`interactive_window`.
     fmt : string (default: ``"auto"``)
@@ -1575,23 +1575,47 @@ def gen_surface(name):
 #
 
 class GraphArtist(matplotlib.artist.Artist):
-    """:class:`matplotlib.artist.Artist` specialization that draws
-       :class:`graph_tool.Graph` instances.
 
-    .. warning::
+    def __init__(self, g, pos, ax, vprops=None, eprops=None, raster=False,
+                 **kwargs):
+        """:class:`matplotlib.artist.Artist` specialization that draws
+        :class:`~graph_tool.Graph` instances in a :mod:`matplotlib` figure.
 
-        Only cairo-based backends are supported.
+        .. warning::
 
-    """
+            Vector drawing is available only on cairo-based backends. For other
+            backends, rasterization will be used.
 
-    def __init__(self, g, pos, ax, vprops=None, eprops=None, **kwargs):
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+            Graph to be drawn.
+        pos : :class:`~graph_tool.VertexPropertyMap`
+            Vector-valued vertex property map containing the x and y coordinates
+            of the vertices.
+        ax : :class:`matplotlib.axes.Axes`
+            A :class:`matplotlib.axes.Axes` instance where the graph will be drawn..
+        vprops : dict (optional, default: ``None``)
+            Dictionary with the vertex properties.
+        eprops : dict (optional, default: ``None``)
+            Dictionary with the edge properties.
+        **kwargs : dict (optional, default: ``None``)
+            Remaining options to pass to :class:`~graph_tool.draw.cairo_draw`.
+        """
+
         matplotlib.artist.Artist.__init__(self)
         self.g = g
         self.pos = pos
         self.ax = ax
         self.vprops = vprops if vprops is not None else {}
         self.eprops = eprops if eprops is not None else {}
+        self.raster = raster
         self.kwargs = kwargs.copy()
+
+    def set_raster(self, raster=True):
+        """If ``raster == True``, then the graph will be rasterized even if a
+        cairo-based backend is being used."""
+        self.raster = raster
 
     def fit_view(self, scale=1, margin=.1, yflip=False):
         """Set axis limits to fit the graph, optionally scaling it via the
@@ -1611,42 +1635,30 @@ class GraphArtist(matplotlib.artist.Artist):
         else:
             self.ax.set_ylim(b - h * margin, t + h * margin)
 
-    def draw(self, renderer):
-        if not isinstance(renderer, matplotlib.backends.backend_cairo.RendererCairo):
-            raise NotImplementedError("graph plotting is supported only on cairo backends")
-
-        ctx = renderer.gc.ctx
-
-        if not isinstance(ctx, cairo.Context):
-            ctx = _UNSAFE_cairocffi_context_to_pycairo(ctx)
-
+    def draw_to_cairo(self, ctx, transform, mag=1):
+        """Draw to a cairo context."""
         ctx.save()
 
         pos = self.pos.copy()
         eprops = dict(self.eprops)
         vprops = dict(self.vprops)
 
-        # Cairo coordinates are flipped in the y direction
-        def tpos(x):
-            x = self.ax.transData.transform(x)
-            return (x[0], renderer.height - x[1])
-
         # clip region
         l, r = self.ax.get_xlim()
         b, t = self.ax.get_ylim()
-        l, b = tpos((l, b))
-        r, t = tpos((r, t))
+        l, b = transform((l, b))
+        r, t = transform((r, t))
         ctx.new_path()
         ctx.rectangle(min(l, r), min(b, t), abs(r-l), abs(t-b))
         ctx.clip()
 
         d = (self.ax.transData.transform((1, 1)) -
              self.ax.transData.transform((0, 0)))
-        scale_ink(np.mean(np.abs(d)), vprops, eprops, min_pen_width=0)
+        scale_ink(np.mean(np.abs(d)) * mag, vprops, eprops, min_pen_width=0)
 
-        pos = pos.t(tpos)
+        pos = pos.t(transform)
 
-        # flip edge control points, if present
+        # transform edge control points, if present
         cp = eprops.get("control_points", None)
         if isinstance(cp, PropertyMap):
             ctx.save()
@@ -1666,7 +1678,7 @@ class GraphArtist(matplotlib.artist.Artist):
                     ctx.rotate(a)
                     ctx.scale(l, 1)
                     x = ctx.user_to_device(x[0], x[1])
-                    x = tpos(x)
+                    x = transform(x)
                     c.a[i*2:(i+1)*2] = x
 
                 s = pos[e.source()].a
@@ -1690,6 +1702,53 @@ class GraphArtist(matplotlib.artist.Artist):
         cairo_draw(self.g, pos, ctx, vprops, eprops, **self.kwargs)
 
         ctx.restore()
+
+    def draw(self, renderer):
+        width, height = renderer.get_canvas_width_height()
+        if (isinstance(renderer,
+                       matplotlib.backends.backend_cairo.RendererCairo) and
+            not self.raster):
+            ctx = renderer.gc.ctx
+
+            if not isinstance(ctx, cairo.Context):
+                ctx = _UNSAFE_cairocffi_context_to_pycairo(ctx)
+
+            # Cairo coordinates are flipped in the y direction
+            def transform(x):
+                x = self.ax.transData.transform(x)
+                return (x[0], height - x[1])
+
+            self.draw_to_cairo(ctx, transform)
+        else:
+            l, r = self.ax.get_xlim()
+            b, t = self.ax.get_ylim()
+
+            l, b = self.ax.transData.transform((l, b))
+            r, t = self.ax.transData.transform((r, t))
+
+            mag = renderer.get_image_magnification()
+            width, height = int(abs(r-l) * mag), int(abs(t-b) * mag)
+
+            img = cairo.ImageSurface(cairo.Format.ARGB32, width, height)
+            ctx = cairo.Context(img)
+
+            def transform(x):
+                x = self.ax.transData.transform(x)
+                x = ((x[0] - l) * width / (r - l),
+                     (x[1] - b) * height / (t - b))
+                return (x[0], height - x[1])
+
+            self.draw_to_cairo(ctx, transform, mag)
+
+            img.flush()
+
+            buf = img.get_data()
+            im = np.ndarray(shape=(height, width, 4), dtype=np.uint8,
+                            buffer=buf)
+            im[:, :, [0, 2]] = im[:, :, [2, 0]]  # fix endianess (swap R and B)
+            im = im[::-1, :, :]                  # flip y direction
+            gc = renderer.new_gc()
+            renderer.draw_image(gc, l, b, im)
 
 #
 # Drawing hierarchies

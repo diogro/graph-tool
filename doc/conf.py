@@ -237,7 +237,8 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'matplotlib': ('https://matplotlib.org/stable/', None),
                        'cairo': ('https://www.cairographics.org/documentation/pycairo/3', None),
                        'ipython': ('https://ipython.org/ipython-doc/stable/', None),
-                       'panda': ('https://pandas.pydata.org/pandas-docs/stable/', None)}
+                       'panda': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+                       'basemap': ('https://matplotlib.org/basemap/stable/', None)}
 
 extlinks_fancy = {'issue': (['https://git.skewed.de/count0/graph-tool/issues/{0}'],
                              ['issue #{0}']),

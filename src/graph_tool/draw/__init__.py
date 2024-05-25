@@ -69,6 +69,11 @@ Low-level graph drawing
 
    GraphWidget
    GraphWindow
+
+.. autosummary::
+   :nosignatures:
+   :toctree: autosummary
+
    GraphArtist
 
 """

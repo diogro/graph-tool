@@ -1616,11 +1616,13 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     -----
 
     The approximate version of this algorithm is based on
-    [dong-efficient-2011]_, and has an (empirical) run-time of
-    :math:`O(N^{1.14})`. The exact version has a complexity of :math:`O(N^2)`.
+    [dong-efficient-2011]_, and has a (conjectured) run-time of
+    :math:`O(k^2N\log N)`, where :math:`N` is the number of points. The exact
+    version has a complexity of :math:`O(N^2)`.
 
     If ``pairs is True``, the :math:`k` closest pairs are found from the nearest
-    neighbors problem as described in [lenhof-k-closest]_.
+    neighbors problem as described in [lenhof-k-closest]_, which has a
+    complexity upper bounded by
 
     @parallel@
 
