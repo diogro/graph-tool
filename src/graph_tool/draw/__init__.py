@@ -69,6 +69,7 @@ Low-level graph drawing
 
    GraphWidget
    GraphWindow
+   GraphArtist
 
 """
 
@@ -909,8 +910,8 @@ except ImportError:
 
 try:
     from . cairo_draw import GraphWidget, GraphWindow, \
-        interactive_window
-    __all__ += ["interactive_window", "GraphWidget", "GraphWindow"]
+        interactive_window, GraphArtist
+    __all__ += ["interactive_window", "GraphWidget", "GraphWindow", "GraphArtist"]
 except ImportError:
     pass
 

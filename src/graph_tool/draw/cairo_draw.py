@@ -21,6 +21,7 @@
 import os
 import warnings
 import numpy
+from collections.abc import Iterable
 
 from .. topology import shortest_distance, is_bipartite
 from .. import _check_prop_scalar, perfect_prop_hash
@@ -777,8 +778,9 @@ def auto_colors(g, bg, pos, back):
 def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                nodesfirst=False, output_size=(600, 600), fit_view=True,
                fit_view_ink=None, adjust_aspect=True, ink_scale=1,
-               inline=has_draw_inline, inline_scale=2, mplfig=None, output=None,
-               fmt="auto", bg_color=None, antialias=None, **kwargs):
+               inline=has_draw_inline, inline_scale=2, mplfig=None,
+               yflip=True, output=None, fmt="auto", bg_color=None,
+               antialias=None, **kwargs):
     r"""Draw a graph to screen or to a file using :mod:`cairo`.
 
     Parameters
@@ -832,8 +834,13 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         The ``mplfig`` object needs to have an ``add_artist()`` function. This
         can for example be a :class:`matplotlib.figure.Figure` or
         :class:`matplotlib.axes.Axes`. Only the cairo backend is supported; use
-        ``switch_backend('cairo')``.
-    output : string or file object (optional, default: ``None``)
+        ``switch_backend('cairo')``. If this option is used, a
+        :class:`~graph_tool.draw.GraphArtist` object is returned.
+    yflip : bool (optional, default: ``True``)
+        If ``mplfig is not None``, and ``fit_view != False``, then the y
+        direction of the axis will be flipped, reproducing the same output as
+        when ``mplfig is None``.
+w    output : string or file object (optional, default: ``None``)
         Output file name (or object). If not given, the graph will be displayed via
         :func:`interactive_window`.
     fmt : string (default: ``"auto"``)
@@ -1135,11 +1142,11 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     if mplfig is not None:
         ax = None
         if isinstance(mplfig, matplotlib.figure.Figure):
-            ctr = ax = mplfig.gca()
+            ax = mplfig.gca()
         elif isinstance(mplfig, matplotlib.axes.Axes):
-            ctr = ax = mplfig
+            ax = mplfig
         else:
-            ctr = mplfig
+            ax = mplfig
 
         x, y = ungroup_vector_property(pos, [0, 1])
         l, r = x.a.min(), x.a.max()
@@ -1150,24 +1157,12 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         if ink_scale != 1:
             scale_ink(ink_scale, vprops, eprops, min_pen_width=0)
 
-        artist = GraphArtist(g, pos, vprops, eprops, ax, vorder=vorder,
+        artist = GraphArtist(g, pos, ax, vprops, eprops, vorder=vorder,
                              eorder=eorder, nodesfirst=nodesfirst, **kwargs)
 
-        ctr.add_artist(artist)
+        ax.add_artist(artist)
 
-        if fit_view != False and ax is not None:
-            try:
-                x, y, w, h = fit_view
-            except TypeError:
-                w = r - l
-                h = t - b
-            if fit_view != True:
-                w *= float(fit_view)
-                h *= float(fit_view)
-            ax.set_xlim(l - w * .1, r + w * .1)
-            ax.set_ylim(t + h * .1, b - h * .1)
-
-        return pos
+        return artist
 
     output_file = output
     if inline and output is None:
@@ -1589,14 +1584,32 @@ class GraphArtist(matplotlib.artist.Artist):
 
     """
 
-    def __init__(self, g, pos, vprops, eprops, ax=None, **kwargs):
+    def __init__(self, g, pos, ax, vprops=None, eprops=None, **kwargs):
         matplotlib.artist.Artist.__init__(self)
         self.g = g
         self.pos = pos
-        self.vprops = vprops
-        self.eprops = eprops
         self.ax = ax
-        self.kwargs = kwargs
+        self.vprops = vprops if vprops is not None else {}
+        self.eprops = eprops if eprops is not None else {}
+        self.kwargs = kwargs.copy()
+
+    def fit_view(self, scale=1, margin=.1, yflip=False):
+        """Set axis limits to fit the graph, optionally scaling it via the
+        ``scale`` parameter, and adding a relative margin given by ``margin``.
+        If ``yflip is True``, the y axis is flipped upside down.
+        """
+        x, y = ungroup_vector_property(self.pos, [0, 1])
+        l, r = x.a.min(), x.a.max()
+        b, t = y.a.min(), y.a.max()
+        w = r - l
+        h = t - b
+        w *= scale
+        h *= scale
+        self.ax.set_xlim(l - w * margin, r + w * margin)
+        if yflip:
+            self.ax.set_ylim(t + h * margin, b - h * margin)
+        else:
+            self.ax.set_ylim(b - h * margin, t + h * margin)
 
     def draw(self, renderer):
         if not isinstance(renderer, matplotlib.backends.backend_cairo.RendererCairo):
@@ -1613,73 +1626,70 @@ class GraphArtist(matplotlib.artist.Artist):
         eprops = dict(self.eprops)
         vprops = dict(self.vprops)
 
-        if self.ax is not None:
-            transform = (self.ax.transData.get_affine() +
-                         matplotlib.transforms.Affine2D().scale(1, -1).translate(0, renderer.height))
+        # Cairo coordinates are flipped in the y direction
+        def tpos(x):
+            x = self.ax.transData.transform(x)
+            return (x[0], renderer.height - x[1])
 
-            m = transform.get_matrix()
+        # clip region
+        l, r = self.ax.get_xlim()
+        b, t = self.ax.get_ylim()
+        l, b = tpos((l, b))
+        r, t = tpos((r, t))
+        ctx.new_path()
+        ctx.rectangle(min(l, r), min(b, t), abs(r-l), abs(t-b))
+        ctx.clip()
 
-            m_s = ctx.get_matrix()
-            cm = cairo.Matrix(m[0,0], m[1,0], m[0,1], m[1,1], m[0,2], m[1,2])
-            ctx.transform(cm)
-            l, r = self.ax.get_xlim()
-            b, t = self.ax.get_ylim()
-            ctx.new_path()
-            ctx.rectangle(l, b, r-l, t-b)
-            ctx.clip()
-            ctx.set_matrix(m_s)
+        d = (self.ax.transData.transform((1, 1)) -
+             self.ax.transData.transform((0, 0)))
+        scale_ink(np.mean(np.abs(d)), vprops, eprops, min_pen_width=0)
 
-            scale_ink(np.mean([m[0,0], m[1,1]]), vprops, eprops, min_pen_width=0)
+        pos = pos.t(tpos)
 
-            x = np.ones(3)
-            for v in self.g.vertices():
-                x[:2] = pos[v].a[:2]
-                pos[v].a[:2] = np.dot(m, x)[:2]
+        # flip edge control points, if present
+        cp = eprops.get("control_points", None)
+        if isinstance(cp, PropertyMap):
+            ctx.save()
+            cp = cp.copy()
+            for e in self.g.edges():
+                s = self.pos[e.source()].a
+                t = self.pos[e.target()].a
+                a = np.arctan2(t[1] - s[1],
+                               t[0] - s[0])
+                l = np.sqrt((t[1] - s[1]) ** 2 +
+                            (t[0] - s[0]) ** 2)
+                c = cp[e]
+                for i in range(len(c) // 2):
+                    x = c.a[i*2:(i+1)*2]
+                    ctx.identity_matrix()
+                    ctx.translate(s[0], s[1])
+                    ctx.rotate(a)
+                    ctx.scale(l, 1)
+                    x = ctx.user_to_device(x[0], x[1])
+                    x = tpos(x)
+                    c.a[i*2:(i+1)*2] = x
 
-            cp = eprops.get("control_points", None)
-            if isinstance(cp, PropertyMap):
-                ctx.save()
-                cp = cp.copy()
-                for e in self.g.edges():
-                    s = self.pos[e.source()].a
-                    t = self.pos[e.target()].a
-                    a = np.arctan2(t[1] - s[1],
-                                   t[0] - s[0])
-                    l = np.sqrt((t[1] - s[1]) ** 2 +
-                                (t[0] - s[0]) ** 2)
-                    c = cp[e]
-                    for i in range(len(c) // 2):
-                        x[:2] = c.a[i*2:(i+1)*2]
-                        ctx.identity_matrix()
-                        ctx.translate(s[0], s[1])
-                        ctx.rotate(a)
-                        ctx.scale(l, 1)
-                        x[:2] = ctx.user_to_device(x[0], x[1])
-                        x = np.dot(m, x)
-                        c.a[i*2:(i+1)*2] = x[:2]
+                s = pos[e.source()].a
+                t = pos[e.target()].a
+                a = np.arctan2(t[1] - s[1],
+                               t[0] - s[0])
+                l = np.sqrt((t[1] - s[1]) ** 2 +
+                            (t[0] - s[0]) ** 2)
 
-                    s = pos[e.source()].a
-                    t = pos[e.target()].a
-                    a = np.arctan2(t[1] - s[1],
-                                   t[0] - s[0])
-                    l = np.sqrt((t[1] - s[1]) ** 2 +
-                                (t[0] - s[0]) ** 2)
-
-                    for i in range(len(c) // 2):
-                        x[:2] = c.a[i*2:(i+1)*2]
-                        ctx.identity_matrix()
-                        ctx.scale(1/l, 1)
-                        ctx.rotate(-a)
-                        ctx.translate(-s[0], -s[1])
-                        x[:2] = ctx.user_to_device(x[0], x[1])
-                        c.a[i*2:(i+1)*2] = x[:2]
-                ctx.restore()
-                eprops["control_points"] = cp
+                for i in range(len(c) // 2):
+                    x = c.a[i*2:(i+1)*2]
+                    ctx.identity_matrix()
+                    ctx.scale(1/l, 1)
+                    ctx.rotate(-a)
+                    ctx.translate(-s[0], -s[1])
+                    x = ctx.user_to_device(x[0], x[1])
+                    c.a[i*2:(i+1)*2] = x
+            ctx.restore()
+            eprops["control_points"] = cp
 
         cairo_draw(self.g, pos, ctx, vprops, eprops, **self.kwargs)
 
         ctx.restore()
-
 
 #
 # Drawing hierarchies
@@ -2185,17 +2195,11 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         if isinstance(v, PropertyMap) and v.get_graph().base is not u.base:
             kwargs[k] = u.own_property(v.copy())
 
-    pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=tvorder,
+    ret = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=tvorder,
                      **kwargs)
-
-    if isinstance(pos, PropertyMap):
-        t_orig.copy_property(pos, tpos, g=u)
-        pos = g.own_property(pos)
-    else:
-        t_orig.copy_property(pos[0], tpos, g=u)
-        pos = (g.own_property(pos[0]),
-               g.own_property(pos[1]))
-    return pos, t_orig, tpos
+    if isinstance(ret, PropertyMap):
+        ret = g.own_property(ret)
+    return ret, t_orig, tpos
 
 
 def get_bip_hierachy_pos(state, aspect=1., node_weight=None):

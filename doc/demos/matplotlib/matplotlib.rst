@@ -44,27 +44,31 @@ Drawing with matplotlib is done by calling
 
    g = gt.collection.data["polbooks"]
 
-   gt.graph_draw(g, g.vp.pos, vertex_size=1.5, mplfig=ax[0,0])
+   a = gt.graph_draw(g, g.vp.pos, mplfig=ax[0,0])
+   a.fit_view(yflip=True)
 
    ax[0,0].set_xlabel("$x$ coordinate")
    ax[0,0].set_ylabel("$y$ coordinate")
 
    state = gt.minimize_nested_blockmodel_dl(g)
 
-   state.draw(mplfig=ax[0,1])
+   a = state.draw(mplfig=ax[0,1])[0]
+   a.fit_view(yflip=True)
 
    ax[0,1].set_xlabel("$x$ coordinate")
    ax[0,1].set_ylabel("$y$ coordinate")
 
    g = gt.collection.data["lesmis"]
-   gt.graph_draw(g, g.vp.pos, vertex_size=1.5, mplfig=ax[1,0])
+   a = gt.graph_draw(g, g.vp.pos, mplfig=ax[1,0])
+   a.fit_view(yflip=True)
 
    ax[1,0].set_xlabel("$x$ coordinate")
    ax[1,0].set_ylabel("$y$ coordinate")
 
    state = gt.minimize_nested_blockmodel_dl(g)
 
-   state.draw(mplfig=ax[1,1])
+   a = state.draw(mplfig=ax[1,1])[0]
+   a.fit_view(yflip=True)
 
    ax[1,1].set_xlabel("$x$ coordinate")
    ax[1,1].set_ylabel("$y$ coordinate")
