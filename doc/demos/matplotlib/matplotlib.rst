@@ -56,7 +56,7 @@ parameter. When this option is passed, the function will return a
    :meth:`matplotlib.axes.Axes.set_ylim`.
 
    Alternativelly, the option ``yflip`` can be passed to
-   :meth:``graph_tool.draw.GraphArtist.fit_view` for this to be done
+   :meth:`graph_tool.draw.GraphArtist.fit_view` for this to be done
    automatically.
 
 The example below shows how to plot several graphs in different subplots of the
