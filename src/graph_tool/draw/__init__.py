@@ -332,7 +332,7 @@ def fruchterman_reingold_layout(g, weight=None, a=None, r=1., scale=None,
     return pos
 
 
-def arf_layout(g, weight=None, d=0.5, a=10, dt=0.001, epsilon=1e-6,
+def arf_layout(g, weight=None, d=.5, a=10, dt=0.001, epsilon=1e-6,
                max_iter=1000, pos=None, dim=2):
     r"""Calculate the ARF spring-block layout of the graph.
 
@@ -342,9 +342,9 @@ def arf_layout(g, weight=None, d=0.5, a=10, dt=0.001, epsilon=1e-6,
         Graph to be used.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         An edge property map with the respective weights.
-    d : float (optional, default: ``0.5``)
+    d : float (optional, default: ``1``)
         Opposing force between vertices.
-    a : float (optional, default: ``10``)
+    a : float (optional, default: ``1.1``)
         Attracting force between adjacent vertices.
     dt : float (optional, default: ``0.001``)
         Iteration step size.
@@ -374,11 +374,11 @@ def arf_layout(g, weight=None, d=0.5, a=10, dt=0.001, epsilon=1e-6,
     .. testcode::
        :hide:
 
-       np.random.seed(43)
-       gt.seed_rng(45)
+       np.random.seed(42)
+       gt.seed_rng(42)
 
     >>> g = gt.price_network(300)
-    >>> pos = gt.arf_layout(g)
+    >>> pos = gt.arf_layout(g, a=5)
     >>> gt.graph_draw(g, pos=pos, output="graph-draw-arf.pdf")
     <...>
 
