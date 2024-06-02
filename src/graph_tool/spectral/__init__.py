@@ -72,7 +72,7 @@ __all__ = ["adjacency", "AdjacencyOperator", "laplacian", "LaplacianOperator",
            "CompactHashimotoOperator"]
 
 def _operator(f):
-    text = """.. note:: :class:`~scipy.sparse.linalg.LinearOperator` vs. sparse matrices
+    text = """.. admonition:: :class:`~scipy.sparse.linalg.LinearOperator` vs. sparse matrices
 
         For many linear algebra computations it is more efficient to pass
         ``operator=True`` to this function. In this case, it will return a
