@@ -381,7 +381,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self._state = libinference.make_block_state(self)
         self.bg.properties.clear()
 
-        assert all(self.recdx.a >= 0), self.recdx.a
+        if _bm_test():
+            assert all(self.recdx.a >= 0), self.recdx.a
 
         if deg_corr:
             init_q_cache(max((2 * max((self.get_E(), self.get_N())), 100)))
