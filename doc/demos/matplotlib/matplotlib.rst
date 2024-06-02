@@ -52,10 +52,10 @@ parameter. When this option is passed, the function will return a
    bottom.
 
    In order for the visualization to be the same when matplotlib is being used,
-   the y axis need to be flipped by inverting the limits with
+   the y axis needs to be flipped by inverting the limits with
    :meth:`matplotlib.axes.Axes.set_ylim`.
 
-   Alternativelly, the option ``yflip`` can be passed to
+   Alternatively, the option ``yflip`` can be passed to
    :meth:`graph_tool.draw.GraphArtist.fit_view` for this to be done
    automatically.
 
