@@ -35,6 +35,7 @@ function template that implements the desired algorithm:
    :language: c++
    :linenos:
 
+
 The second part is a compilation unit :download:`kcore.cc <kcore.cc>`
 that sets up the Python-C++ interface:
 
@@ -42,8 +43,17 @@ that sets up the Python-C++ interface:
    :language: c++
    :linenos:
 
-When using the `gt_dispatch<>()` function, we can make use of the
-following type lists for the graph views:
+.. admonition:: Releasing the Global Interpreter Lock (GIL)
+
+   The function ``gt_dispatch<>()`` will automatically release Python's `GIL
+   <https://wiki.python.org/moin/GlobalInterpreterLock>`_ before the code
+   dispatch, so that multiple algorithms can run in parallel (see Sec.
+   :ref:`parallel_algorithms`). If you wish to use the Python interpreter from
+   inside your dispatch you need first to acquire the GIL, or alternatively
+   disable the GIL release by calling instead ``gt_dispatch<false>()``.
+
+When using the ``gt_dispatch<>()`` function, we can make use of the following
+type lists for the graph views:
 
 .. tabularcolumns:: |l|l|
 

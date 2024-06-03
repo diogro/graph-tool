@@ -19,7 +19,6 @@
 #define GIL_RELEASE_HH
 
 #include <boost/python.hpp>
-#include "openmp.hh"
 
 namespace graph_tool
 {
@@ -29,8 +28,7 @@ class GILRelease
 public:
     GILRelease(bool release = true)
     {
-        size_t tid = get_thread_num();
-        if (release && tid == 0)
+        if (release && PyGILState_Check())
             _state = PyEval_SaveThread();
     }
 
