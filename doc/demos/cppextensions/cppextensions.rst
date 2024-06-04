@@ -50,7 +50,7 @@ that sets up the Python-C++ interface:
    dispatch, so that multiple algorithms can run in parallel (see Sec.
    :ref:`parallel_algorithms`). If you wish to use the Python interpreter from
    inside your dispatch you need first to acquire the GIL, or alternatively
-   disable the GIL release by calling instead ``gt_dispatch<false>()``.
+   disable the GIL release by calling instead ``gt_dispatch<>(false)``.
 
 When using the ``gt_dispatch<>()`` function, we can make use of the following
 type lists for the graph views:
