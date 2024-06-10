@@ -1407,10 +1407,6 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
 
         DynamicsBlockStateBase.__init__(self, *args, **kwargs)
 
-    def __getstate__(self):
-        return dict(DynamicsBlockStateBase.__getstate__(self), alpha=self.alpha,
-                    beta=self.beta)
-
     def get_S_bp(self, **kwargs):
         """Get negative model likelihood according to BP."""
         bstate = self.get_bp_state(converge=False)
@@ -1682,7 +1678,8 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
 
         """
         BPBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
-                                  directed=False, discrete=True, **kwargs)
+                                  directed=False, discrete=True,
+                                  **dmask(kwargs, ["directed", "discrete"]))
 
     def get_bp_state(self, **kwargs):
         """Return an :class:`~graph_tool.dynamics.IsingBPState` instance
