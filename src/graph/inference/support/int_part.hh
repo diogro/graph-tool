@@ -40,10 +40,12 @@ template <class T>
 [[gnu::const]] [[gnu::hot]]
 double log_q(T n, T k)
 {
-    if (n <= 0 || k < 1)
-        return 0;
     if (k > n)
         k = n;
+    if (n == 0 && k == 0)
+        return 0;
+    if (n < 0 || k < 0)
+        return -std::numeric_limits<double>::infinity();
     if (size_t(n) < __q_cache.shape()[0])
         return __q_cache[n][k];
     return log_q_approx(n, k);

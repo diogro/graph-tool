@@ -981,13 +981,21 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                 P(\boldsymbol{k}|\boldsymbol{e},\boldsymbol{b}) = \prod_r\frac{\prod_k\eta_k^r!}{n_r!} \prod_r q(e_r, n_r)^{-1}
 
             with :math:`\eta_k^r` being the number of nodes with degree
-            :math:`k` in group :math:`r`, and :math:`q(n,m)` being the number of
+            :math:`k` in group :math:`r`, and :math:`q(m,n)` being the number of
             `partitions
             <https://en.wikipedia.org/wiki/Partition_(number_theory)>`_ of
-            integer :math:`n` into at most :math:`m` parts.
+            integer :math:`m` into at most :math:`n` parts. This is given by the
+            recurrence
+
+            .. math::
+
+                q(m, n) = q(m, n-1) + q(m-n, n),
+
+            with boundary conditions :math:`q(m,n) = q(m,m)` for :math:`n>m`,
+            :math:`q(m,0) = 0` for :math:`m>0`, and :math:`q(0,0) = 1`.
 
             This corresponds to a prior for the degree sequence conditioned on
-            the degree frequencies, which are themselves sampled from a uniform
+            the degree counts, which are themselves sampled from a uniform
             hyperprior. This option should be preferred in most cases.
 
         3. ``degree_dl_kind == "entropy"``

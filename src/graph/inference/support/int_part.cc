@@ -39,14 +39,16 @@ void init_q_cache(size_t n_max)
     std::fill(__q_cache.data(), __q_cache.data() + __q_cache.num_elements(),
               -std::numeric_limits<double>::infinity());
 
+    __q_cache[0][0] = 0;
+
     for (size_t n = 1; n <= n_max; ++n)
     {
         __q_cache[n][1] = 0;
         for (size_t k = 2; k <= n; ++k)
         {
             __q_cache[n][k] = log_sum_exp(__q_cache[n][k], __q_cache[n][k - 1]);
-            if (n > k)
-                __q_cache[n][k] = log_sum_exp(__q_cache[n][k], __q_cache[n - k][k]);
+            if (n >= k)
+                __q_cache[n][k] = log_sum_exp(__q_cache[n][k], __q_cache[n - k][min(k, n - k)]);
         }
     }
 }
@@ -58,10 +60,12 @@ void clear_q_cache()
 
 double q_rec(int n, int k)
 {
-    if (n <= 0 || k < 1)
-        return 0;
     if (k > n)
         k = n;
+    if (n == 0 && k == 0)
+        return 1;
+    if (n < 0 || k < 0)
+        return 0;
     if (k == 1)
         return 1;
     return q_rec(n, k - 1) + q_rec(n - k, k);
@@ -71,10 +75,12 @@ gt_hash_map<pair<int, int>, double> __q_memo;
 
 double q_rec_memo(int n, int k)
 {
-    if (k > n || n <= 0 || k < 1)
-        return 0;
     if (k > n)
         k = n;
+    if (n == 0 && k == 0)
+        return 1;
+    if (n < 0 || k < 0)
+        return 0;
     if (k == 1)
         return 1;
     auto key = make_pair(n, k);
