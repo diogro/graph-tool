@@ -136,8 +136,8 @@ above).
 
 .. testoutput:: missing-edges
 
-   likelihood-ratio for (101, 102): 0.0201805
-   likelihood-ratio for (17, 56): 0.979819
+   likelihood-ratio for (101, 102): 0.0201412
+   likelihood-ratio for (17, 56): 0.979859
 
 From which we can conclude that edge :math:`(17, 56)` is more likely
 than :math:`(101, 102)` to be a missing edge.

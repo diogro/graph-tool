@@ -3,18 +3,17 @@
 Model selection
 +++++++++++++++
 
-As mentioned above, one can select the best model according to the
-choice that yields the smallest description length
-[peixoto-model-2016]_. For instance, in case of the `C. elegans` network
-we have
+As mentioned above, one can select the best model according to the choice that
+yields the smallest description length [peixoto-model-2016]_. For instance, in
+case of the :ns:`political blogs <polblogs>` network we have
 
 .. testsetup:: model-selection
 
-   gt.seed_rng(44)
+   gt.seed_rng(42)
 
 .. testcode:: model-selection
 
-   g = gt.collection.data["celegansneural"]
+   g = gt.collection.ns["polblogs"]
 
    state_ndc = gt.minimize_nested_blockmodel_dl(g, state_args=dict(deg_corr=False))
    state_dc  = gt.minimize_nested_blockmodel_dl(g, state_args=dict(deg_corr=True))
@@ -25,10 +24,10 @@ we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:	 8643.358733...
-   Degree-corrected DL:	 8586.918386...
+   Non-degree-corrected DL:     63114.098664...
+   Degree-corrected DL:         61540.920016...
 
-Since it yields the smallest description length, the non-degree-corrected
+Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
 be accessed by inspecting the posterior odds ratio
 [peixoto-nonparametric-2017]_
@@ -52,21 +51,24 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -56.440346...
+   ln Λ:  -1573.178648...
 
-The precise threshold that should be used to decide when to `reject a
-hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
-subjective and context-dependent, but the value above implies that the
-particular degree-corrected fit is around :math:`\mathrm{e}^{56}
-\approx 10^{24}` times more likely than the non-degree corrected one,
-and hence it can be safely concluded that it provides a substantially
-better fit.
+The precise threshold that should be used to decide when to `reject a hypothesis
+<https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is subjective and
+context-dependent, but the value above implies that the particular
+degree-corrected fit is around :math:`\mathrm{e}^{1573} \approx 10^{683}` times
+more likely than the non-degree corrected one, and hence it can be safely
+concluded that it provides a substantially better fit.
 
 Although it is often true that the degree-corrected model provides a
 better fit for many empirical networks, there are also exceptions. For
 example, for the American football network above, we have:
 
-.. testcode:: model-selection
+.. testsetup:: model-selection-football
+
+   gt.seed_rng(42)
+
+.. testcode:: model-selection-football
 
    g = gt.collection.data["football"]
 
@@ -77,14 +79,14 @@ example, for the American football network above, we have:
    print("Degree-corrected DL:\t", state_dc.entropy())
    print(u"ln \u039b:\t\t\t", state_ndc.entropy() - state_dc.entropy())
 
-.. testoutput:: model-selection
+.. testoutput:: model-selection-football
    :options: +NORMALIZE_WHITESPACE
 
    Non-degree-corrected DL:	 1733.525685...
-   Degree-corrected DL:	 1780.576716...
-   ln Λ:			 -47.051031...
+   Degree-corrected DL:	 1782.407946...
+   ln Λ:			 -48.882261...
 
 Hence, with a posterior odds ratio of :math:`\Lambda \approx
-\mathrm{e}^{-47} \approx 10^{-21}` in favor of the non-degree-corrected
+\mathrm{e}^{-48} \approx 10^{-21}` in favor of the non-degree-corrected
 model, we conclude that the degree-corrected variant is an unnecessarily
 complex description for this network.

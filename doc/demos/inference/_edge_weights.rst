@@ -261,9 +261,9 @@ Therefore, we can compute the posterior odds ratio between both models as:
 .. testoutput:: food-web
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -30.964000...
+   ln Λ: -70.657644...
 
-A value of :math:`\Lambda \approx \mathrm{e}^{30} \approx 10^{13}` in
+A value of :math:`\Lambda \approx \mathrm{e}^{70} \approx 10^{30}` in
 favor the exponential model indicates that the log-normal model does not
 provide a better fit for this particular data.
    
