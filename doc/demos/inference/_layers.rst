@@ -33,7 +33,7 @@ separating these two types of interactions in two layers:
        os.chdir("demos/inference")
    except FileNotFoundError:
        pass
-   gt.seed_rng(42)
+   gt.seed_rng(43)
          
 .. testcode:: layered-model
 

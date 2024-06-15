@@ -272,8 +272,8 @@ companies.
        os.chdir("demos/reconstruction_indirect")
    except FileNotFoundError:
        pass
-   np.random.seed(43)
-   gt.seed_rng(43)
+   np.random.seed(44)
+   gt.seed_rng(44)
    nt = gt.openmp_get_num_threads()
    gt.openmp_set_num_threads(16)
 
