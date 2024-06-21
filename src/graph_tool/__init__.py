@@ -3998,37 +3998,37 @@ integers, corresponding to its index (see :attr:`~graph_tool.Graph.vertex_index`
 def _v_eq(v1, v2):
     try:
         return int(v1) == int(v2)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
 def _v_ne(v1, v2):
     try:
         return int(v1) != int(v2)
-    except TypeError:
+    except (TypeError, ValueError):
         return True
 
 def _v_lt(v1, v2):
     try:
         return int(v1) < int(v2)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
 def _v_gt(v1, v2):
     try:
         return int(v1) > int(v2)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
 def _v_le(v1, v2):
     try:
         return int(v1) <= int(v2)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
 def _v_ge(v1, v2):
     try:
         return int(v1) >= int(v2)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
 for Vertex in libcore.get_vlist():
