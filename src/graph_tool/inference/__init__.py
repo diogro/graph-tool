@@ -350,3 +350,6 @@ from . histogram import *
 from . clique_decomposition import *
 
 libinference.init_cache()
+
+from .. openmp import _openmp_add_hook
+_openmp_add_hook(libinference.init_cache)

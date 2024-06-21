@@ -45,10 +45,13 @@ void clear_lgamma()
 
 void init_cache()
 {
-    auto nt = get_num_threads();
-    __lgamma_cache.resize(nt);
-    __xlogx_cache.resize(nt);
-    __safelog_cache.resize(nt);
+    size_t nt = get_num_threads();
+    if (__lgamma_cache.size() < nt)
+    {
+        __lgamma_cache.resize(nt);
+        __xlogx_cache.resize(nt);
+        __safelog_cache.resize(nt);
+    }
 }
 
 

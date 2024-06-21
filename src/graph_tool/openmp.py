@@ -28,6 +28,13 @@ def openmp_enabled():
     return libcore.openmp_enabled()
 
 
+_hooks = []
+
+
+def _openmp_add_hook(hook):
+    _hooks.append(hook)
+
+
 def openmp_get_num_threads():
     """Return the number of OpenMP threads."""
     return libcore.openmp_get_num_threads()
@@ -35,9 +42,9 @@ def openmp_get_num_threads():
 
 def openmp_set_num_threads(n):
     """Set the number of OpenMP threads."""
-    from graph_tool.inference import libinference
     libcore.openmp_set_num_threads(n)
-    libinference.init_cache()
+    for hook in _hooks:
+        hook()
 
 
 def openmp_get_schedule():
