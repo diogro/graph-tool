@@ -219,7 +219,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h"]]
 dnl cairo
 if test "$USING_CAIRO" = "yes"; then
    PKG_CHECK_MODULES(CAIROMM, [cairomm-1.16],
-                     [AC_DEFINE([HAVE_CAIROMM], [1], [Cairomm is available]),
+                     [AC_DEFINE([HAVE_CAIROMM], [1], [Cairomm is available])
                       AC_DEFINE([HAVE_CAIROMM_1_16], [1], [Cairomm 1.16 is available])],
                      [PKG_CHECK_MODULES(CAIROMM, [cairomm-1.0],
                                         AC_DEFINE([HAVE_CAIROMM], [1], [Cairomm is available]), [])])
