@@ -19,7 +19,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import scipy.special
-from numpy import *
+import numpy as np
 
 from .. import PropertyMap
 
@@ -53,14 +53,14 @@ def dselect(d, ks):
 
 def check_verbose(verbose):
     if isinstance(verbose, tuple):
-        return verbose[0] != False
-    return verbose != False
+        return verbose[0] is not False
+    return verbose is not False
 
 
 def verbose_pad(verbose):
     if isinstance(verbose, tuple):
         return verbose_pad(verbose[1])
-    if verbose == True:
+    if verbose is True:
         return ""
     return verbose
 
@@ -87,7 +87,7 @@ def lbinom_fast(n, k):
 
 def partition_entropy(B, N, nr=None):
     if nr is None:
-        S = N * log(B) + log1p(-(1 - 1./B) ** N)
+        S = N * np.log(B) + np.log1p(-(1 - 1./B) ** N)
     else:
         S = lbinom(N - 1, B - 1)
         S += (scipy.special.gammaln(N + 1) -
@@ -126,7 +126,7 @@ def reverse_map(prop, value_map):
         raise ValueError("value map is not large enough!" +
                          " max val: %s, map size: %s" % (prop.max(), len(a)))
     if prop.dtype != a.dtype:
-        prop = array(prop, dtype=a.dtype)
+        prop = np.array(prop, dtype=a.dtype)
     libinference.vector_rmap(prop, a)
     if isinstance(value_map, PropertyMap):
         value_map.fa = a
@@ -151,7 +151,7 @@ def nested_contiguous_map(bs):
         cs[i] = c
         if i == len(cs) - 1:
             break
-        nb = zeros(c.max() + 1, dtype=c.dtype)
+        nb = np.zeros(c.max() + 1, dtype=c.dtype)
         for j, r in enumerate(c):
             nb[r] = cs[i+1][b[j]]
         cs[i+1] = nb

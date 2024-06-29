@@ -238,7 +238,7 @@ def vertex_average(g, deg):
         pass
     a /= count
     aa = sqrt((aa / count - a ** 2) / count)
-    return a, aa
+    return float(a), float(aa)
 
 
 @_parallel
@@ -302,7 +302,7 @@ def edge_average(g, eprop):
         pass
     a /= count
     aa = sqrt((aa / count - a ** 2) / count)
-    return a, aa
+    return float(a), float(aa)
 
 @_parallel
 def distance_histogram(g, weight=None, bins=[0, 1], samples=None,

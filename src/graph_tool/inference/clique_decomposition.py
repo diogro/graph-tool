@@ -32,6 +32,8 @@ from .. topology import max_cliques
 from scipy.special import gammaln
 from itertools import combinations
 
+import numpy as np
+
 class CliqueState(object):
     r"""The state of a clique decomposition of a given graph.
 
@@ -156,7 +158,7 @@ class CliqueState(object):
                     for s, t in combinations(q, 2):
                         if s > t:
                             s, t = t, s
-                        u = edges[(s,t)]
+                        u = edges[(s, t)]
                         self.f.add_edge(v, u)
                 self.x[v] = count
         self.reset_factors()
@@ -196,7 +198,7 @@ class CliqueState(object):
 
     def reset_Ed(self):
         """Reset edge counts"""
-        self.Ed = zeros(self.D + 1, dtype="int32")
+        self.Ed = np.zeros(self.D + 1, dtype="int32")
         for v in self.f.vertices():
             if self.is_fac[v]:
                 continue
@@ -217,7 +219,7 @@ class CliqueState(object):
         L = 0
         for d in range(2, len(self.Ed)):
             L += libinference.clique_L_over(self.N, d, self.Ed[d], self.D, self.E)
-        L -= gammaln(self.x.fa[logical_not(self.is_fac.fa)] + 1).sum()
+        L -= gammaln(self.x.fa[np.logical_not(self.is_fac.fa)] + 1).sum()
         return -L
 
     @mcmc_sweep_wrap

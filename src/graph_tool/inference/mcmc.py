@@ -20,12 +20,12 @@
 
 from .. import Vector_size_t, Vector_double
 
-import numpy
+import numpy as np
 from . util import *
 from . base_states import *
 from . nested_blockmodel import NestedBlockState
 
-def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
+def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=np.inf,
                      force_niter=None, epsilon=0, gibbs=False, multiflip=True,
                      mcmc_args={}, entropy_args={}, history=False,
                      callback=None, verbose=False):
@@ -242,7 +242,7 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     hist = ([], [], [], [])
     nattempts = 0
     nmoves = 0
-    speed = exp((log(beta_range[1]) - log(beta_range[0])) / niter)
+    speed = np.exp((np.log(beta_range[1]) - np.log(beta_range[0])) / niter)
     mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
     while beta < beta_range[1] * speed:
         ret = mcmc_equilibrate(state,
@@ -298,13 +298,13 @@ class MulticanonicalState(object):
         self._density.resize(nbins)
         self._hist = Vector_size_t()
         self._hist.resize(nbins)
-        self._perm_hist = numpy.zeros(nbins, dtype=self._hist.a.dtype)
+        self._perm_hist = np.zeros(nbins, dtype=self._hist.a.dtype)
         self._f = None
 
     def __getstate__(self):
         state = [self._state, self._S_min, self._S_max,
-                 numpy.array(self._density.a), numpy.array(self._hist.a),
-                 numpy.array(self._perm_hist), self._f]
+                 np.array(self._density.a), np.array(self._hist.a),
+                 np.array(self._perm_hist), self._f]
         return state
 
     def __setstate__(self, state):
@@ -331,19 +331,19 @@ class MulticanonicalState(object):
 
     def get_range(self):
         "Get energy range."
-        return numpy.linspace(self._S_min, self._S_max, len(self._hist))
+        return np.linspace(self._S_min, self._S_max, len(self._hist))
 
     def get_density(self, B=None):
         """Get density of states, normalized so that total sum is :math:`B^N`, where
         :math:`B` is the number of groups, and :math:`N` is the number of
         nodes. If not supplied :math:`B=N` is assumed.
         """
-        r = numpy.array(self._density.a)
+        r = np.array(self._density.a)
         r -= r.max()
-        r -= log(exp(r).sum())
+        r -= np.log(np.exp(r).sum())
         if B is None:
             B = self._g.num_vertices()
-        r += self._g.num_vertices() * log(B)
+        r += self._g.num_vertices() * np.log(B)
         return r
 
     def get_entropy(self, S, B=None):
@@ -357,7 +357,7 @@ class MulticanonicalState(object):
 
     def get_hist(self):
         "Get energy histogram."
-        return numpy.array(self._hist.a)
+        return np.array(self._hist.a)
 
     def get_perm_hist(self):
         "Get permanent energy histogram."
@@ -374,7 +374,7 @@ class MulticanonicalState(object):
         else:
             Ss = self.get_range()
             S_min, S_max = self.get_allowed_energies()
-            idx =numpy.logical_and(Ss >= S_min, Ss <= S_max)
+            idx = np.logical_and(Ss >= S_min, Ss <= S_max)
 
         h = array(h[idx], dtype="float")
 
@@ -388,11 +388,11 @@ class MulticanonicalState(object):
     def get_posterior(self, N=None):
         "Get posterior probability."
         r = self.get_density(N)
-        Ss = numpy.linspace(self._S_min, self._S_max, len(r))
+        Ss = np.linspace(self._S_min, self._S_max, len(r))
         y = -Ss + r
         y_max = y.max()
         y -= y_max
-        return y_max + log(exp(y).sum())
+        return y_max + np.log(np.exp(y).sum())
 
     def reset_hist(self):
         "Reset energy histogram."
@@ -502,7 +502,7 @@ class TemperingState(object):
             self.idx = list(range(len(betas)))
         self.beta_dl = beta_dl
         self.swap_attempts = 0
-        self.swaps = numpy.zeros(len(states), dtype="int")
+        self.swaps = np.zeros(len(states), dtype="int")
 
     def entropy(self, **kwargs):
         """Returns the sum of the entropy of the parallel states. All keyword
@@ -537,8 +537,8 @@ class TemperingState(object):
         eargs = kwargs.get("entropy_args", {})
 
         self.swap_attempts += 1
-        idx = numpy.arange(len(self.states) - 1)
-        numpy.random.shuffle(idx)
+        idx = np.arange(len(self.states) - 1)
+        np.random.shuffle(idx)
         nswaps = 0
         dS = 0
         for i in idx:
@@ -566,7 +566,7 @@ class TemperingState(object):
 
             ddS = -(P1_f + P2_f - P1_b - P2_b)
 
-            if ddS < 0 or numpy.random.random() < exp(-ddS):
+            if ddS < 0 or np.random.random() < exp(-ddS):
                 self.states[j], self.states[i], self.idx[j], self.idx[i] = \
                             self.states[i], self.states[j], self.idx[i], self.idx[j]
                 nswaps += 1
@@ -586,7 +586,7 @@ class TemperingState(object):
         if isinstance(self.states[0], NestedBlockState):
             ls = list(kwargs.pop("ls", range(len(self.states[0].levels))))
             if kwargs.pop("ls_shuffle", True):
-                numpy.random.shuffle(ls)
+                np.random.shuffle(ls)
             kwargs["ls"] = ls
             kwargs["ls_shuffle"] = False
 
@@ -608,7 +608,7 @@ class TemperingState(object):
         return sweep_algo[1](self.states, algo_states)
 
     def _sweep(self, algo, r=0.1, adjacent=True, **kwargs):
-        if numpy.random.random() < r:
+        if np.random.random() < r:
             return self.states_swap(adjacent=adjacent, **kwargs)
         else:
             return self.states_move(algo, **dict(kwargs, verbose=False))

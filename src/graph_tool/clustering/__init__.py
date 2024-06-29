@@ -617,7 +617,7 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
 
     s_ms, s_counts, s_dev = list(zip(*list_hist))
 
-    zscore = [(x[0] - x[1]) / x[2] for x in zip(counts, s_counts, s_dev)]
+    zscore = [float((x[0] - x[1]) / x[2]) for x in zip(counts, s_counts, s_dev)]
 
     if full_output:
         return s_ms, zscore, counts, s_counts, s_dev

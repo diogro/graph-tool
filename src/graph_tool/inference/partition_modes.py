@@ -568,7 +568,7 @@ def partition_overlap(x, y, norm=True):
     --------
     >>> x = np.random.randint(0, 10, 1000)
     >>> y = np.random.randint(0, 10, 1000)
-    >>> gt.partition_overlap(x, y)
+    >>> print(gt.partition_overlap(x, y))
     0.143
 
     References
@@ -651,7 +651,7 @@ def nested_partition_overlap(x, y, norm=True):
 
     >>> x = [np.random.randint(0, 100, 1000), np.random.randint(0, 10, 100), np.random.randint(0, 3, 10)]
     >>> y = [np.random.randint(0, 100, 1000), np.random.randint(0, 10, 100), np.random.randint(0, 3, 10)]
-    >>> gt.nested_partition_overlap(x, y)
+    >>> print(gt.nested_partition_overlap(x, y))
     0.140018...
 
 

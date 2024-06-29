@@ -1548,7 +1548,7 @@ def remove_random_edges(g, M, weight=None, counts=True):
 
     >>> g = gt.lattice([100, 100])
     >>> gt.remove_random_edges(g, 10000)
-    >>> gt.label_components(g)[1].max()
+    >>> print(gt.label_components(g)[1].max())
     3371
     """
 
