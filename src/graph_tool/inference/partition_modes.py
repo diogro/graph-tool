@@ -289,7 +289,7 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
 
     """
-    def __init__(self, bs, b=None, B=1, nested=False, relabel=True):
+    def __init__(self, bs, b=None, B=1, nested=False, relabel=True, **kwargs):
         EntropyState.__init__(self)
         self.bs = []
         self.nested = nested
