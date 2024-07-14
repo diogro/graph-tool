@@ -1,7 +1,7 @@
 ARG GIT_REF
 
-FROM archlinux:latest as builder
-MAINTAINER Tiago de Paula Peixoto <tiago@skewed.de>
+FROM archlinux:latest AS builder
+LABEL org.opencontainers.image.authors="Tiago de Paula Peixoto <tiago@skewed.de>"
 
 RUN pacman -Sy
 RUN pacman -S pacman-contrib --noconfirm --disable-download-timeout
@@ -42,7 +42,13 @@ RUN echo "Server=https://archive.archlinux.org/repos/`date -d 'yesterday 13:00' 
 
 COPY --from=builder /tmp/python-graph-tool.pkg.tar.zst /tmp/python-graph-tool.pkg.tar.zst
 
-RUN pacman -Syu --noconfirm --disable-download-timeout \
+RUN pacman -Sy --noconfirm --disable-download-timeout
+RUN pacman -S archlinux-keyring --noconfirm --disable-download-timeout
+RUN rm -rf /etc/pacman.d/gnupg
+RUN pacman-key --init
+RUN pacman-key --populate
+
+RUN pacman -Su --noconfirm --disable-download-timeout \
  && pacman -U --noconfirm --noprogressbar --needed  /tmp/python-graph-tool.pkg.tar.zst \
  && yes | pacman -Scc --noconfirm
 
