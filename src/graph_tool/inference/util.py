@@ -149,6 +149,8 @@ def nested_contiguous_map(bs):
     for i, b in enumerate(cs):
         c = contiguous_map(b)
         cs[i] = c
+        if isinstance(c, PropertyMap):
+            c = c.fa
         if i == len(cs) - 1:
             break
         nb = np.zeros(c.max() + 1, dtype=c.dtype)
