@@ -250,9 +250,10 @@ class SIState(EpidemicStateBase):
         given as follows:
 
         1. If :math:`s_i(t) = 0`, we have :math:`s_i(t+1) = 1` with probability
-            .. math::
 
-               (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
+           .. math::
+
+              (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
 
            otherwise :math:`s_i(t+1) = 0`.
 
@@ -358,9 +359,10 @@ class SISState(DiscreteStateBase):
         given as follows:
 
         1. If :math:`s_i(t) = 0`, we have :math:`s_i(t+1) = 1` with probability
-            .. math::
 
-               (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
+           .. math::
+
+              (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
 
            otherwise :math:`s_i(t+1) = 0`.
 
@@ -590,9 +592,10 @@ class SIRSState(DiscreteStateBase):
         given as follows:
 
         1. If :math:`s_i(t) = 0`, we have :math:`s_i(t+1) = 1` with probability
-            .. math::
 
-               (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
+           .. math::
+
+              (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
 
            otherwise :math:`s_i(t+1) = 0`.
 
