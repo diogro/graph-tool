@@ -3088,15 +3088,15 @@ def max_cardinality_matching(g, weight=None, bipartite=False,
     .. testcode::
        :hide:
 
+       import matplotlib
        import numpy.random
        numpy.random.seed(43)
        gt.seed_rng(43)
 
     >>> g = gt.GraphView(gt.price_network(300), directed=False)
     >>> w = gt.max_cardinality_matching(g, edges=True)
-    >>> w = w.copy("double")
-    >>> w.a = 2 * w.a + 2
-    >>> gt.graph_draw(g, edge_color=w, edge_pen_width=w, vertex_fill_color="grey",
+    >>> gt.graph_draw(g, edge_color=w, edge_pen_width=w.t(lambda x: 2*x + 1),
+    ...               vertex_fill_color="grey", ecmap=matplotlib.cm.tab10,
     ...               output="max_card_match.pdf")
     <...>
 
@@ -3108,7 +3108,7 @@ def max_cardinality_matching(g, weight=None, bipartite=False,
        :align: center
        :width: 80%
 
-       Edges belonging to the matching are in yellow.
+       Edges belonging to the matching are drawn in orange.
 
     References
     ----------
