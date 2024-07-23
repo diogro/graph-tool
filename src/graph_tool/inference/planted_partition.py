@@ -126,15 +126,15 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         w = np.array(np.bincount(self.b.fa), dtype="double")
         w = w[w>0]
         w /= w.sum()
-        return np.exp(-(w*log(w)).sum())
+        return np.exp(-(w*np.log(w)).sum())
 
     def virtual_vertex_move(self, v, s, **kwargs):
         r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
         remaining parameters are the same as in
         :meth:`~graph_tool.inference.PPBlockState.entropy`."""
         return self._state.virtual_move(int(v), self.b[v], s,
-                                        get_pp_entropy_args(dict(self._entropy_args,
-                                                                 **kwargs)))
+                                        self._get_entropy_args(dict(self._entropy_args,
+                                                                    **kwargs)))
 
     def move_vertex(self, v, s):
         r"""Move vertex ``v`` to block ``s``."""
