@@ -50,7 +50,8 @@ from .. generation import random_rewire
 from .. stats import vertex_hist
 
 from collections import defaultdict
-from numpy import *
+
+import numpy as np
 
 __all__ = ["local_clustering", "global_clustering", "extended_clustering",
            "motifs", "motif_significance"]
@@ -410,15 +411,14 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
     if directed_motifs != g.is_directed():
         raise ValueError("motifs do not have the same directionality as the graph itself!")
 
-    if type(p) == float:
+    if isinstance(p, float):
         pd = [1.0] * (k - 1)
         pd.append(p)
-    if type(p) == list:
+    elif isinstance(p, list):
         pd = [float(x) for x in p]
 
     hist = []
     vertex_maps = []
-    was_directed = g.is_directed()
     _gt.get_motifs(g._Graph__graph, k, sub_list, hist, vertex_maps, return_maps,
                    pd, True, len(sub_list) == 0, _get_rng())
 
@@ -602,7 +602,7 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
                 m_e[_graph_sig(m_temp[j])].append(len(s_ms) - 1)
 
     s_counts = [x / float(n_shuffles) for x in s_counts]
-    s_dev = [max((sqrt(x[0] / float(n_shuffles) - x[1] ** 2), 1)) \
+    s_dev = [max((np.sqrt(x[0] / float(n_shuffles) - x[1] ** 2), 1)) \
               for x in zip(s_dev, s_counts)]
 
     list_hist = list(zip(s_ms, s_counts, s_dev))

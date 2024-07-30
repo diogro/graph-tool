@@ -20,9 +20,7 @@
 
 from .. import _prop, Graph, libcore, _get_rng, PropertyMap
 
-import random
-from numpy import *
-import numpy
+import numpy as np
 
 from .. import group_vector_property, ungroup_vector_property
 
@@ -147,10 +145,10 @@ class OverlapBlockState(BlockState):
         if b is None:
             # create a random partition into B blocks.
             B = min((B, self.g.num_vertices()))
-            ba = random.randint(0, B, self.g.num_vertices())
-            ba[:B] = arange(B)        # avoid empty blocks
+            ba = np.random.randint(0, B, self.g.num_vertices())
+            ba[:B] = np.random(B)        # avoid empty blocks
             if B < self.g.num_vertices():
-                random.shuffle(ba)
+                np.random.shuffle(ba)
             b = g.new_vertex_property("int")
             b.fa = ba
             self.b = b
@@ -159,7 +157,7 @@ class OverlapBlockState(BlockState):
             # in the overlapping case
             # at this point, *b* must correspond to the partition of
             # *half-edges*
-            if isinstance(b, numpy.ndarray):
+            if isinstance(b, np.ndarray):
                 self.b = g.new_vertex_property("int")
                 self.b.fa = b
             else:
@@ -246,7 +244,7 @@ class OverlapBlockState(BlockState):
             self.epsilon = libcore.Vector_double(len(self.rec))
             for i in range(len(self.rec)):
                 idx = self.rec[i].a != 0
-                if numpy.any(idx):
+                if np.any(idx):
                     self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
         self.dense_bg = dense_bg
@@ -717,13 +715,13 @@ def half_edge_graph(g, b=None, B=None, rec=None):
     b_array = None
     if b is None:
         # if no partition is given, obtain a random one.
-        ba = random.randint(0, B, 2 * E)
-        ba[:B] = arange(B)        # avoid empty blocks
+        ba = np.random.randint(0, B, 2 * E)
+        ba[:B] = np.arange(B)        # avoid empty blocks
         if B < len(ba):
-            random.shuffle(ba)
+            np.random.shuffle(ba)
         b = ba
 
-    if isinstance(b, numpy.ndarray):
+    if isinstance(b, np.ndarray):
         # if given an array, assume it corresponds to the *final* half-edge
         # partitions
         b_array = b
@@ -836,7 +834,7 @@ def get_block_edge_gradient(g, be, cmap=None):
         cmap = default_cm
 
     cp = g.new_edge_property("vector<double>")
-    rg = [numpy.inf, -numpy.inf]
+    rg = [np.inf, -np.inf]
     for e in g.edges():
         s, t = be[e]
         rg[0] = min((s, rg[0]))

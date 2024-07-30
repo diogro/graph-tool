@@ -1338,12 +1338,12 @@ class DynamicsBlockStateBase(UncertainBaseState):
                                         entropy_args, _get_rng())
 
     def sample_val_lprob(self, x, xc, beta=np.inf):
-        """Compute probability of sampling value ``x`` from bisection history
+        r"""Compute probability of sampling value ``x`` from bisection history
         ``xc`` and inverse temperature ``beta``."""
         return self._state.sample_val_lprob(x, xc, beta)
 
     def quantize_x(self, delta):
-        """Quantize weight values according to multiples of :math:`\Delta`."""
+        r"""Quantize weight values according to multiples of :math:`\Delta`."""
         self._state.quantize_x(delta)
 
     def collect_marginal(self, g=None):

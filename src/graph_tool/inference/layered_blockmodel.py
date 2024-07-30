@@ -19,7 +19,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from .. import _prop, Graph, GraphView, libcore, _get_rng
-from numpy import *
 import numpy
 import copy
 import warnings

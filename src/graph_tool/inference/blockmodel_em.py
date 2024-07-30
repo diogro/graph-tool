@@ -19,8 +19,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from .. import _prop, _get_rng, group_vector_property
-import random
-from numpy import *
+import numpy as np
 
 from . blockmodel import *
 from . util import *
@@ -61,11 +60,11 @@ class EMBlockState(object):
         self.g = g
         self.N = g.num_vertices()
         self.B = B
-        self.wr = random.random(B)
+        self.wr = np.random.random(B)
         self.wr /= self.wr.sum()
 
         ak = 2 * g.num_edges() / g.num_vertices()
-        self.prs = random.random((B, B))
+        self.prs = np.random.random((B, B))
         for r in range(B):
             for s in range(r, B):
                 self.prs[r,s] = self.prs[s,r]

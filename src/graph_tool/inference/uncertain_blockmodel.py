@@ -111,9 +111,9 @@ class UncertainBaseState(EntropyState):
         self._entropy_args.update(entropy_args)
 
         edges = self.g.get_edges()
-        edges = numpy.concatenate((edges,
-                                   numpy.ones(edges.shape,
-                                              dtype=edges.dtype) * (N + 1)))
+        edges = np.concatenate((edges,
+                                np.ones(edges.shape,
+                                        dtype=edges.dtype) * (N + 1)))
         self.slist = Vector_size_t(init=edges[:,0])
         self.tlist = Vector_size_t(init=edges[:,1])
 
@@ -264,7 +264,7 @@ class UncertainBaseState(EntropyState):
         ``multiflip=True``.
 
         """
-        if numpy.random.random() < pedges:
+        if np.random.random() < pedges:
             return self.edge_mcmc_sweep(**dict(dict(dict(beta=beta, niter=niter),
                                                     **edge_mcmc_args), **kwargs))
         else:
@@ -281,8 +281,8 @@ class UncertainBaseState(EntropyState):
         r"""Return conditional posterior log-probability of an edge list, with
         shape :math:`(E,2)`."""
         ea = self._get_entropy_args(entropy_args)
-        elist = numpy.asarray(elist, dtype="uint64")
-        probs = numpy.zeros(elist.shape[0])
+        elist = np.asarray(elist, dtype="uint64")
+        probs = np.zeros(elist.shape[0])
         self._state.get_edges_prob(elist, probs, ea, epsilon)
         return probs
 
@@ -293,8 +293,8 @@ class UncertainBaseState(EntropyState):
         else:
             es = edge_endpoint_property(self.u, self.u.vertex_index, "source")
             et = edge_endpoint_property(self.u, self.u.vertex_index, "target")
-            u = GraphView(self.u, efilt=numpy.logical_and(self.eweight.fa > 0,
-                                                          es.fa != et.fa))
+            u = GraphView(self.u, efilt=np.logical_and(self.eweight.fa > 0,
+                                                       es.fa != et.fa))
         return u
 
     def collect_marginal(self, g=None):
@@ -429,17 +429,17 @@ class UncertainBlockState(UncertainBaseState):
 
         self.p = (q.fa.sum() + (self.M - g.num_edges()) * q_default) / self.M
 
-        self.q = self.g.new_ep("double", vals=log(q.fa) - log1p(-q.fa))
-        self.q.fa -= log(self.p) - log1p(-self.p)
+        self.q = self.g.new_ep("double", vals=np.log(q.fa) - np.log1p(-q.fa))
+        self.q.fa -= np.log(self.p) - np.log1p(-self.p)
         if q_default > 0:
-            self.q_default = log(q_default) - log1p(q_default)
-            self.q_default -= log(self.p) - log1p(-self.p)
+            self.q_default = np.log(q_default) - np.log1p(q_default)
+            self.q_default -= np.log(self.p) - np.log1p(-self.p)
         else:
-            self.q_default = -numpy.inf
+            self.q_default = -np.inf
 
-        self.S_const = (log1p(-q.fa[q.fa<1]).sum() +
-                        log1p(-q_default) * (self.M - self.g.num_edges())
-                        - self.M * log1p(-self.p))
+        self.S_const = (np.log1p(-q.fa[q.fa<1]).sum() +
+                        np.log1p(-q_default) * (self.M - self.g.num_edges())
+                        - self.M * np.log1p(-self.p))
 
         self._state = libinference.make_uncertain_state(self.bstate._state,
                                                         self)
@@ -493,8 +493,8 @@ class LatentMultigraphBlockState(UncertainBaseState):
         super().__init__(g, nested=nested, state_args=state_args, bstate=bstate,
                          self_loops=self_loops, **kwargs)
 
-        self.q = self.g.new_ep("double", val=numpy.inf)
-        self.q_default = -numpy.inf
+        self.q = self.g.new_ep("double", val=np.inf)
+        self.q_default = -np.inf
         self.S_const = 0
 
         self._state = libinference.make_uncertain_state(self.bstate._state,
@@ -567,8 +567,8 @@ class MeasuredBlockState(UncertainBaseState):
 
     """
 
-    def __init__(self, g, n, x, n_default=1, x_default=0, lp=numpy.nan,
-                 lq=numpy.nan, fn_params=dict(alpha=1, beta=1),
+    def __init__(self, g, n, x, n_default=1, x_default=0, lp=np.nan,
+                 lq=np.nan, fn_params=dict(alpha=1, beta=1),
                  fp_params=dict(mu=1, nu=1), nested=True,
                  state_args={}, bstate=None, self_loops=False, **kwargs):
 
@@ -748,13 +748,13 @@ class MixedMeasuredBlockState(UncertainBaseState):
                              str(list(kwargs.keys())))
         for i in range(niter):
             hs = [self.alpha, self.beta, self.mu, self.nu]
-            j = numpy.random.randint(len(hs))
+            j = np.random.randint(len(hs))
 
             f_dh = [max((0, hs[j] - hstep)), hs[j] + hstep]
             pf = 1./(f_dh[1] - f_dh[0])
 
             old_hs = hs[j]
-            hs[j] = f_dh[0] + numpy.random.random() * (f_dh[1] - f_dh[0])
+            hs[j] = f_dh[0] + np.random.random() * (f_dh[1] - f_dh[0])
 
             b_dh = [max((0, hs[j] - hstep)), hs[j] + hstep]
             pb = 1./min((1, hs[j]))
@@ -768,7 +768,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
             Sa = self._state.entropy(ea)
 
             nt += 1
-            if Sa < Sb or numpy.random.random() < exp(-(Sa-Sb) + log(pb) - log(pf)):
+            if Sa < Sb or np.random.random() < np.exp(-(Sa-Sb) + np.log(pb) - np.log(pf)):
                 dS += Sa - Sb
                 nm +=1
             else:
@@ -791,7 +791,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
 
         """
 
-        if numpy.random.random() < ph:
+        if np.random.random() < ph:
             return self.h_mcmc_step(hstep=hstep, niter=kwargs.get("niter", 1),
                                     entropy_args=kwargs.get("entropy_args", {}))
         else:

@@ -25,10 +25,8 @@ from .. generation import condensation_graph, random_rewire, generate_sbm, \
     solve_sbm_fugacities, generate_maxent_sbm, remove_parallel_edges, \
     remove_self_loops
 from .. spectral import adjacency
-import random
-from numpy import *
+import numpy as np
 import math
-import numpy
 import copy
 import collections.abc
 import itertools
@@ -89,8 +87,8 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
             cg.ep["drec%d" % i] = ae[0]
             del ae[0]
 
-    rs = numpy.setdiff1d(numpy.arange(B, dtype="int"), br.fa,
-                         assume_unique=True)
+    rs = np.setdiff1d(np.arange(B, dtype="int"), br.fa,
+                      assume_unique=True)
     if len(rs) > 0:
         cg.add_vertex(len(rs))
         br.fa[-len(rs):] = rs
@@ -250,18 +248,18 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             if B is None:
                 raise ValueError("either 'b' or 'B' must be specified")
             B = min((B, self.g.num_vertices()))
-            ba = random.randint(0, B, self.g.num_vertices())
-            ba[:B] = arange(B)        # avoid empty blocks
+            ba = np.random.randint(0, B, self.g.num_vertices())
+            ba[:B] = np.arange(B)        # avoid empty blocks
             if B < self.g.num_vertices():
-                random.shuffle(ba)
+                np.random.shuffle(ba)
             b = g.new_vp("int")
             b.fa = ba
             self.b = b
         else:
             # if a partition is available, we will incorporate it.
-            if isinstance(b, numpy.ndarray):
+            if isinstance(b, np.ndarray):
                 self.b = g.new_vp("int")
-                ba = numpy.zeros(len(self.b.fa), dtype="int")
+                ba = np.zeros(len(self.b.fa), dtype="int")
                 ba[:min((len(ba), len(b)))] = b[:min((len(ba), len(b)))]
                 self.b.fa = ba
             else:
@@ -363,8 +361,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             for i in range(len(self.rec)):
                 idx = self.rec[i].a != 0
                 if not isinstance(self.eweight, libinference.unity_eprop_t):
-                    idx = numpy.logical_and(idx, self.eweight.a > 0)
-                if numpy.any(idx):
+                    idx = np.logical_and(idx, self.eweight.a > 0)
+                if np.any(idx):
                     self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
         self.bfield = g.new_vp("vector<double>") if bfield is None else self.g.own_property(bfield)
@@ -430,8 +428,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                     defaults = {"alpha": 1,
                                 "beta": self.rec[i].fa.mean()}
                 else:
-                    defaults = {"alpha": numpy.nan,
-                                "beta": numpy.nan}
+                    defaults = {"alpha": np.nan,
+                                "beta": np.nan}
             elif rt == libinference.rec_type.real_normal:
                 if rec_params[i] != "microcanonical":
                     defaults = {"m0": self.rec[i].fa.mean(),
@@ -439,17 +437,17 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                                 "v0": self.rec[i].fa.std() ** 2,
                                 "nu0": 3}
                 else:
-                    defaults = {"m0": numpy.nan,
-                                "k0": numpy.nan,
-                                "v0": numpy.nan,
-                                "nu0": numpy.nan}
+                    defaults = {"m0": np.nan,
+                                "k0": np.nan,
+                                "v0": np.nan,
+                                "nu0": np.nan}
             elif rt == libinference.rec_type.discrete_geometric:
                 if rec_params[i] != "microcanonical":
                     defaults = {"alpha": 1,
                                 "beta": 1}
                 else:
-                    defaults = {"alpha": numpy.nan,
-                                "beta": numpy.nan}
+                    defaults = {"alpha": np.nan,
+                                "beta": np.nan}
             elif rt == libinference.rec_type.discrete_binomial:
                 if rec_params[i] != "microcanonical":
                     defaults = {"N": self.rec[i].fa.max(),
@@ -457,8 +455,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                                 "beta": 1}
                 else:
                     defaults = {"N": self.rec[i].fa.max(),
-                                "alpha": numpy.nan,
-                                "beta": numpy.nan}
+                                "alpha": np.nan,
+                                "beta": np.nan}
 
             ks = list(defaults.keys())
             if rec_params[i] != "microcanonical":
@@ -636,7 +634,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                     recs.append(bg.new_ep("double", eweight.fa > 0))
                     rec_types.append(rt)
                     rec_params.append("microcanonical")
-                elif numpy.isnan(rp.a).sum() == 0:
+                elif np.isnan(rp.a).sum() == 0:
                     continue
                 elif rt in [libinference.rec_type.discrete_geometric,
                             libinference.rec_type.discrete_binomial,
@@ -702,10 +700,10 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
         the number of nodes in group r.
         """
-        w = numpy.array(self.wr.a, dtype="double")
+        w = np.array(self.wr.a, dtype="double")
         w = w[w>0]
         w /= w.sum()
-        return numpy.exp(-(w*log(w)).sum())
+        return np.exp(-(w*log(w)).sum())
 
     def get_bclabel(self, clabel=None):
         r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
@@ -1123,8 +1121,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if not isinstance(v, collections.abc.Iterable):
             self._state.move_vertex(int(v), s)
         else:
-            self._state.move_vertices(numpy.asarray(v, dtype="uint64"),
-                                      numpy.asarray(s, dtype="uint64"))
+            self._state.move_vertices(np.asarray(v, dtype="uint64"),
+                                      np.asarray(s, dtype="uint64"))
 
     def remove_vertex(self, v):
         r"""Remove vertex ``v`` from its current group.
@@ -1138,9 +1136,9 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
            twice.
         """
         if isinstance(v, collections.abc.Iterable):
-            if not isinstance(v, numpy.ndarray):
+            if not isinstance(v, np.ndarray):
                 v = list(v)
-            self._state.remove_vertices(numpy.asarray(v, dtype="uint64"))
+            self._state.remove_vertices(np.asarray(v, dtype="uint64"))
         else:
             self._state.remove_vertex(int(v))
 
@@ -1155,12 +1153,12 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
            added twice to the same group.
         """
         if isinstance(v, collections.abc.Iterable):
-            if not isinstance(v, numpy.ndarray):
+            if not isinstance(v, np.ndarray):
                 v = list(v)
-            if not isinstance(r, numpy.ndarray):
+            if not isinstance(r, np.ndarray):
                 r = list(r)
-            self._state.add_vertices(numpy.asarray(v, dtype="uint64"),
-                                     numpy.asarray(r, dtype="uint64"))
+            self._state.add_vertices(np.asarray(v, dtype="uint64"),
+                                     np.asarray(r, dtype="uint64"))
         else:
             self._state.add_vertex(int(v), r)
 
@@ -1598,12 +1596,12 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                 if not self.g.is_directed():
                     p = 2 * self.g.num_edges() / ((B + 1) * B)
                 idx = probs.nonzero()
-                probs[idx] = numpy.random.gamma(probs[idx] + 1, p/(p + 1))
+                probs[idx] = np.random.gamma(probs[idx] + 1, p/(p + 1))
                 for r in rs:
                     idx = self.b.fa == r
-                    out_degs[idx] = numpy.random.dirichlet(out_degs[idx] + 1)
+                    out_degs[idx] = np.random.dirichlet(out_degs[idx] + 1)
                     if in_degs is not None:
-                        in_degs[idx] = numpy.random.dirichlet(in_degs[idx] + 1)
+                        in_degs[idx] = np.random.dirichlet(in_degs[idx] + 1)
 
             g = generate_sbm(b=self.b.fa, probs=probs,
                              in_degs=in_degs, out_degs=out_degs,

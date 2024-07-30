@@ -27,8 +27,7 @@ from . blockmodel import *
 from . overlap_blockmodel import *
 from . layered_blockmodel import *
 
-from numpy import *
-import numpy
+import numpy as np
 import copy
 
 class NestedBlockState(object):
@@ -102,7 +101,7 @@ class NestedBlockState(object):
                 N = 2 * self.levels[0].get_N()
             else:
                 N = self.levels[0].get_N()
-            L = int(numpy.ceil(numpy.log2(N)))
+            L = int(np.ceil(np.log2(N)))
             bs = [None] * (L + 1)
 
         for i, b in enumerate(bs[1:]):
@@ -321,7 +320,7 @@ class NestedBlockState(object):
                 for s in self.levels:
                     B_E_D = s._state.get_B_E_D()
                     if B_E_D > 0:
-                        S_D -= log(B_E_D)
+                        S_D -= np.log(B_E_D)
 
             S = 0
             for i in range(len(self.levels[0].rec)):
@@ -329,7 +328,7 @@ class NestedBlockState(object):
                     continue
                 assert not _bm_test() or Lrecdx[i+1] >= 0, (i, Lrecdx[i+1])
                 S += -libinference.positive_w_log_P(Lrecdx[0], Lrecdx[i+1],
-                                                    numpy.nan, numpy.nan,
+                                                    np.nan, np.nan,
                                                     self.levels[0].epsilon[i])
                 S += S_D
             return S
@@ -351,7 +350,7 @@ class NestedBlockState(object):
                     assert not _bm_test() or Lrecdx[j+1][i+1] >= 0, (i, j, Lrecdx[j+1][i+1])
                     S += -libinference.positive_w_log_P(Lrecdx[j+1][0],
                                                         Lrecdx[j+1][i+1],
-                                                        numpy.nan, numpy.nan,
+                                                        np.nan, np.nan,
                                                         self.levels[0].epsilon[i])
                     S += S_D[j]
             return S
@@ -531,7 +530,7 @@ class NestedBlockState(object):
 
         lrange = list(kwargs.pop("ls", range(len(self.levels))))
         if kwargs.pop("ls_shuffle", True):
-            numpy.random.shuffle(lrange)
+            np.random.shuffle(lrange)
         for l in lrange:
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
@@ -861,7 +860,7 @@ def get_hierarchy_tree(state, empty_branches=False):
             t_vertices.extend(t.add_vertex(s.num_vertices()))
         else:
             t_vertices.append(t.add_vertex(s.num_vertices()))
-        label.a[-s.num_vertices():] = arange(s.num_vertices())
+        label.a[-s.num_vertices():] = np.arange(s.num_vertices())
 
         # relative ordering based on total degree
         count = s.ep["count"].copy("double")

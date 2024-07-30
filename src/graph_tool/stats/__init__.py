@@ -44,7 +44,7 @@ dl_import("from . import libgraph_tool_stats")
 
 from .. import _degree, _prop, _get_rng, GraphView, PropertyMap, _parallel
 from .. generation import libgraph_tool_generation
-from numpy import *
+import numpy as np
 
 __all__ = ["vertex_hist", "edge_hist", "vertex_average", "edge_average",
            "distance_histogram"]
@@ -112,7 +112,7 @@ def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     ret = libgraph_tool_stats.\
           get_vertex_histogram(g._Graph__graph, _degree(g, deg),
                                [float(x) for x in bins])
-    return [array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
+    return [np.array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
 
 
 @_parallel
@@ -176,7 +176,7 @@ def edge_hist(g, eprop, bins=[0, 1], float_count=True):
     ret = libgraph_tool_stats.\
           get_edge_histogram(g._Graph__graph, _prop("e", g, eprop),
                              [float(x) for x in bins])
-    return [array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
+    return [np.array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
 
 
 @_parallel
@@ -232,12 +232,12 @@ def vertex_average(g, deg):
     a, aa, count  = libgraph_tool_stats.\
           get_vertex_average(g._Graph__graph, _degree(g, deg))
     try:
-        a = array(a.a)
-        aa = array(aa.a)
+        a = np.array(a.a)
+        aa = np.array(aa.a)
     except AttributeError:
         pass
     a /= count
-    aa = sqrt((aa / count - a ** 2) / count)
+    aa = np.sqrt((aa / count - a ** 2) / count)
     return float(a), float(aa)
 
 
@@ -296,12 +296,12 @@ def edge_average(g, eprop):
     a, aa, count = libgraph_tool_stats.\
           get_edge_average(g._Graph__graph, _prop("e", g, eprop))
     try:
-        a = array(a.a)
-        aa = array(aa.a)
+        a = np.array(a.a)
+        aa = np.array(aa.a)
     except AttributeError:
         pass
     a /= count
-    aa = sqrt((aa / count - a ** 2) / count)
+    aa = np.sqrt((aa / count - a ** 2) / count)
     return float(a), float(aa)
 
 @_parallel
@@ -380,4 +380,4 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     else:
         ret = libgraph_tool_stats.\
               distance_histogram(g._Graph__graph, _prop("e", g, weight), bins)
-    return [array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]
+    return [np.array(ret[0], dtype="float64") if float_count else ret[0], ret[1]]

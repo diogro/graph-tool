@@ -45,7 +45,7 @@ from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_correlations")
 
 from .. import _degree, _prop, _check_prop_scalar, VertexPropertyMap, _parallel
-from numpy import *
+import numpy as np
 
 __all__ = ["assortativity", "scalar_assortativity", "corr_hist",
            "combined_corr_hist", "avg_neighbor_corr", "avg_neighbour_corr",
@@ -292,7 +292,7 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
                                        _prop("e", g, weight),
                                        [float(x) for x in bins[0]],
                                        [float(x) for x in bins[1]])
-    return [array(ret[0], dtype="float64") if float_count else ret[0],
+    return [np.array(ret[0], dtype="float64") if float_count else ret[0],
             [ret[1][0], ret[1][1]]]
 
 
@@ -385,7 +385,7 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
                                                 _degree(g, deg2),
                                                 [float(x) for x in bins[0]],
                                                 [float(x) for x in bins[1]])
-    return [array(ret[0], dtype="float64") if float_count else ret[0],
+    return [np.array(ret[0], dtype="float64") if float_count else ret[0],
             [ret[1][0], ret[1][1]]]
 
 
