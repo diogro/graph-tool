@@ -62,7 +62,7 @@ from .. import Graph
 from .. generation import circular_graph, complete_graph, remove_parallel_edges
 
 def LCF_graph(n, shift_list, repeats):
-    """Returns the cubic graph specified in LCF notation.
+    r"""Returns the cubic graph specified in LCF notation.
 
     Parameters
     ----------
@@ -447,7 +447,7 @@ def heawood_graph():
     return LCF_graph(14, [5, -5], 7)
 
 def hoffman_singleton_graph():
-    """
+    r"""
     Returns the Hoffman-Singleton Graph.
 
     Notes
