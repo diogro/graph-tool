@@ -2123,7 +2123,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
             dist_map = numpy.array(dist_map.a[target])
 
     if source is not None:
-        if pred_map:
+        if pred_map is True or isinstance(pred_map, VertexPropertyMap):
             ret = (dist_map, pmap)
         else:
             ret = (dist_map,)
