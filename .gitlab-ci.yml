@@ -55,6 +55,8 @@ build_tarball:
       - graph-tool*zst
 
 .build_deb:
+  tags:
+    - deb
   variables:
     BASE: ""
     PLATFORM: ""
@@ -299,6 +301,8 @@ build_noble_git:
     PLATFORM: amd64
 
 build_docker:
+  tags:
+    - docker
   script:
     - cd release/docker
     - docker build --build-arg REF=`git log -n1 --pretty='%H'` -t tiagopeixoto/graph-tool:$CI_COMMIT_TAG . --no-cache --pull --progress=plain
@@ -311,6 +315,8 @@ build_docker:
     - tags
 
 build_docker_git:
+  tags:
+    - docker
   script:
     - cd release/docker
     - docker build --build-arg REF=`git log -n1 --pretty='%H'` -t tiagopeixoto/graph-tool-git:$CI_COMMIT_SHA . --no-cache --progress=plain
