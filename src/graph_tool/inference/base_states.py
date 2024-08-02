@@ -288,7 +288,7 @@ class MCMCState(EntropyState):
             return mcmc_state
 
 class MultiflipMCMCState(EntropyState):
-    r"""Base state that implements multiflip (merge-split) MCMC sweeps"""
+    r"""Base state that implements multiflip (merge-split) MCMC sweeps."""
 
     @abstractmethod
     def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
@@ -334,6 +334,9 @@ class MultiflipMCMCState(EntropyState):
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
+        accept_stats : ``dict`` (optional, default: ``None``)
+            If provided, this dictionary will be updated with the proposal and
+            acceptance counts for each kind of move.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -390,7 +393,7 @@ class MultiflipMCMCState(EntropyState):
         return dS, nattempts, nmoves
 
 class MultilevelMCMCState(EntropyState):
-    r"""Base state that implements multilevel agglomerative MCMC sweeps"""
+    r"""Base state that implements multilevel agglomerative MCMC sweeps."""
 
     @abstractmethod
     def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
@@ -532,7 +535,7 @@ class MultilevelMCMCState(EntropyState):
             return mcmc_state
 
 class GibbsMCMCState(EntropyState):
-    r"""Base state that implements single flip MCMC sweeps"""
+    r"""Base state that implements single flip MCMC sweeps."""
 
     @abstractmethod
     def _gibbs_sweep_dispatch(self, gibbs_state):
@@ -606,7 +609,7 @@ class GibbsMCMCState(EntropyState):
         return dS, nattempts, nmoves
 
 class MulticanonicalMCMCState(EntropyState):
-    r"""Base state that implements multicanonical MCMC sweeps"""
+    r"""Base state that implements multicanonical MCMC sweeps."""
 
     @abstractmethod
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
@@ -689,7 +692,7 @@ class MulticanonicalMCMCState(EntropyState):
         return S, nattempts, nmoves
 
 class ExhaustiveSweepState(EntropyState):
-    r"""Base state that implements exhaustive enumerative sweeps"""
+    r"""Base state that implements exhaustive enumerative sweeps."""
 
     @abstractmethod
     def _exhaustive_sweep_dispatch(self, exhaustive_state):
