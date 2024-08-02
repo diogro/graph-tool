@@ -2244,10 +2244,10 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
                 else:
                     pe = e
                     break
-        elist.insert(0, pe)
-        vlist.insert(0, p)
+        elist.append(pe)
+        vlist.append(p)
         v = p
-    return vlist, elist
+    return vlist[::-1], elist[::-1]
 
 def all_predecessors(g, dist_map, pred_map, weights=None, epsilon=1e-8):
     """Return a property map with all possible predecessors in the search tree
