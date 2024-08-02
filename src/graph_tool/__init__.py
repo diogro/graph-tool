@@ -526,7 +526,7 @@ class PropertyMap(object):
         filt = [None]
         if self.__key_type == 'v':
             filt = g.get_vertex_filter()
-            N = g.num_vertices()
+            N = g.num_vertices() if filt[0] is not None else 0
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
             if g.get_vertex_filter()[0] is not None:
