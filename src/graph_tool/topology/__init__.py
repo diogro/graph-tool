@@ -2234,16 +2234,15 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         min_w = max_w
         pe = None
         s = None
-        for e in v.in_edges() if g.is_directed() else v.out_edges():
-            s = e.source() if g.is_directed() else e.target()
-            if s == p:
-                if weights is not None:
+        if weights is None:
+            pe = g.edge(p, v)
+        else:
+            for e in v.in_edges() if g.is_directed() else v.out_edges():
+                s = e.source() if g.is_directed() else e.target()
+                if s == p:
                     if weights[e] < min_w:
                         min_w = weights[e]
                         pe = e
-                else:
-                    pe = e
-                    break
         elist.append(pe)
         vlist.append(p)
         v = p
