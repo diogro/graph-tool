@@ -2123,7 +2123,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
             dist_map = numpy.array(dist_map.a[target])
 
     if source is not None:
-        if pred_map:
+        if pred_map is True or isinstance(pred_map, VertexPropertyMap):
             ret = (dist_map, pmap)
         else:
             ret = (dist_map,)
@@ -2234,20 +2234,19 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         min_w = max_w
         pe = None
         s = None
-        for e in v.in_edges() if g.is_directed() else v.out_edges():
-            s = e.source() if g.is_directed() else e.target()
-            if s == p:
-                if weights is not None:
+        if weights is None:
+            pe = g.edge(p, v)
+        else:
+            for e in v.in_edges() if g.is_directed() else v.out_edges():
+                s = e.source() if g.is_directed() else e.target()
+                if s == p:
                     if weights[e] < min_w:
                         min_w = weights[e]
                         pe = e
-                else:
-                    pe = e
-                    break
-        elist.insert(0, pe)
-        vlist.insert(0, p)
+        elist.append(pe)
+        vlist.append(p)
         v = p
-    return vlist, elist
+    return vlist[::-1], elist[::-1]
 
 def all_predecessors(g, dist_map, pred_map, weights=None, epsilon=1e-8):
     """Return a property map with all possible predecessors in the search tree
