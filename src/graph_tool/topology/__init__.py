@@ -2093,9 +2093,9 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     if source is not None:
         if numpy.issubdtype(dist_map.a.dtype, numpy.integer):
-            dist_map.fa = numpy.iinfo(dist_map.a.dtype).max
+            dist_map.set_value(numpy.iinfo(dist_map.a.dtype).max)
         else:
-            dist_map.fa = numpy.inf
+            dist_map.set_value(numpy.inf)
         if isinstance(pred_map, PropertyMap):
             pmap = pred_map
             if pmap.value_type() != "int64_t":
