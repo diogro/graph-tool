@@ -480,7 +480,7 @@ class PropertyMap(object):
 
     def get_array(self):
         """Get a :class:`numpy.ndarray` subclass (:class:`~graph_tool.PropertyArray`)
-        with the property values.
+        pointint to the property values.
 
         .. note::
 
@@ -492,11 +492,13 @@ class PropertyMap(object):
 
         .. warning::
 
-           The returned array does not own the data, which belongs to the
-           property map. Therefore, if the graph changes, the array may become
-           *invalid*. Do **not** store the array if the graph is to be modified;
-           store a **copy** instead.
+           This function does not copy the data from the property map, and
+           therefore runs in :math:`O(1)` time.
 
+           As a consequence, the returned array does not own the data, which
+           belongs to the property map. Therefore, if the graph changes, the
+           array may become *invalid*. Do **not** store the array if the graph
+           is to be modified; store a **copy** instead.
         """
         return self._get_data()
 
@@ -523,42 +525,46 @@ class PropertyMap(object):
         if g is None:
             return None
         a = self.get_array()
-        filt = [None]
+        filt = (None, False)
+        N = None
         if self.__key_type == 'v':
             filt = g.get_vertex_filter()
-            N = g.num_vertices() if filt[0] is not None else 0
+            N = g.num_vertices()
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
-            if g.get_vertex_filter()[0] is not None:
-                filt = (g.new_edge_property("bool"), filt[1])
+            if filt[0] is not None or g.edge_index_range != g.num_edges():
+                # we need to also consider the vertex filter *and* any existing
+                # index non-contiguity; this is O(N + E)
+                filt = (g.new_ep("bool"), False)
                 libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
-                if filt[1]:
-                    filt[0].a = numpy.logical_not(filt[0].a)
-            elif g.edge_index_range != g.num_edges():
-                filt = (g.new_edge_property("bool"), False)
-                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
-            if filt[0] is None:
-                N = g.edge_index_range
-            else:
-                N = (filt[0].a == (not filt[1])).sum()
+        else:
+            return a
+
+        if filt[0] is not None:
+            m = numpy.asarray(filt[0].a, dtype="bool")
+            if filt[1]:
+                m = ~m
+        else:
+            m = None
+
         if get:
             if a is None:
                 return a
-            if filt[0] is None:
-                return a
-            return a[filt[0].a == (not filt[1])][:N]
+            if m is None:
+                return a[:N]
+            return a[m][:N]
         else:
             if a is None:
                 raise TypeError("cannot set property map values from array for" +
                                 " property map of type: " + self.value_type())
-            if filt[0] is None:
+            if m is None:
                 try:
-                    a[:] = v
+                    a[:N] = v
                 except ValueError:
-                    a[:] = v[:len(a)]
+                    a[:N] = v[:len(a[:N])]
             else:
-                m = filt[0].a == (not filt[1])
-                m *= m.cumsum() <= N
+                if N is not None:
+                    m[m.cumsum() > N] = False
                 try:
                     a[m] = v
                 except ValueError:
@@ -572,10 +578,22 @@ class PropertyMap(object):
                   there are no filters in place, the array is not indexed, and
                   is identical to the :attr:`~PropertyMap.a` attribute.
 
-                  Note that because advanced indexing is triggered, a **copy**
-                  of the array is returned, not a view, as for the
-                  :attr:`~PropertyMap.a` attribute. Nevertheless, the assignment
-                  of values to the *whole* array at once works as expected.""")
+                  .. warning::
+
+                     Because :external:ref:`advanced indexing
+                     <advanced-indexing>` is triggered, a **copy** of the array
+                     is returned, not a view, as is the case for the
+                     :attr:`~PropertyMap.a` attribute. Nevertheless, the
+                     assignment of values to the *whole* array at once works as
+                     expected.
+
+                     Importantly, this means that this operation runs in time
+                     :math:`O(N)` or `O(N + E)` for node and edge properties,
+                     respectively, where :math:`N` is the number of vertices and
+                     :math:`E` the number of edges in the unfiltered graph, and
+                     therefore can be significantly slower than using the
+                     :attr:`~PropertyMap.a` attribute, which runs in time
+                     :math:`O(1)`.""")
 
     def __get_set_m_array(self, v=None, get=True):
         g = self.get_graph()
@@ -587,17 +605,26 @@ class PropertyMap(object):
             filt = g.get_vertex_filter()
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
-            if g.get_vertex_filter()[0] is not None:
-                filt = (g.new_edge_property("bool"), filt[1])
+            if filt[0] is not None or g.edge_index_range != g.num_edges():
+                # we need to also consider the vertex filter *and* any existing
+                # index non-contiguity; this is O(N + E)
+                filt = (g.new_ep("bool"), False)
                 libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
-                if filt[1]:
-                    filt[0].a = 1 - filt[0].a
-        if filt[0] is None or a is None:
-            if get:
+        else:
+            return a
+
+        if get:
+            if a is None or filt[0] is None:
                 return a
-            else:
-                return
-        ma = numpy.ma.array(a, mask=(filt[0].a == False) if not filt[1] else (filt[0].a == True))
+        else:
+            if a is None:
+                raise TypeError("cannot set property map values from array for" +
+                                " property map of type: " + self.value_type())
+
+        m = numpy.asarray(filt[0].a, dtype="bool")
+        if not filt[1]:
+            m = ~m
+        ma = numpy.ma.array(a, mask=m, copy=False)
         if get:
             return ma
         else:
@@ -610,7 +637,18 @@ class PropertyMap(object):
                   which contains only entries for vertices/edges which are not
                   filtered out. If there are no filters in place, a regular
                   :class:`~graph_tool.PropertyArray` is returned, which
-                  is identical to the :attr:`~PropertyMap.a` attribute.""")
+                  is identical to the :attr:`~PropertyMap.a` attribute.
+
+                  .. warning::
+
+                     Unlike :attr:`~PropertyMap.fa`, the masked array does *not*
+                     copy the property map values.
+
+                     This function runs in time :math:`O(N)` or `O(N + E)`
+                     for node and edge properties, respectively, where :math:`N`
+                     is the number of vertices and :math:`E` the number of edges
+                     in the unfiltered graph.
+                  """)
 
     def get_2d_array(self, pos=None, dtype=None):
         r"""Return a two-dimensional array of shape ``(M,N)``, where ``N`` is
@@ -2973,7 +3011,7 @@ class Graph(object):
     def new_vertex_property(self, value_type, vals=None, val=None):
         """Create a new vertex property map of type ``value_type``, and return it. If
         provided, the values will be initialized by ``vals``, which should be
-        sequence or by ``val`` which should be  a single value.
+        sequence or by ``val`` which should be a single value.
         """
         prop = VertexPropertyMap(new_vertex_property(_type_alias(value_type),
                                                      self.__graph.get_vertex_index(),

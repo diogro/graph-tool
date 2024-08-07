@@ -767,6 +767,14 @@ Property maps with scalar value types can also be accessed as a
     # or more conveniently (this is equivalent to the above)
     vprop.a = random(g.num_vertices())
 
+
+.. admonition:: Array interface for filtered graphs
+
+     For filtered graphs (see :ref:`sec_graph_filtering` below), it's possible
+     to get arrays that only point to the nodes and edges that are not filtered
+     out via the :attr:`~graph_tool.PropertyMap.fa` and
+     :attr:`~graph_tool.PropertyMap.ma` attributes instead.
+
 .. _sec_property_trans:
 
 Transformations
