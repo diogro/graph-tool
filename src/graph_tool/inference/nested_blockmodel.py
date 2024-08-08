@@ -340,7 +340,7 @@ class NestedBlockState(object):
                     for j in range(self.levels[0].C):
                         B_E_D = s._state.get_layer(j).get_B_E_D()
                         if B_E_D > 0:
-                            S_D[j] -= log(B_E_D)
+                            S_D[j] -= np.log(B_E_D)
 
             S = 0
             for i in range(len(self.levels[0].rec)):
