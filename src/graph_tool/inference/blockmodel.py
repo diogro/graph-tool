@@ -703,7 +703,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         w = np.array(self.wr.a, dtype="double")
         w = w[w>0]
         w /= w.sum()
-        return np.exp(-(w*log(w)).sum())
+        return np.exp(-(w*np.log(w)).sum())
 
     def get_bclabel(self, clabel=None):
         r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
