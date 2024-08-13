@@ -14,6 +14,44 @@ used.
 .. autofunction:: graph_tool.openmp_enabled
    :no-index:
 
+.. note::
+
+   By default, ``graph-tool`` will try to configure the `OpenMP wait policy
+   <https://www.openmp.org/spec-html/5.0/openmpse55.html>`_ to "passive", since
+   this usually results in improved performance for the majority of algorithms.
+
+   In order to change this behavior, the following environment variable should
+   be set before the Python interpreted is evoked:
+
+   .. code-block:: bash
+
+       export OMP_WAIT_POLICY=active
+
+   or alternatively from Python before graph-tool is imported:
+
+   .. code-block:: python
+
+       import os
+       os.environ["OMP_WAIT_POLICY"] = "active"
+
+   Due to an OpenMP API limitation, this can no longer be changed after
+   graph-tool has been imported.
+
+.. warning::
+
+   If another library that uses OpenMP is imported before ``graph-tool``, the
+   wait policy will be set to the default value of "active", which will no
+   longer be able to be changed when ``graph-tool`` is first imported, or any
+   time later. The only way to ensure that this policy is chosen is to set the
+   environment variable before the Python interpreter is first evoked:
+
+   .. code-block:: bash
+
+       export OMP_WAIT_POLICY=passive
+
+   It is recommended for user to set this value to guarantee the best
+   performance with ``graph-tool`` in every circumstance.
+
 Several parallelization parameters can be controlled at runtime, including the
 number of threads, the work sharing schedule, and the minimum number of nodes
 required for parallelization to be enabled.
@@ -49,28 +87,6 @@ For example, to constrain temporarily the number of threads to 3 and use a
 ...     ret = gt.pagerank(g)
 
 Parallelization can be disabled altogether in the same way, but using ``nthreads=1``.
-
-.. warning::
-
-   By default, ``graph-tool`` will configure the OpenMP wait policy to
-   "passive", since this usually results in improved performance for the
-   majority of algorithms.
-
-   In order for change this behavor, the following environment variable should
-   be set before the Python interpreted is evoked:
-
-   .. code-block:: bash
-
-       export OMP_WAIT_POLICY=active
-
-   or alternatively from Python before graph-tool is imported:
-
-   .. code-block:: python
-
-       import os
-       os.environ["OMP_WAIT_POLICY"] = "active"
-
-   Due to an OpenMP API limitation, this can no longer be changed after graph-tool has been imported.
 
 The global interpreter lock (GIL)
 =================================
