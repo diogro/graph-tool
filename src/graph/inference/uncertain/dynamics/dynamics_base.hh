@@ -54,12 +54,14 @@ public:
 
     typedef vprop_map_t<std::vector<int32_t>>::type tmap_t;
     typedef typename vprop_map_t<std::vector<value_t>>::type smap_t;
+    typedef vprop_map_t<std::vector<int32_t>>::type amap_t;
 
     template <class State>
     NSumStateBase(State& s, python::object ot, python::object os,
-                  bool init_m=true)
+                  python::object oactive, bool init_m=true)
         : _t(from_list<tmap_t>(ot)),
           _s(from_list<smap_t>(os)),
+          _active(from_list<amap_t>(oactive)),
           _k(keep_k ? num_vertices(s._u) : 0),
           _spec(*static_cast<Spec*>(this)),
           _theta(s._theta),
@@ -111,6 +113,7 @@ public:
                 _Tn.push_back(T - int(tshift));
                 for (size_t i = 0; i < nt; ++i)
                     _dms[i].emplace_back(T - int(tshift));
+                _all_active.resize(std::max(_all_active.size(), T), 1);
             }
         }
         else
@@ -242,6 +245,7 @@ public:
             auto& snv = _s[n][v];
             auto& mnv = _m[n][v];
             auto& sn = _s[n];
+            auto& active = _active.empty() ? _all_active : _active[n][v];
 
             m_t zero = 0;
 
@@ -250,6 +254,7 @@ public:
                 [[maybe_unused]] auto& m = follow_m ? get<1>(mnv[t]) : zero;
                 [[maybe_unused]] auto s_v = follow_v ? snv[t] : 0;
                 [[maybe_unused]] auto s_nv = (follow_v && tshift) ? snv[t+1] : 0;
+                auto w = active[t];
 
                 auto st = [&](auto u) { return sn[u][t]; };
 
@@ -258,13 +263,13 @@ public:
                     if constexpr (follow_v)
                     {
                         if constexpr (tshift)
-                            f(n, t, st, m, 1, s_v, s_nv);
+                            f(n, t, st, m, w, s_v, s_nv);
                         else
-                            f(n, t, st, m, 1, s_v);
+                            f(n, t, st, m, w, s_v);
                     }
                     else
                     {
-                        f(n, t, st, m, 1);
+                        f(n, t, st, m, w);
                     }
                 }
                 else
@@ -272,13 +277,13 @@ public:
                     if constexpr (follow_v)
                     {
                         if constexpr (tshift)
-                            f(n, t, st, 1, s_v, s_nv);
+                            f(n, t, st, w, s_v, s_nv);
                         else
-                            f(n, t, st, 1, s_v);
+                            f(n, t, st, w, s_v);
                     }
                     else
                     {
-                        f(n, t, st, 1);
+                        f(n, t, st, w);
                     }
                 }
             }
@@ -543,8 +548,9 @@ public:
              });
     }
 
-    void update_edges(std::vector<size_t>& us, size_t v, std::vector<double>& x,
-                      std::vector<double>& nx)
+    void update_edges(const std::vector<size_t>& us, size_t v,
+                      const std::vector<double>& x,
+                      const std::vector<double>& nx)
     {
         update_edges_dispatch(us, v, x, nx);
     }
@@ -570,8 +576,9 @@ public:
 
     double get_edge_dS_uncompressed(size_t u, size_t v, double x, double nx);
 
-    double get_edges_dS(std::vector<size_t>& us, size_t v, std::vector<double>& x,
-                        std::vector<double>& nx)
+    double get_edges_dS(const std::vector<size_t>& us, size_t v,
+                        const std::vector<double>& x,
+                        const std::vector<double>& nx)
     {
         if (_t.empty())
             return get_edges_dS_uncompressed(us, v, x, nx);
@@ -579,13 +586,13 @@ public:
             return get_edges_dS_compressed(us, v, x, nx);
     }
 
-    double get_edges_dS_compressed(std::vector<size_t>& us, size_t v,
-                                   std::vector<double>& x,
-                                   std::vector<double>& nx);
+    double get_edges_dS_compressed(const std::vector<size_t>& us, size_t v,
+                                   const std::vector<double>& x,
+                                   const std::vector<double>& nx);
 
-    double get_edges_dS_uncompressed(std::vector<size_t>& us, size_t v,
-                                     std::vector<double>& x,
-                                     std::vector<double>& nx);
+    double get_edges_dS_uncompressed(const std::vector<size_t>& us, size_t v,
+                                     const std::vector<double>& x,
+                                     const std::vector<double>& nx);
 
     double get_edges_dS(const std::array<size_t,2>& us, size_t v,
                         const std::array<double,2>& x,
@@ -630,7 +637,7 @@ public:
         double Lb = 0;
 
         auto tid = get_thread_num();
-        std::vector<std::vector<m_t>>& dms = _dms[tid];
+        auto& dms = _dms[tid];
 
         if constexpr (m_offload)
         {
@@ -796,6 +803,8 @@ public:
         return -dL;
     }
 
+    double get_active_prob(size_t v);
+
     double get_node_prob(size_t v);
 
     double get_node_prob(size_t v, size_t n, size_t t, double s)
@@ -823,26 +832,24 @@ public:
         return L;
     }
 
-    double get_node_dS(size_t v, double dt)
+    double get_node_dS(size_t v, double t, double nt)
     {
         if (_t.empty())
-            return get_node_dS_uncompressed(v, dt);
+            return get_node_dS_uncompressed(v, t, nt);
         else
-            return get_node_dS_compressed(v, dt);
+            return get_node_dS_compressed(v, t, nt);
     }
 
-    double get_node_dS_compressed(size_t v, double dt);
+    double get_node_dS_compressed(size_t v, double t, double nt);
 
-    double get_node_dS_uncompressed(size_t v, double dt);
+    double get_node_dS_uncompressed(size_t v, double t, double nt);
 
     template <bool compressed>
-    double get_node_dS_dispatch(size_t v, double dt)
+    double get_node_dS_dispatch(size_t v, double theta, double ntheta)
     {
         double La = 0;
         double Lb = 0;
         auto k = keep_k ? _k[v] : 0;
-        auto theta = _theta[v];
-        auto ntheta = theta + dt;
         theta = _spec.transform_theta(theta, k);
         ntheta = _spec.transform_theta(ntheta, k);
 
@@ -1080,6 +1087,7 @@ public:
 //protected:
     std::vector<tmap_t::unchecked_t> _t;
     std::vector<typename smap_t::unchecked_t> _s;
+    std::vector<typename amap_t::unchecked_t> _active;
     std::vector<size_t> _Tn;
     size_t _T;
 
@@ -1092,6 +1100,8 @@ public:
     Spec& _spec;
 
     typename vprop_map_t<double>::type::unchecked_t _theta;
+
+    std::vector<int> _all_active;
 
     std::vector<std::shared_mutex> _m_mutex;
 };

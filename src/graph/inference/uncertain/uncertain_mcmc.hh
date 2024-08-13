@@ -95,12 +95,6 @@ struct MCMC
             return node_state(u, v);
         }
 
-        template <class T>
-        bool skip_node(T&)
-        {
-            return false;
-        }
-
         template <class RNG>
         int move_proposal(size_t, RNG& rng)
         {

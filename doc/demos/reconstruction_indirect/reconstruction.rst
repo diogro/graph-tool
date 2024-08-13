@@ -118,16 +118,17 @@ convergence is reached:
    :class: margin
 
    When doing reconstruction, the default for
-   :meth:`~graph_tool.inference.IsingGlauberBlockState.mcmc_sweep` is
-   ``beta=numpy.inf``, meaning that this function performs a greedy optimization,
-   not actual samples from a reversible Markov chain.
+   :meth:`~graph_tool.inference.IsingGlauberBlockState.mcmc_sweep` is the
+   inverse "temperature" ``beta=1``, meaning that this function performs a
+   sweeps of a MCMC. Here we are interested in a greedy optimization instead, so
+   we need to pass ``beta=numpy.inf``.
 
 .. testcode:: dynamics
 
    state = gt.IsingGlauberBlockState(X)
 
    for i in range(10):
-       delta, *_ = state.mcmc_sweep(niter=10)
+       delta, *_ = state.mcmc_sweep(beta=np.inf, niter=10)
        print(delta)
 
 This outputs the following deltas, indicating that convergence was achieved.
@@ -232,7 +233,7 @@ and then we can proceed in the same way,
 .. testcode:: dynamics
 
     for i in range(10):
-       delta, *_ = lstate.mcmc_sweep(niter=10)
+       delta, *_ = lstate.mcmc_sweep(beta=np.inf, niter=10)
 
 which produces the network:
 
@@ -300,22 +301,13 @@ We will begin by fetching the data and computing the log-returns:
 
 We will use a multivariate normal model via :class:`~graph_tool.inference.PseudoNormalBlockState`:
 
-.. tip::
-   :class: margin
-
-   For some models/data it may be better to first do a sweep over the edges
-   before any other latent variable. This happens to be true for this case!
-
 .. testcode:: rec-empirical
 
    state = gt.PseudoNormalBlockState(s)
 
-   # Do an initial sweep over the edges before any other latent variable.
-   ret = state.edge_mcmc_sweep(niter=10)
-
-   delta = abs(ret[0])
+   delta = np.inf
    while delta > 20:
-       ret = state.mcmc_sweep(niter=10)
+       ret = state.mcmc_sweep(beta=np.inf, niter=1)
        delta = abs(ret[0])
 
 We can now visualize the reconstructed network:

@@ -441,12 +441,15 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/ranked/graph_ranked_gibbs.cc \
 	src/graph/inference/ranked/graph_ranked_multiflip_mcmc.cc \
 	src/graph/inference/ranked/graph_ranked_multilevel_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/bisection_sampler.cc \
 	src/graph/inference/uncertain/dynamics/dynamics.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_mcmc.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_tdelta.cc \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_xdelta.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_parallel_mcmc.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_parallel_mcmc_theta.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_parallel_swap_mcmc.cc \
@@ -459,6 +462,7 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/pseudo_cising/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_ising/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/state.cc \
+	src/graph/inference/uncertain/dynamics/test/state.cc \
 	src/graph/inference/uncertain/latent_closure.cc \
 	src/graph/inference/uncertain/latent_closure_mcmc.cc \
 	src/graph/inference/uncertain/measured.cc \
@@ -561,20 +565,25 @@ dist_graph_inference_layers_HEADERS = \
 
 graph_inference_uncertaindir = $(MOD_DIR)/include/inference/uncertain
 dist_graph_inference_uncertain_HEADERS = \
+	src/graph/inference/uncertain/dynamics/bisection_sampler.hh \
 	src/graph/inference/uncertain/dynamics/dynamics.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_imp.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_base.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_discrete.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_elist_state.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_mcmc.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_tdelta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_xdelta.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_util.hh \
 	src/graph/inference/uncertain/dynamics/segment_sampler.hh \
-    src/graph/inference/uncertain/latent_closure.hh \
+	src/graph/inference/uncertain/dynamics/test/test.hh \
+	src/graph/inference/uncertain/latent_closure.hh \
 	src/graph/inference/uncertain/latent_layers.hh \
 	src/graph/inference/uncertain/latent_layers_mcmc.hh \
 	src/graph/inference/uncertain/measured.hh \

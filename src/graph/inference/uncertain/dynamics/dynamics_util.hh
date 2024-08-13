@@ -55,13 +55,13 @@ inline double qlaplace_lprob(T x, T lambda, T delta, bool nonzero)
 
     if (nonzero)
     {
-        return -lambda * abs(x) + 2 * lambda * delta + log1p(-exp(-2*lambda*delta)) - log(2);
+        return -lambda * abs(x) + lambda * delta + log1p(-exp(-lambda*delta)) - log(2);
     }
     else
     {
         if (x == 0)
-            return log1p(-exp(-lambda * delta));
-        return -lambda * abs(x) + lambda * delta + log1p(-exp(-2 * lambda * delta)) - log(2);
+            return log1p(-exp(-lambda * delta/2));
+        return -lambda * abs(x) + lambda * delta/2 + log1p(-exp(-lambda * delta)) - log(2);
     }
 }
 

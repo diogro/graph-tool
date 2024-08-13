@@ -44,7 +44,7 @@ GEN_DISPATCH(dynamics_state, Dyn<BaseState>::template DynamicsState,
 
 python::object MAKE_STATE(BASE_NAME)(python::object odynamics_state,
                                      python::object ot, python::object os,
-                                     python::dict params)
+                                     python::object oa, python::dict params)
 {
     python::object state;
     block_state::dispatch
@@ -56,7 +56,7 @@ python::object MAKE_STATE(BASE_NAME)(python::object odynamics_state,
                   [&](auto& s)
                   {
                       state = python::object(std::make_shared<DState>(params, s,
-                                                                      ot, os));
+                                                                      ot, os, oa));
                   }, false);
          });
     return state;

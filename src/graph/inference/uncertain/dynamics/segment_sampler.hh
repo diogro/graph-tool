@@ -19,6 +19,7 @@
 #define SEGMENT_SAMPLER_HH
 
 #include "../../../generation/sampler.hh"
+#include "../../support/util.hh"
 
 namespace graph_tool
 {
@@ -26,6 +27,7 @@ namespace graph_tool
 class SegmentSampler
 {
 public:
+    SegmentSampler() {}
     SegmentSampler(std::vector<double>& xs, std::vector<double>& ws)
         : _xs(xs), _ws(ws)
     {
@@ -84,17 +86,26 @@ public:
         return lZi;
     }
 
-    double lprob_int(double a, double b)
+    double lprob_int(double a, double delta)
     {
-        if (_xs.size() == 1)
+        double b = a + delta;
+
+        if (a == b)
+            return lprob(a) + log(delta);
+
+         if (_xs.size() == 1)
             return (a < _xs[0] && _xs[0] < b) ? 0 : -numeric_limits<double>::infinity();
 
         double lp = -numeric_limits<double>::infinity();
 
-        for (size_t i = 0; i < _xs.size() - 1; ++i)
+        auto iter = std::upper_bound(_xs.begin(), _xs.end(), a);
+        --iter;
+
+        for (size_t i = iter - _xs.begin(); i < _xs.size() - 1; ++i)
         {
             if (a >= _xs[i + 1] || b < _xs[i])
-                continue;
+                break;
+
             double a_i = (_xs[i] < a && a < _xs[i + 1]) ? a : _xs[i];
             double b_i = (_xs[i] < b && b < _xs[i + 1]) ? b : _xs[i + 1];
 
@@ -124,11 +135,16 @@ public:
         return lp - _lZ;
     }
 
+    const std::vector<double>& get_xs()
+    {
+        return _xs;
+    }
+
 private:
     std::vector<double> _xs;
     std::vector<double> _ws;
     std::vector<double> _ews;
-    double _lZ;
+    double _lZ = 0;
 
     std::piecewise_linear_distribution<> _sampler;
 };

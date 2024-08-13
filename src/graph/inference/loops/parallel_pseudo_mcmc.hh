@@ -43,13 +43,11 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
 
     parallel_rng<rng_t> prng(rng_);
 
-    std::shared_mutex move_lock;
-
     double S = 0;
 
     for (size_t iter = 0; iter < state.get_niter(); ++iter)
     {
-        state.init_iter(rng_);
+        S += state.init_iter(rng_);
 
         if (!state.is_deterministic())
             std::shuffle(vlist.begin(), vlist.end(), rng_);
@@ -60,14 +58,12 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
         {
             auto& rng = prng.get(rng_);
 
-            auto v = vlist[i];
+            auto& v = vlist[i];
 
             bool locked = state.stage_proposal(v, rng);
 
             if (!locked)
                 continue;
-
-            std::shared_lock rlock(move_lock);
 
             auto s = state.move_proposal(v, rng);
 
@@ -79,22 +75,21 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
                 continue;
             }
 
+            state.lock_move();
+
             auto [dS, mP] = state.virtual_move_dS(v, s);
 
             if (metropolis_accept(dS, mP, beta, rng))
             {
                 nmoves++;
-                rlock.unlock();
-                std::unique_lock wlock(move_lock);
-                std::tie(dS, mP) = state.virtual_move_dS(v, s);
-                if (std::isinf(beta) && dS < 0)
-                {
-                    state.perform_move(v, s, wlock); // optional: unlock internally before parallel tail
-                    S += dS;
-                }
+                state.perform_move(v, s); // should unlock
+                S += dS;
             }
-
-            state.proposal_unlock(v);
+            else
+            {
+                state.proposal_unlock(v);
+                state.unlock_move();
+            }
         }
     }
 

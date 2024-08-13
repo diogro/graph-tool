@@ -79,7 +79,6 @@ REGISTER_MOD
     class_<dentropy_args_t, bases<uentropy_args_t>>
         ("dentropy_args", init<uentropy_args_t>())
         .def_readwrite("alpha", &dentropy_args_t::alpha)
-        .def_readwrite("delta", &dentropy_args_t::delta)
         .def_readwrite("xdist", &dentropy_args_t::xdist)
         .def_readwrite("tdist", &dentropy_args_t::tdist)
         .def_readwrite("xdist_uniform", &dentropy_args_t::xdist_uniform)
@@ -88,7 +87,8 @@ REGISTER_MOD
         .def_readwrite("tl1", &dentropy_args_t::tl1)
         .def_readwrite("normal", &dentropy_args_t::normal)
         .def_readwrite("mu", &dentropy_args_t::mu)
-        .def_readwrite("sigma", &dentropy_args_t::sigma);
+        .def_readwrite("sigma", &dentropy_args_t::sigma)
+        .def_readwrite("active", &dentropy_args_t::active);
 
     class_<DStateBase, bases<>, std::shared_ptr<DStateBase>,
            boost::noncopyable>("DStateBase", no_init);
@@ -100,6 +100,7 @@ REGISTER_MOD
               {
                   return s.sample(rng);
               })
+        .def("lZi", &SegmentSampler::lZi)
         .def("lprob", &SegmentSampler::lprob)
         .def("lprob_int", &SegmentSampler::lprob_int);
 
@@ -143,25 +144,25 @@ REGISTER_MOD
                                +[](state_t& state, size_t u, size_t v, int dm,
                                    const dentropy_args_t& ea)
                                 {
-                                    return state.remove_edge_dS(u, v, dm, ea, true);
+                                    return state.remove_edge_dS(u, v, dm, ea);
                                 })
                           .def("add_edge_dS",
                                +[](state_t& state, size_t u, size_t v, int dm, double x,
                                    const dentropy_args_t& ea)
                                 {
-                                    return state.add_edge_dS(u, v, dm, x, ea, true, false);
+                                    return state.add_edge_dS(u, v, dm, x, ea);
                                 })
                           .def("update_edge_dS",
                                +[](state_t& state, size_t u, size_t v, double nx,
                                    const dentropy_args_t& ea)
                                 {
-                                    return state.update_edge_dS(u, v, nx, ea, true);
+                                    return state.update_edge_dS(u, v, nx, ea);
                                 })
                           .def("update_node_dS",
                                +[](state_t& state, size_t v, double nt,
                                    const dentropy_args_t& ea)
                                 {
-                                    return state.update_node_dS(v, nt, ea, true);
+                                    return state.update_node_dS(v, nt, ea);
                                 })
                           .def("edge_diff",
                                +[](state_t& state, size_t u, size_t v, double h,
@@ -176,21 +177,23 @@ REGISTER_MOD
                                     return state.node_diff(v, h, ea);
                                 })
                           .def("xvals_sweep",
-                               +[](state_t& state, double beta, double r, size_t maxiter, double tol,
-                                   size_t min_size, const dentropy_args_t& ea, rng_t& rng)
+                               +[](state_t& state, double beta, double r, size_t min_size,
+                                   const dentropy_args_t& ea, const bisect_args_t& ba,
+                                   rng_t& rng)
                                 {
                                     auto [dS, nmoves] =
-                                        state.xvals_sweep(beta, r, maxiter, tol,
-                                                          min_size, ea, rng);
+                                        state.xvals_sweep(beta, r, min_size, ea,
+                                                          ba, rng);
                                     return python::make_tuple(dS, nmoves);
                                 })
                           .def("tvals_sweep",
-                               +[](state_t& state, double beta, double r, size_t maxiter, double tol,
-                                   size_t min_size, const dentropy_args_t& ea, rng_t& rng)
+                               +[](state_t& state, double beta, double r, size_t min_size,
+                                   const dentropy_args_t& ea, const bisect_args_t& ba,
+                                   rng_t& rng)
                                 {
                                     auto [dS, nmoves] =
-                                        state.tvals_sweep(beta, r, maxiter, tol,
-                                                          min_size, ea, rng);
+                                        state.tvals_sweep(beta, r, min_size, ea,
+                                                          ba, rng);
                                     return python::make_tuple(dS, nmoves);
                                 })
                           .def("entropy", &state_t::entropy)
@@ -209,84 +212,100 @@ REGISTER_MOD
                                     get_xedges_prob(state, edges, probs, ea, epsilon);
                                 })
                           .def("bisect_x",
-                               +[](state_t& state, size_t u, size_t v,
-                                   size_t maxiter, double tol, const dentropy_args_t& ea, bool reversible, bool fp, rng_t& rng)
+                               +[](state_t& state, size_t u, size_t v, const dentropy_args_t& ea,
+                                   const bisect_args_t& ba, bool fb, rng_t& rng)
                                 {
-                                    auto [x, xcache] = state.bisect_x(u, v, maxiter, tol, ea, reversible, fp, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
+                                    auto [x, xcache] = state.bisect_x(u, v, ea, ba, fb, rng);
+                                    return python::make_tuple(x, xcache);
                                 })
                           .def("bisect_t",
-                               +[](state_t& state, size_t v,
-                                   size_t maxiter, double tol, const dentropy_args_t& ea, bool reversible, bool fp, rng_t& rng)
+                               +[](state_t& state, size_t v, const dentropy_args_t& ea,
+                                   const bisect_args_t& ba, bool fb, rng_t& rng)
                                 {
-                                    auto [x, xcache] = state.bisect_t(v, maxiter, tol, ea, reversible, fp, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
+                                    auto [x, xcache] = state.bisect_t(v, ea, ba, fb, rng);
+                                    return python::make_tuple(x, xcache);
+                                })
+                          .def("bisect_xl1",
+                               +[](state_t& state, const dentropy_args_t& ea,
+                                   const bisect_args_t& ba)
+                                {
+                                    auto [x, xcache] = state.bisect_xl1(ea, ba);
+                                    return python::make_tuple(x, xcache);
+                                })
+                          .def("bisect_tl1",
+                               +[](state_t& state, const dentropy_args_t& ea,
+                                   const bisect_args_t& ba)
+                                {
+                                    auto [x, xcache] = state.bisect_tl1(ea, ba);
+                                    return python::make_tuple(x, xcache);
                                 })
                           .def("sample_x",
-                               +[](state_t& state, size_t u,  size_t v,
-                                   double beta, size_t maxiter,
-                                   double tol, const dentropy_args_t& ea, bool fb, rng_t& rng)
+                               +[](state_t& state, size_t u, size_t v, double beta,
+                                   const dentropy_args_t& ea,
+                                   const bisect_args_t& ba, bool fb, rng_t& rng)
                                 {
-                                    auto [x, xcache] = state.sample_x(u, v, beta, maxiter, tol, ea, fb, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
+                                    auto [x, xcache] = state.sample_x(u, v, beta, ea, ba, fb, rng);
+                                    return python::make_tuple(x, xcache);
                                 })
                           .def("sample_t",
-                               +[](state_t& state,  size_t v, double beta, size_t maxiter, double tol,
-                                   const dentropy_args_t& ea, bool fb, rng_t& rng)
+                               +[](state_t& state, size_t v, double beta,
+                                   const dentropy_args_t& ea,
+                                   const bisect_args_t& ba, bool fb, rng_t& rng)
                                 {
-                                    auto [x, xcache] = state.sample_t(v, beta, maxiter, tol, ea, fb, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
+                                    auto [x, xcache] = state.sample_t(v, beta, ea, ba, fb, rng);
+                                    return python::make_tuple(x, xcache);
                                 })
                           .def("sample_xl1",
-                               +[](state_t& state, double minval, double maxval, double beta, size_t maxiter, double tol,
-                                   const dentropy_args_t& ea, rng_t& rng)
+                               +[](state_t& state, double beta,
+                                   const dentropy_args_t& ea,
+                                   const bisect_args_t& ba, rng_t& rng)
                                 {
-                                    auto [x, xcache] = state.sample_xl1(beta, minval, maxval, maxiter, tol, ea, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
+                                    auto [x, xcache] = state.sample_xl1(beta, ea, ba, rng);
+                                    return python::make_tuple(x, xcache);
                                 })
                           .def("sample_tl1",
-                               +[](state_t& state, double minval, double maxval, double beta, size_t maxiter, double tol,
-                                   const dentropy_args_t& ea, rng_t& rng)
+                               +[](state_t& state, double beta,
+                                   const dentropy_args_t& ea,
+                                   const bisect_args_t& ba, rng_t& rng)
                                 {
-                                    auto [x, xcache] = state.sample_tl1(beta, minval, maxval, maxiter, tol, ea, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
-                                })
-                          .def("sample_delta",
-                               +[](state_t& state, double minval, double maxval, double beta, size_t maxiter, double tol,
-                                   const dentropy_args_t& ea, rng_t& rng)
-                                {
-                                    auto [x, xcache] = state.sample_delta(beta, minval, maxval, maxiter, tol, ea, rng);
-                                    return python::make_tuple(x, to_dict(xcache));
-                                })
-                          .def("sample_val_lprob",
-                               +[](state_t& state, double x, python::object xc, double beta)
-                                {
-                                    std::map<double, double> xcache;
-                                    auto from_dict = [](python::dict d, auto& m)
-                                        {
-                                            auto items = python::list(d.items());
-                                            for (int i = 0; i < len(items); ++i)
-                                            {
-                                                m[python::extract<double>(items[i][0])] =
-                                                    python::extract<double>(items[i][1]);
-                                            }
-                                        };
-                                    from_dict(python::dict(xc), xcache);
-                                    return state.sample_val_lprob(x, xcache, beta);
+                                    auto [x, xcache] = state.sample_tl1(beta, ea, ba, rng);
+                                    return python::make_tuple(x, xcache);
                                 })
                           .def("quantize_x",
+                               +[](state_t& state, double x)
+                                {
+                                    state.quantize_x(x);
+                                })
+                          .def("set_xdelta",
                                +[](state_t& state, double delta)
                                 {
-                                    state.quantize_x(delta);
+                                    state.requantize_all_x(delta);
                                 })
-                          .def("get_xvals", +[](state_t& state)
-                                             {
-                                                 return wrap_vector_not_owned<double>(state.get_xvals());
-                                             })
-                          .def("get_tvals", +[](state_t& state)
-                                             {
-                                                 return wrap_vector_not_owned<double>(state.get_tvals());
-                                             })
+                          .def("get_xdelta",
+                               +[](state_t& state)
+                                {
+                                    return state._xdelta;
+                                })
+                          .def("set_tdelta",
+                               +[](state_t& state, double delta)
+                                {
+                                    state.requantize_all_theta(delta);
+                                })
+                          .def("get_tdelta",
+                               +[](state_t& state)
+                                {
+                                    return state._tdelta;
+                                })
+                          .def("get_xvals",
+                               +[](state_t& state)
+                                {
+                                    return wrap_vector_not_owned<double>(state.get_xvals());
+                                })
+                          .def("get_tvals",
+                               +[](state_t& state)
+                                {
+                                    return wrap_vector_not_owned<double>(state.get_tvals());
+                                })
                           .def("node_TE", &state_t::node_TE)
                           .def("node_MI", &state_t::node_MI)
                           .def("node_cov", &state_t::node_cov)
@@ -297,7 +316,7 @@ REGISTER_MOD
                                    boost::any aei, bool keep_iter,
                                    dentropy_args_t ea, bool exact,
                                    bool knn, bool keep_all, bool gradient, double h,
-                                   size_t f_max_iter, double tol, bool allow_edges,
+                                   const bisect_args_t& ba, bool allow_edges,
                                    bool include_edges, bool use_hint, size_t nrandom,
                                    bool verbose, rng_t& rng)
                                 {
@@ -314,14 +333,14 @@ REGISTER_MOD
                                                  ret = state.template get_candidate_edges<true>
                                                           (g, k, r, max_rk, epsilon, c_stop, max_iter,
                                                            w, ei, ea, exact, knn, keep_all,
-                                                           gradient, h, f_max_iter, tol,
+                                                           gradient, h, ba,
                                                            allow_edges, include_edges,
                                                            use_hint, nrandom, verbose, rng);
                                              else
                                                  ret = state.template get_candidate_edges<false>
                                                           (g, k, r, max_rk, epsilon, c_stop, max_iter,
                                                            w, ei, ea, exact, knn, keep_all,
-                                                           gradient, h, f_max_iter, tol,
+                                                           gradient, h, ba,
                                                            allow_edges, include_edges,
                                                            use_hint, nrandom, verbose, rng);
                                          })();

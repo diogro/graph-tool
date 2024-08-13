@@ -334,12 +334,14 @@ class UncertainBaseState(EntropyState):
             g.ep.eprob = g.new_ep("double")
 
         u = self.get_graph()
-        libinference.collect_marginal(g._Graph__graph,
-                                      u._Graph__graph,
-                                      _prop("e", g, g.ep.count))
-        g.gp.count += 1
-        g.ep.eprob.fa = g.ep.count.fa
-        g.ep.eprob.fa /= g.gp.count
+        try:
+            libinference.collect_marginal(g._Graph__graph,
+                                          u._Graph__graph,
+                                          _prop("e", g, g.ep.count))
+        finally:
+            g.gp.count += 1
+            g.ep.eprob.fa = g.ep.count.fa
+            g.ep.eprob.fa /= g.gp.count
         return g
 
     def collect_marginal_multigraph(self, g=None):

@@ -31,30 +31,33 @@
 #include "../../../generation/sampler.hh"
 #include "openmp.hh"
 
+#include "dynamics_elist_state.hh"
+
 namespace graph_tool
 {
 using namespace boost;
 using namespace std;
 
-typedef multi_array_ref<int64_t,2> elist_t;
-
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
     ((state, &, State&, 0))                                                    \
+    ((ecandidates,, elist_t, 0))                                               \
     ((beta,, double, 0))                                                       \
-    ((elist,, elist_t, 0))                                                     \
-    ((pmove,, double, 0))                                                      \
-    ((ptmove,, double, 0))                                                     \
+    ((preplace,, double, 0))                                                   \
     ((pswap,, double, 0))                                                      \
+    ((d,, size_t, 0))                                                          \
+    ((pself,, double, 0))                                                      \
+    ((puniform,, double, 0))                                                   \
+    ((pedge,, double, 0))                                                      \
+    ((pnearby,, double, 0))                                                    \
+    ((pcandidates,, double, 0))                                                \
     ((entropy_args,, dentropy_args_t, 0))                                      \
     ((verbose,, int, 0))                                                       \
-    ((sequential,, bool, 0))                                                   \
-    ((deterministic,, bool, 0))                                                \
     ((parallel,, bool, 0))                                                     \
     ((niter,, size_t, 0))
 
 
-enum class move_t { move = 0, tmove, swap, null };
+enum class move_t { replace = 0, swap, null };
 
 ostream& operator<<(ostream& s, move_t& v);
 
@@ -79,30 +82,31 @@ struct MCMC
         MCMCDynamicsState(ATs&&... as)
             : MCMCDynamicsStateBase<Ts...>(as...),
               _vlist(num_edges(_state._u)),
-              _candidates(num_vertices(_state._u)),
-              _vmutex(num_vertices(_state._u)),
-              _vlocked(num_vertices(_state._u), false)
+              _vmutex(num_vertices(_state._u))
         {
+            _elist_states_free.reserve(size_t(get_num_threads()));
+            for (size_t i = 0; i < size_t(get_num_threads()); ++i)
+                _elist_states_free.emplace_back(_ecandidates, _candidates, _d,
+                                                _state._self_loops ? _pself : 0,
+                                                _puniform, _pedge, _pnearby,
+                                                _pcandidates, _state._u);
+
+            _elist_states_edges.reserve(size_t(get_num_threads()));
+            for (size_t i = 0; i < size_t(get_num_threads()); ++i)
+                _elist_states_edges.emplace_back(_ecandidates, _candidates, 1,
+                                                 _state._self_loops ? _pself : 0,
+                                                 0, 1, 0, 0,
+                                                _state._u);
+
             std::iota(_vlist.begin(), _vlist.end(), 0);
-            _state._eweight.reserve(2 * _elist.shape()[0]);
-            _state._x.reserve(2 * _elist.shape()[0]);
+            _state._eweight.reserve(2 * num_edges(_state._u));
+            _state._x.reserve(2 * num_edges(_state._u));
             _dS.resize(get_num_threads());
+            _swaps.resize(get_num_threads());
 
-            std::vector<move_t> moves = {move_t::move, move_t::tmove, move_t::swap};
-            std::vector<double> probs = {_pmove, _ptmove, _pswap};
+            std::vector<move_t> moves = {move_t::replace, move_t::swap};
+            std::vector<double> probs = {_preplace, _pswap};
             _move_sampler = Sampler<move_t, mpl::false_>(moves, probs);
-
-            for (auto e : edges_range(_state._u))
-                _edges.emplace_back(source(e, _state._u),
-                                    target(e, _state._u));
-            _swaps.resize(_edges.size());
-
-            for (size_t i = 0; i < _elist.shape()[0]; ++i)
-            {
-                auto [u, v] = std::tie(_elist[i][0], _elist[i][1]);
-                _candidates[u].push_back(v);
-                _candidates[v].push_back(u);
-            }
         }
 
         Sampler<move_t, mpl::false_> _move_sampler;
@@ -110,17 +114,23 @@ struct MCMC
         typedef typename State::xval_t xval_t;
 
         std::vector<size_t> _vlist;
-        std::vector<std::tuple<size_t, size_t>> _edges;
-        std::vector<std::vector<size_t>> _candidates;
 
         struct swap_t
         {
             size_t u;
             size_t v;
-            size_t s; // can be null
-            size_t t;
-            size_t pos_uv;
-            size_t pos_st;
+            size_t s;
+            size_t t;  // can be null
+
+            size_t m_uv;
+            size_t m_sv;
+            size_t m_st;
+            size_t m_ut;
+
+            double x_uv;
+            double x_sv;
+            double x_st;
+            double x_ut;
         };
 
         std::vector<swap_t> _swaps;
@@ -128,229 +138,165 @@ struct MCMC
         constexpr static move_t _null_move = move_t::null;
 
         std::vector<std::recursive_mutex> _vmutex;
-        std::vector<uint8_t> _vlocked;
 
-        std::vector<std::tuple<move_t,double>> _dS;
-
-        std::tuple<size_t, xval_t> edge_state(size_t u, size_t v)
-        {
-            std::tuple<size_t, xval_t> ret;
-            #pragma omp critical (swap_dS)
-            ret = _state.edge_state(u, v);
-            return ret;
-        }
+        std::vector<std::tuple<move_t, double, double, double>> _dS;
 
         template <class RNG>
         bool stage_proposal(size_t pos, RNG& rng)
         {
-            auto& [u, v, s, t, pos_uv, pos_st] = _swaps[pos];
-
-            std::bernoulli_distribution coin(.5);
-
-            auto iter = uniform_sample_iter(_edges.begin(), _edges.end(), rng);
-            std::tie(u, v) = *iter;
-            pos_uv = iter - _edges.begin();
-            if (!graph_tool::is_directed(_state._u) && coin(rng))
-                std::swap(u, v);
-
-            auto [m, x] = edge_state(u, v);
-
-            auto& [move, dS] = _dS[get_thread_num()];
+            auto& [u, v, s, t, m_uv, m_st, m_sv, m_ut, x_uv, x_st, x_sv, x_ut]
+                = _swaps[get_thread_num()];
+            auto& [move, dS, lf, lb] = _dS[get_thread_num()];
             dS = 0;
+            lf = 0;
+            lb = 0;
 
             move = _move_sampler(rng);
+
+            auto& fs = get_elist_state_free();
+            auto& es = get_elist_state_edges();
+
+            if (_parallel && !std::isinf(_beta))
+                _move_mutex.lock_shared();
+
+            std::tie(v, u) = es.sample_edge(rng);
+            s = fs.sample_edge(v, rng);
+
+            if (move == move_t::swap)
+                t = es.sample_edge(s, rng);
+
+            if (!std::isinf(_beta))
+            {
+                if (move == move_t::replace)
+                {
+                    lf = es.log_prob(v, u);
+                    lf += fs.template log_prob<true>(v, s);
+                    double lfa;
+                    lfa = es.log_prob(v, s);
+                    lfa += fs.template log_prob<true>(v, u);
+                    lf = log_sum_exp(lf, lfa);
+                }
+                else
+                {
+                    lf = es.log_prob(v, u);
+                    lf += fs.template log_prob<true>(v, s);
+                    lf += es.template log_prob<true>(s, t);
+
+                    double lfa;
+                    lfa = es.log_prob(v, s);
+                    lfa += fs.template log_prob<true>(v, u);
+                    lfa += es.template log_prob<true>(u, t);
+                    lf = log_sum_exp(lf, lfa);
+
+                    lfa = es.log_prob(t, u);
+                    lfa += fs.template log_prob<true>(t, s);
+                    lfa += es.template log_prob<true>(s, v);
+                    lf = log_sum_exp(lf, lfa);
+
+                    lfa = es.log_prob(t, s);
+                    lfa += fs.template log_prob<true>(t, u);
+                    lfa += es.template log_prob<true>(u, v);
+                    lf = log_sum_exp(lf, lfa);
+                }
+            }
+
+            if (_parallel && !std::isinf(_beta))
+                _move_mutex.unlock_shared();
+
+            if (_parallel)
+            {
+                // if (std::set({u, v, s, t}).size() < 4)
+                // {
+                //     move = move_t::null;
+                //     return true;
+                // }
+
+                if (std::isinf(_beta))
+                {
+                    auto ret = (move == move_t::replace) ?
+                        std::try_lock(_vmutex[u], _vmutex[v], _vmutex[s]) :
+                        std::try_lock(_vmutex[u], _vmutex[v], _vmutex[s],
+                                      _vmutex[t]);
+                    if (ret != -1)
+                        return false;
+                }
+                else
+                {
+                    if (move == move_t::replace)
+                        std::lock(_vmutex[u], _vmutex[v], _vmutex[s]);
+                    else
+                        std::lock(_vmutex[u], _vmutex[v], _vmutex[s], _vmutex[t]);
+                }
+            }
+
+            std::tie(m_uv, x_uv) = _state.edge_state(u, v);
+            std::tie(m_sv, x_sv) = _state.edge_state(s, v);
+
+            if (move == move_t::swap)
+            {
+                std::tie(m_st, x_st) = _state.edge_state(s, t);
+                std::tie(m_ut, x_ut) = _state.edge_state(u, t);
+            }
+
             switch (move)
             {
-            case move_t::move:
+            case move_t::replace:
                 {
-                    auto iter = uniform_sample_iter(_edges.begin(), _edges.end(), rng);
-                    std::tie(s, t) = *iter;
-                    pos_st = iter - _edges.begin();
-                    auto [m2, x2] = edge_state(s, t);
-                    if (x == x2)
+                    if ((!_state._self_loops && (u == v || s == v)) ||
+                        x_uv == x_sv)
                     {
-                        u = v = s = t = numeric_limits<size_t>::max();
+                        proposal_unlock(pos);
                         move = move_t::null;
-                        return true;
+                        break;
                     }
 
-                    if (_parallel)
-                    {
-                        auto ret = std::try_lock(_vmutex[u], _vmutex[v],
-                                                 _vmutex[s], _vmutex[t]);
-                        if (ret == -1)
-                        {
-                            if (_vlocked[u] || _vlocked[v] ||
-                                _vlocked[s] || _vlocked[t])
-                            {
-                                _vmutex[u].unlock();
-                                _vmutex[v].unlock();
-                                _vmutex[s].unlock();
-                                _vmutex[t].unlock();
-                                return false;
-                            }
-                            else
-                            {
-                                _vlocked[u] = true;
-                                _vmutex[u].unlock();
-                                _vlocked[v] = true;
-                                _vmutex[v].unlock();
-                                _vlocked[s] = true;
-                                _vmutex[s].unlock();
-                                _vlocked[t] = true;
-                                _vmutex[t].unlock();
-                            }
-                        }
-                    }
-
-                    // swap u, v with s, t
-
-                    if (v == t)
-                    {
-                        dS += _state._dstate->get_edges_dS({u, s}, v, {x, x2}, {x2, x});
-                    }
-                    else
-                    {
-                        dS += _state._dstate->get_edge_dS(u, v, x, x2);
-                        dS += _state._dstate->get_edge_dS(s, t, x2, x);
-                    }
-
+                    // swap s->v and u->v
+                    dS += _state.dstate_edges_dS_a({u, s}, v,
+                                                   {x_uv, x_sv},
+                                                   {x_sv, x_uv},
+                                                   _entropy_args);
                     if (!graph_tool::is_directed(_state._u))
                     {
-                        if (u == s)
-                        {
-                            dS += _state._dstate->get_edges_dS({v, t}, u, {x, x2}, {x2, x});
-                        }
-                        else
-                        {
-                            dS += _state._dstate->get_edge_dS(v, u, x, x2);
-                            dS += _state._dstate->get_edge_dS(t, s, x2, x);
-                        }
-                    }
-                }
-                break;
-            case move_t::tmove:
-                {
-                    s = numeric_limits<size_t>::max();
-                    auto& c = _candidates[v];
-                    if (c.empty())
-                    {
-                        std::uniform_int_distribution<size_t>
-                            vsample(0, num_vertices(_state._u)-1);
-                        t = v;
-                        while (t == v)
-                            t = vsample(rng);
-                    }
-                    else
-                    {
-                        t = uniform_sample(c, rng);
-                    }
-
-                    if (_verbose > 0)
-                        cout << u << " " << v << " " << t << " " << get<0>(edge_state(v, t)) << endl;
-
-                    if (u == t || v == t || u == v || get<0>(edge_state(v, t)) > 0)
-                    {
-                        u = v = s = t = numeric_limits<size_t>::max();
-                        move = move_t::null;
-                        return true;
-                    }
-
-                    if (_parallel)
-                    {
-                        auto ret = std::try_lock(_vmutex[u], _vmutex[v], _vmutex[t]);
-                        if (ret == -1)
-                        {
-                            if (_vlocked[u] || _vlocked[v] || _vlocked[t])
-                            {
-                                _vmutex[u].unlock();
-                                _vmutex[v].unlock();
-                                _vmutex[t].unlock();
-                                return false;
-                            }
-                            else
-                            {
-                                _vlocked[u] = true;
-                                _vmutex[u].unlock();
-                                _vlocked[v] = true;
-                                _vmutex[v].unlock();
-                                _vlocked[t] = true;
-                                _vmutex[t].unlock();
-                            }
-                        }
-                    }
-
-                    // swap u with t
-
-                    //t->v add and u->v remove
-                    dS += _state._dstate->get_edges_dS({u, t}, v, {x, 0}, {0, x});
-
-                    if (!graph_tool::is_directed(_state._u))
-                    {
-                        //t<-v add
-                        dS += _state._dstate->get_edge_dS(v, t, 0, x);
-                        //u<-v remove
-                        dS += _state._dstate->get_edge_dS(v, u, x, 0);
+                        dS += _state.dstate_edge_dS(v, u, x_uv, x_sv,
+                                                    _entropy_args, false);
+                        dS += _state.dstate_edge_dS(v, s, x_sv, x_uv,
+                                                    _entropy_args, false);
                     }
                 }
                 break;
             case move_t::swap:
                 {
-                    auto iter = uniform_sample_iter(_edges.begin(), _edges.end(), rng);
-                    std::tie(s, t) = *iter;
-                    pos_st = iter - _edges.begin();
-                    if (!graph_tool::is_directed(_state._u) && coin(rng))
-                        std::swap(s, t);
-
-                    if (pos_st == pos_uv || u == v || u == t || v == t || u == s || v == s || s == t ||
-                        get<0>(edge_state(u, t)) > 0 ||
-                        get<0>(edge_state(s, v)) > 0)
+                    if ((!_state._self_loops && (u == v || s == v ||
+                                                 s == t || u == t)) ||
+                        (x_uv == x_sv && x_st == x_sv) || (u == s) || (v == t))
                     {
-                        u = v = s = t = numeric_limits<size_t>::max();
+                        proposal_unlock(pos);
                         move = move_t::null;
-                        return true;
+                        break;
                     }
 
-                    if (_parallel)
-                    {
-                        auto ret = std::try_lock(_vmutex[u], _vmutex[v], _vmutex[s], _vmutex[t]);
-                        if (ret == -1)
-                        {
-                            if (_vlocked[u] || _vlocked[v] || _vlocked[s] || _vlocked[t])
-                            {
-                                _vmutex[u].unlock();
-                                _vmutex[v].unlock();
-                                _vmutex[s].unlock();
-                                _vmutex[t].unlock();
-                                return false;
-                            }
-                            else
-                            {
-                                _vlocked[u] = true;
-                                _vmutex[u].unlock();
-                                _vlocked[v] = true;
-                                _vmutex[v].unlock();
-                                _vlocked[s] = true;
-                                _vmutex[s].unlock();
-                                _vlocked[t] = true;
-                                _vmutex[t].unlock();
-                            }
-                        }
-                    }
-
-                    auto [m2, x2] = edge_state(s, t);
-
-                    //dS for v<-s add and v<-u remove
-                    dS += _state._dstate->get_edges_dS({u, s}, v, {x, 0}, {0, x2});
-                    //dS for t<-u add and t<-s remove
-                    dS += _state._dstate->get_edges_dS({s, u}, t, {x2, 0}, {0, x});
-
+                    if (x_uv != x_sv)
+                        dS += _state.dstate_edges_dS_a({u, s}, v,
+                                                       {x_uv, x_sv},
+                                                       {x_sv, x_uv},
+                                                     _entropy_args);
+                    if (x_st != x_ut)
+                        dS += _state.dstate_edges_dS_a({s, u}, t,
+                                                       {x_st, x_ut},
+                                                       {x_ut, x_st},
+                                                       _entropy_args);
                     if (!graph_tool::is_directed(_state._u))
                     {
-                        //dS for u<-t add and u<-v remove
-                        dS += _state._dstate->get_edges_dS({v, t}, u, {x, 0}, {0, x});
-                        //dS for s<-v add and s<-t remove
-                        dS += _state._dstate->get_edges_dS({t, v}, s, {x2, 0}, {0, x2});
+                        if (x_uv != x_sv || x_ut != x_st)
+                            dS += _state.dstate_edges_dS_a({v, t}, u,
+                                                           {x_uv, x_ut},
+                                                           {x_sv, x_st},
+                                                           _entropy_args);
+                        if (x_st != x_ut || x_sv != x_uv)
+                            dS += _state.dstate_edges_dS_a({t, v}, s,
+                                                           {x_st, x_sv},
+                                                           {x_ut, x_uv},
+                                                           _entropy_args);
                     }
                 }
                 break;
@@ -361,18 +307,33 @@ struct MCMC
             return true;
         }
 
-        void proposal_unlock(size_t pos)
+        void proposal_unlock(size_t)
         {
             if (!_parallel)
                 return;
 
-            auto& [u, v, s, t, pos_uv, pos_st] = _swaps[pos];
+            auto& [u, v, s, t, m_uv, m_st, m_sv, m_ut, x_uv, x_st, x_sv, x_ut]
+                = _swaps[get_thread_num()];
+            auto& [move, dS, lf, lb] = _dS[get_thread_num()];
 
-            for (auto x : std::array<size_t, 4>({u, v, s, t}))
+            switch (move)
             {
-                if (x == numeric_limits<size_t>::max())
-                    continue;
-                _vlocked[x] = false;
+            case move_t::replace:
+                {
+                    std::array<size_t, 3> vs({u,v,s});
+                    for (auto w : vs)
+                        _vmutex[w].unlock();
+                }
+                break;
+            case move_t::swap:
+                {
+                    std::array<size_t, 4> vs({u,v,s,t});
+                    for (auto w : vs)
+                        _vmutex[w].unlock();
+                }
+                break;
+            default:
+                break;
             }
         }
 
@@ -381,78 +342,126 @@ struct MCMC
         {
             if (!_parallel)
                 stage_proposal(pos, rng);
-            auto& [move, dS] = _dS[get_thread_num()];
+            auto& [move, dS, lf, lb] = _dS[get_thread_num()];
             return move;
         }
 
-        template <class Lock>
-        void perform_move(size_t pos, move_t move, Lock&)
+        void lock_move()
         {
-            auto& [u, v, s, t, pos_uv, pos_st] = _swaps[pos];
+            _move_mutex.lock();
+        }
 
-            auto [m, x] = edge_state(u, v);
+        void unlock_move()
+        {
+            _move_mutex.unlock();
+        }
 
-            size_t m2;
-            double x2;
+        void update_edge(size_t u, size_t v, size_t m, size_t nm, double x,
+                         double nx, bool dstate = true)
+        {
+            if (m == 0 && nm == 0)
+                return;
+            if (nm > m)
+            {
+                if (nm != m)
+                    _state.add_edge(u, v, nm - m, nx, [](){}, dstate);
+                if (m > 0 && nx != x)
+                    _state.update_edge(u, v, nx, [](){}, dstate);
+            }
+            else
+            {
+                if (nm != m)
+                    _state.remove_edge(u, v, m - nm, [](){}, dstate);
+                if (nm > 0 && nx != x)
+                    _state.update_edge(u, v, nx, [](){}, dstate);
+            }
+        }
+
+        double update_edge_dS(size_t u, size_t v, size_t m, size_t nm, double x,
+                              double nx, entropy_args_t& ea)
+        {
+            double dS = 0;
+            if (m == 0 && nm == 0)
+                return dS;
+            if (nm > m)
+            {
+                if (nm != m)
+                    dS += _state.add_edge_dS(u, v, nm - m, nx, ea, false);
+                if (m > 0 && nx != x)
+                    dS += _state.update_edge_dS(u, v, nx, ea, false);
+            }
+            else
+            {
+                if (nm != m)
+                    dS += _state.remove_edge_dS(u, v, m - nm, ea, false);
+                if (nm > 0 && nx != x)
+                    dS += _state.update_edge_dS(u, v, nx, ea, false);
+            }
+            return dS;
+        }
+
+        void perform_move(size_t pos, move_t move)
+        {
+            auto& [u, v, s, t, m_uv, m_st, m_sv, m_ut, x_uv, x_st, x_sv, x_ut]
+                = _swaps[get_thread_num()];
+            auto& [move_, dS, lf, lb] = _dS[get_thread_num()];
 
             switch (move)
             {
-            case move_t::move:
-                std::tie(m2, x2) = edge_state(s, t);
-                if (m2 < m)
-                    _state.remove_edge(u, v, m - m2);
-                if (m < m2)
-                    _state.add_edge(u, v, m2 - m, x2);
-                if (m2 > 0 && m > 0)
-                    _state.update_edge(u, v, x2);
-                if (m < m2)
-                    _state.remove_edge(s, t, m2 - m);
-                if (m > m2)
-                    _state.add_edge(s, t, m - m2, x);
-                if (m2 > 0 && m > 0)
-                    _state.update_edge(s, t, x);
-                _edges[pos_uv] = {s, t};
-                _edges[pos_st] = {u, v};
-                break;
-            case move_t::tmove:
-                _state.remove_edge(u, v, m);
-                _state.add_edge(t, v, m, x);
-                _edges[pos_uv] = {t, v};
+            case move_t::replace:
+                update_edge(u, v, m_uv, m_sv,
+                            x_uv, x_sv);
+                update_edge(s, v, m_sv, m_uv,
+                            x_sv, x_uv);
+                if (_verbose > 0)
+                    cout << "replace\t" << v << ":\t " << u
+                         << " ( " << x_uv << " )"
+                         << " ->\t" << s
+                         << " ( " << x_sv << " )" << ",\t"
+                         << dS << " " << lf << " " << lb << endl;
                 break;
             case move_t::swap:
-                std::tie(m2, x2) = edge_state(s, t);
-                _state.remove_edge(u, v, m);
-                _state.remove_edge(s, t, m2);
-                _state.add_edge(u, t, m, x);
-                _state.add_edge(s, v, m2, x2);
-                _edges[pos_uv] = {u, t};
-                _edges[pos_st] = {s, v};
+                assert(u != s);
+                update_edge(u, v, m_uv, m_sv,
+                                  x_uv, x_sv);
+                update_edge(s, v, m_sv, m_uv,
+                                  x_sv, x_uv);
+                assert(t != v);
+                update_edge(s, t, m_st, m_ut,
+                                  x_st, x_ut);
+                update_edge(u, t, m_ut, m_st,
+                                  x_ut, x_st);
+
+                if (_verbose > 0)
+                {
+                    cout << "swap (\t" << u << ",\t" << v << ") -> (\t"
+                         << s << ",\t" << t << "),\t"
+                         << dS << " " << lf << " " << lb << endl;
+                    cout << x_uv << " " << x_st << " "
+                         << x_ut << " " << x_sv << endl;
+                }
                 break;
             default:
                 break;
             }
+            proposal_unlock(pos); //TODO: rename-> unlock_proposal/move_unlock
+            unlock_move();
         }
 
-        class DummyLock
-        {
-        public:
-            void unlock() {}
-        };
-
-        void perform_move(size_t pos, move_t& move)
-        {
-            DummyLock lock;
-            perform_move(pos, move, lock);
-        }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t pos, move_t move)
+        virtual_move_dS(size_t, move_t move)
         {
-            auto& [u, v, s, t, pos_uv, pos_st] = _swaps[pos];
-            auto& [move_, dS_] = _dS[get_thread_num()];
+            auto& [u, v, s, t, m_uv, m_st, m_sv, m_ut, x_uv, x_st, x_sv, x_ut]
+                = _swaps[get_thread_num()];
+            auto& [move_, dS_, lf_, lb] = _dS[get_thread_num()];
+            auto& es = get_elist_state_edges();
+            auto& fs = get_elist_state_free();
 
             double dS = dS_;
             dS *= _entropy_args.alpha;
+            double lf = lf_;
+            lb = 0;
 
             assert(move == move_);
 
@@ -461,108 +470,116 @@ struct MCMC
                 ea.xl1 = 0;
             ea.normal = false;
 
-            auto [m, x] = edge_state(u, v);
-            size_t m2;
-            double x2;
-
             switch (move)
             {
-            case move_t::move:
-                std::tie(m2, x2) = edge_state(s, t);
-                #pragma omp critical (swap_dS)
+            case move_t::replace:
+                if (u != s)
                 {
-                    if (m2 < m)
+                    dS += update_edge_dS(u, v, m_uv, m_sv,
+                                               x_uv, x_sv, ea);
+                    update_edge(u, v, m_uv, m_sv,
+                                      x_uv, x_sv, false);
+                    dS += update_edge_dS(s, v, m_sv, m_uv,
+                                               x_sv, x_uv, ea);
+
+                    if (!std::isinf(_beta))
                     {
-                        dS += _state.remove_edge_dS(u, v, m - m2, ea, false);
-                        _state.remove_edge(u, v, m - m2);
-                    }
-                    if (m < m2)
-                    {
-                        dS += _state.add_edge_dS(u, v, m2 - m, x2, ea, false);
-                        _state.add_edge(u, v, m2 - m, x2);
-                    }
-                    if (m2 > 0 && m > 0)
-                    {
-                        dS += _state.update_edge_dS(u, v, x2, ea, false);
-                         _state.update_edge(u, v, x2);
-                    }
-                    if (m < m2)
-                    {
-                        dS += _state.remove_edge_dS(s, t, m2 - m, ea, false);
-                        _state.remove_edge(s, t, m2 - m);
-                    }
-                    if (m > m2)
-                    {
-                        dS += _state.add_edge_dS(s, t, m - m2, x, ea, false);
-                        _state.add_edge(s, t, m - m2, x);
+                        update_edge(s, v, m_sv, m_uv,
+                                          x_sv, x_uv, false);
+
+                        lb = es.log_prob(v, s);
+                        lb += fs.template log_prob<true>(v, u);
+
+                        double lba;
+                        lba = es.log_prob(v, u);
+                        lba += fs.template log_prob<true>(v, s);
+
+                        lb = log_sum_exp(lb, lba);
+
+                        update_edge(s, v, m_uv, m_sv,
+                                          x_uv, x_sv, false);
                     }
 
-                    if (m2 > 0 && m > 0)
-                        dS += _state.update_edge_dS(s, t, x, ea, false);
-
-                    if (m > m2)
-                        _state.remove_edge(s, t, m - m2);
-                    if (m < m2)
-                        _state.add_edge(s, t, m2 - m, x2);
-                    if (m2 > 0 && m > 0)
-                        _state.update_edge(u, v, x);
-                    if (m < m2)
-                        _state.remove_edge(u, v, m2 - m);
-                    if (m2 < m)
-                        _state.add_edge(u, v, m - m2, x);
+                    update_edge(u, v, m_sv, m_uv,
+                                      x_sv, x_uv, false);
                 }
-                break;
-            case move_t::tmove:
-                #pragma omp critical (swap_dS)
-                {
-                    dS += _state.remove_edge_dS(u, v, m, ea, false);
-                    _state.remove_edge(u, v, m, [](){}, false);
-                    dS += _state.add_edge_dS(t, v, m, x, ea, false);
-                    _state.add_edge(u, v, m, x, [](){}, false);
-                }
+                // if (_verbose > 0)
+                //     cout << "replace " << v << ": " << u << " -> " << s << ", "
+                //          << dS << " " << lf << " " << lb << endl;
                 break;
             case move_t::swap:
-                std::tie(m2, x2) = edge_state(s, t);
-                #pragma omp critical (swap_dS)
+                assert(u != s);
+                dS += update_edge_dS(u, v, m_uv, m_sv,
+                                           x_uv, x_sv, ea);
+                update_edge(u, v, m_uv, m_sv,
+                                  x_uv, x_sv, false);
+                dS += update_edge_dS(s, v, m_sv, m_uv,
+                                           x_sv, x_uv, ea);
+                update_edge(s, v, m_sv, m_uv,
+                                  x_sv, x_uv, false);
+                assert(t != v);
+                dS += update_edge_dS(u, t, m_ut, m_st,
+                                           x_ut, x_st, ea);
+                update_edge(u, t, m_ut, m_st,
+                                  x_ut, x_st, false);
+                dS += update_edge_dS(s, t, m_st, m_ut,
+                                           x_st, x_ut, ea);
+
+                if (!std::isinf(_beta))
                 {
-                    dS += _state.remove_edge_dS(u, v, m, ea, false);
-                    _state.remove_edge(u, v, m, [](){}, false);
-                    dS += _state.remove_edge_dS(s, t, m2, ea, false);
-                    _state.remove_edge(s, t, m2, [](){}, false);
+                    update_edge(s, t, m_st, m_ut,
+                                      x_st, x_ut, false);
 
-                    dS += _state.add_edge_dS(u, t, m, x, ea, false);
-                    _state.add_edge(u, t, m, x, [](){}, false);
+                    lb = es.log_prob(v, u);
+                    lb += fs.template log_prob<true>(v, s);
+                    lb += es.template log_prob<true>(s, t);
 
-                    dS += _state.add_edge_dS(s, v, m2, x2, ea, false);
+                    double lba;
+                    lba = es.log_prob(v, s);
+                    lba += fs.template log_prob<true>(v, u);
+                    lba += es.template log_prob<true>(u, t);
+                    lb = log_sum_exp(lb, lba);
 
-                    _state.remove_edge(u, t, m, [](){}, false);
-                    _state.add_edge(s, t, m2, x2, [](){}, false);
-                    _state.add_edge(u, v, m, x, [](){}, false);
+                    lba = es.log_prob(t, u);
+                    lba += fs.template log_prob<true>(t, s);
+                    lba += es.template log_prob<true>(s, v);
+                    lb = log_sum_exp(lb, lba);
+
+                    lba = es.log_prob(t, s);
+                    lba += fs.template log_prob<true>(t, u);
+                    lba += es.template log_prob<true>(u, v);
+                    lb = log_sum_exp(lb, lba);
+
+                    update_edge(s, t, m_ut, m_st,
+                                      x_ut, x_st, false);
                 }
+
+                update_edge(u, t, m_st, m_ut,
+                                  x_st, x_ut, false);
+                update_edge(s, v, m_uv, m_sv,
+                                  x_uv, x_sv, false);
+                update_edge(u, v, m_sv, m_uv,
+                                  x_sv, x_uv, false);
+                // if (_verbose > 0)
+                //     cout << "replace (" << u << ", " << v << ") -> ("
+                //          << s << ", " << t << "), "
+                //          << dS << " " << lf << " " << lb << endl;
                 break;
             default:
                 break;
             }
 
-            return {dS, 0.};
+            return {dS, lb-lf};
         }
 
-        double entropy()
+        constexpr bool is_deterministic()
         {
-            double S = _state.entropy(_entropy_args);
-            if (_entropy_args.sbm)
-                S += _state._block_state.entropy(_entropy_args);
-            return S;
+            return false;
         }
 
-        bool is_deterministic()
+        constexpr bool is_sequential()
         {
-            return _deterministic;
-        }
-
-        bool is_sequential()
-        {
-            return _sequential;
+            return false;
         }
 
         bool is_parallel()
@@ -590,6 +607,22 @@ struct MCMC
         {
             return false;
         }
+
+        auto& get_elist_state_free()
+        {
+            return _elist_states_free[get_thread_num()];
+        }
+
+        auto& get_elist_state_edges()
+        {
+            return _elist_states_edges[get_thread_num()];
+        }
+
+    private:
+        std::vector<elist_state_t<typename State::u_t>> _elist_states_free;
+        std::vector<elist_state_t<typename State::u_t>> _elist_states_edges;
+        std::vector<std::vector<size_t>> _candidates;
+        std::shared_mutex _move_mutex;
     };
 };
 

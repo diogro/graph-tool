@@ -24,6 +24,7 @@
 
 #include "graph_tool.hh"
 #include "../support/graph_state.hh"
+#include "../loops/mcmc_loop.hh"
 #include "sample_edge_sbm.hh"
 
 namespace std

@@ -56,6 +56,9 @@ struct MergeSplitStateBase
     template <class V>
     void virtual_move_unlock(V) {}
 
+    template <class Node, class Group, class Except = std::array<Group,0>>
+    double sample_new_group_lprob(const Node&, Group&, Except&& = Except()) { return 0; }
+
     constexpr static bool _parallel = false;
     constexpr static bool _relabel = false;
 };
@@ -315,12 +318,13 @@ struct MergeSplit:
     }
 
     template <bool forward=true, class RNG>
-    std::tuple<double, Group, Group>
+    std::tuple<double, double, Group, Group>
     stage_split_random(std::vector<Node>& vs, const Group& r,
                        const Group& s, RNG& rng_)
     {
         std::array<Group, 2> rt = {_null_group, _null_group};
         double dS = 0;
+        double lf_lb = 0;
 
         std::uniform_real_distribution<> unit(0, 1);
         double p0 = unit(rng_);
@@ -351,6 +355,11 @@ struct MergeSplit:
                     else
                         rt[1] = s;
                     j = 1;
+                    if constexpr (labelled)
+                    {
+                        if (!std::isinf(_beta))
+                            lf_lb = State::sample_new_group_lprob(v, rt[1]);
+                    }
                 }
             }
 
@@ -364,23 +373,29 @@ struct MergeSplit:
         if (allow_empty && vs.size() == 1)
             rt[1] = State::sample_new_group(vs.front(), rng_);
 
-        return {dS, rt[0], rt[1]};
+        return {dS, lf_lb, rt[0], rt[1]};
     }
 
     template <bool forward=true, class RNG>
-    std::tuple<double, Group, Group>
+    std::tuple<double, double, Group, Group>
     stage_split_scatter(std::vector<Node>& vs, const Group& r, const Group& s, RNG& rng_)
     {
         std::array<Group, 2> rt = {_null_group, _null_group};
         std::array<double, 2> ps;
         double dS = 0;
+        double lf_lb = 0;
 
         std::array<Group, 2> except = {r, s};
         Group t;
         if (_rlist.size() < (forward ? _N - 1 : _N))
-            t = State::template sample_new_group<false>(*_groups[forward ? r : s].begin(), rng_, except);
+        {
+            auto& v = *_groups[forward ? r : s].begin();
+            t = State::template sample_new_group<false>(v, rng_, except);
+        }
         else
+        {
             t = r;
+        }
 
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
@@ -437,6 +452,11 @@ struct MergeSplit:
                         rt[1] = s;
                     ps[0] = -numeric_limits<double>::infinity();
                     //ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                    if constexpr (labelled)
+                    {
+                        if (!std::isinf(_beta))
+                            lf_lb = State::sample_new_group_lprob(v, rt[1]);
+                    }
                 }
             }
 
@@ -464,19 +484,30 @@ struct MergeSplit:
         }
 
         if (allow_empty && vs.size() == 1)
+        {
             rt[1] = State::sample_new_group(vs.front(), rng_);
+            if constexpr (labelled)
+            {
+                if (!std::isinf(_beta))
+                    lf_lb += State::sample_new_group_lprob(vs.front(), rt[1]);
+            }
+        }
 
-        return {dS, rt[0], rt[1]};
+        return {dS, lf_lb, rt[0], rt[1]};
     }
 
     template <bool forward=true, class RNG>
-    std::tuple<double, Group, Group>
+    std::tuple<double, double, Group, Group>
     stage_split_coalesce(std::vector<Node>& vs, const Group& r,
                          const Group& s, RNG& rng_)
     {
         std::array<Group, 2> rt = {_null_group, _null_group};
         std::array<double, 2> ps;
         double dS = 0;
+        double lf_lb = 0;
+
+        if constexpr (labelled)
+            lf_lb = -std::numeric_limits<double>::quiet_NaN();
 
         std::array<Group, 2> except = {r, s};
 
@@ -559,6 +590,11 @@ struct MergeSplit:
                         rt[1] = s;
                     ps[0] = -numeric_limits<double>::infinity();
                     //ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                    if constexpr (labelled)
+                    {
+                        if (!std::isinf(_beta))
+                            lf_lb += State::sample_new_group_lprob(v, rt[1]);
+                    }
                 }
             }
 
@@ -588,12 +624,12 @@ struct MergeSplit:
         if (allow_empty && vs.size() == 1)
             rt[1] = State::sample_new_group(vs.front(), rng_);
 
-        return {dS, rt[0], rt[1]};
+        return {dS, lf_lb, rt[0], rt[1]};
     }
 
     template <class RNG, bool forward=true>
-    std::tuple<Group, Group, double, double> split(const Group& r,
-                                                   const Group& s, RNG& rng)
+    std::tuple<Group, Group, double, double, double>
+    split(const Group& r, const Group& s, RNG& rng)
     {
         std::vector<Node> vs;
         get_group_vs<>(r, vs);
@@ -602,18 +638,19 @@ struct MergeSplit:
             get_group_vs<false>(s, vs);
 
         double dS = 0;
+        double lf_lb = 0;
         std::array<Group, 2> rt = {_null_group, _null_group};
 
         switch (_stage_sampler.sample(rng))
         {
         case stage_t::random:
-            std::tie(dS, rt[0], rt[1]) = stage_split_random<forward>(vs, r, s, rng);
+            std::tie(dS, lf_lb, rt[0], rt[1]) = stage_split_random<forward>(vs, r, s, rng);
             break;
         case stage_t::scatter:
-            std::tie(dS, rt[0], rt[1]) = stage_split_scatter<forward>(vs, r, s, rng);
+            std::tie(dS, lf_lb, rt[0], rt[1]) = stage_split_scatter<forward>(vs, r, s, rng);
             break;
         case stage_t::coalesce:
-            std::tie(dS, rt[0], rt[1]) = stage_split_coalesce<forward>(vs, r, s, rng);
+            std::tie(dS, lf_lb, rt[0], rt[1]) = stage_split_coalesce<forward>(vs, r, s, rng);
             break;
         default:
             break;
@@ -704,7 +741,7 @@ struct MergeSplit:
             }
         }
 
-        return {rt[0], rt[1], dS, lp};
+        return {rt[0], rt[1], dS, lp, lf_lb};
     }
 
     template <class RNG>
@@ -717,7 +754,7 @@ struct MergeSplit:
         for (const auto& v : vs)
             _btemp[v] = State::get_group(v);
 
-        split<RNG, false>(r, s, rng);
+        double lf = get<4>(split<RNG, false>(r, s, rng));
 
         std::shuffle(vs.begin(), vs.end(), rng);
 
@@ -770,7 +807,7 @@ struct MergeSplit:
             move_node(v, _btemp[v]);
         }
 
-        return lp;
+        return lp + lf;
     }
 
     double split_prob_gibbs(const Group& r, const Group& s,
@@ -934,7 +971,7 @@ struct MergeSplit:
         }
 
         if (_verbose)
-            cout << "merge " << get_wr(r) << " " << get_wr(s);
+            cout << "merge " << r << " " << s << " " << get_wr(r) << " " << get_wr(s);
 
         double dS = merge(r, s);
 
@@ -948,13 +985,14 @@ struct MergeSplit:
     std::tuple<Group, double, double, double>
     sample_split(Group& r, Group s, RNG& rng)
     {
-        double dS, pf, pb=0;
-        std::tie(r, s, dS, pf) = split(r, s, rng);
+        double dS, pf, pf_pb, pb=0;
+        std::tie(r, s, dS, pf, pf_pb) = split(r, s, rng);
         if (!std::isinf(_beta))
             pb = merge_prob(s, r);
 
         if (_verbose)
-            cout << "split " << get_wr(r) << " " << get_wr(s)
+            cout << "split " << r << " " << s
+                 << " " << get_wr(r) << " " << get_wr(s)
                  << " " << dS << " " << pf << " " << pb << endl;
 
         return {s, dS, pf, pb};
@@ -1017,10 +1055,12 @@ struct MergeSplit:
                 push_b(_vs);
 
                 Group s;
-                std::tie(r, s, _dS, pf) = split(r, _null_group, rng);
+                double pf_pb;
+                std::tie(r, s, _dS, pf, pf_pb) = split(r, _null_group, rng);
 
                 if (!std::isinf(_beta))
                 {
+                    pf += pf_pb;
                     pf += log(State::_psplit);
                     pf += -safelog_fast(_rlist.size());
 
@@ -1031,8 +1071,9 @@ struct MergeSplit:
                 }
 
                 if (_verbose)
-                    cout << "split proposal: " << get_wr(r) << " "
-                         << get_wr(s) << " " << _dS << " " << pb << " " << pf
+                    cout << "split proposal: " << r << " " << s << " "
+                         << get_wr(r) << " " << get_wr(s) << " "
+                         << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
 
                 for (const auto& v : _vs)
@@ -1095,7 +1136,8 @@ struct MergeSplit:
                 State::relax_update(false);
 
                 if (_verbose)
-                    cout << "merge proposal: " <<  get_wr(r_) << " "
+                    cout << "merge proposal: " << r << " " << s
+                         << " " << get_wr(r_) << " "
                          << get_wr(s_) << " " << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
             }
@@ -1160,7 +1202,9 @@ struct MergeSplit:
                 State::relax_update(false);
 
                 if (_verbose)
-                    cout << "mergesplit proposal: " << _dS << " "
+                    cout << "mergesplit proposal: "
+                         << r << " " << s << " "
+                         << _dS << " "
                          << pb << " " << pf  << " "
                          << -_dS + pb - pf << endl;
             }
@@ -1198,7 +1242,9 @@ struct MergeSplit:
                 State::relax_update(false);
 
                 if (_verbose)
-                    cout << "movelabel proposal: " <<  get_wr(r) << " "
+                    cout << "movelabel proposal: "
+                         << r << " " << s << " "
+                         <<  get_wr(r) << " "
                          << get_wr(s) << " " << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
             }

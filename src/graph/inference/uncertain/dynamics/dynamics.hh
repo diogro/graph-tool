@@ -32,12 +32,10 @@
 #include "../../support/fibonacci_search.hh"
 #include "../uncertain_util.hh"
 #include "../../../generation/graph_knn.hh"
-#include "segment_sampler.hh"
 
 #include "dynamics_util.hh"
 
-#include <boost/math/tools/minima.hpp>
-#include <boost/math/special_functions/relative_difference.hpp>
+#include "bisection_sampler.hh"
 
 namespace graph_tool
 {
@@ -51,7 +49,6 @@ struct dentropy_args_t:
         : uentropy_args_t(ea) {}
 
     double alpha = 1;
-    double delta = 1e-8;
     bool xdist = true;
     bool tdist = true;
     bool xdist_uniform = false;
@@ -61,6 +58,7 @@ struct dentropy_args_t:
     bool normal = false;
     double mu = 0;
     double sigma = 1;
+    bool active = true;
 };
 
 typedef eprop_map_t<double>::type xmap_t;
@@ -72,11 +70,10 @@ typedef vprop_map_t<double>::type smap_t;
     ((x,, xmap_t, 0))                                                          \
     ((params,, python::dict, 0))                                               \
     ((theta,, tmap_t, 0))                                                      \
-    ((xmin_bound,, double, 0))                                                 \
-    ((xmax_bound,, double, 0))                                                 \
-    ((tmin_bound,, double, 0))                                                 \
-    ((tmax_bound,, double, 0))                                                 \
-    ((nmax_extend,, double, 0))                                                \
+    ((xdelta,, double, 0))                                                     \
+    ((xdelta_min,, double, 0))                                                 \
+    ((tdelta,, double, 0))                                                     \
+    ((tdelta_min,, double, 0))                                                 \
     ((disable_xdist,, bool, 0))                                                \
     ((disable_tdist,, bool, 0))                                                \
     ((self_loops,, bool, 0))                                                   \
@@ -87,21 +84,21 @@ class DStateBase
 public:
 
     virtual double get_edge_dS(size_t u, size_t v, double x, double nx) = 0;
-    virtual double get_edges_dS(std::vector<size_t>& us, size_t v,
-                                std::vector<double>& x,
-                                std::vector<double>& nx) = 0;
+    virtual double get_edges_dS(const std::vector<size_t>& us, size_t v,
+                                const std::vector<double>& x,
+                                const std::vector<double>& nx) = 0;
     virtual double get_edges_dS(const std::array<size_t,2>& us, size_t v,
                                 const std::array<double,2>& x,
                                 const std::array<double,2>& nx) = 0;
 
-    virtual double get_node_dS(size_t v, double dt) = 0;
+    virtual double get_node_dS(size_t v, double t, double nt) = 0;
     virtual double get_node_prob(size_t v) = 0;
-    virtual double get_node_prob(size_t v, size_t n, size_t t, double s) = 0;
+    virtual double get_active_prob(size_t v) = 0;
 
     virtual void update_edge(size_t u, size_t v, double x, double nx) = 0;
-    virtual void update_edges(std::vector<size_t>& us, size_t v,
-                              std::vector<double>& x,
-                              std::vector<double>& nx) = 0;
+    virtual void update_edges(const std::vector<size_t>& us, size_t v,
+                              const std::vector<double>& x,
+                              const std::vector<double>& nx) = 0;
 
     virtual double node_TE(size_t u, size_t v) = 0;
     virtual double node_MI(size_t u, size_t v) = 0;
@@ -138,22 +135,18 @@ struct Dynamics
               _v_mutex(num_vertices(_u))
         {
             _u_edges.resize(num_vertices(_u));
-            for (auto v : vertices_range(_u))
+            for (auto e : edges_range(_u))
             {
-                for (auto e : out_edges_range(v, _u))
+                auto u = source(e, _u);
+                auto v = target(e, _u);
+                get_u_edge<true>(u, v) = e;
+                if (_self_loops || u != v)
                 {
-                    if (!graph_tool::is_directed(_u) && v > target(e, _u))
-                        continue;
-
-                    get_u_edge<true>(v, target(e, _u)) = e;
-                    if (_self_loops || v != target(e, _u))
-                    {
-                        if (!_disable_xdist)
-                            hist_add(_x[e], _xhist, _xvals);
-                        _M++;
-                    }
-                    _E += _eweight[e];
+                    hist_add(_x[e], _xhist, _xvals);
+                    if (!_disable_xdist)
+                    _M++;
                 }
+                _E += _eweight[e];
             }
 
             if (!_disable_tdist)
@@ -174,7 +167,8 @@ struct Dynamics
 
         typedef BlockState block_state_t;
         BlockState& _block_state;
-        typename BlockState::g_t& _u = _block_state._g;
+        typedef typename BlockState::g_t u_t;
+        u_t& _u = _block_state._g;
         adj_list<> _dummy_hint;
         typename BlockState::eweight_t& _eweight = _block_state._eweight;
         GraphInterface::edge_t _null_edge;
@@ -269,6 +263,11 @@ struct Dynamics
             return _dstate->get_node_prob(u);
         }
 
+        double get_active_prob(size_t u)
+        {
+            return _dstate->get_active_prob(u);
+        }
+
         template <class Hist>
         size_t get_count(Hist& h, double r)
         {
@@ -299,16 +298,26 @@ struct Dynamics
             }
         }
 
-        template <class Hist>
-        double hist_entropy(size_t N, Hist& h, bool uniform, double l1,
-                            double delta, bool nonzero)
+        template <class Hist, class Vals>
+        double hist_entropy(size_t N, Hist& h, Vals& vals, bool uniform,
+                            double l1, double delta, bool nonzero)
         {
             auto W = h.size();
             double S = 0;
+
             if (N == 0)
                 return S;
-            for (auto& [x, c] : h)
-                S -= qlaplace_lprob(x, l1, delta, nonzero);
+
+            if (W > 0)
+            {
+                S -= qlaplace_lprob(vals.front(), l1, delta, nonzero);
+                S -= qlaplace_lprob(vals.back(), l1, delta, nonzero);
+                if (W >= 2)
+                    S += lbinom_careful<double,double>
+                        ((vals.back() - vals.front())/delta - 1 - int(nonzero),
+                         W - 2);
+            }
+
             if (uniform)
             {
                 S += N * safelog_fast(W);
@@ -321,12 +330,14 @@ struct Dynamics
                 for (auto& [r, n] : h)
                     S -= lgamma_fast(n + 1);
             }
+
             return S;
         }
 
-        template <class Hist>
-        double hist_move_dS(double r, double s, size_t N, Hist& h, bool uniform,
-                            double l1, double delta, bool nonzero, size_t dn=1)
+        template <class Hist, class Vals>
+        double hist_move_dS(double r, double s, size_t N, Hist& h, Vals& vals,
+                            bool uniform, double l1, double delta,
+                            bool nonzero, size_t dn=1)
         {
             if (r == s)
                 return 0;
@@ -342,22 +353,43 @@ struct Dynamics
             assert(nr > 0);
             assert(nr >= dn);
 
+            double xmin = (W > 0) ? vals.front() : 0;
+            double xmax = (W > 0) ? vals.back() : 0;
+            double nxmin = xmin;
+            double nxmax = xmax;
+
             if (nr == dn)
             {
-                Sa -= -qlaplace_lprob(r, l1, delta, nonzero);
+                if (nxmin == r)
+                    nxmin = (W > 1) ? vals[1] : numeric_limits<double>::infinity();
+                if (nxmax == r)
+                    nxmax = (W > 1) ? vals[vals.size() - 2] : -numeric_limits<double>::infinity();
                 dW--;
             }
 
             if (ns == 0)
             {
-                Sa += -qlaplace_lprob(s, l1, delta, nonzero);
+                if (s < nxmin)
+                    nxmin = s;
+                if (s > nxmax)
+                    nxmax = s;
                 dW++;
             }
 
             auto get_S =
-                [&](size_t nr, size_t ns, size_t W)
+                [&](size_t nr, size_t ns, size_t W, double xmin, double xmax)
                 {
                     double S = 0;
+
+                    if (W > 0)
+                    {
+                        S -= qlaplace_lprob(xmin, l1, delta, nonzero);
+                        S -= qlaplace_lprob(xmax, l1, delta, nonzero);
+                        if (W >= 2)
+                            S += lbinom_careful<double, double>
+                                ((xmax - xmin)/delta - 1 - int(nonzero), W - 2);
+                    }
+
                     if (uniform)
                     {
                         S += N * safelog_fast(W);
@@ -371,17 +403,17 @@ struct Dynamics
                     return S;
                 };
 
-            Sb += get_S(nr, ns, W);
-            Sa += get_S(nr - dn, ns + dn, W + dW);
+            Sb += get_S(nr, ns, W, xmin, xmax);
+            Sa += get_S(nr - dn, ns + dn, W + dW, nxmin, nxmax);
 
             assert(!isinf(Sa-Sb));
 
             return Sa - Sb;
         }
 
-        template <bool Add, class Hist>
-        double hist_modify_dS(double r, size_t N, Hist& h, bool uniform,
-                              double l1, double delta, bool nonzero,
+        template <bool Add, class Hist, class Vals>
+        double hist_modify_dS(double r, size_t N, Hist& h, Vals& vals,
+                              bool uniform, double l1, double delta, bool nonzero,
                               size_t dn=1)
         {
             double Sa = 0;
@@ -391,31 +423,53 @@ struct Dynamics
             size_t W = h.size();
             int dW = 0;
             int dN = 0;
+
+            double xmin = (W > 0) ? vals.front() : 0;
+            double xmax = (W > 0) ? vals.back() : 0;
+            double nxmin = xmin;
+            double nxmax = xmax;
+
             if constexpr (Add)
             {
                 if (nr == 0)
                 {
-                    Sa += -qlaplace_lprob(r, l1, delta, nonzero);
+                    if (r < nxmin)
+                        nxmin = r;
+                    if (r > nxmax)
+                        nxmax = r;
                     dW++;
                 }
                 dN += dn;
             }
             else
             {
-                dN -= dn;
                 if (nr == dn)
                 {
-                    Sa -= -qlaplace_lprob(r, l1, delta, nonzero);
+                    if (nxmin == r)
+                        nxmin = (W > 1) ? vals[1] : 0;
+                    if (nxmax == r)
+                        nxmax = (W > 1) ? vals[vals.size() - 2] : 0;
                     dW--;
                 }
+                dN -= dn;
             }
 
             auto get_S =
-                [&](size_t N, size_t nr, size_t W)
+                [&](size_t N, size_t nr, size_t W, double xmin, double xmax)
                 {
                     double S = 0;
                     if (N == 0)
                         return S;
+
+                    if (W > 0)
+                    {
+                        S -= qlaplace_lprob(xmin, l1, delta, nonzero);
+                        S -= qlaplace_lprob(xmax, l1, delta, nonzero);
+                        if (W >= 2)
+                            S += lbinom_careful<double, double>
+                                ((xmax - xmin)/delta - 1 - int(nonzero), W - 2);
+                    }
+
                     if (uniform)
                     {
                         S += N * safelog_fast(W);
@@ -430,11 +484,21 @@ struct Dynamics
                     return S;
                 };
 
-            Sb += get_S(N,      nr,      W);
-            Sa += get_S(N + dN, nr + dN, W + dW);
+            Sb += get_S(N,      nr,      W,      xmin,  xmax);
+            Sa += get_S(N + dN, nr + dN, W + dW, nxmin, nxmax);
 
             assert(!isinf(Sa-Sb));
             return Sa - Sb;
+        }
+
+        double quantize_x(double x)
+        {
+            return quantize(x, _xdelta);
+        }
+
+        double quantize_t(double x)
+        {
+            return quantize(x, _tdelta);
         }
 
         double entropy(const dentropy_args_t& ea)
@@ -451,6 +515,17 @@ struct Dynamics
                          S -= _dstate->get_node_prob(v);
                      });
                 S *= ea.alpha;
+            }
+
+            if (ea.active)
+            {
+                #pragma omp parallel reduction(+:S)
+                parallel_vertex_loop_no_spawn
+                    (_u,
+                     [&](auto v)
+                     {
+                         S -= _dstate->get_active_prob(v);
+                     });
             }
 
             if (ea.density)
@@ -473,10 +548,12 @@ struct Dynamics
             S += (T - _E) * edge_x_S(0, ea);
 
             if (!_disable_xdist && ea.xdist)
-                S += hist_entropy(_M, _xhist, ea.xdist_uniform, ea.xl1, ea.delta, true);
+                S += hist_entropy(_M, _xhist, _xvals, ea.xdist_uniform,
+                                  ea.xl1, _xdelta, true);
 
             if (!_disable_tdist && ea.tdist)
-                S += hist_entropy(num_vertices(_u), _thist, ea.tdist_uniform, ea.tl1, 0., false);
+                S += hist_entropy(num_vertices(_u), _thist, _tvals,
+                                  ea.tdist_uniform, ea.tl1, _tdelta, false);
 
             #pragma omp parallel reduction(+:S)
             parallel_vertex_loop_no_spawn
@@ -494,27 +571,55 @@ struct Dynamics
         }
 
         double dstate_edge_dS(size_t u, size_t v, double x, double nx,
-                              const dentropy_args_t& ea)
+                              const dentropy_args_t& ea,
+                              bool reciprocal = true)
         {
+            if (!ea.latent_edges)
+                return 0;
             double dS = 0;
             dS += _dstate->get_edge_dS(u, v, x, nx);
-            if (u != v && !graph_tool::is_directed(_u) && !isinf(dS))
+            if (u != v && !graph_tool::is_directed(_u) && !isinf(dS) && reciprocal)
                 dS += _dstate->get_edge_dS(v, u, x, nx);
+            assert(!std::isinf(dS) && !std::isnan(dS));
             return dS * ea.alpha;
         }
 
-        double dstate_edges_dS(std::vector<size_t>& us, size_t v,
-                               std::vector<double>& x,
-                               std::vector<double>& nx,
+        template <class VS, class VX>
+        double dstate_edges_dS(const VS& us, size_t v, const VX& x, const VX& nx,
                                const dentropy_args_t& ea)
         {
+            if (!ea.latent_edges)
+                return 0;
             double dS = _dstate->get_edges_dS(us, v, x, nx);
+            assert(!std::isinf(dS) && !std::isnan(dS));
             return dS * ea.alpha;
         }
 
-        double dstate_node_dS(size_t v, double dx, const dentropy_args_t& ea)
+        double dstate_edges_dS_a(const std::array<size_t,2>& us, size_t v,
+                                 const std::array<double,2>& x,
+                                 const std::array<double,2>& nx,
+                                 const dentropy_args_t& ea)
         {
-            double dS = _dstate->get_node_dS(v, dx);
+            return dstate_edges_dS<std::array<size_t,2>,
+                                   std::array<double,2>>(us, v, x, nx, ea);
+        }
+
+        double dstate_edges_dS(const std::vector<size_t>& us, size_t v,
+                               const std::vector<double>& x,
+                               const std::vector<double>& nx,
+                               const dentropy_args_t& ea)
+        {
+            return dstate_edges_dS<std::vector<size_t>,
+                                   std::vector<double>>(us, v, x, nx, ea);
+        }
+
+        double dstate_node_dS(size_t v, double t, double nt,
+                              const dentropy_args_t& ea)
+        {
+            if (!ea.latent_edges)
+                return 0;
+            double dS = _dstate->get_node_dS(v, t, nt);
+            assert(!std::isinf(dS) && !std::isnan(dS));
             return dS * ea.alpha;
         }
 
@@ -538,17 +643,15 @@ struct Dynamics
 
         double edge_x_S(xval_t x, const dentropy_args_t& ea)
         {
-            if ((ea.sbm && x == 0) || ea.xdist)
+            if ((ea.sbm && x == 0) || ea.xdist || !ea.latent_edges)
                 return 0.;
             double S = 0;
             if (ea.normal)
                 S -= norm_lpdf(x, ea.mu, ea.sigma);
-            else if (ea.xl1 > 0 && ea.delta == 0)
+            else if (ea.xl1 > 0 && _xdelta == 0)
                 S -= laplace_lpdf(x, ea.xl1);
             else if (ea.xl1 > 0)
-                S -= qlaplace_lprob(x, ea.xl1, ea.delta/2, ea.sbm);
-            if (std::isnan(S))
-                cout << x << " " << ea.xl1 << " " << ea.delta << " " << ea.sbm << " " << S << endl;
+                S -= qlaplace_lprob(x, ea.xl1, _xdelta, ea.sbm);
             return S;
         }
 
@@ -557,8 +660,6 @@ struct Dynamics
             double S = 0;
             if (!ea.tdist && ea.tl1 > 0)
                 S -= laplace_lpdf(x, ea.tl1);
-            if (std::isnan(S))
-                cout << x << " " << ea.tl1 << " " << ea.tdist << " " << S << endl;
             return S;
         }
 
@@ -590,9 +691,9 @@ struct Dynamics
                 dS += lgamma_fast(_E + 1 - dm) - lgamma_fast(_E + 1);
             }
 
-            if (ea.latent_edges)
+            if (_eweight[e] == dm && (_self_loops || u != v))
             {
-                if (_eweight[e] == dm && (_self_loops || u != v))
+                if (ea.latent_edges)
                 {
                     if (dstate)
                         dS += dstate_edge_dS(u, v, x, 0, ea);
@@ -604,14 +705,16 @@ struct Dynamics
                         do_lock([&]()
                                 {
                                     dS += hist_modify_dS<false>(x, _M, _xhist,
+                                                                _xvals,
                                                                 ea.xdist_uniform,
-                                                                ea.xl1, ea.delta,
+                                                                ea.xl1, _xdelta,
                                                                 ea.sbm);
                                 }, _x_mutex, lock);
                     }
                 }
             }
 
+            assert(!std::isinf(dS) && !std::isnan(dS));
             return dS;
         }
 
@@ -649,9 +752,9 @@ struct Dynamics
 
             assert(!std::isinf(dS) && !std::isnan(dS));
 
-            if (ea.latent_edges)
+            if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
             {
-                if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
+                if (ea.latent_edges)
                 {
                     if (dstate)
                         dS += dstate_edge_dS(u, v, 0, x, ea);
@@ -665,8 +768,9 @@ struct Dynamics
                         do_lock([&]()
                                 {
                                     dS += hist_modify_dS<true>(x, _M, _xhist,
+                                                               _xvals,
                                                                ea.xdist_uniform,
-                                                               ea.xl1, ea.delta,
+                                                               ea.xl1, _xdelta,
                                                                ea.sbm);
                                     assert(!isinf(dS));
                                 }, _x_mutex, lock);
@@ -675,6 +779,7 @@ struct Dynamics
                 }
             }
 
+            assert(!std::isinf(dS) && !std::isnan(dS));
             return dS;
         }
 
@@ -708,13 +813,15 @@ struct Dynamics
                         do_lock([&]()
                                 {
                                     dS += hist_move_dS(x, nx, _M, _xhist,
-                                                       ea.xdist_uniform,
-                                                       ea.xl1, ea.delta, ea.sbm);
+                                                       _xvals, ea.xdist_uniform,
+                                                       ea.xl1, _xdelta, ea.sbm);
                                     assert(!std::isinf(dS) && !std::isnan(dS));
                                 }, _x_mutex, lock);
                     }
                 }
             }
+
+            assert(!std::isinf(dS) && !std::isnan(dS));
             return dS;
         }
 
@@ -723,14 +830,14 @@ struct Dynamics
                                const dentropy_args_t& ea)
         {
             gt_hash_map<size_t, std::vector<size_t>> edges;
-            std::vector<std::tuple<size_t, size_t>> eds;
+            std::vector<std::tuple<size_t, size_t, size_t>> eds;
 
-            get_es([&](auto u, auto v)
+            get_es([&](auto u, auto v, auto m)
                    {
                        edges[v].push_back(u);
                        if (!graph_tool::is_directed(_u))
                            edges[u].push_back(v);
-                       eds.emplace_back(u, v);
+                       eds.emplace_back(u, v, m);
                    });
 
             double dx = nx - x;
@@ -743,7 +850,8 @@ struct Dynamics
 
             double dS = 0;
             std::vector<double> xs, nxs;
-            #pragma omp parallel for schedule(runtime) reduction(+:dS) firstprivate(xs, nxs)
+            #pragma omp parallel for schedule(runtime) reduction(+:dS) \
+                firstprivate(xs, nxs)
             for (size_t i = 0; i < temp.size(); ++i)
             {
                 auto& [v, us] = temp[i];
@@ -757,34 +865,32 @@ struct Dynamics
             if (x != 0 && nx != 0)
             {
                 if (ea.xdist && !_disable_xdist)
-                    dS += hist_move_dS(x, nx, _E, _xhist, ea.xdist_uniform,
-                                       ea.xl1, ea.delta, ea.sbm, eds.size());
+                    dS += hist_move_dS(x, nx, _E, _xhist, _xvals,
+                                       ea.xdist_uniform, ea.xl1, _xdelta, ea.sbm,
+                                       eds.size());
                 dS += (edge_x_S(nx, ea) - edge_x_S(x, ea)) * eds.size();
             }
             else if (x == 0)
             {
                 assert(nx != 0);
-                for (auto& [u, v] : eds)
+                for (auto& [u, v, m] : eds)
                 {
-                    dS += add_edge_dS(u, v, 1, nx, ea, false);
-                    add_edge(u, v, 1, nx, [](){}, false);
+                    dS += add_edge_dS(u, v, m, nx, ea, false);
+                    add_edge(u, v, m, nx, [](){}, false);
                 }
-                for (auto& [u, v] : eds)
-                    remove_edge(u, v, 1, [](){}, false);
+                for (auto& [u, v, m] : eds)
+                    remove_edge(u, v, m, [](){}, false);
             }
             else
             {
                 std::vector<int> ms;
-                for (auto& [u, v] : eds)
+                for (auto& [u, v, m] : eds)
                 {
-                    auto m = get<0>(edge_state(u, v));
                     dS += remove_edge_dS(u, v, m, ea, false);
                     remove_edge(u, v, m, [](){}, false);
-                    ms.push_back(m);
                 }
-                size_t pos = 0;
-                for (auto& [u, v] : eds)
-                    add_edge(u, v, ms[pos++], x, [](){}, false);
+                for (auto& [u, v, m] : eds)
+                    add_edge(u, v, m, x, [](){}, false);
             }
 
             return dS;
@@ -856,7 +962,7 @@ struct Dynamics
                 return;
             }
 
-            assert (nx != 0);
+            assert (nx != 0 || (!_self_loops && u == v));
 
             auto& e = get_u_edge<true>(u, v);
 
@@ -904,7 +1010,8 @@ struct Dynamics
         }
 
         template <class Unlock = std::function<void(void)>>
-        void update_edge(size_t u, size_t v, double nx, Unlock&& unlock = [](){})
+        void update_edge(size_t u, size_t v, double nx, Unlock&& unlock = [](){},
+                         bool dstate=true)
         {
             if (_self_loops || u != v)
             {
@@ -930,9 +1037,12 @@ struct Dynamics
                 unlock();
 
                 // parallel part
-                _dstate->update_edge(u, v, x, nx);
-                if (u != v && !graph_tool::is_directed(_u))
-                    _dstate->update_edge(v, u, x, nx);
+                if (dstate)
+                {
+                    _dstate->update_edge(u, v, x, nx);
+                    if (u != v && !graph_tool::is_directed(_u))
+                        _dstate->update_edge(v, u, x, nx);
+                }
             }
             else
             {
@@ -947,14 +1057,14 @@ struct Dynamics
                 return;
 
             gt_hash_map<size_t, std::vector<size_t>> edges;
-            std::vector<std::tuple<size_t, size_t>> eds;
+            std::vector<std::tuple<size_t, size_t, size_t>> eds;
 
-            get_es([&](auto u, auto v)
+            get_es([&](auto u, auto v, auto m)
                    {
                        edges[v].push_back(u);
                        if (!graph_tool::is_directed(_u))
                            edges[u].push_back(v);
-                       eds.emplace_back(u, v);
+                       eds.emplace_back(u, v, m);
                    });
 
             std::vector<std::tuple<size_t, std::vector<size_t>*>> temp;
@@ -975,7 +1085,7 @@ struct Dynamics
 
             if (x != 0 && nx != 0)
             {
-                for (auto& [u, v] : eds)
+                for (auto& [u, v, m] : eds)
                 {
                     auto e = get_u_edge(u, v);
                     _x[e] = nx;
@@ -990,16 +1100,13 @@ struct Dynamics
             else if (x == 0)
             {
                 assert(nx != 0);
-                for (auto& [u, v] : eds)
-                    add_edge(u, v, 1, nx, [](){}, false);
+                for (auto& [u, v, m] : eds)
+                    add_edge(u, v, m, nx, [](){}, false);
             }
             else
             {
-                for (auto& [u, v] : eds)
-                {
-                    auto m = get<0>(edge_state(u, v));
+                for (auto& [u, v, m] : eds)
                     remove_edge(u, v, m, [](){}, false);
-                }
             }
         }
 
@@ -1010,18 +1117,17 @@ struct Dynamics
             if (nt == t)
                 return 0;
 
-            double dt = nt - t;
-
             double dS = 0;
             if (dstate)
-                dS += dstate_node_dS(v, dt, ea);
+                dS += dstate_node_dS(v, t, nt, ea);
 
             if (ea.tdist && !_disable_tdist)
             {
                 do_lock([&]()
                         {
                             dS += hist_move_dS(t, nt, num_vertices(_u), _thist,
-                                               ea.tdist_uniform, ea.tl1, 0, false);
+                                               _tvals, ea.tdist_uniform, ea.tl1,
+                                               _tdelta, false);
                         }, _t_mutex, lock);
             }
 
@@ -1031,19 +1137,20 @@ struct Dynamics
         }
 
         template <class VS>
-        double update_nodes_dS(VS& vs_, double x, double nx, const dentropy_args_t& ea)
+        double update_nodes_dS(VS& vs_, double x, double nx,
+                               const dentropy_args_t& ea)
         {
             if (nx == x)
                 return 0;
-            double dx = nx - x;
             double dS = 0;
             std::vector<size_t> vs(vs_.begin(), vs_.end());
             #pragma omp parallel for schedule(runtime) reduction(+:dS)
             for (size_t i = 0; i < vs.size(); ++i)
-                dS += dstate_node_dS(vs[i], dx, ea);
+                dS += dstate_node_dS(vs[i], x, nx, ea);
             if (ea.tdist && !_disable_tdist)
-                dS += hist_move_dS(x, nx, num_vertices(_u), _thist,
-                                   ea.tdist_uniform, ea.tl1, 0, false, vs.size());
+                dS += hist_move_dS(x, nx, num_vertices(_u), _thist, _tvals,
+                                   ea.tdist_uniform, ea.tl1, _tdelta, false,
+                                   vs.size());
             dS += (node_x_S(nx, ea) - node_x_S(x, ea)) * vs.size();
             return dS;
         }
@@ -1096,24 +1203,13 @@ struct Dynamics
             return _dstate->node_cov(u, v, toffset, pearson);
         }
 
-        void shift_zero(xval_t& x)
-        {
-            if (x == 0)
-            {
-                if (_xmax_bound > 0)
-                    x = std::nextafter(x, _xmax_bound);
-                else
-                    x = std::nextafter(x, _xmin_bound);
-            }
-        }
-
         template <bool keep_iter, class Graph, class WMap, class IMap, class RNG>
         std::tuple<size_t, size_t, size_t>
         get_candidate_edges(Graph& g, size_t k, double r, size_t max_rk,
                             double epsilon, bool c_stop, size_t max_iter, WMap w,
                             IMap ei, const dentropy_args_t& ea, bool exact,
                             bool knn, bool keep_all, bool gradient, double h,
-                            size_t f_max_iter, double tol, bool allow_edges,
+                            const bisect_args_t& ba, bool allow_edges,
                             bool include_edges, bool use_hint, size_t nrandom,
                             bool verbose, RNG& rng_)
         {
@@ -1155,13 +1251,16 @@ struct Dynamics
                     auto f =
                         [&](auto nx)
                         {
-                            shift_zero(nx);
-                            // if (abs(nx) < ea.delta/2)
-                            //     nx = (nx < 0) ? -ea.delta/2 : ea.delta/2;
                             if (m == 0)
+                            {
+                                if (nx == 0)
+                                    return 0.;
                                 return add_edge_dS(u, v, 1, nx, ea, true, false);
+                            }
                             else
+                            {
                                 return update_edge_dS(u, v, nx, ea, true, false);
+                            }
                         };
 
                     if (gradient)
@@ -1187,24 +1286,17 @@ struct Dynamics
                         }
                     }
 
-                    if (_xmin_bound != _xmax_bound)
+                    if (ba.min_bound != ba.max_bound)
                     {
-                        auto [nx, cache] =
-                            bisect(f, x, _xmin_bound, _xmax_bound, f_max_iter, tol,
-                                   false,
-                                   _xvals.empty() ? -std::numeric_limits<double>::infinity() : _xvals.front(),
-                                   _xvals.empty() ? std::numeric_limits<double>::infinity() : _xvals.back());
-
-                        double dS = cache[nx];
+                        BisectionSampler sampler(f, ba);
+                        auto nx = sampler.bisect(x, _xdelta);
+                        double dS = sampler.f(nx);
 
                         if (!_xvals.empty())
                         {
                             auto& rng = prng.get(rng_);
-                            FibonacciSearch<size_t> fb;
-                            dS = std::min(dS,
-                                          get<1>(fb.search(0, _xvals.size() - 1,
-                                                           [&](size_t xi){ return f(_xvals[xi]); },
-                                                           0, 0, rng)));
+                            nx = sampler.bisect_fb(_xvals, rng);
+                            dS = std::min(dS, sampler.f(nx));
                         }
 
                         if (m > 0)
@@ -1215,7 +1307,7 @@ struct Dynamics
                     }
                     else
                     {
-                        return add_edge_dS(u, v, 1, _xmin_bound, ea, true, false);
+                        return add_edge_dS(u, v, 1, ba.min_bound, ea, true, false);
                     }
                 };
 
@@ -1338,286 +1430,112 @@ struct Dynamics
             return {n_tot, n_iter, d._miss_count};
         }
 
-        bool update_bounds(double nx, double& xmin, double& xmax,
-                           double xmin_bound, double xmax_bound, double tol)
-        {
-            auto xmin_ = xmin;
-            auto xmax_ = xmax;
-
-            auto close = [&] (auto a, auto b)
-                         {
-                             return abs(a - b) < std::max(2 * tol, (xmax_ - xmin_) / 10);
-                         };
-
-            if (nx < xmin)
-                xmin = nx;
-
-            if (nx > xmax)
-                xmax = nx;
-
-            if (close(nx, xmin))
-            {
-                if (xmin < 0)
-                    xmin *= 10;
-                else
-                    xmin /= 10;
-                xmin = std::max(xmin, xmin_bound);
-            }
-
-            if (close(nx, xmax))
-            {
-                if (xmax > 0)
-                    xmax *= 10;
-                else
-                    xmax /= 10;
-                xmax = std::min(xmax, xmax_bound);
-            }
-
-            if (xmin != xmin_ || xmax != xmax_)
-                return true;
-            return false;
-        }
-
-        template <class F>
-        std::tuple<double, std::map<xval_t, double>>
-        bisect(F&& f, double x, double xmin_bound, double xmax_bound,
-               std::uintmax_t maxiter, double tol, bool reversible,
-               double xmin = -numeric_limits<double>::infinity(),
-               double xmax = numeric_limits<double>::infinity())
-        {
-            std::map<xval_t, double> xcache;
-
-            auto f_ =
-                [&](auto nx)
-                {
-                    auto iter = xcache.find(nx);
-                    if (iter != xcache.end())
-                        return iter->second;
-                    auto f_x = f(nx);
-                    xcache[nx] = f_x;
-                    return f_x;
-                };
-
-            double nx = numeric_limits<double>::quiet_NaN();
-
-            if (maxiter == 0)
-                maxiter = std::numeric_limits<std::uintmax_t>::max();
-
-
-            if (std::isinf(xmin) || std::isinf(xmax))
-            {
-                if (reversible)
-                {
-                    xmin = std::max(-1., xmin_bound);
-                    xmax = std::min(+1., xmax_bound);
-                }
-                else
-                {
-                    xmin = (x < 0) ? x * 2 : x / 2;
-                    xmax = (x > 0) ? x * 2 : x / 2;
-                    xmin = std::max(xmin - 1, xmin_bound);
-                    xmax = std::min(xmax + 1, xmax_bound);
-                }
-            }
-
-            size_t it = 0;
-            do
-            {
-                double dS;
-                std::tie(nx, dS) =
-                    boost::math::tools::brent_find_minima(f_, xmin, xmax,
-                                                          ceil(1-log2(tol)),
-                                                          maxiter);
-                if (f_(xmin) < dS)
-                    std::tie(nx, dS) = std::make_tuple(xmin, f_(xmin));
-                if (f_(xmax) < dS)
-                    std::tie(nx, dS) = std::make_tuple(xmax, f_(xmax));
-            }
-            while ((boost::math::epsilon_difference(f_(xmin), f_(xmax)) > 3) &&
-                   update_bounds(nx, xmin, xmax, xmin_bound, xmax_bound, tol) &&
-                   (++it < _nmax_extend));
-
-            nx = std::min_element(xcache.begin(), xcache.end(),
-                                  [&](auto& a, auto& b)
-                                  { return a.second < b.second; })->first;
-
-            return {nx, xcache};
-        }
-
-        template <class F, class... RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        bisect_fb(F&& f, std::vector<xval_t>& vals, RNG&... rng)
-        {
-            std::map<xval_t, double> xcache;
-
-            auto f_ =
-                [&](auto nx)
-                {
-                    auto iter = xcache.find(nx);
-                    if (iter != xcache.end())
-                        return iter->second;
-                    auto f_x = f(nx);
-                    xcache[nx] = f_x;
-                    return f_x;
-                };
-
-            FibonacciSearch<size_t> fb;
-            auto [i, dS] = fb.search(0, vals.size() - 1,
-                                     [&](size_t i){ return f_(vals[i]); },
-                                     0, 0, rng...);
-            auto nx = vals[i];
-            return {nx, xcache};
-        }
-
-        template <class... RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        bisect_x(size_t u, size_t v, size_t maxiter, double tol,
-                 const dentropy_args_t& ea, bool reversible, bool fb,
-                 RNG&... rng)
+        std::tuple<double, BisectionSampler>
+        bisect_x_init(size_t u, size_t v, const dentropy_args_t& ea,
+                      const bisect_args_t& ba)
         {
             size_t m;
             double x;
             std::tie(m, x) = edge_state(u, v);
 
             auto f =
-                [&](auto nx)
+                [=](auto nx)
                 {
-                    shift_zero(nx);
                     return (dstate_edge_dS(u, v, x, nx, ea) +
                             (edge_x_S(nx, ea) - edge_x_S(x, ea)));
                 };
 
-            double nx;
-            std::map<xval_t, double> xcache;
-
-            if (fb)
-            {
-                assert(!_xvals.empty());
-                std::shared_lock lock(_x_mutex);
-                std::tie(nx, xcache) = bisect_fb(f, _xvals, rng...);
-                assert(nx != 0);
-            }
-            else
-            {
-                if (ea.delta == 0 || true)
-                {
-                    std::tie(nx, xcache) =
-                        bisect(f, x, _xmin_bound, _xmax_bound, maxiter,
-                               tol, reversible);
-                }
-                else
-                {
-                    if (_xmin_bound < -ea.delta/2)
-                    {
-                        double xmax = std::min(_xmax_bound, -ea.delta/2);
-                        auto [nx_, xcache_] =
-                            bisect(f, x, _xmin_bound, xmax, maxiter, tol, reversible);
-                        xcache.insert(xcache_.begin(), xcache_.end());
-                    }
-
-                    if (_xmax_bound > ea.delta/2)
-                    {
-                        double xmin = std::max(_xmin_bound, ea.delta/2);
-                        auto [nx_, xcache_] =
-                            bisect(f, x, xmin, _xmax_bound, maxiter, tol, reversible);
-                        xcache.insert(xcache_.begin(), xcache_.end());
-                    }
-
-                    assert(!xcache.empty());
-
-                    nx = std::min_element(xcache.begin(), xcache.end(),
-                                          [&](auto& a, auto& b)
-                                          { return a.second < b.second; })->first;
-
-                    assert(!std::isnan(nx));
-                }
-            }
-
-            // remove zero
-            auto iter = xcache.find(0.);
-            if (iter != xcache.end())
-            {
-                auto dS = iter->second;
-                xcache.erase(iter);
-                if (nx == 0)
-                {
-                    shift_zero(nx);
-                    xcache[nx] = dS;
-                }
-            }
-
-            assert(!std::isnan(nx));
-            assert (nx != 0);
-            return {nx, xcache};
+            BisectionSampler sampler(f, ba);
+            return {x, sampler};
         }
 
         template <class... RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        bisect_t(size_t v, size_t maxiter, double tol,
-                 const dentropy_args_t& ea, bool reversible, bool fb,
-                 RNG&... rng)
+        std::tuple<double, BisectionSampler>
+        bisect_x(size_t u, size_t v, const dentropy_args_t& ea,
+                 const bisect_args_t& ba, bool fb, RNG&... rng)
+        {
+            auto [x, sampler] = bisect_x_init(u, v, ea, ba);
+            double nx;
+            if (u == v && !_self_loops)
+                nx = 0;
+            else if (ba.min_bound == ba.max_bound)
+                nx = ba.min_bound;
+            else
+                nx = fb ? sampler.bisect_fb(_xvals, rng...) : sampler.bisect(x, _xdelta);
+            sampler.f(nx, true);
+            return {nx, sampler};
+        }
+
+        std::tuple<double, BisectionSampler>
+        bisect_t_init(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba)
         {
             auto x = _theta[v];
             auto f =
-                [&](auto nx)
+                [=](auto nx)
                 {
-                    return dstate_node_dS(v, nx - x, ea) +
+                    return dstate_node_dS(v, x, nx, ea) +
                         (node_x_S(nx, ea) - node_x_S(x, ea));
                 };
 
-            if (fb)
-            {
-                std::shared_lock lock(_t_mutex);
-                return bisect_fb(f, _tvals, rng...);
-            }
-            {
-                return bisect(f, x, _tmin_bound, _tmax_bound, maxiter, tol,
-                              reversible);
-
-            }
+            BisectionSampler sampler(f, ba);
+            return {x, sampler};
         }
 
         template <class... RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        bisect_xl1(double minval, double maxval, size_t maxiter, double tol,
-                   const dentropy_args_t& ea, bool reversible)
+        std::tuple<double, BisectionSampler>
+        bisect_t(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
+                 bool fb, RNG&... rng)
         {
-            dentropy_args_t ea_ = ea;
+            auto [x, sampler] = bisect_t_init(v, ea, ba);
+            double nx;
+            if (ba.min_bound == ba.max_bound)
+                nx = ba.min_bound;
+            else
+                nx = fb ? sampler.bisect_fb(_tvals, rng...) : sampler.bisect(x, _tdelta);
+            sampler.f(nx, true);
+            return {nx, sampler};
+        }
+
+        std::tuple<double, BisectionSampler>
+        bisect_xl1(const dentropy_args_t& ea, const bisect_args_t& ba)
+        {
             double S0 = entropy(ea);
 
             auto f =
-                [&](auto nx)
+                [=](auto nx)
                 {
+                    dentropy_args_t ea_ = ea;
                     ea_.xl1 = nx;
                     return entropy(ea_) - S0;
                 };
 
-            return bisect(f, ea.xl1, minval, maxval, maxiter, tol,
-                          reversible);
+            BisectionSampler sampler(f, ba);
+            double nx = sampler.bisect(ea.xl1, 0);
+            return {nx, sampler};
         }
 
-        std::tuple<double, std::map<xval_t, double>>
-        bisect_tl1(double minval, double maxval, size_t maxiter, double tol,
-                   const dentropy_args_t& ea, bool reversible)
+        std::tuple<double, BisectionSampler>
+        bisect_tl1(const dentropy_args_t& ea, const bisect_args_t& ba)
         {
-            dentropy_args_t ea_ = ea;
             double S0 = entropy(ea);
 
             auto f =
-                [&](auto nx)
+                [=](auto nx)
                 {
+                    dentropy_args_t ea_ = ea;
                     ea_.tl1 = nx;
                     return entropy(ea_) - S0;
                 };
 
-            return bisect(f, ea.tl1, minval, maxval, maxiter, tol,
-                          reversible);
+            BisectionSampler sampler(f, ba);
+            double nx = sampler.bisect(ea.tl1, 0);
+            return {nx, sampler};
         }
 
         double edge_diff(size_t u, size_t v, double h, const dentropy_args_t& ea)
         {
             auto get_dS =
-                [&](auto x, auto nx)
+                [=](auto x, auto nx)
                 {
                     return (dstate_edge_dS(u, v, x, nx, ea) +
                             (edge_x_S(nx, ea) - edge_x_S(x, ea)));
@@ -1632,7 +1550,7 @@ struct Dynamics
             auto get_dS =
                 [&](auto x, auto nx)
                 {
-                    return (dstate_node_dS(v, nx - x, ea) +
+                    return (dstate_node_dS(v, x, nx, ea) +
                             (node_x_S(nx, ea) - node_x_S(x, ea)));
                 };
 
@@ -1640,9 +1558,11 @@ struct Dynamics
             return get_dS(x - h, x + h) / (2 * h);
         }
 
-        void quantize_x(double delta)
+        void requantize_all_x(double delta)
         {
-            std::vector<std::tuple<size_t,size_t,size_t>> es;
+            if (delta == _xdelta)
+                return;
+
             std::vector<std::mutex> vmutex(num_vertices(_u));
 
             auto dispatch =
@@ -1674,234 +1594,67 @@ struct Dynamics
                  {
                      size_t u = source(e, _u);
                      size_t v = target(e, _u);
-                     double nx = round(_x[e] / delta) * delta;
-                     if (nx != 0)
-                     {
-                         dispatch(u, v,
-                                  [&]()
-                                  {
-                                      update_edge(u, v, nx);
-                                  });
-                     }
-                     else
-                     {
-                         #pragma omp critical
-                         es.emplace_back(u, v, get<0>(edge_state(u, v)));
-                     }
+                     auto x = _x[e];
+                     double nx = quantize(x, delta);
+                     if (nx == 0)
+                         nx = x > 0 ? delta : -delta;
+                     dispatch(u, v, [&]() { update_edge(u, v, nx); });
                  });
 
-            parallel_loop(es,
-                          [&](size_t, auto& uvm)
-                          {
-                              auto& [u_, v_, m_] = uvm;
-                              auto u = u_; // workaround clang bug
-                              auto v = v_;
-                              auto m = m_;
-                              dispatch(u, v,
-                                       [&]()
-                                       {
-                                           remove_edge(u, v, m);
-                                       });
-                          });
+            _xdelta = delta;
         }
 
-        std::tuple<double, std::map<xval_t, double>>
-        bisect_delta(double minval, double maxval, size_t maxiter, double tol,
-                     const dentropy_args_t& ea, bool reversible)
+        void requantize_all_theta(double delta)
         {
-            dentropy_args_t ea_ = ea;
+            if (delta == _tdelta)
+                return;
 
-            auto f =
-                [&](auto delta)
-                {
-                    std::vector<std::tuple<size_t,size_t,size_t,double>> es;
-                    for (auto e : edges_range(_u))
-                        es.emplace_back(source(e, _u), target(e, _u),
-                                        _eweight[e], _x[e]);
+            parallel_vertex_loop
+                (_u,
+                 [&](auto v)
+                 {
+                     auto x = _theta[v];
+                     double nx = quantize(x, delta);
+                     update_node(v, nx);
+                 });
 
-                    quantize_x(delta);
-
-                    ea_.delta = delta;
-                    double S = entropy(ea_);
-                    if (ea_.sbm)
-                        S += _block_state.entropy(ea_);
-
-                    for (auto& [s, t, nm, x] : es)
-                    {
-                        auto m = get<0>(edge_state(s, t));
-                        if (m > 0)
-                            update_edge(s, t, x);
-                        else
-                            add_edge(s, t, nm, x);
-                    }
-
-                    return S;
-                };
-
-            return bisect(f, ea.delta, minval, maxval, maxiter, tol,
-                          reversible);
-        }
-
-        template <class Cache>
-        SegmentSampler get_seg_sampler(Cache&& xcache, double beta)
-        {
-            std::vector<xval_t> xs;
-            std::vector<double> ws;
-
-            for (auto& [x, w] : xcache)
-            {
-                xs.push_back(x);
-                ws.push_back(-w * beta);
-            }
-
-            return SegmentSampler(xs, ws);
-        }
-
-        template <class Cache, class RNG>
-        double
-        sample_val(Cache&& xcache, double beta, RNG& rng)
-        {
-            if (std::isinf(beta))
-                return std::min_element(xcache.begin(), xcache.end(),
-                                        [&](auto& a, auto& b)
-                                        { return a.second < b.second; })->first;
-
-            SegmentSampler seg = get_seg_sampler(xcache, beta);
-
-            auto nx = seg.sample(rng);
-            return nx;
-        };
-
-        template <class RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        sample_x(size_t u, size_t v, double beta, size_t maxiter, double tol,
-                 const dentropy_args_t& ea, bool fb, RNG& rng)
-        {
-            if (_xmin_bound == _xmax_bound)
-                return {_xmin_bound, std::map<xval_t, double>()};
-            auto bisect =
-                [&]() { return bisect_x(u, v, maxiter, tol, ea, !std::isinf(beta), fb, rng); };
-            auto [nx_, xcache] = bisect();
-            xval_t nx = 0;
-            while (nx == 0)
-                nx = sample_val(xcache, beta, rng); // remove zero
-            // if (abs(nx) < ea.delta)
-            //     nx = nx < 0 ? -ea.delta : ea.delta;
-            assert(!std::isinf(nx) && !std::isnan(nx));
-            return {nx, xcache};
+            _tdelta = delta;
         }
 
         template <class RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        sample_t(size_t v, double beta, size_t maxiter, double tol,
-                 const dentropy_args_t& ea, bool fb, RNG& rng)
+        std::tuple<double, BisectionSampler>
+        sample_x(size_t u, size_t v, double beta, const dentropy_args_t& ea,
+                 const bisect_args_t& ba, bool fb, RNG& rng)
         {
-            if (_tmin_bound == _tmax_bound)
-                return {_tmin_bound, std::map<xval_t, double>()};
-            auto bisect =
-                [&]() { return bisect_t(v, maxiter, tol, ea, !std::isinf(beta), fb, rng); };
-            auto [nx_, xcache] = bisect();
-            return {sample_val(xcache, beta, rng), xcache};
+            auto [nx_, sampler] = bisect_x(u, v, ea, ba, fb, rng);
+            return {sampler.sample(beta, _xdelta, rng), sampler};
         }
 
         template <class RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        sample_xl1(double beta, double minval, double maxval, size_t maxiter,
-                   double tol, const dentropy_args_t& ea, RNG& rng)
+        std::tuple<double, BisectionSampler>
+        sample_t(size_t v, double beta, const dentropy_args_t& ea,
+                 const bisect_args_t& ba, bool fb, RNG& rng)
         {
-            auto bisect =
-                [&]() { return bisect_xl1(minval, maxval, maxiter, tol, ea,
-                                          !std::isinf(beta)); };
-            auto [nx_, xcache] = bisect();
-            return {sample_val(xcache, beta, rng), xcache};
+            auto [nx_, sampler] = bisect_t(v, ea, ba, fb, rng);
+            return {sampler.sample(beta, _tdelta, rng), sampler};
         }
 
         template <class RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        sample_tl1(double beta, double minval, double maxval, size_t maxiter,
-                   double tol, const dentropy_args_t& ea, RNG& rng)
+        std::tuple<double, BisectionSampler>
+        sample_xl1(double beta, const dentropy_args_t& ea,
+                   const bisect_args_t& ba, RNG& rng)
         {
-            auto bisect =
-                [&]() { return bisect_tl1(minval, maxval, maxiter, tol, ea,
-                                          !std::isinf(beta)); };
-            auto [nx_, xcache] = bisect();
-            return {sample_val(xcache, beta, rng), xcache};
+            auto [nx_, sampler] = bisect_xl1(ea, ba);
+            return {sampler.sample(beta, 0, rng), sampler};
         }
 
         template <class RNG>
-        std::tuple<double, std::map<xval_t, double>>
-        sample_delta(double beta, double minval, double maxval, size_t maxiter,
-                     double tol, const dentropy_args_t& ea, RNG& rng)
+        std::tuple<double, BisectionSampler>
+        sample_tl1(double beta, const dentropy_args_t& ea,
+                   const bisect_args_t& ba, RNG& rng)
         {
-            auto bisect =
-                [&]() { return bisect_delta(minval, maxval, maxiter, tol, ea,
-                                            !std::isinf(beta)); };
-            auto [nx_, xcache] = bisect();
-            return {sample_val(xcache, beta, rng), xcache};
-        }
-
-        double sample_val_lprob(xval_t x, std::map<xval_t, double>& xcache, double beta)
-        {
-            SegmentSampler seg = get_seg_sampler(xcache, beta);
-            return seg.lprob(x);
-        }
-
-        double sample_x_lprob(xval_t x, std::map<xval_t, double>& xcache, double beta)
-        {
-            if (_xmin_bound == _xmax_bound)
-                return 0;
-            return sample_val_lprob(x, xcache, beta);
-        }
-
-        double sample_t_lprob(xval_t x, std::map<xval_t, double>& xcache, double beta)
-        {
-            if (_tmin_bound == _tmax_bound)
-                return 0;
-            return sample_val_lprob(x, xcache, beta);
-        }
-
-        template <class Vals, class Val>
-        std::tuple<double, double, double>
-        bracket_closest(Vals& vals, Val x,
-                        Val skip = numeric_limits<Val>::quiet_NaN(),
-                        Val add = numeric_limits<Val>::quiet_NaN())
-        {
-            auto iter = std::lower_bound(vals.begin(), vals.end(), x);
-            auto begin = iter - std::min<size_t>(3, iter - vals.begin());
-            auto end = iter + std::min<size_t>(4, vals.end() - iter);
-
-            std::vector<Val> pts;
-            for (auto iter = begin; iter != end; ++iter)
-            {
-                if (*iter == skip)
-                    continue;
-                pts.push_back(*iter);
-            }
-
-            if (!std::isnan(add))
-                pts.insert(std::lower_bound(pts.begin(), pts.end(), add), add);
-
-            auto pos = std::lower_bound(pts.begin(), pts.end(), x);
-            if (pos == pts.end() || ((pos != pts.begin()) &&
-                                     (x - *(pos-1)) < (*pos - x)))
-                --pos;
-
-            auto y = *pos;
-
-            Val a = (pos != pts.begin()) ? *(pos - 1) + (y - *(pos - 1))/2 :
-                -numeric_limits<Val>::infinity();
-            Val b = ((pos + 1) != pts.end()) ? y + (*(pos + 1) - y)/2 :
-                numeric_limits<Val>::infinity();
-            return {a, y, b};
-        }
-
-        template <class Vals, class Val>
-        double
-        find_closest(Vals& vals, Val x,
-                     Val skip = numeric_limits<xval_t>::quiet_NaN(),
-                     Val add = numeric_limits<xval_t>::quiet_NaN())
-        {
-            return get<1>(bracket_closest(vals, x, skip, add));
+            auto [nx_, sampler] = bisect_tl1(ea, ba);
+            return {sampler.sample(beta, 0, rng), sampler};
         }
 
         template <class Vals, class Val>
@@ -1910,78 +1663,44 @@ struct Dynamics
                       Val skip = numeric_limits<Val>::quiet_NaN(),
                       Val add = numeric_limits<Val>::quiet_NaN())
         {
-            auto ret = bracket_closest(vals, x, skip, add);
-            return {get<0>(ret), get<2>(ret)};
-        }
-
-        template <class F>
-        std::tuple<double, double, std::map<xval_t, double>>
-        val_sweep(F&& f_, double x, double xmin_bound, double xmax_bound,
-                  double beta, std::uintmax_t maxiter, double tol)
-        {
-            std::map<xval_t, double> xcache;
-
-            auto f =
-                [&](auto x)
-                {
-                    auto iter = xcache.find(x);
-                    if (iter != xcache.end())
-                        return iter->second;
-                    auto fx = f_(x);
-                    xcache[x] = fx;
-                    return fx;
-                };
-
-            if (maxiter == 0)
-                maxiter = std::numeric_limits<std::uintmax_t>::max();
-
-            double xmin;
-            double xmax;
-
-            if (!std::isinf(beta))
-            {
-                xmin = std::max(-1., xmin_bound);
-                xmax = std::min(+1., xmax_bound);
-            }
+            auto [a, b, c] = bracket_closest(vals, x, skip, add);
+            if (a == b)
+                a = -std::numeric_limits<double>::infinity();
             else
-            {
-                xmin = (x < 0) ? x * 2 : x / 2;
-                xmax = (x > 0) ? x * 2 : x / 2;
-                xmin = std::max(xmin - 1, xmin_bound);
-                xmax = std::min(xmax + 1, xmax_bound);
-            }
-
-            size_t it = 0;
-            double nx, dS;
-            do
-            {
-                std::tie(nx, dS) =
-                    boost::math::tools::brent_find_minima
-                    (f, xmin, xmax, ceil(1-log2(tol)), maxiter);
-                if (f(xmin) < dS)
-                    std::tie(nx, dS) = std::make_tuple(xmin, f(xmin));
-                if (f(xmax) < dS)
-                    std::tie(nx, dS) = std::make_tuple(xmax, f(xmax));
-            }
-            while ((boost::math::epsilon_difference(f(xmin), f(xmax)) > 3) &&
-                   update_bounds(nx, xmin, xmax, xmin_bound, xmax_bound, tol) &&
-                   (++it < _nmax_extend));
-
-            std::tie(nx, dS) =
-                *std::min_element(xcache.begin(), xcache.end(),
-                                  [&](auto& a, auto& b)
-                                  { return a.second < b.second; });
-
-            return {nx, dS, xcache};
+                a += (b - a) / 2;
+            if (c == b)
+                c = std::numeric_limits<double>::infinity();
+            else
+                c -= (c - b) / 2;
+            return {a, c};
         }
 
+        template <class RNG>
+        std::tuple<double, BisectionSampler>
+        sample_old_x(size_t u, size_t v, double pu, double beta,
+                     const entropy_args_t& ea, const bisect_args_t& ba,
+                     RNG& rng)
+        {
+            auto [nx, sampler] = sample_x(u, v, beta, ea, ba, false, rng);
+            SetBisectionSampler set_sampler(_xvals, sampler);
+            return {set_sampler.sample(pu, beta, _xdelta, rng), sampler};
+        }
+
+        template <class RNG>
+        std::tuple<double, BisectionSampler>
+        sample_old_t(size_t v, double pu, double beta, const entropy_args_t& ea,
+                     const bisect_args_t& ba, RNG& rng)
+        {
+            auto [nx, sampler] = sample_t(v, beta, ea, ba, false, rng);
+            SetBisectionSampler set_sampler(_tvals, sampler);
+            return {set_sampler.sample(pu, beta, _tdelta, rng), sampler};
+        }
 
         template <bool try_zero, class F, class U, class Hist, class Vals,
                   class RNG>
         double vals_sweep(F&& f_, U& update_items, Hist& hist, Vals& vals,
-                          double xmin_bound, double xmax_bound,
-                          double beta, double r, std::uintmax_t maxiter,
-                          double tol, size_t min_size, RNG& rng)
+                          double delta, double beta, double r,
+                          size_t min_size, const bisect_args_t& ba, RNG& rng)
         {
             std::bernoulli_distribution skip(1-r);
 
@@ -1996,13 +1715,13 @@ struct Dynamics
                              return f_(xi, vals[xi], x);
                          };
 
-                auto [nx, dS, xcache] =
-                    val_sweep(f, vals[xi], xmin_bound, xmax_bound, beta, maxiter, tol);
+                BisectionSampler sampler(f, ba);
+                double nx = sampler.bisect(vals[xi], delta);
+                double dS = sampler.f(nx, false);
 
-                if (try_zero && xcache.find(0) == xcache.end())
+                if (try_zero && std::isinf(beta))
                 {
-                    double dS0 = f(0);
-                    xcache[0] = dS0;
+                    double dS0 = sampler.f(0);
                     if (dS0 < dS)
                         std::tie(nx, dS) = std::make_tuple(0., dS0);
                 }
@@ -2014,16 +1733,21 @@ struct Dynamics
                 }
                 else
                 {
+                    nx = sampler.sample(beta, delta, rng);
+
+                    if (!try_zero && nx == 0)
+                        continue;
+
+                    if (get_count(hist, nx) > 0)
+                        continue;
+
+                    dS = sampler.f(nx, false);
+
                     double lf = 0;
                     double lb = 0;
 
-                    SegmentSampler seg = get_seg_sampler(xcache, beta);
-                    nx = seg.sample(rng);
-
-                    dS = f(nx);
-
-                    lf = seg.lprob(nx);
-                    lb = seg.lprob(vals[xi]);
+                    lf = sampler.lprob(nx, beta, delta);
+                    lb = sampler.lprob(vals[xi], beta, delta);
 
                     std::uniform_real_distribution<> u(0, 1);
 
@@ -2045,10 +1769,13 @@ struct Dynamics
 
         template <class RNG>
         std::tuple<double, size_t>
-        xvals_sweep(double beta, double r, size_t maxiter, double tol,
-                    size_t min_size, const dentropy_args_t& ea, RNG& rng)
+        xvals_sweep(double beta, double r, size_t min_size,
+                    const dentropy_args_t& ea_, const bisect_args_t& ba,
+                    RNG& rng)
         {
-            std::vector<std::vector<typename graph_traits<g_t>::edge_descriptor>>
+            dentropy_args_t ea = ea_;
+
+            std::vector<std::vector<std::tuple<size_t, size_t, size_t>>>
                 eds(_xhist.size());
 
             std::vector<double> vals;
@@ -2060,15 +1787,19 @@ struct Dynamics
             gt_hash_map<double, size_t> vmap;
             for (auto x : vals)
             {
-                auto r = vmap.size();
-                vmap[x] = r;
+                auto pos = vmap.size();
+                vmap[x] = pos;
             }
 
             for (auto e : edges_range(_u))
             {
+                if (!_self_loops && (source(e, _u) == target(e, _u)))
+                    continue;
                 auto x = _x[e];
-                auto r = vmap[x];
-                eds[r].push_back(e);
+                assert(vmap.find(x) != vmap.end());
+                auto pos = vmap[x];
+                eds[pos].emplace_back(source(e, _u), target(e, _u),
+                                      _eweight[e]);
             }
 
             auto f =
@@ -2077,8 +1808,8 @@ struct Dynamics
                     auto& es = eds[xi];
                     return update_edges_dS([&](auto&& f)
                                            {
-                                               for (auto& e : es)
-                                                   f(source(e, _u), target(e, _u));
+                                               for (auto& [u, v, m] : es)
+                                                   f(u, v, m);
                                            }, x, nx, ea);
                 };
 
@@ -2090,21 +1821,24 @@ struct Dynamics
                     auto& es = eds[xi];
                     this->update_edges([&](auto&& f)
                                        {
-                                           for (auto& e : es)
-                                               f(source(e, _u), target(e, _u));
+                                           for (auto& [u, v, m] : es)
+                                               f(u, v, m);
                                        }, x, nx);
                     nmoves += es.size();
                 };
 
-            return {vals_sweep<true>(f, update_edges, _xhist, vals, _xmin_bound,
-                                     _xmax_bound, beta, r, maxiter, tol, min_size,
-                                     rng), nmoves};
+            if (std::isinf(beta))
+                return {vals_sweep<true>(f, update_edges, _xhist, vals, _xdelta,
+                                         beta, r, min_size, ba, rng), nmoves};
+            else
+                return {vals_sweep<false>(f, update_edges, _xhist, vals, _xdelta,
+                                          beta, r, min_size, ba, rng), nmoves};
         }
 
         template <class RNG>
         std::tuple<double, size_t>
-        tvals_sweep(double beta, double r, size_t maxiter, double tol,
-                    size_t min_size, const dentropy_args_t& ea, RNG& rng)
+        tvals_sweep(double beta, double r, size_t min_size,
+                    const dentropy_args_t& ea, const bisect_args_t& ba, RNG& rng)
         {
             std::vector<double> vals;
             for (auto& [x, c] : _thist)
@@ -2115,8 +1849,8 @@ struct Dynamics
             gt_hash_map<double, size_t> vmap;
             for (auto x : vals)
             {
-                auto r = vmap.size();
-                vmap[x] = r;
+                auto pos = vmap.size();
+                vmap[x] = pos;
             }
 
             gt_hash_map<size_t, std::vector<size_t>> vertices;
@@ -2142,9 +1876,8 @@ struct Dynamics
                     nmoves += vs.size();
                 };
 
-            return {vals_sweep<false>(f, update_vertices, _thist, vals, _tmin_bound,
-                                      _tmax_bound, beta, r, maxiter, tol, min_size,
-                                      rng), nmoves};
+            return {vals_sweep<false>(f, update_vertices, _thist, vals, _tdelta,
+                                      beta, r, min_size, ba, rng), nmoves};
         }
 
         std::vector<double>& get_xvals()

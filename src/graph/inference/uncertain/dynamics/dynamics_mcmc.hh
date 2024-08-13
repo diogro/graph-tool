@@ -30,6 +30,8 @@
 #include "../../../generation/sampler.hh"
 #include "openmp.hh"
 
+#include "dynamics_elist_state.hh"
+
 template <class T1, class T2>
 std::ostream& operator<<(std::ostream& s, std::tuple<T1, T2>& v)
 {
@@ -44,22 +46,26 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef multi_array_ref<int64_t,2> elist_t;
-
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
     ((state, &, State&, 0))                                                    \
-    ((beta,, double, 0))                                                       \
     ((elist,, elist_t, 0))                                                     \
+    ((ecandidates,, elist_t, 0))                                               \
+    ((beta,, double, 0))                                                       \
     ((pold,, double, 0))                                                       \
     ((pnew,, double, 0))                                                       \
     ((pxu,, double, 0))                                                        \
     ((pm,, double, 0))                                                         \
     ((premove,, double, 0))                                                    \
+    ((d,, size_t, 0))                                                          \
+    ((pself,, double, 0))                                                      \
+    ((puniform,, double, 0))                                                   \
+    ((pedge,, double, 0))                                                      \
+    ((pnearby,, double, 0))                                                    \
+    ((pcandidates,, double, 0))                                                \
     ((binary,, bool, 0))                                                       \
-    ((maxiter,, size_t, 0))                                                    \
-    ((tol,, double, 0))                                                        \
     ((entropy_args,, dentropy_args_t, 0))                                      \
+    ((bisect_args,, bisect_args_t, 0))                                         \
     ((verbose,, int, 0))                                                       \
     ((sequential,, bool, 0))                                                   \
     ((deterministic,, bool, 0))                                                \
@@ -81,22 +87,33 @@ struct MCMC
                          MCMC_DYNAMICS_STATE_params(State))
         GET_PARAMS_TYPEDEF(Ts, MCMC_DYNAMICS_STATE_params(State))
 
-        enum class xmove_t { xold = 0, xnew, m, remove };
+        enum class xmove_t { x_new = 0, x_old, remove, m };
 
         template <class... ATs,
                   typename std::enable_if_t<sizeof...(ATs) ==
                                             sizeof...(Ts)>* = nullptr>
         MCMCDynamicsState(ATs&&... as)
             : MCMCDynamicsStateBase<Ts...>(as...),
-              _vlist(_elist.shape()[0]),
-              _edges(_elist.shape()[0]),
-              _vmutex(num_vertices(_state._u)),
-              _vlocked(num_vertices(_state._u), false)
+              _edges(std::isinf(_beta) ? _elist.shape()[0] : num_vertices(_state._u)),
+              _vmutex(num_vertices(_state._u))
         {
-            std::iota(_vlist.begin(), _vlist.end(), 0);
-            _state._eweight.reserve(3 * _vlist.size());
-            _state._x.reserve(3 * _vlist.size());
+            _elist_states.reserve(size_t(get_num_threads()));
+            for (size_t i = 0; i < size_t(get_num_threads()); ++i)
+                _elist_states.emplace_back(_ecandidates, _candidates, _d,
+                                           _state._self_loops ? _pself : 0,
+                                           _puniform, _pedge, _pnearby,
+                                           _pcandidates, _state._u);
+
+            _state._eweight.reserve(3 * _elist.shape()[0]);
+            _state._x.reserve(3 * _elist.shape()[0]);
             _xcaches.resize(get_num_threads());
+
+            if (std::isinf(_beta))
+            {
+                for (size_t i = 0; i < _elist.shape()[0]; ++i)
+                    _edges[i] = {_elist[i][0], _elist[i][1]};
+            }
+
 // #ifndef NDEBUG
 //             for (auto v : vertices_range(_state._u))
 //                 _state._dstate.check_m(_state, v);
@@ -105,25 +122,15 @@ struct MCMC
                 std::tie(_pold, _pnew) = std::make_tuple(0., _pold + _pnew);
             if (_binary)
                 _pm = 0;
-            std::vector<xmove_t> moves
-                = {xmove_t::xold, xmove_t::xnew, xmove_t::m, xmove_t::remove};
-            std::vector<double> probs
-                = {_pold, _pnew, _pm, _premove};
-            _all_move_sampler = Sampler<xmove_t, mpl::false_>(moves, probs);
-            moves = {xmove_t::xold, xmove_t::xnew};
-            probs = {_pold, _pnew};
-            _new_move_sampler = Sampler<xmove_t, mpl::false_>(moves, probs);
-
-            for (size_t i = 0; i < _vlist.size(); ++i)
-                _edges[i] = {_elist[i][0], _elist[i][1]};
+            _probs.resize(get_num_threads());
         }
 
-        Sampler<xmove_t, mpl::false_> _all_move_sampler;
-        Sampler<xmove_t, mpl::false_> _new_move_sampler;
+        std::vector<xmove_t> _moves = {xmove_t::x_new, xmove_t::x_old,
+                                       xmove_t::remove, xmove_t::m};
+        std::vector<std::vector<double>> _probs;
 
         typedef typename State::xval_t xval_t;
 
-        std::vector<size_t> _vlist;
         std::vector<std::tuple<size_t, size_t>> _edges;
 
         typedef std::tuple<int, xval_t> move_t;
@@ -133,75 +140,42 @@ struct MCMC
         std::bernoulli_distribution _xmove;
 
         std::vector<std::mutex> _vmutex;
-        std::vector<uint8_t> _vlocked;
 
-        std::vector<std::tuple<xmove_t, xval_t, double,
-                               std::map<xval_t, double>>> _xcaches;
+        std::vector<std::tuple<xmove_t, size_t, xval_t, double, double,
+                               BisectionSampler>> _xcaches;
 
-        bool proposal_lock(size_t pos)
+        bool proposal_lock(std::tuple<size_t, size_t>& uv)
         {
             if (!_parallel)
                 return true;
 
-            auto [u, v] = get_edge(pos);
+            auto& [u, v] = uv;
 
             if (graph_tool::is_directed(_state._u) || u == v)
             {
-                bool ret = _vmutex[v].try_lock();
-                if (ret)
-                {
-                    if (_vlocked[v])
-                    {
-                        _vmutex[v].unlock();
-                        return false;
-                    }
-                    else
-                    {
-                        _vlocked[v] = true;
-                        _vmutex[v].unlock();
-                        return true;
-                    }
-                }
-                return false;
+                if (std::isinf(_beta))
+                    return _vmutex[v].try_lock();
+                _vmutex[v].lock();
+                return true;
             }
             else
             {
-                auto ret = std::try_lock(_vmutex[u], _vmutex[v]);
-                if (ret == -1)
-                {
-                    if (_vlocked[u] || _vlocked[v])
-                    {
-                        _vmutex[u].unlock();
-                        _vmutex[v].unlock();
-                        return false;
-                    }
-                    else
-                    {
-                        _vlocked[u] = true;
-                        _vlocked[v] = true;
-                        _vmutex[u].unlock();
-                        _vmutex[v].unlock();
-                        return true;
-                    }
-                }
-                return false;
+                if (std::isinf(_beta))
+                    return std::try_lock(_vmutex[u], _vmutex[v]) == -1;
+                else
+                    std::lock(_vmutex[u], _vmutex[v]);
+                return true;
             }
         }
 
-        void proposal_unlock(size_t pos)
+        void proposal_unlock(std::tuple<size_t, size_t>& uv)
         {
             if (!_parallel)
                 return;
-            auto [u, v] = get_edge(pos);
-            if (graph_tool::is_directed(_state._u) || u == v)
-                _vlocked[v] = false;
-            else
-                _vlocked[u] = _vlocked[v] = false;
-        }
-
-        std::tuple<size_t, size_t> get_edge(size_t pos)
-        {
-            return _edges[pos];
+            auto& [u, v] = uv;
+            _vmutex[v].unlock();
+            if (!graph_tool::is_directed(_state._u) && u != v)
+                _vmutex[u].unlock();
         }
 
         std::tuple<size_t, xval_t> edge_state(size_t u, size_t v)
@@ -209,215 +183,256 @@ struct MCMC
             return _state.edge_state(u, v);
         }
 
-        move_t node_state(size_t pos)
-        {
-            auto [u, v] = get_edge(pos);
-            auto [m, x] = edge_state(u, v);
-            return {m, x};
-        }
-
-        template <class T>
-        constexpr bool skip_node(T&)
-        {
-            return false;
-        }
-
         template <class RNG>
-        bool stage_proposal(size_t pos, RNG& rng)
+        bool stage_proposal(std::tuple<size_t, size_t>& uv, RNG& rng)
         {
-            if (!proposal_lock(pos))
+            auto& [u, v] = uv;
+
+            auto& es = get_elist_state();
+
+            auto& [move, nm, nx, dS, lf, sampler] = _xcaches[get_thread_num()];
+            nx = numeric_limits<double>::quiet_NaN();
+            dS = 0;
+            lf = 0;
+
+            double lf_e = 0;
+            if (!std::isinf(_beta))
+            {
+                if (_parallel)
+                    _move_mutex.lock_shared();
+                std::tie(u, v) = es.sample_edge(rng);
+                lf_e = es.log_prob(u, v);
+                if (_parallel)
+                    _move_mutex.unlock_shared();
+            }
+
+            if (!proposal_lock(uv))
                 return false;
 
-            auto [u, v] = get_edge(pos);
             auto [m, x] = edge_state(u, v);
+            nm = m;
 
-            auto& [move, nx, dS, xcache] = _xcaches[get_thread_num()];
-            nx = numeric_limits<double>::quiet_NaN();
-            dS = numeric_limits<double>::quiet_NaN();
-            xcache.clear();
+            double pnew = _pnew;
+            double pold = _pold;
+            double premove = _premove;
+            double pm = _pm;
 
             if (m == 0)
-                move = _state._xvals.empty() ? xmove_t::xnew : _new_move_sampler(rng);
-            else
-                move = _all_move_sampler(rng);
+                premove = pm = 0;
 
-            if (move == xmove_t::xnew || !std::isinf(_beta))
-                std::tie(nx, dS, xcache) = sample_nx(u, v, move == xmove_t::xold, rng);
+            auto& probs = _probs[get_thread_num()];
 
-            std::bernoulli_distribution xu(_pxu);
+            if (_parallel && (_state._self_loops || u != v))
+                _xvals_mutex.lock_shared(); // xvals can change
 
-            bool unif = false;
+            if (_state._xvals.empty())
+            {
+                if (pnew == 0)
+                    pnew = 1;
+                pold = 0;
+            }
+
+            probs = {pnew, pold, premove, pm};
+
+            Sampler<xmove_t> move_sampler(_moves, probs);
+
+            move = move_sampler(rng);
+
+            if (_parallel && (_state._self_loops || u != v) && move != xmove_t::x_old)
+                _xvals_mutex.unlock_shared(); // local info only from this point
+
+            if (move == xmove_t::x_new || move == xmove_t::x_old || !std::isinf(_beta))
+                std::tie(nx, dS, sampler) = sample_nx(u, v, move == xmove_t::x_old, rng);
+
+            double lf_x_old = -numeric_limits<double>::infinity();
+            if (!std::isinf(_beta) && _state.get_count(_state._xhist, nx) > 0)
+                lf_x_old = sample_old_x_lprob(nx, sampler);
+
+            if (_parallel && (_state._self_loops || u != v) && move == xmove_t::x_old)
+                _xvals_mutex.unlock_shared(); // local info only from this point
+
+            if (m == 0 || move == xmove_t::m)
+                nm = sample_m(m, rng);
+            else if (move == xmove_t::x_new && nx == 0)
+                move = xmove_t::remove;
+
+            if (nx == 0)
+                nm = 0;
+
+            double ptot = pnew + pold + premove + pm;
+
             switch (move)
             {
             case xmove_t::remove:
                 nx = 0;
-                dS = _state.dstate_edge_dS(u, v, x, 0, _entropy_args);
-                dS += (_state.edge_x_S(0, _entropy_args) -
-                       _state.edge_x_S(x, _entropy_args));
-                break;
-            case xmove_t::xold:
-                unif = xu(rng);
-                if (unif)
+                nm = 0;
+                if (u != v || _state._self_loops)
                 {
-                    nx = uniform_sample(_state._xvals, rng);
+                    dS = _state.dstate_edge_dS(u, v, x, 0, _entropy_args);
+                    dS += (_state.edge_x_S(0, _entropy_args) -
+                           _state.edge_x_S(x, _entropy_args));
                 }
-                else
+                if (!std::isinf(_beta))
                 {
-                    if (std::isinf(_beta))
+                    lf = log(premove) - log(ptot);
+                    if (pnew > 0)
                     {
-                        std::tie(nx, dS, xcache) = sample_nx(u, v, true, rng);
+                        if (u != v || _state._self_loops)
+                            lf = log_sum_exp(lf,
+                                             log(pnew) - log(ptot) +
+                                             sample_new_x_lprob(0, sampler));
+                        else
+                            lf = log_sum_exp(lf,
+                                             log(pnew) - log(ptot));
+                    }
+                }
+                break;
+            case xmove_t::x_new: [[fallthrough]];
+            case xmove_t::x_old:
+                if (!std::isinf(_beta))
+                {
+                    if (u == v && !_state._self_loops)
+                    {
+                        lf = log(pnew + pold) - log(ptot);
                     }
                     else
                     {
-                        std::shared_lock lock(_state._x_mutex);
-                        nx = _state.find_closest(_state._xvals, nx);
+                        lf = log(pold) - log(ptot) + lf_x_old;
+                        if (pnew > 0)
+                        {
+                            lf = log_sum_exp(lf,
+                                             log(pnew) - log(ptot) +
+                                             sample_new_x_lprob(nx, sampler));
+                        }
                     }
-                }
-                if (unif || !std::isinf(_beta))
-                {
-                    dS = _state.dstate_edge_dS(u, v, x, nx, _entropy_args);
-                    dS += (_state.edge_x_S(nx, _entropy_args) -
-                           _state.edge_x_S(x, _entropy_args));
+                    if (m == 0 && nm > 0)
+                        lf += sample_m_lprob(nm, m);
                 }
                 break;
             case xmove_t::m:
                 nx = x;
                 dS = 0;
+                if (!std::isinf(_beta))
+                {
+                    lf = log(pm) - log(ptot);
+                    lf += sample_m_lprob(nm, m);
+                }
                 break;
             default:
                 break;
             }
 
+            lf += lf_e;
+
             assert(!std::isinf(nx) && !std::isnan(nx));
             assert(!std::isinf(dS) && !std::isnan(dS));
+            assert (nm == 0 || nx != 0 || (!_state._self_loops && u == v));
 
             return true;
         }
 
-        template <class Cache>
-        std::tuple<double, double> get_min(Cache& c)
-        {
-            auto iter = std::min_element(c.begin(), c.end(),
-                                         [&](auto& a, auto& b)
-                                         {
-                                             return get<1>(a) < get<1>(b);
-                                         });
-            return *iter;
-        }
-
         template <class RNG>
-        size_t sample_m(size_t m, RNG& rng)
-        {
-            if (std::isinf(_beta))
-                return 1;
-            double a = m + .5;
-            double p = 1/(a+1);
-            std::geometric_distribution<size_t> random(p);
-            return random(rng) + 1;
-        }
-
-        double sample_m_lprob(size_t nm, size_t m)
-        {
-            if (_binary)
-                return 0;
-            double a = m + .5;
-            double p = 1/(a+1);
-            return (nm - 1) * log1p(-p) + log(p);
-        }
-
-        std::array<double, 3> _ws;
-
-
-        template <class RNG>
-        move_t move_proposal(size_t pos, RNG& rng)
+        move_t move_proposal(std::tuple<size_t, size_t>& uv, RNG& rng)
         {
             if (!_parallel)
-                stage_proposal(pos, rng);
+                stage_proposal(uv, rng);
 
-            auto [u, v] = get_edge(pos);
+            auto& [u, v] = uv;
             auto [m, x] = edge_state(u, v);
+            auto& [move, nm, nx, dS, lf, sampler] =  _xcaches[get_thread_num()];
 
-            auto& [move, nx, dS, xcache] = _xcaches[get_thread_num()];
             assert(!std::isinf(dS));
 
-            int dm = 0;
-            if (m == 0 || move == xmove_t::m)
-            {
-                if (_binary)
-                    dm = (m == 0) ? 1 : 0;
-                else
-                    dm = int(sample_m(m, rng)) - int(m);
-            }
-
-            if (move == xmove_t::remove)
-                dm = -m;
+            int dm = int(nm) - int(m);
 
             return {dm, nx};
         }
 
-        template <class Lock>
-        void perform_move(size_t pos, move_t& move, Lock& lock)
+        void lock_move()
         {
-            auto [u, v] = get_edge(pos);
+            _move_mutex.lock();
+        }
+
+        void unlock_move()
+        {
+            _move_mutex.unlock();
+        }
+
+        void perform_move(std::tuple<size_t, size_t>& uv, move_t& move)
+        {
+            auto& [u, v] = uv;
             auto [m, x] = _state.edge_state(u, v);
             auto& [dm, nx] = move;
+
+            if (_parallel && (_state._self_loops || u != v))
+                _xvals_mutex.lock(); // xvals can change
+
+            auto unlock =
+                [&]()
+                {
+                    if (_parallel)
+                    {
+                        if (_state._self_loops || u != v)
+                            _xvals_mutex.unlock(); // xvals can change
+                        proposal_unlock(uv);
+                        unlock_move();
+                    }
+                };
+
             if (dm == 0 && nx == x)
+            {
+                unlock();
                 return;
+            }
 
             if (dm == 0)
             {
-                _state.update_edge(u, v, nx, [&](){ lock.unlock(); });
+                _state.update_edge(u, v, nx, unlock);
             }
             else if (dm > 0)
             {
                 if (m == 0)
                 {
-                    _state.add_edge(u, v, dm, nx, [&](){ lock.unlock(); });
+                    _state.add_edge(u, v, dm, nx, unlock);
                 }
                 else
                 {
                     _state.add_edge(u, v, dm, nx);
-                    _state.update_edge(u, v, nx, [&](){ lock.unlock(); });
+                    _state.update_edge(u, v, nx, unlock);
                 }
             }
             else
             {
                 if (m + dm == 0)
                 {
-                    _state.remove_edge(u, v, -dm, [&](){ lock.unlock(); });
+                    _state.remove_edge(u, v, -dm, unlock);
                 }
                 else
                 {
                     _state.remove_edge(u, v, -dm);
-                    _state.update_edge(u, v, nx, [&](){ lock.unlock(); });
+                    _state.update_edge(u, v, nx, unlock);
                 }
             }
-        }
 
-        class DummyLock
-        {
-        public:
-            void unlock() {}
-        };
-
-        void perform_move(size_t pos, move_t& move)
-        {
-            DummyLock lock;
-            perform_move(pos, move, lock);
+            if (_verbose)
+                cout << "u: " << u << ", v: " << v << ", m: " << m
+                     << ", m + dm: " << m + dm << ", nx: "
+                     << nx << " (moved)" << endl;
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t pos, move_t& mv)
+        virtual_move_dS(std::tuple<size_t, size_t>& uv, move_t& mv)
         {
-            auto [u, v] = get_edge(pos);
+            auto& [u, v] = uv;
             auto [m, x] = _state.edge_state(u, v);
             auto& [dm, nx] = mv;
 
             if (dm == 0 && nx == x)
                 return {0., 0.};
 
-            auto& [move, nx_, dS_, xcache] = _xcaches[get_thread_num()];
+            auto& [move, nm, nx_, dS_, lf_, sampler] = _xcaches[get_thread_num()];
             double dS = dS_;
+            double lf = lf_;
 
             auto ea = _entropy_args;
             if (!ea.xdist)
@@ -444,161 +459,186 @@ struct MCMC
             assert(!std::isinf(dS) && !std::isnan(dS));
 
             double a = 0;
-
-            double lf = 0;
             double lb = 0;
+
             if (!std::isinf(_beta))
             {
-                switch (move)
+                double pnew = _pnew;
+                double pold = _pold;
+                double premove = _premove;
+                double pm = _pm;
+
+                if (m + dm == 0)
+                    premove = pm = 0;
+
+                if (_state._xvals.size() == 1 &&
+                    _state.get_count(_state._xhist, x) == 1 && m + dm == 0)
                 {
-                case xmove_t::xold:
-                    lf += sample_old_x_lprob(nx, xcache);
-                    if (m == 0)
-                    {
-                        lf += log(_pold) - log(_pold + _pnew);
-                        lf += sample_m_lprob(m + dm, m);
-
-                        lb += log(_premove) - log(_pold + _pnew + _pm + _premove);
-                    }
-                    else
-                    {
-                        lf += log(_pold) - log(_pold + _pnew + _pm + _premove);
-
-                        if (_pnew > 0)
-                        {
-                            lb += log(_pnew) - log(_pold + _pnew + _pm + _premove);
-                            lb += sample_new_x_lprob(x, xcache);
-                        }
-                        else
-                        {
-                            lb = -numeric_limits<double>::infinity();
-                        }
-
-                        if (_pold > 0 && !_state._disable_xdist && (_state.get_count(_state._xhist, x) > 1))
-                        {
-                            lb = log_sum_exp(lb,
-                                             log(_pold) - log(_pold + _pnew + _pm + _premove) +
-                                             sample_old_x_lprob(x, xcache));
-                        }
-                    }
-                    break;
-                case xmove_t::xnew:
-                    lf += sample_new_x_lprob(nx, xcache);
-                    if (m == 0)
-                    {
-                        lf += log(_pnew) - log(_pold + _pnew);
-                        lf += sample_m_lprob(m + dm, m);
-
-                        lb += log(_premove) - log(_pold + _pnew + _pm + _premove);
-                    }
-                    else
-                    {
-                        lf += log(_pnew) - log(_pold + _pnew + _pm + _premove);
-
-                        if (_pnew > 0)
-                        {
-                            lb += log(_pnew) - log(_pold + _pnew + _pm + _premove);
-                            lb += sample_new_x_lprob(x, xcache);
-                        }
-                        else
-                        {
-                            lb = -numeric_limits<double>::infinity();
-                        }
-
-                        if (_pold > 0 && !_state._disable_xdist && (_state.get_count(_state._xhist, x) > 1))
-                        {
-                            lb = log_sum_exp(lb,
-                                             log(_pold) - log(_pold + _pnew + _pm + _premove) +
-                                             sample_old_x_lprob(x, xcache));
-                        }
-                    }
-                    break;
-                case xmove_t::remove:
-                    lf = log(_premove) - log(_pold + _pnew + _pm + _premove);
-
-                    if (_pnew > 0)
-                    {
-                        lb += log(_pnew) - log(_pold + _pnew);
-                        lb += sample_new_x_lprob(x, xcache);
-                    }
-                    else
-                    {
-                        lb = -numeric_limits<double>::infinity();
-                    }
-
-                    if (_pold > 0 && !_state._disable_xdist && (_state.get_count(_state._xhist, x) > 1))
-                    {
-                        lb = log_sum_exp(lb,
-                                         log(_pold) - log(_pold + _pnew) +
-                                         sample_old_x_lprob(x, xcache));
-                    }
-
-                    lb += sample_m_lprob(m, 0);
-                    break;
-                case xmove_t::m:
-                    lf = sample_m_lprob(m + dm, m);
-                    lb = sample_m_lprob(m, m + dm);
-                    break;
+                    if (pnew == 0)
+                        pnew = 1;
+                    pold = 0;
                 }
+
+                double ptot = pnew + pold + premove + pm;
+
+                auto& es = get_elist_state();
+
+                auto nx_add = _state.get_count(_state._xhist, nx) == 0 ?
+                    nx : numeric_limits<double>::quiet_NaN();
+
+                if (m == 0)
+                {
+                    lb = log(premove) - log(ptot);
+                    if (pnew > 0)
+                    {
+                        if (u != v || _state._self_loops)
+                            lb = log_sum_exp(lb,
+                                             log(pnew) - log(ptot) +
+                                             sample_new_x_lprob(0, sampler));
+                        else
+                            lb = log_sum_exp(lb,
+                                             log(pnew) - log(ptot));
+                    }
+                    lb += es.log_prob(u, v, 1, u, v);
+                }
+                else
+                {
+                    switch (move)
+                    {
+                    case xmove_t::remove:
+                        if (u != v || _state._self_loops)
+                        {
+                            if (pnew > 0)
+                            {
+                                lb = log(pnew) - log(ptot) +
+                                    sample_new_x_lprob(x, sampler);
+                                if (_state.get_count(_state._xhist, x) > 1)
+                                    lb = log_sum_exp(lb,
+                                                     log(pold) - log(ptot) +
+                                                     sample_old_x_lprob(x, sampler));
+                            }
+                            else
+                            {
+                                if (_state.get_count(_state._xhist, x) > 1)
+                                    lb = log(pold) - log(ptot) +
+                                        sample_old_x_lprob(x, sampler);
+                                else
+                                    lb = -numeric_limits<double>::infinity();
+                            }
+                        }
+                        else
+                        {
+                            lb = log(pnew + pold) - log(ptot);
+                        }
+                        lb += sample_m_lprob(m, 0);
+                        lb += es.log_prob(u, v, -1, u, v);
+                        break;
+                    case xmove_t::x_new: [[fallthrough]];
+                    case xmove_t::x_old:
+                        if (pnew > 0)
+                        {
+                            lb = log(pnew) - log(ptot) +
+                                sample_new_x_lprob(x, sampler);
+                            if (_state.get_count(_state._xhist, x) > 1)
+                                lb = log_sum_exp(lb,
+                                                 log(pold) - log(ptot) +
+                                                 sample_old_x_lprob(x, sampler,
+                                                                    nx_add));
+                        }
+                        else
+                        {
+                            if (_state.get_count(_state._xhist, x) > 1)
+                                lb = log(pold) - log(ptot) +
+                                    sample_old_x_lprob(x, sampler, nx_add);
+                            else
+                                lb = -numeric_limits<double>::infinity();
+                        }
+                        lb += es.log_prob(u, v);
+                        break;
+                    case xmove_t::m:
+                        lf = log(pm) - log(ptot);
+                        lb += sample_m_lprob(m, m + dm);
+                        lb += es.log_prob(u, v);
+                        break;
+                    }
+                }
+
                 a = lb - lf;
             }
 
             if (_verbose)
                 cout << "u: " << u << ", v: " << v << ", m: " << m
-                     << ", m + dm: " << m + dm << ", nx: "
+                     << ", m + dm: " << m + dm << ", x: " << x << ", nx: "
                      << nx << ", dS: " << dS << ", lf: " << lf << ", lb: " << lb << ", a: "
                      << a << ", -dS + a: " << -dS + a << endl;
 
             return {dS, a};
         }
 
-        double entropy()
-        {
-            double S = _state.entropy(_entropy_args);
-            if (_entropy_args.sbm)
-                S += _state._block_state.entropy(_entropy_args);
-            return S;
-        }
-
         template <class RNG>
         auto sample_nx(size_t u, size_t v, bool xold, RNG& rng)
         {
-            auto [m, x] = edge_state(u, v);
-            auto [nx, xcache] = _state.sample_x(u, v, _beta, _maxiter,
-                                                _tol, _entropy_args, xold, rng);
-            double dS;
-            auto iter = xcache.find(nx);
-            if (iter == xcache.end())
+            auto [nx, sampler] = xold ?
+                ((_pnew == 0 && _pxu == 1) ?
+                 _state.bisect_x_init(u, v, _entropy_args, _bisect_args) :
+                 _state.bisect_x(u, v, _entropy_args, _bisect_args,
+                                 xold && std::isinf(_beta), rng)) :
+                _state.sample_x(u, v, _beta, _entropy_args, _bisect_args,
+                                xold && std::isinf(_beta), rng);
+
+            if (!_state._self_loops && u == v)
+                return std::make_tuple(0., 0., sampler);
+
+            if (xold)
             {
-                dS = (_state.dstate_edge_dS(u, v, x, nx, _entropy_args) +
-                      (_state.edge_x_S(nx, _entropy_args) -
-                       _state.edge_x_S(x, _entropy_args)));
+                SetBisectionSampler set_sampler(_state._xvals, _pxu, sampler);
+                nx = set_sampler.sample(_beta, rng);
             }
-            else
-            {
-                dS = iter->second;
-            }
+
+            assert(nx >= _bisect_args.min_bound);
+            assert(nx <= _bisect_args.max_bound);
+
+            auto dS = sampler.f(nx, false);
 
             assert(!std::isinf(nx) && !std::isnan(nx));
             assert(!std::isinf(dS) && !std::isnan(dS));
 
-            return std::make_tuple(nx, dS, xcache);
+            return std::make_tuple(nx, dS, sampler);
         }
 
-        template <class Cache>
-        double sample_new_x_lprob(xval_t nx, Cache& xcache)
+        template <class Sampler>
+        double sample_new_x_lprob(xval_t nx, Sampler& sampler)
         {
-            return _state.sample_x_lprob(nx, xcache, _beta);
+            return sampler.lprob(nx, _beta, _state._xdelta);
         }
 
-        template <class Cache>
-        double sample_old_x_lprob(xval_t nx, Cache& xcache)
+        template <class Sampler>
+        double sample_old_x_lprob(xval_t nx, Sampler& sampler,
+                                  double add = numeric_limits<double>::quiet_NaN())
         {
-            auto [a, b] = _state.get_close_int(_state._xvals, nx);
-            SegmentSampler seg = _state.get_seg_sampler(xcache, _beta);
-            double l = seg.lprob_int(a, b);
-            return log_sum_exp(log1p(-_pxu) + l,
-                               log(_pxu) - log(_state._xvals.size()));
+            SetBisectionSampler set_sampler(_state._xvals, _pxu, sampler);
+            return set_sampler.lprob(nx, _beta,
+                                     numeric_limits<double>::quiet_NaN(), add);
+        }
+
+        template <class RNG>
+        size_t sample_m(size_t m, RNG& rng)
+        {
+            if (std::isinf(_beta) || _binary)
+                return 1;
+            double a = m + .5;
+            double p = 1/(a+1);
+            std::geometric_distribution<size_t> random(p);
+            return random(rng) + 1;
+        }
+
+        double sample_m_lprob(size_t nm, size_t m)
+        {
+            if (_binary)
+                return 0;
+            double a = m + .5;
+            double p = 1/(a+1);
+            return (nm - 1) * log1p(-p) + log(p);
         }
 
         bool is_deterministic()
@@ -618,7 +658,7 @@ struct MCMC
 
         auto& get_vlist()
         {
-            return _vlist;
+            return _edges;
         }
 
         double get_beta()
@@ -630,6 +670,17 @@ struct MCMC
         {
             return _niter;
         }
+
+        auto& get_elist_state()
+        {
+            return _elist_states[get_thread_num()];
+        }
+
+    private:
+        std::vector<elist_state_t<typename State::u_t>> _elist_states;
+        std::vector<std::vector<size_t>> _candidates;
+        std::shared_mutex _move_mutex;
+        std::shared_mutex _xvals_mutex;
     };
 };
 
