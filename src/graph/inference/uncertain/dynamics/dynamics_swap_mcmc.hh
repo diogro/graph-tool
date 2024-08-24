@@ -449,7 +449,9 @@ struct MCMC
         virtual_move_dS(size_t pos, move_t move)
         {
             auto& [u, v, s, t, pos_uv, pos_st] = _swaps[pos];
-            auto& [move_, dS] = _dS[get_thread_num()];
+            auto& [move_, dS_] = _dS[get_thread_num()];
+
+            double dS = dS_;
             dS *= _entropy_args.alpha;
 
             assert(move == move_);

@@ -101,12 +101,12 @@ struct MCMCTheta
 
         std::vector<std::mutex> _vmutex;
 
-        bool proposal_lock(size_t)
+        constexpr bool proposal_lock(size_t)
         {
             return true;
         }
 
-        void proposal_unlock(size_t)
+        constexpr void proposal_unlock(size_t)
         {
         }
 
@@ -115,19 +115,13 @@ struct MCMCTheta
             return _state._theta[v];
         }
 
-        template <class T>
-        constexpr bool skip_node(T&)
-        {
-            return false;
-        }
-
         std::vector<std::tuple<xmove_t, tval_t, double,
                                std::map<tval_t, double>>> _xcaches;
 
         std::array<double, 2> _ws;
 
         template <class RNG>
-        double stage_proposal(size_t v, RNG& rng)
+        bool stage_proposal(size_t v, RNG& rng)
         {
             if (!proposal_lock(v))
                 return false;
@@ -171,12 +165,6 @@ struct MCMCTheta
 
             auto& [move, nx, dS, xcache] = _xcaches[get_thread_num()];
 
-            auto ea = _entropy_args;
-            if (!ea.tdist)
-                ea.tl1 = 0;
-
-            dS += _state.update_node_dS(v, nx, ea, false);
-
             return nx;
         }
 
@@ -198,7 +186,14 @@ struct MCMCTheta
             if (x == nx)
                 return {0., 0.};
 
-            auto& [move, nx_, dS, xcache] = _xcaches[get_thread_num()];
+            auto& [move, nx_, dS_, xcache] = _xcaches[get_thread_num()];
+            double dS = dS_;
+
+            auto ea = _entropy_args;
+            if (!ea.tdist)
+                ea.tl1 = 0;
+
+            dS += _state.update_node_dS(v, nx, ea, false);
 
             double lf = 0;
             double lb = 0;
