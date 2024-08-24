@@ -24,6 +24,7 @@
 
 #include "graph_tool.hh"
 #include "../support/graph_state.hh"
+#include "../loops/mcmc_loop.hh"
 #include "sample_edge_sbm.hh"
 
 namespace graph_tool
@@ -50,7 +51,8 @@ struct MCMC
 
     template <class... Ts>
     class MCMCUncertainState
-        : public MCMCUncertainStateBase<Ts...>
+        : public MCMCUncertainStateBase<Ts...>,
+          public MetropolisStateBase
     {
     public:
         GET_PARAMS_USING(MCMCUncertainStateBase<Ts...>,
@@ -182,16 +184,6 @@ struct MCMC
         size_t get_niter()
         {
             return _niter;
-        }
-
-        template <class T>
-        void step(T&, int)
-        {
-        }
-
-        template <class RNG>
-        void init_iter(RNG&)
-        {
         }
     };
 };

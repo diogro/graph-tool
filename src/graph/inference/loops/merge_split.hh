@@ -20,6 +20,8 @@
 
 #include "parallel_rng.hh"
 
+#include "mcmc_loop.hh"
+
 namespace graph_tool
 {
 using namespace boost;
@@ -64,7 +66,9 @@ template <class State, class Node, class Group,
           template <class> class GSet,
           class GMap, bool allow_empty=false,
           bool labelled=false>
-struct MergeSplit: public State
+struct MergeSplit:
+        public State,
+        public MetropolisStateBase
 {
     enum class move_t { single = 0, split, merge, mergesplit, movelabel, null };
     enum class stage_t { random = 0, scatter, coalesce };
@@ -1289,15 +1293,6 @@ struct MergeSplit: public State
     size_t get_niter()
     {
         return std::max(State::_niter, 1.);
-    }
-
-    constexpr void step(const Node&, size_t)
-    {
-    }
-
-    template <class RNG>
-    void init_iter(RNG&)
-    {
     }
 };
 

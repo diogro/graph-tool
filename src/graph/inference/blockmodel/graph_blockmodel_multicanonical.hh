@@ -24,6 +24,7 @@
 
 #include "graph_tool.hh"
 #include "../support/graph_state.hh"
+#include "../loops/mcmc_loop.hh"
 #include <boost/mpl/vector.hpp>
 
 namespace graph_tool
@@ -51,7 +52,8 @@ struct Multicanonical
 
     template <class... Ts>
     class MulticanonicalBlockState
-        : public MulticanonicalBlockStateBase<Ts...>
+        : public MulticanonicalBlockStateBase<Ts...>,
+          public MetropolisStateBase
     {
     public:
         GET_PARAMS_USING(MulticanonicalBlockStateBase<Ts...>,
@@ -140,11 +142,6 @@ struct Multicanonical
             return _state.get_N();
         }
 
-        double get_beta()
-        {
-            return 1;
-        }
-
         size_t get_niter()
         {
             return _state.get_niter();
@@ -154,11 +151,6 @@ struct Multicanonical
         {
             _hist[_i]++;
             _dens[_i] += _f;
-        }
-
-        template <class RNG>
-        void init_iter(RNG&)
-        {
         }
     };
 };

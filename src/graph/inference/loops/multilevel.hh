@@ -40,7 +40,9 @@ template <class State, class Node, class Group,
           template <class, class> class GMap,
           class GSMap, bool allow_empty=false,
           bool relabel=false>
-struct Multilevel: public State
+struct Multilevel:
+        public State,
+        public MetropolisStateBase
 {
     enum class move_t { multilevel=0, null };
 
@@ -1089,15 +1091,6 @@ struct Multilevel: public State
     size_t get_niter()
     {
         return State::_niter;
-    }
-
-    constexpr void step(const Node&, size_t)
-    {
-    }
-
-    template <class RNG>
-    void init_iter(RNG&)
-    {
     }
 };
 

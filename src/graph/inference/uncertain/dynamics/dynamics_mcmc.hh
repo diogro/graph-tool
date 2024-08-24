@@ -30,6 +30,15 @@
 #include "../../../generation/sampler.hh"
 #include "openmp.hh"
 
+template <class T1, class T2>
+std::ostream& operator<<(std::ostream& s, std::tuple<T1, T2>& v)
+{
+    s << "(" << std::get<0>(v) << ", " << std::get<1>(v) << ")";
+    return s;
+}
+
+#include "../../loops/mcmc_loop.hh"
+
 namespace graph_tool
 {
 using namespace boost;
@@ -57,13 +66,6 @@ typedef multi_array_ref<int64_t,2> elist_t;
     ((parallel,, bool, 0))                                                     \
     ((niter,, size_t, 0))
 
-template <class T1, class T2>
-ostream& operator<<(ostream& s, std::tuple<T1, T2>& v)
-{
-    s << "(" << get<0>(v) << ", " << get<1>(v) << ")";
-    return s;
-}
-
 template <class State>
 struct MCMC
 {
@@ -71,7 +73,8 @@ struct MCMC
 
     template <class... Ts>
     class MCMCDynamicsState
-        : public MCMCDynamicsStateBase<Ts...>
+        : public MCMCDynamicsStateBase<Ts...>,
+          public MetropolisStateBase
     {
     public:
         GET_PARAMS_USING(MCMCDynamicsStateBase<Ts...>,
@@ -598,7 +601,6 @@ struct MCMC
                                log(_pxu) - log(_state._xvals.size()));
         }
 
-
         bool is_deterministic()
         {
             return _deterministic;
@@ -627,16 +629,6 @@ struct MCMC
         size_t get_niter()
         {
             return _niter;
-        }
-
-        template <class T>
-        void step(T&, move_t&)
-        {
-        }
-
-        template <class RNG>
-        void init_iter(RNG&)
-        {
         }
     };
 };

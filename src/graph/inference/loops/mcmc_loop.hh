@@ -34,6 +34,47 @@
 namespace graph_tool
 {
 
+struct MetropolisStateBase
+{
+    // required
+    auto get_vlist() { return std::array<size_t,0>(); };
+    size_t get_niter() { return 0; };
+
+    template <class Node>
+    constexpr size_t node_state(Node&&) { return 0; };
+
+    template <class Node, class RNG>
+    constexpr size_t move_proposal(Node&&, RNG) { return 0; };
+
+    constexpr static size_t _null_move = std::numeric_limits<size_t>::max();
+
+    template <class Node, class State>
+    constexpr std::tuple<double,double> virtual_move_dS(Node&&, State&&)
+    { return {0,0}; };
+
+    template <class Node, class State>
+    constexpr void perform_move(Node&&, State&&) { };
+
+    // optional
+    double get_beta() { return 1; };
+    constexpr bool is_determinisitic() { return false; };
+    constexpr bool is_sequential() { return true; };
+
+    template <class RNG>
+    constexpr double init_iter(RNG&) { return 0; };
+
+    constexpr size_t get_N() { return 0; };
+
+    template <class Node>
+    constexpr bool skip_node(Node&&) { return false; };
+
+    template <class Node, class State>
+    constexpr void step(Node&&, State&&) { };
+
+    constexpr static bool _verbose = false;
+};
+
+
 template <class RNG>
 bool metropolis_accept(double dS, double mP, double beta, RNG& rng)
 {
@@ -89,7 +130,7 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
                     return state.get_N();
             };
 
-        state.init_iter(rng);
+        S += state.init_iter(rng);
 
         for (size_t vi = 0; vi < get_N(); ++vi)
         {

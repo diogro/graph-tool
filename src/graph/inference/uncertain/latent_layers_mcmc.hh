@@ -36,6 +36,8 @@ ostream& operator<<(ostream& out, const tuple<T1, T2>& move)
 }
 }
 
+#include "../loops/mcmc_loop.hh"
+
 namespace graph_tool
 {
 using namespace boost;
@@ -59,7 +61,8 @@ struct MCMC
 
     template <class... Ts>
     class MCMCLatentLayersState
-        : public MCMCLatentLayersBase<Ts...>
+        : public MCMCLatentLayersBase<Ts...>,
+          public MetropolisStateBase
     {
     public:
         GET_PARAMS_USING(MCMCLatentLayersBase<Ts...>,
@@ -404,16 +407,6 @@ struct MCMC
         size_t get_niter()
         {
             return _niter;
-        }
-
-        template <class T, class M>
-        void step(T&, const M&)
-        {
-        }
-
-        template <class RNG>
-        void init_iter(RNG&)
-        {
         }
     };
 };

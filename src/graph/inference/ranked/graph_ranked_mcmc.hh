@@ -24,6 +24,7 @@
 
 #include "graph_tool.hh"
 #include "../support/graph_state.hh"
+#include "../loops/mcmc_loop.hh"
 #include <boost/mpl/vector.hpp>
 
 namespace graph_tool
@@ -53,7 +54,8 @@ struct MCMC
 
     template <class... Ts>
     class MCMCBlockState
-        : public MCMCBlockStateBase<Ts...>
+        : public MCMCBlockStateBase<Ts...>,
+          public MetropolisStateBase
     {
     public:
         GET_PARAMS_USING(MCMCBlockStateBase<Ts...>,
@@ -144,15 +146,6 @@ struct MCMC
         size_t get_niter()
         {
             return _niter;
-        }
-
-        void step(size_t, size_t)
-        {
-        }
-
-        template <class RNG>
-        void init_iter(RNG&)
-        {
         }
     };
 };

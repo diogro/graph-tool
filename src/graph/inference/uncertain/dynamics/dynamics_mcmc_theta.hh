@@ -25,6 +25,7 @@
 
 #include "graph_tool.hh"
 #include "../../support/graph_state.hh"
+#include "../../loops/mcmc_loop.hh"
 #include "../../support/fibonacci_search.hh"
 #include "dynamics.hh"
 #include "segment_sampler.hh"
@@ -60,7 +61,8 @@ struct MCMCTheta
 
     template <class... Ts>
     class MCMCDynamicsState
-        : public MCMCDynamicsStateBase<Ts...>
+        : public MCMCDynamicsStateBase<Ts...>,
+          public MetropolisStateBase
     {
     public:
         GET_PARAMS_USING(MCMCDynamicsStateBase<Ts...>,
@@ -333,16 +335,6 @@ struct MCMCTheta
         bool is_parallel()
         {
             return _parallel;
-        }
-
-        template <class T>
-        void step(T&, move_t&)
-        {
-        }
-
-        template <class RNG>
-        void init_iter(RNG&)
-        {
         }
     };
 };
