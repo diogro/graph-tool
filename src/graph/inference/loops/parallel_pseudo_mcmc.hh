@@ -38,8 +38,6 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
     auto& vlist = state.get_vlist();
     auto beta = state.get_beta();
 
-    typedef std::remove_const_t<decltype(state._null_move)> move_t;
-
     size_t nattempts = 0;
     size_t nmoves = 0;
 
@@ -71,7 +69,7 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
 
             std::shared_lock rlock(move_lock);
 
-            move_t s = state.move_proposal(v, rng);
+            auto s = state.move_proposal(v, rng);
 
             nattempts++;
 
