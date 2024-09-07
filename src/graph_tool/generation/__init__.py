@@ -1696,7 +1696,7 @@ def generate_triadic_closure(g, t, probs=True, curr=None, ego=None):
     t : :class:`~graph_tool.VertexPropertyMap` or scalar
         Vertex property map (or scalar value) with the ego closure propensities
         for every node.
-    probs : ``boolean`` (optional, default: ``False``)
+    probs : ``boolean`` (optional, default: ``True``)
         If ``True``, the values of ``t`` will be interpreted as the independent
         probability of connecting two neighbors of the respective
         vertex. Otherwise, it will determine the integer number of pairs of
@@ -1714,7 +1714,8 @@ def generate_triadic_closure(g, t, probs=True, curr=None, ego=None):
     -------
     ego : :class:`~graph_tool.EdgePropertyMap`
         Integer-valued edge property map, containing the ego vertex for each
-        closed triad.
+        closed triad. A value of ``-1`` marks original edges that were not
+        created by triadic closure.
 
     Notes
     -----
