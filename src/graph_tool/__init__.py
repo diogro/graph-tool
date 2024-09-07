@@ -350,7 +350,7 @@ class PropertyMap(object):
         =======================     ======================
     """
     def __init__(self, pmap, g, key_type):
-        if type(self) == PropertyMap:
+        if type(self) is PropertyMap:
             raise Exception("PropertyMap cannot be instantiated directly")
         self.__map = pmap
         self.__g = weakref.ref(g)
