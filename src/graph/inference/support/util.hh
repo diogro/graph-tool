@@ -101,8 +101,9 @@ template <class V>
 [[gnu::const]]
 inline auto log_sum_exp(const V& v)
 {
-    double ret = -std::numeric_limits<double>::infinity();
-    for (double x : v)
+    typedef decltype(*v.begin()) val_t;
+    auto ret = -std::numeric_limits<val_t>::infinity();
+    for (const auto& x : v)
         ret = log_sum_exp(ret, x);
     return ret;
 }
