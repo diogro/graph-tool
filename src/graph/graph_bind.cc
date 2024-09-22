@@ -432,14 +432,6 @@ size_t get_ptr(std::shared_ptr<GraphInterface::multigraph_t>& p)
     return size_t(p.get());
 };
 
-
-// numpy array interface weirdness
-void* do_import_array()
-{
-    import_array1(NULL);
-    return NULL;
-}
-
 void ungroup_vector_property(GraphInterface& g, boost::any vector_prop,
                              boost::any prop, size_t pos, bool edge);
 void group_vector_property(GraphInterface& g, boost::any vector_prop,
@@ -485,7 +477,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     python::docstring_options dopt(true, false);
 
     // numpy
-    do_import_array();
+    PyArray_ImportNumPyAPI();
     export_python_interface();
 
     // random numbers
