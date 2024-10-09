@@ -57,7 +57,7 @@ typedef boost::mpl::map<
     boost::mpl::pair<long double, boost::mpl::int_<NPY_LONGDOUBLE> >,
     boost::mpl::pair<std::complex<float>, boost::mpl::int_<NPY_CFLOAT> >,
     boost::mpl::pair<std::complex<double>, boost::mpl::int_<NPY_CDOUBLE> >,
-    boost::mpl::pair<std::complex<long double>, boost::mpl::int_<NPY_CLONGDOUBLE> > 
+    boost::mpl::pair<std::complex<long double>, boost::mpl::int_<NPY_CLONGDOUBLE> >
     > numpy_types;
 
 template <class ValueType>
