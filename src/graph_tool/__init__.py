@@ -806,14 +806,14 @@ class PropertyMap(object):
             raise ValueError("property maps must have the same value type")
         self.__map.swap(other.__map)
 
-    def transform(self, f, value_type=None, inplace=False):
+    def transform(self, f, value_type=None, no_array=False, inplace=False):
         """Return a copy of the property map with the values transformed by the
         user-supplied function ``f``. If given, ``value_type`` specifies the
         value type for the new property map.
 
         If the value type of the original map allows, the values will be passed
-        to ``f`` as a :class:`numpy.ndarray`. Otherwise, they will be passed
-        individually.
+        to ``f`` as a :class:`numpy.ndarray`, unless `no_array` is ``True``.
+        Otherwise, they will be passed individually.
 
         If ``inplace == True`` the transformation happens in-place, without
         copying the property map. In this case the parameter ``value_type`` is
@@ -822,7 +822,7 @@ class PropertyMap(object):
         """
         p = self._new_pmap(value_type=value_type) if not inplace else self
         a = self.fa
-        if a is None or p.fa is None:
+        if a is None or p.fa is None or no_array:
             for v in self._get_iter():
                 p[v] = f(self[v])
         else:
