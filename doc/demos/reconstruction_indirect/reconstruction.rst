@@ -119,7 +119,7 @@ convergence is reached:
 
    When doing reconstruction, the default for
    :meth:`~graph_tool.inference.IsingGlauberBlockState.mcmc_sweep` is the
-   inverse "temperature" ``beta=1``, meaning that this function performs a
+   inverse "temperature" ``beta=1``, meaning that this function performs
    sweeps of a MCMC. Here we are interested in a greedy optimization instead, so
    we need to pass ``beta=numpy.inf``.
 
