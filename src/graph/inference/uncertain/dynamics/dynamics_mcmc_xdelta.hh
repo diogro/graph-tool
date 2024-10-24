@@ -126,7 +126,8 @@ struct MCMCXDelta
         template <class XState>
         void apply_state(XState& state)
         {
-            auto& [delta, temp] = state;
+            auto& delta = get<0>(state);
+            auto& temp = get<1>(state);
             _state._xdelta = delta;
             #pragma omp parallel for schedule(runtime)
             for (size_t i = 0; i < _edges.size(); ++i)

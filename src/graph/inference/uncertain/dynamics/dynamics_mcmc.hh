@@ -360,7 +360,8 @@ struct MCMC
 
         void perform_move(std::tuple<size_t, size_t>& uv, move_t& move)
         {
-            auto& [u, v] = uv;
+            size_t u = get<0>(uv);
+            size_t v = get<1>(uv);
             auto [m, x] = _state.edge_state(u, v);
             auto& [dm, nx] = move;
 
