@@ -27,9 +27,9 @@
 namespace graph_tool
 {
 
-const char* _magic = u8"⛾ gt";
-size_t _magic_length = 6;
-const uint8_t _version = 1;
+constexpr const char* _magic = u8"⛾ gt";
+constexpr const size_t _magic_length = 6;
+constexpr const uint8_t _version = 1;
 
 // deal with endianness
 
