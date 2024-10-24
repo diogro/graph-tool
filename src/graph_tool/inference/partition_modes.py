@@ -45,7 +45,6 @@ class PartitionModeState(object):
     nested : ``bool`` (optional, default: ``False``)
         If ``True``, the partitions will be assumed to be hierarchical.
     converge : ``bool`` (optional, default: ``False``)
-
         If ``True``, the label alignment will be iterated until convergence upon
         initialization (otherwise
         :meth:`~graph_tool.inference.PartitionModeState.replace_partitions`
