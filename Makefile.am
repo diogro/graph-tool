@@ -130,6 +130,7 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/module_registry.hh \
 	src/graph/mpl_nested_loop.hh \
 	src/graph/numpy_bind.hh \
+	src/graph/npy_2_compat.h \
 	src/graph/openmp.hh \
 	src/graph/openmp_lock.hh \
 	src/graph/parallel_rng.hh \

@@ -29,6 +29,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #define NPY_API_SYMBOL_ATTRIBUTE // avoid link error with numpy >= 2.1
 #include "numpy/ndarrayobject.h"
+#include "npy_2_compat.h"
 
 #include <boost/array.hpp>
 #define BOOST_DISABLE_ASSERTS
