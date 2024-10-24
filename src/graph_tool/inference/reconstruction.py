@@ -147,7 +147,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             self-loops.
         max_m : ``int`` (optional, default: ``1 << 16``)
             Maximum latent edge multiplicity allowed.
-        entropy_args: ``dict`` (optional, default: ``{}``)
+        entropy_args : ``dict`` (optional, default: ``{}``)
             Override default arguments for
             :meth:`~DynamicsBlockStateBase.entropy()` method and releated
             operations.
@@ -1328,13 +1328,14 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Parameter for the bisection search use to optimize/sample edge
             weights. The recognized parameters and their default values are as
             follows:
+
                 maxiter : ``int`` (default: ``0``)
                     Maximum number of iterations for bisection search (``0``
                     means unlimited).
                 tol : ``float`` (default: ``2e-3``)
                     Relative tolerance for bisection search.
                 ftol : ``float`` (default: ``100``)
-                    Absolute tolerance used to extend search range.
+                    Absolute tolerance used to extend the search range.
                 nmax_extend : ``int`` (default: ``8``)
                     Maximum number of min/max range extensions.
                 min_bound : ``float`` (default: ``-np.inf``)
@@ -1348,6 +1349,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                 reversible : ``boolean`` (default: ``True``)
                     Perform search in a manner that is usable for a reversible
                     Markov chain.
+
         fb : ``boolean`` (optional, default: ``False``)
             Perform a Fibonacci (a.k.a. golden ratio) search among the current
             edge categories, instead of a bisection search among all possible
@@ -1600,8 +1602,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         where :math:`P(\boldsymbol x|\boldsymbol D)` is the posterior
         probability of the edge weights :math:`\boldsymbol x` given the data.
-        Likewise, the mean :math:`\left<x_{ij}\right>` and standard deviation
-        :math:`\sigma_{ij}` for the edge weights are given by
+        Likewise, the marginal mean :math:`\left<x_{ij}\right>` and standard
+        deviation :math:`\sigma_{ij}` for the edge weights are given by
 
         .. math::
 
@@ -1612,6 +1614,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         The mean and standard deviation for the node biases are entirely
         analogous.
+
         """
 
         if g is None:
