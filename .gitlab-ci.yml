@@ -300,6 +300,25 @@ build_noble_git:
     BASE: ubuntu:noble
     PLATFORM: amd64
 
+build_oracular:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:oracular
+    PLATFORM: amd64
+
+build_oracular_arm:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:oracular
+    PLATFORM: arm64
+  needs: ["build_oracular"]
+
+build_oracular_git:
+  extends: .build_deb_git
+  variables:
+    BASE: ubuntu:oracular
+    PLATFORM: amd64
+
 build_docker:
   tags:
     - docker
