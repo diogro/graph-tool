@@ -2063,9 +2063,12 @@ public:
                     }
                 }
 
-                S_dl -= get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
-                                                          std::array<size_t,1>({r}),
-                                                          kins, kouts);
+                auto& psu = get_partition_stats(u);
+
+                S_dl -= psu.get_deg_dl(ea.degree_dl_kind,
+                                       std::array<size_t,1>({r}),
+                                       kins, kouts);
+
                 if constexpr (is_directed_::apply<g_t>::type::value)
                     get<1>(kins[0]) -= 1;
                 get<1>(kouts[0]) -= 1;
@@ -2073,9 +2076,9 @@ public:
                     get<1>(kins[1]) += 1;
                 get<1>(kouts[1]) += 1;
 
-                S_dl += get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
-                                                          std::array<size_t,1>({r}),
-                                                          kins, kouts);
+                S_dl += psu.get_deg_dl(ea.degree_dl_kind,
+                                       std::array<size_t,1>({r}),
+                                       kins, kouts);
 
                 if (u != v) // r != s
                 {
@@ -2095,9 +2098,12 @@ public:
                         kouts[0] = {null, 0};
                     }
 
-                    S_dl -= get_partition_stats(v).get_deg_dl(ea.degree_dl_kind,
-                                                              std::array<size_t,1>({s}),
-                                                              kins, kouts);
+                    auto& psv = get_partition_stats(v);
+
+                    S_dl -= psv.get_deg_dl(ea.degree_dl_kind,
+                                           std::array<size_t,1>({s}),
+                                           kins, kouts);
+
                     if constexpr (is_directed_::apply<g_t>::type::value)
                         get<1>(kins[0]) -= 1;
                     get<1>(kouts[0]) -= 1;
@@ -2105,13 +2111,15 @@ public:
                         get<1>(kins[1]) += 1;
                     get<1>(kouts[1]) += 1;
 
-                    S_dl += get_partition_stats(v).get_deg_dl(ea.degree_dl_kind,
-                                                              std::array<size_t,1>({s}),
-                                                              kins, kouts);
+                    S_dl += psv.get_deg_dl(ea.degree_dl_kind,
+                                           std::array<size_t,1>({s}),
+                                           kins, kouts);
                 }
             }
             else // r == s && u != v
             {
+                auto& psu = get_partition_stats(u);
+
                 if constexpr (!is_directed_::apply<g_t>::type::value)
                 {
                     std::array<std::tuple<size_t, int>, 0> kins;
@@ -2144,15 +2152,15 @@ public:
                         }
                     }
 
-                    S_dl += get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
-                                                              std::array<size_t,1>({r}),
-                                                              kins, kouts);
+                    S_dl += psu.get_deg_dl(ea.degree_dl_kind,
+                                           std::array<size_t,1>({r}),
+                                           kins, kouts);
                     for (size_t i = 0; i < 4; ++i)
                         get<1>(kouts[i]) = 0;
 
-                    S_dl -= get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
-                                                              std::array<size_t,1>({r}),
-                                                              kins, kouts);
+                    S_dl -= psu.get_deg_dl(ea.degree_dl_kind,
+                                           std::array<size_t,1>({r}),
+                                           kins, kouts);
                 }
                 else
                 {
@@ -2167,15 +2175,15 @@ public:
 
                     kins = {make_tuple(kin, -1), make_tuple(kin + dm, 1)};
 
-                    S_dl += get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
-                                                              std::array<size_t,1>({r}),
-                                                              kins, kouts);
+                    S_dl += psu.get_deg_dl(ea.degree_dl_kind,
+                                           std::array<size_t,1>({r}),
+                                           kins, kouts);
                     for (size_t i = 0; i < 2; ++i)
                         get<1>(kins[i]) = get<1>(kouts[i]) = 0;
 
-                    S_dl -= get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
-                                                              std::array<size_t,1>({r}),
-                                                              kins, kouts);
+                    S_dl -= psu.get_deg_dl(ea.degree_dl_kind,
+                                           std::array<size_t,1>({r}),
+                                           kins, kouts);
 
                 }
             }
@@ -2201,14 +2209,22 @@ public:
                     S += eterm_exact(r, s, mrs + dm, _bg);
                     if (s != r)
                     {
-                        S -= vterm_exact(_mrp[r],      _mrm[r],      _wr[r], _deg_corr, _bg);
-                        S += vterm_exact(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
-                        S -= vterm_exact(_mrp[s],      _mrm[s],      _wr[s], _deg_corr, _bg);
-                        S += vterm_exact(_mrp[s] + dm, _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                        S -= vterm_exact(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
+                        S -= vterm_exact(_mrp[s], _mrm[s], _wr[s], _deg_corr, _bg);
+                        if constexpr (is_directed_::apply<g_t>::type::value)
+                        {
+                            S += vterm_exact(_mrp[r] + dm, _mrm[r],      _wr[r], _deg_corr, _bg);
+                            S += vterm_exact(_mrp[s],      _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                        }
+                        else
+                        {
+                            S += vterm_exact(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
+                            S += vterm_exact(_mrp[s] + dm, _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                        }
                     }
                     else
                     {
-                        S -= vterm_exact(_mrp[r],          _mrm[r],          _wr[r], _deg_corr, _bg);
+                        S -= vterm_exact(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
                         if constexpr (is_directed_::apply<g_t>::type::value)
                             S += vterm_exact(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
                         else
@@ -2221,14 +2237,22 @@ public:
                     S += eterm(r, s, mrs + dm, _bg);
                     if (s != r)
                     {
-                        S += vterm(_mrp[r],      _mrm[r],      _wr[r], _deg_corr, _bg);
-                        S += vterm(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
-                        S += vterm(_mrp[s],      _mrm[s],      _wr[s], _deg_corr, _bg);
-                        S += vterm(_mrp[s] + dm, _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                        S -= vterm(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
+                        S -= vterm(_mrp[s], _mrm[s], _wr[s], _deg_corr, _bg);
+                        if constexpr (is_directed_::apply<g_t>::type::value)
+                        {
+                            S += vterm(_mrp[r] + dm, _mrm[r],      _wr[r], _deg_corr, _bg);
+                            S += vterm(_mrp[s],      _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                        }
+                        else
+                        {
+                            S += vterm(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
+                            S += vterm(_mrp[s] + dm, _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                        }
                     }
                     else
                     {
-                        S -= vterm(_mrp[r],          _mrm[r],          _wr[r], _deg_corr, _bg);
+                        S -= vterm(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
                         if constexpr (is_directed_::apply<g_t>::type::value)
                             S += vterm(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
                         else
