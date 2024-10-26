@@ -1756,7 +1756,8 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
                                         theta=theta, x_range=x_range,
                                         theta_range=theta_range,
                                         directed=directed, discrete=True,
-                                        **dict(dict(directed=True), **kwargs))
+                                        **dict(dict(directed=True),
+                                               **dmask(kwargs, ["discrete"])))
 
     def _make_state(self):
         return libinference.make_epidemics_state(self._state, self.ot, self.os,
@@ -1855,7 +1856,8 @@ class IsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         """
         DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
                                         discrete=True,
-                                        **dict(dict(directed=True), **kwargs))
+                                        **dict(dict(directed=True),
+                                               **dmask(kwargs, ["discrete"])))
 
     def _make_state(self):
         return libinference.make_ising_glauber_state(self._state, self.ot,
