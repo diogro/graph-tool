@@ -304,7 +304,7 @@ struct MCMCTheta
                              bool)
         {
             double lr = log(_c);
-            lr += -log(_state._xvals.size());
+            lr += -log(_state._tvals.size());
 
             double xa = std::numeric_limits<double>::quiet_NaN();
             double xb = std::numeric_limits<double>::quiet_NaN();
