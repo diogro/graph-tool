@@ -1213,10 +1213,10 @@ struct Dynamics
                             bool include_edges, bool use_hint, size_t nrandom,
                             bool verbose, RNG& rng_)
         {
-            bool directed = graph_tool::is_directed(_u);
+            constexpr bool directed = is_directed_::apply<g_t>::type::value;
 
             size_t N = num_vertices(g);
-            size_t M = (directed) ? N * (N - 1) : (N * (N - 1)) / 2;
+            size_t M = (N * (N - 1)) / 2;
             bool complete = knn ? k >= N - 1 : k >= M;
             if (complete)
                 exact = true;
@@ -1312,14 +1312,25 @@ struct Dynamics
                 };
 
             auto d__ =
-                [&](size_t u, size_t v)
+                [&](size_t u, size_t v, bool edges)
                 {
-                    return d_(u, v, allow_edges);
+                    if constexpr (directed)
+                    {
+                        if (u == v)
+                            return d_(u, v, edges);
+                        else
+                            return std::min(d_(u, v, edges),
+                                            d_(v, u, edges));
+                    }
+                    else
+                    {
+                        return d_(u, v, edges);
+                    }
                 };
 
-            auto d = make_dist_cache<is_directed_::apply<g_t>::type::value,
-                                     true, keep_iter>
-                (d__, num_vertices(_u));
+            auto d = make_dist_cache<false, true, keep_iter>
+                ([&](auto u, auto v){ return d__(u, v, allow_edges); },
+                 num_vertices(_u));
 
             reversed_graph<Graph> g_(g);
             size_t n_tot = 0;
@@ -1330,15 +1341,15 @@ struct Dynamics
                 if (!knn)
                 {
                     if (exact)
-                        n_tot = gen_k_nearest_exact<true>(g_, d, k, directed, w);
+                        n_tot = gen_k_nearest_exact<true>(g_, d, k, false, w);
                     else if (use_hint)
                         std::tie(n_tot, n_iter) =
                             gen_k_nearest<true>(g_, d, k, r, max_rk, epsilon, c_stop,
-                                                max_iter, w, _u, directed, verbose, rng_);
+                                                max_iter, w, _u, false, verbose, rng_);
                     else
                         std::tie(n_tot, n_iter) =
                             gen_k_nearest<true>(g_, d, k, r, max_rk, epsilon, c_stop,
-                                                max_iter, w, _dummy_hint, directed,
+                                                max_iter, w, _dummy_hint, false,
                                                 verbose, rng_);
                 }
                 else
@@ -1381,7 +1392,7 @@ struct Dynamics
                 {
                     auto u = source(e, g);
                     auto v = target(e, g);
-                    if (!directed && (u > v))
+                    if (u > v)
                         std::swap(u, v);
                     ei[e] = get<1>(d._cache[v][u]);
                 }
@@ -1393,12 +1404,10 @@ struct Dynamics
                 {
                     auto u = source(e, _u);
                     auto v = target(e, _u);
-                    if (edge(u, v, g).second)
-                        continue;
-                    if (!directed && edge(v, u, g).second)
+                    if (edge(u, v, g).second || edge(v, u, g).second)
                         continue;
                     auto ne = boost::add_edge(u, v, g).first;
-                    w[ne] = d_(u, v, true);
+                    w[ne] = d__(u, v, true);
                 }
             }
 
@@ -1409,7 +1418,7 @@ struct Dynamics
                     if (edge(v, v, g).second)
                         continue;
                     auto ne = boost::add_edge(v, v, g).first;
-                    w[ne] = d_(v, v, true);
+                    w[ne] = d__(v, v, true);
                 }
             }
 
@@ -1424,7 +1433,21 @@ struct Dynamics
                 }
                 while ((u == v || _self_loops) && edge(v, u, g).second);
                 auto ne = boost::add_edge(u, v, g).first;
-                w[ne] = d_(u, v, true);
+                w[ne] = d__(u, v, true);
+            }
+
+            if constexpr (directed)
+            {
+                std::vector<std::tuple<size_t, size_t, double>> nes;
+                for (auto e : edges_range(g))
+                    nes.emplace_back(target(e, g), source(e, g), w[e]);
+                for (auto& [s, t, l] : nes)
+                {
+                    if (s == t)
+                        continue;
+                    auto e = boost::add_edge(s, t, g).first;
+                    w[e] = l;
+                }
             }
 
             return {n_tot, n_iter, d._miss_count};

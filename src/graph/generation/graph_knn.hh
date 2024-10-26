@@ -49,7 +49,7 @@ template <bool directed, bool parallel, bool keep_iter, class Dist>
 class DistCache
 {
 public:
-    DistCache(Dist&& d, size_t N)
+    DistCache(const Dist& d, size_t N)
         : _cache(N), _d(d), _mutex(parallel ? N : 0)
 
     {}
@@ -124,7 +124,7 @@ public:
          std::vector<gt_hash_map<size_t, double>>> _cache;
 
 private:
-    Dist& _d;
+    Dist _d;
     std::vector<std::shared_mutex> _mutex;
     size_t _last_iter = 0;
     size_t _offset = 0;

@@ -51,7 +51,7 @@ def get_bisect_args(**kwargs):
 
 @entropy_state_signature
 class DynamicsBlockStateBase(UncertainBaseState):
-    def __init__(self, s, g=None, t=[], active=None, x=1,
+    def __init__(self, s, g=None, directed=False, t=[], active=None, x=1,
                  x_range=(-np.inf, np.inf), theta=0,
                  theta_range=(-np.inf, np.inf), xdelta=1e-8, xdelta_min=1e-8,
                  tdelta=1e-8, tdelta_min=1e-8, disable_xdist=False,
@@ -83,6 +83,11 @@ class DynamicsBlockStateBase(UncertainBaseState):
             time given by that parameter.
         g : :class:`~graph_tool.Graph` (optional, default: ``None``)
             Initial graph state. If not provided, an empty graph will be assumed.
+        directed : ``boolean`` or ``None`` (optional, default: ``None``)
+            If ``True``, the inferred graph will be directed, or if ``False`` it
+            will be undirected. If this option is ``None``, the directionality
+            will be the same as the parameter ``g``, if it is provided,
+            otherwise ``directed = False`` will be assumed.
         t : ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``[]``)
             If nonempty, this allows for a compressed representation of the
             time-series parameter ``s``, corresponding only to points in time
@@ -154,7 +159,6 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         """
 
-        directed = kwargs.pop("directed", None)
         if g is None:
             if directed is None:
                 directed = False
@@ -1748,14 +1752,11 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
            reconstruction in subquadratic time", :arxiv:`2401.01404`
 
         """
-        directed = kwargs.pop("directed", None)
-        if g is None and directed is None:
-            directed = True
         DynamicsBlockStateBase.__init__(self, s, g=g, exposed=exposed,
                                         theta=theta, x_range=x_range,
                                         theta_range=theta_range,
                                         directed=directed, discrete=True,
-                                        **kwargs)
+                                        **dict(dict(directed=True), **kwargs))
 
     def _make_state(self):
         return libinference.make_epidemics_state(self._state, self.ot, self.os,
@@ -1853,7 +1854,8 @@ class IsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
 
         """
         DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
-                                        discrete=True, **kwargs)
+                                        discrete=True,
+                                        **dict(dict(directed=True), **kwargs))
 
     def _make_state(self):
         return libinference.make_ising_glauber_state(self._state, self.ot,
@@ -1885,7 +1887,7 @@ class CIsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         with :math:`Z(x) = 2\sinh(x)/x`.
         """
         DynamicsBlockStateBase.__init__(self, s, g=g, has_zero=has_zero,
-                                        **kwargs)
+                                        **dict(dict(directed=True), **kwargs))
 
     def get_dyn_state(self, s=None):
         """Return an :class:`~graph_tool.dynamics.CIsingGlauberState` instance
@@ -2170,7 +2172,7 @@ class LinearNormalBlockState(DynamicsBlockStateBase):
 
         """
         DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
-                                        **kwargs)
+                                        **dict(dict(directed=True), **kwargs))
         self.theta_first = False
 
     def _make_state(self):
@@ -2189,7 +2191,8 @@ class LinearNormalBlockState(DynamicsBlockStateBase):
 class LVBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, self_loops=True, sigma=1, **kwargs):
         DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
-                                        sigma=sigma, **kwargs)
+                                        sigma=sigma,
+                                        **dict(dict(directed=True), **kwargs))
         self.theta_first = False
 
     def _make_state(self):
