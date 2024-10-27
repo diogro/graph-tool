@@ -327,7 +327,7 @@ class OverlapBlockState(BlockState):
                      g=self.g,
                      b=self.b,
                      B=self.get_B(),
-                     clabel=array(self.clabel.fa),
+                     clabel=np.array(self.clabel.fa),
                      deg_corr=self.deg_corr,
                      recs=self.rec,
                      drec=self.drec,
