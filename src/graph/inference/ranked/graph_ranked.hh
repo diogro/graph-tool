@@ -172,8 +172,11 @@ public:
             if (_ustate._wr[nr] == 0)
                 dB++;
 
-            dS -= get_edges_dl({0, 0, 0}, 0);
-            dS += get_edges_dl(m_entries._dE, dB);
+            if (ea.edges_dl)
+            {
+                dS -= get_edges_dl({0, 0, 0}, 0);
+                dS += get_edges_dl(m_entries._dE, dB);
+            }
 
             m_entries._delta.clear();
             size_t B = num_vertices(_ustate._bg) + 1;
@@ -348,13 +351,12 @@ public:
         {
             double S = 0;
 
-            ea.edges_dl = false;
-            S += _ustate.entropy(ea, propagate);
+            if (ea.edges_dl || _ustate._coupled_state != nullptr)
+            {
+                S += get_edges_dl({0, 0, 0}, 0);
 
-            S += get_edges_dl({0, 0, 0}, 0);
-
-            #pragma omp parallel reduction(+:S)
-            parallel_edge_loop_no_spawn
+                #pragma omp parallel reduction(+:S)
+                parallel_edge_loop_no_spawn
                     (_ustate._bg,
                      [&](const auto& e)
                      {
@@ -369,6 +371,10 @@ public:
 
                          S -= lbinom_fast(ers + esr, ers);
                      });
+            }
+
+            ea.edges_dl = false;
+            S += _ustate.entropy(ea, propagate);
 
             return S;
         }
