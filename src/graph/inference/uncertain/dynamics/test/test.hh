@@ -67,11 +67,12 @@ public:
         for (auto v : vertices_range(state._u))
             _theta[v] = state._theta[v];
 
+        _edges.resize(num_vertices(state._g));
         for (auto e : edges_range(_g))
         {
-            auto u = source(e, state._u);
-            auto v = target(e, state._u);
-            _edges[get_edge(u, v)] = e;
+            auto u = source(e, state._g);
+            auto v = target(e, state._g);
+            get_edge<true>(u, v) = e;
         }
     }
 
@@ -90,13 +91,21 @@ public:
 
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
 
-    gt_hash_map<std::tuple<size_t,size_t>, edge_t> _edges;
+    std::vector<gt_hash_map<size_t, edge_t>> _edges;
+    edge_t _null_edge;
 
-    std::tuple<size_t, size_t> get_edge(size_t u, size_t v)
+    template <bool add=false>
+    edge_t& get_edge(size_t u, size_t v)
     {
         if (!graph_tool::is_directed(_g) && u > v)
-            return {v, u};
-        return {u, v};
+            std::swap(u, v);
+        if constexpr (add)
+            return _edges[u][v];
+        auto& es = _edges[u];
+        auto iter = es.find(v);
+        if (iter == es.end())
+            return _null_edge;
+        return iter->second;
     }
 
     void update_edge(size_t, size_t, double, double)
@@ -133,10 +142,9 @@ public:
         double p = _p_default;
         double mu = _mu_default;
         double sigma = _sigma_default;
-        auto iter = _edges.find(get_edge(u, v));
-        if (iter != _edges.end())
+        auto& e = get_edge(u, v);
+        if (e != _null_edge)
         {
-            auto e = iter->second;
             p = _p[e];
             mu = _mu[e];
             sigma = _sigma[e];
@@ -192,10 +200,10 @@ public:
         for (auto e : out_edges_range(u, _state._u))
         {
             auto v = target(e, _g);
-            auto iter = _edges.find(get_edge(u, v));
-            if (iter != _edges.end())
+            auto& ge = get_edge(u, v);
+            if (ge == _null_edge)
                 continue;
-            auto x = _state._x[e];
+            auto x = _state._x[ge];
             L += edge_lprob(x, _p_default, _mu_default, _sigma_default);
             k++;
         }
