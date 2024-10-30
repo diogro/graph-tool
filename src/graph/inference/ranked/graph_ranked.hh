@@ -164,53 +164,53 @@ public:
 
             double dS = _ustate.virtual_move(v, r, nr, uea, m_entries);
 
-            m_entries._dE = get_dE(v, r, nr);
-
-            int dB = 0;
-            if (_ustate._wr[r] == 1)
-                dB--;
-            if (_ustate._wr[nr] == 0)
-                dB++;
-
-            if (ea.edges_dl)
+            if (ea.edges_dl || _ustate._coupled_state != nullptr)
             {
+                m_entries._dE = get_dE(v, r, nr);
+
+                int dB = 0;
+                if (_ustate._wr[r] == 1)
+                    dB--;
+                if (_ustate._wr[nr] == 0)
+                    dB++;
+
                 dS -= get_edges_dl({0, 0, 0}, 0);
                 dS += get_edges_dl(m_entries._dE, dB);
+
+                m_entries._delta.clear();
+                size_t B = num_vertices(_ustate._bg) + 1;
+                entries_op(m_entries, _ustate._emat,
+                           [&](auto t, auto u, auto&, auto delta)
+                           {
+                               if (delta == 0 || t == u)
+                                   return;
+                               m_entries._delta[t + B * u] = delta;
+                           });
+
+                entries_op(m_entries, _ustate._emat,
+                           [&](auto t, auto u, auto& me, auto delta)
+                           {
+                               if (delta == 0 || t == u)
+                                   return;
+
+                               size_t etu = (me != _ustate._emat.get_null_edge()) ?
+                                   _ustate._mrs[me] : 0;
+                               size_t eut = get_beprop(u, t, _ustate._mrs,
+                                                       _ustate._emat);
+
+                               int delta_r = 0;
+                               auto iter = m_entries._delta.find(u + B * t);
+                               if (iter != m_entries._delta.end())
+                                   delta_r = iter->second;
+
+                               if (delta_r != 0 && t > u)
+                                   return;
+
+                               dS += lbinom_fast(etu + eut, etu);
+                               dS -= lbinom_fast(etu + delta + eut + delta_r,
+                                                 etu + delta);
+                           });
             }
-
-            m_entries._delta.clear();
-            size_t B = num_vertices(_ustate._bg) + 1;
-            entries_op(m_entries, _ustate._emat,
-                       [&](auto t, auto u, auto&, auto delta)
-                       {
-                           if (delta == 0 || t == u)
-                               return;
-                           m_entries._delta[t + B * u] = delta;
-                       });
-
-            entries_op(m_entries, _ustate._emat,
-                       [&](auto t, auto u, auto& me, auto delta)
-                       {
-                           if (delta == 0 || t == u)
-                               return;
-
-                           size_t etu = (me != _ustate._emat.get_null_edge()) ?
-                               _ustate._mrs[me] : 0;
-                           size_t eut = get_beprop(u, t, _ustate._mrs,
-                                                   _ustate._emat);
-
-                           int delta_r = 0;
-                           auto iter = m_entries._delta.find(u + B * t);
-                           if (iter != m_entries._delta.end())
-                               delta_r = iter->second;
-
-                           if (delta_r != 0 && t > u)
-                               return;
-
-                           dS += lbinom_fast(etu + eut, etu);
-                           dS -= lbinom_fast(etu + delta + eut + delta_r,
-                                             etu + delta);
-                       });
 
             return dS;
         }
