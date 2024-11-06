@@ -94,8 +94,8 @@ public:
 
         get_ns(u, 1);
 
-        if (_ns.size() - 1 == 0 && (move == move_t::edge ||
-                                    move == move_t::nearby))
+        if ((_ns.size() - 1 == 0) && (move == move_t::edge ||
+                                      move == move_t::nearby))
             move = move_t::uniform;
 
         auto& cs = _candidates[u];
@@ -180,25 +180,25 @@ public:
             luniform = log(puniform) - ltot - safelog_fast(num_vertices(_g));
 
         if (pedge > 0 && u != v && _ns.find(v) != _ns.end())
-            ledge = log(pedge) - ltot - log(k);
+            ledge = log(pedge) - ltot - safelog_fast(k);
 
         if (pnearby > 0)
         {
             get_ns(u, _d, delta, s, t);
             if (u != v && _ns.find(v) != _ns.end())
-                lnearby = log(pnearby) - ltot - log(_ns.size()-1);
+                lnearby = log(pnearby) - ltot - safelog_fast(_ns.size() - 1);
         }
 
         if (pcandidates > 0)
         {
             auto iter = std::lower_bound(cs.begin(), cs.end(), v);
             if (iter != cs.end() && *iter == v)
-                lcandidates = log(pcandidates) - ltot - log(cs.size());
+                lcandidates = log(pcandidates) - ltot - safelog_fast(cs.size());
         }
 
         double l = log_sum_exp(lself, luniform, ledge, lnearby, lcandidates);
         if constexpr (!conditional)
-            l -= std::log(num_vertices(_g));
+            l -= safelog_fast(num_vertices(_g));
         return l;
     }
 
@@ -218,7 +218,6 @@ public:
         _ns.clear();
         _ds[u] = 0;
         _ns.insert(u);
-
         _queue.push(u);
 
         while (!_queue.empty())

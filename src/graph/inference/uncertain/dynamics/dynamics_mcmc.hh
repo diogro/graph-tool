@@ -326,7 +326,7 @@ struct MCMC
 
             assert(!std::isinf(nx) && !std::isnan(nx));
             assert(!std::isinf(dS) && !std::isnan(dS));
-            assert (nm == 0 || nx != 0 || (!_state._self_loops && u == v));
+            assert(nm == 0 || nx != 0 || (!_state._self_loops && u == v));
 
             return true;
         }
@@ -339,7 +339,7 @@ struct MCMC
 
             auto& [u, v] = uv;
             auto [m, x] = edge_state(u, v);
-            auto& [move, nm, nx, dS, lf, sampler] =  _xcaches[get_thread_num()];
+            auto& [move, nm, nx, dS, lf, sampler] = _xcaches[get_thread_num()];
 
             assert(!std::isinf(dS));
 
