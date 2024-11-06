@@ -625,7 +625,7 @@ struct MCMC
         template <class RNG>
         size_t sample_m(size_t m, RNG& rng)
         {
-            if (std::isinf(_beta) || _binary)
+            if (_binary || m == 0)
                 return 1;
             double a = m + .5;
             double p = 1/(a+1);
@@ -635,8 +635,13 @@ struct MCMC
 
         double sample_m_lprob(size_t nm, size_t m)
         {
-            if (_binary)
-                return 0;
+            if (_binary || m == 0)
+            {
+                if (nm == 1)
+                    return 0;
+                else
+                    return -std::numeric_limits<double>::infinity();
+            }
             double a = m + .5;
             double p = 1/(a+1);
             return (nm - 1) * log1p(-p) + log(p);
