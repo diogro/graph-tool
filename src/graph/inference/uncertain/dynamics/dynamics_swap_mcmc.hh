@@ -156,7 +156,7 @@ struct MCMC
             auto& fs = get_elist_state_free();
             auto& es = get_elist_state_edges();
 
-            if (_parallel && !std::isinf(_beta))
+            if (_parallel)
                 _move_mutex.lock_shared();
 
             std::tie(v, u) = es.sample_edge(rng);
@@ -200,7 +200,7 @@ struct MCMC
                 }
             }
 
-            if (_parallel && !std::isinf(_beta))
+            if (_parallel)
                 _move_mutex.unlock_shared();
 
             if (_parallel)
