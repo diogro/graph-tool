@@ -647,19 +647,31 @@ struct Dynamics
                 return 0.;
             double S = 0;
             if (ea.normal)
+            {
                 S -= norm_lpdf(x, ea.mu, ea.sigma);
-            else if (ea.xl1 > 0 && _xdelta == 0)
-                S -= laplace_lpdf(x, ea.xl1);
+            }
             else if (ea.xl1 > 0)
-                S -= qlaplace_lprob(x, ea.xl1, _xdelta, ea.sbm);
+            {
+                if (_xdelta == 0)
+                    S -= laplace_lpdf(x, ea.xl1);
+                else
+                    S -= qlaplace_lprob(x, ea.xl1, _xdelta, ea.sbm);
+            }
             return S;
         }
 
         double node_x_S(xval_t x, const dentropy_args_t& ea)
         {
+            if (ea.tdist)
+                return 0.;
             double S = 0;
-            if (!ea.tdist && ea.tl1 > 0)
-                S -= laplace_lpdf(x, ea.tl1);
+            if (ea.tl1 > 0)
+            {
+                if (_tdelta == 0)
+                    S -= laplace_lpdf(x, ea.tl1);
+                else
+                    S -= qlaplace_lprob(x, ea.tl1, _tdelta, false);
+            }
             return S;
         }
 
