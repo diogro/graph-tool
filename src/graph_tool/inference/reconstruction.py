@@ -163,10 +163,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
             if directed is None:
                 directed = False
             g = Graph(s.shape[0], directed=directed)
-        elif directed is None:
+        else:
             directed = g.is_directed()
-        if g.is_directed() != directed:
-            g = GraphView(g, directed=directed)
 
         UncertainBaseState.__init__(self, g, nested=nested,
                                     state_args=state_args, bstate=bstate,
