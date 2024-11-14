@@ -884,18 +884,18 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     Parameters
     ----------
     b : iterable or :class:`numpy.ndarray`
-        Group membership for each node.
+        Group membership for each vertex.
     probs : two-dimensional :class:`numpy.ndarray` or :class:`scipy.sparse.spmatrix`
         Matrix with edge propensities between groups. The value ``probs[r,s]``
         corresponds to the average number of edges between groups ``r`` and
         ``s`` (or twice the average number if ``r == s`` and the graph is
         undirected).
     out_degs : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
-        Out-degree propensity for each node. If not provided, a constant value
+        Out-degree propensity for each vertex. If not provided, a constant value
         will be used. Note that the values will be normalized inside each group,
         if they are not already so.
     in_degs : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
-        In-degree propensity for each node. If not provided, a constant value
+        In-degree propensity for each vertex. If not provided, a constant value
         will be used. Note that the values will be normalized inside each group,
         if they are not already so.
     directed : ``bool`` (optional, default: ``False``)
@@ -906,7 +906,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
         parameter ``probs``, and this will not fluctuate between samples.
     micro_degs : ``bool`` (optional, default: ``False``)
         If true, the `microcanonical` version of the degree-corrected model will
-        be evoked, where the degrees of nodes will be given `exactly` by the
+        be evoked, where the degrees of vertices will be given `exactly` by the
         parameters ``out_degs`` and ``in_degs``, and they will not fluctuate
         between samples. (If ``micro_degs == True`` it implies ``micro_ers ==
         True``.)
@@ -938,9 +938,9 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
               \times\prod_i\frac{e^{-\lambda_{b_ib_i}\theta_i^2/2}(\lambda_{b_ib_i}\theta_i^2/2)^{A_{ij}/2}}{(A_{ij}/2)!},
 
     where :math:`\lambda_{rs}` is the edge propensity between groups :math:`r`
-    and :math:`s`, and :math:`\theta_i` is the propensity of node i to receive
+    and :math:`s`, and :math:`\theta_i` is the propensity of vertex i to receive
     edges, which is proportional to its expected degree. Note that in the
-    algorithm it is assumed that the node propensities are normalized for each
+    algorithm it is assumed that the vertex propensities are normalized for each
     group,
 
     .. math::
@@ -978,12 +978,12 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     In case the parameter ``micro_degs == True`` is passed, a `microcanical
     <https://en.wikipedia.org/wiki/Microcanonical_ensemble>`_ model is used
     instead, where both the number of edges between groups as well as the
-    degrees of the nodes are preserved `exactly`, instead of only on expectation
+    degrees of the vertices are preserved `exactly`, instead of only on expectation
     [peixoto-nonparametric-2017]_. In this case, the parameters are interpreted
     as :math:`{\boldsymbol\lambda}\equiv{\boldsymbol e}` and
     :math:`{\boldsymbol\theta}\equiv{\boldsymbol k}`, where :math:`e_{rs}` is
     the number of edges between groups :math:`r` and :math:`s` (or twice that if
-    :math:`r=s` in the undirected case), and :math:`k_i` is the degree of node
+    :math:`r=s` in the undirected case), and :math:`k_i` is the degree of vertex
     :math:`i`. This model is a generalization of the configuration model, where
     multigraphs are sampled with probability
 
@@ -1127,16 +1127,16 @@ def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
     Parameters
     ----------
     b : iterable or :class:`numpy.ndarray`
-        Group membership for each node.
+        Group membership for each vertex.
     ers : two-dimensional :class:`numpy.ndarray` or :class:`scipy.sparse.spmatrix`
         Matrix with expected edge counts between groups. The value ``ers[r,s]``
         corresponds to the average number of edges between groups ``r`` and
         ``s`` (or twice the average number if ``r == s`` and the graph is
         undirected).
     out_degs : iterable or :class:`numpy.ndarray`
-        Expected out-degree for each node.
+        Expected out-degree for each vertex.
     in_degs : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
-        Expected in-degree for each node. If not given, the graph is assumed to
+        Expected in-degree for each vertex. If not given, the graph is assumed to
         be undirected.
     multigraph : ``bool`` (optional, default: ``False``)
         Whether parallel edges are allowed.
@@ -1164,9 +1164,9 @@ def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
     mrs : :class:`scipy.sparse.spmatrix`
         Edge count fugacities.
     out_theta : :class:`numpy.ndarray`
-        Node out-degree fugacities.
+        Vertex out-degree fugacities.
     in_theta : :class:`numpy.ndarray`
-        Node in-degree fugacities. Only returned if ``in_degs is not None``.
+        Vertex in-degree fugacities. Only returned if ``in_degs is not None``.
 
     See Also
     --------
@@ -1330,13 +1330,13 @@ def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
     Parameters
     ----------
     b : iterable or :class:`numpy.ndarray`
-        Group membership for each node.
+        Group membership for each vertex.
     mrs : two-dimensional :class:`numpy.ndarray` or :class:`scipy.sparse.spmatrix`
         Matrix with edge fugacities between groups.
     out_theta : iterable or :class:`numpy.ndarray`
-        Out-degree fugacities for each node.
+        Out-degree fugacities for each vertex.
     in_theta : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
-        In-degree fugacities for each node. If not provided, will be identical to ``out_theta``.
+        In-degree fugacities for each vertex. If not provided, will be identical to ``out_theta``.
     directed : ``bool`` (optional, default: ``False``)
         Whether the graph is directed.
     multigraph : ``bool`` (optional, default: ``False``)
@@ -1377,7 +1377,7 @@ def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
             = \prod_{i<j} \left(\theta_i\theta_j\mu_{b_i,b_j}\right)^{A_{ij}}(1-\theta_i\theta_j\mu_{b_i,b_j}).
 
     In the above, :math:`\mu_{rs}` is the edge fugacity between groups :math:`r`
-    and :math:`s`, and :math:`\theta_i` is the edge fugacity of node i.
+    and :math:`s`, and :math:`\theta_i` is the edge fugacity of vertex i.
 
     For directed graphs, the probabilities are analogous, i.e.
 
@@ -1569,7 +1569,7 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
         Points of dimension :math:`D` to be considered. If the parameter `dist`
         is passed, this should be just an `int` containing the number of points.
     k : ``int``
-        Number of nearest neighbors per node (or number of pairs if ``pairs is True``).
+        Number of nearest neighbors per vertex (or number of pairs if ``pairs is True``).
     dist : function (optional, default: ``None``)
         If given, this should be a function that returns the distance between
         two points. The arguments of this function should just be two integers,
@@ -1577,7 +1577,7 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
         should just be the total number of points. If ``dist is None``, then the
         L2-norm (Euclidean distance) is used.
     pairs : ``bool`` (optional, default: ``False``)
-        If ``True``, the ``k`` closest pairs of nodes will be returned, otherwise
+        If ``True``, the ``k`` closest pairs of vertices will be returned, otherwise
         the ``k`` nearest neighbors for every edge is returned.
     exact : ``bool`` (optional, default: ``False``)
         If ``False``, an fast approximation will be used, otherwise an exact but
@@ -1695,7 +1695,7 @@ def generate_triadic_closure(g, t, probs=True, curr=None, ego=None):
         Graph to be modified.
     t : :class:`~graph_tool.VertexPropertyMap` or scalar
         Vertex property map (or scalar value) with the ego closure propensities
-        for every node.
+        for every vertex.
     probs : ``boolean`` (optional, default: ``True``)
         If ``True``, the values of ``t`` will be interpreted as the independent
         probability of connecting two neighbors of the respective
@@ -1720,7 +1720,7 @@ def generate_triadic_closure(g, t, probs=True, curr=None, ego=None):
     Notes
     -----
 
-    This algorithm [peixoto-disentangling-2022]_ consist in, for each node
+    This algorithm [peixoto-disentangling-2022]_ consist in, for each vertex
     ``u``, connecting all its neighbors with probability given by ``t[u]``. In
     case ``probs == False``, then ``t[u]`` indicates the number of random pairs
     of neighbors of ``u`` that are connected. This algorithm may generate
@@ -2471,7 +2471,7 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
     scale-free (see [dorogovtsev-evolution]_ for details).
 
     Note that if `seed_graph` is not given, the algorithm will *always* start
-    with one node if :math:`c > 0`, or with two nodes with an edge between them
+    with one vertex if :math:`c > 0`, or with two vertices with an edge between them
     otherwise. If :math:`m > 1`, the degree of the newly added vertices will be
     vary dynamically as :math:`m'(t) = \min(m, V(t))`, where :math:`V(t)` is the
     number of vertices added so far. If this behaviour is undesired, a proper
@@ -2750,7 +2750,8 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
     return gp, cprop, vcount, ecount, r_avp, r_aep
 
 def contract_parallel_edges(g, weight=None):
-    r"""Contract all parallel edges into simple edges.
+    r"""Contract all parallel edges into simple edges, keeping track of their
+    multipliciites.
 
     Parameters
     ----------
@@ -2771,7 +2772,7 @@ def contract_parallel_edges(g, weight=None):
     Notes
     -----
     This algorithm runs in time :math:`O(N + E)` where :math:`N` and :math:`E`
-    are the number of nodes and edges in the graph, respectively.
+    are the number of vertices and edges in the graph, respectively.
 
     Examples
     --------
@@ -2820,7 +2821,7 @@ def expand_parallel_edges(g, weight):
     -----
 
     This algorithm runs in time :math:`O(N + E)` where :math:`N` is the number
-    of nodes and :math:`E` is the final number of edges in the graph.
+    of vertices and :math:`E` is the final number of edges in the graph.
 
     Examples
     --------
