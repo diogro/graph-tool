@@ -143,7 +143,7 @@ struct do_out_edges_op
 
         #ifdef _OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();
-        if (std::is_convertible<eval_t,python::object>::value)
+        if (std::is_same<eval_t, python::object>::value)
             nt = 1; // python is not thread-safe
         #endif
 

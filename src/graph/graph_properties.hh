@@ -232,24 +232,6 @@ inline constexpr auto edge_floating_vector_properties =
 //
 // Functions which deal with several aspects of property map manipulation
 
-
-// this functor tests whether or not a given std::any object holds a type
-// contained in a given type Sequence
-template <class Sequence>
-bool belongs(Sequence seq, const std::any& prop)
-{
-    bool found = false;
-    hana::for_each(seq,
-                   [&](auto t)
-                   {
-                       typedef typename decltype(t)::type T;
-                       const T* ptr = std::any_cast<T>(&prop);
-                       if (ptr != 0)
-                           found = true;
-                   });
-    return found;
-}
-
 // this will return the name of a given type
 template <class Type>
 std::string get_type_name()
@@ -268,6 +250,122 @@ std::string get_type_name()
     }
 }
 
+// this functor tests whether or not a given std::any object holds a type
+// contained in a given type Sequence
+template <class Sequence>
+bool belongs(Sequence seq, const std::any& prop)
+{
+    bool found = false;
+    hana::for_each(seq,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(t)::type T;
+                       const T* ptr = std::any_cast<T>(&prop);
+                       if (ptr != 0)
+                           found = true;
+                   });
+    return found;
+}
+
+std::tuple<std::string, std::string, bool> get_pmap_type(const std::any& prop);
+
+template <bool pmap, class Sequence>
+std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_type_names(Sequence seq)
+{
+    bool has_unwritable = false;
+    std::vector<std::string> type_names, key_names;
+    hana::for_each(seq,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(+t)::type T;
+                       if constexpr (pmap)
+                       {
+                           type_names.push_back(get_type_name<typename boost::property_traits<T>::value_type>());
+                           if constexpr (std::is_same_v<typename boost::property_traits<T>::key_type,
+                                                        typename boost::property_traits<edge_index_map_t>::key_type>)
+                               key_names.push_back("edge");
+                           else
+                               key_names.push_back("vertex");
+                       }
+                       else
+                       {
+                           type_names.push_back(get_type_name<T>());
+                       }
+                       if constexpr (std::is_same_v<T, vertex_index_map_t> ||
+                                     std::is_same_v<T, edge_index_map_t>)
+                           has_unwritable = true;
+                   });
+    return {key_names, type_names, has_unwritable};
+}
+
+template <class Sequence>
+void check_belongs(Sequence seq, const std::any& prop, std::string name = "")
+{
+    if (!belongs(seq, prop))
+    {
+        auto [key_type, type_name, writable] = get_pmap_type(prop);
+        if (!writable)
+            key_type = "unwritable " + key_type;
+        auto [key_types, type_names, has_unwritable] = get_seq_type_names<true>(seq);
+
+        std::string tnames;
+        for (size_t i = 0; i < type_names.size(); ++i)
+            tnames += (i > 0) ? (", " + type_names[i]) : type_names[i];
+
+        throw ValueException(key_type + " property map " +
+                             (name != "" ? ("'" + name + "' ") : std::string("")) +
+                             "of type '" + type_name +
+                             "' should be instead of key type '" +
+                             key_types.front() + "' and one of the following " +
+                             std::string(has_unwritable ? "" : "writable ") +
+                             "value types: " + tnames);
+    }
+}
+
+template <class ToSeq>
+bool pmap_is_convertible(ToSeq to_seq, const std::any& prop)
+{
+    bool conv = false;
+    hana::for_each(hana::concat(vertex_properties, edge_properties),
+                   [&](auto t)
+                   {
+                       typedef typename decltype(t)::type From;
+                       typedef typename boost::property_traits<From>::value_type
+                           from_val_t;
+                       const From* ptr = std::any_cast<From>(&prop);
+                       if (ptr != 0)
+                       {
+                           hana::for_each(to_seq,
+                                          [&](auto x)
+                                          {
+                                              typedef typename decltype(+x)::type To;
+                                              typedef typename boost::property_traits<To>::value_type
+                                                  to_val_t;
+                                              if constexpr (graph_tool::is_convertible_v<to_val_t, from_val_t>)
+                                                  conv = true;
+                                          });
+                       }
+                   });
+    return conv;
+}
+
+template <class ToSeq>
+void check_pmap_is_convertible(ToSeq to_seq, const std::any& prop, std::string name = "")
+{
+    if (!pmap_is_convertible(to_seq, prop))
+    {
+        auto [key_type, type_name, writable] = get_pmap_type(prop);
+        auto [key_names, type_names, has_unwritable] = get_seq_type_names<false>(to_seq);
+        std::string tnames;
+        for (size_t i = 0; i < type_names.size(); ++i)
+            tnames += (i > 0) ? (", " + type_names[i]) : type_names[i];
+        throw ValueException(key_type + " property map " +
+                             (name != "" ? ("'" + name + "' ") : std::string("")) +
+                             "of type '" + type_name +
+                             "' canot be converted to any of the types: " + tnames);
+    }
+}
+
 //
 // Convert property maps
 // =====================
@@ -275,6 +373,8 @@ std::string get_type_name()
 std::any prop_map_as(std::any amap, std::any atgt, bool copy=false);
 std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
 std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
+std::any vprop_map_as_dvelem(std::any amap, std::any atgt);
+std::any eprop_map_as_dvelem(std::any amap, std::any atgt);
 
 //
 // Extra Property Map Types
@@ -438,18 +538,6 @@ void put(graph_tool::DynamicPropertyMapWrap<Value,Key>& pmap,
 }
 
 template <class Value, class Key>
-constexpr bool is_dynamic_map(const DynamicPropertyMapWrap<Value, Key>&)
-{
-    return true;
-}
-
-template <class T>
-constexpr bool is_dynamic_map(const T&)
-{
-    return false;
-}
-
-template <class Value, class Key>
 const std::type_info& get_underlying_value_type(const DynamicPropertyMapWrap<Value, Key>& m)
 {
     return m.get_underlying_value_type();
@@ -460,6 +548,21 @@ const std::type_info& get_underlying_value_type(const T&)
 {
     return typeid(typename boost::property_traits<T>::value_type);
 }
+
+template <class T>
+struct is_dynamic_map
+{
+    constexpr static bool value = false;
+};
+
+template <class Value, class Key>
+struct is_dynamic_map<DynamicPropertyMapWrap<Value, Key>>
+{
+    constexpr static bool value = true;
+};
+
+template <class T>
+constexpr inline bool is_dynamic_map_v = is_dynamic_map<T>::value;
 
 // the following is hash functor which, will hash a vertex or edge descriptor
 // based on its index
@@ -580,6 +683,21 @@ private:
 template <class Value, class Key>
 void put(const ConstantPropertyMap<Value, Key>&, const Key&, const Value&) {}
 
+template <class T>
+struct is_constant_map
+{
+    constexpr static bool value = false;
+};
+
+template <class Value, class Key>
+struct is_constant_map<ConstantPropertyMap<Value, Key>>
+{
+    constexpr static bool value = true;
+};
+
+template <class T>
+constexpr inline bool is_constant_map_v = is_constant_map<T>::value;
+
 // the following is a property map which always returns one
 template <class Value, class Key>
 class UnityPropertyMap
@@ -595,19 +713,23 @@ public:
     constexpr value_type operator[](const K&) const { return value_type(1); }
 };
 
-
 template <class Value, class Key>
 void put(const UnityPropertyMap<Value, Key>&, const Key&, const Value&) {}
 
-template <class Property>
-struct is_constant_property
+template <class T>
+struct is_unity_map
 {
-    typedef typename boost::property_traits<Property>::key_type key_type;
-    typedef typename boost::property_traits<Property>::value_type value_type;
-    typedef typename std::conditional<std::is_same<Property, ConstantPropertyMap<value_type, key_type>>::value,
-                                      std::true_type,
-                                      typename std::is_same<Property, UnityPropertyMap<value_type, key_type>>::type>::type type;
+    constexpr static bool value = false;
 };
+
+template <class Value, class Key>
+struct is_unity_map<UnityPropertyMap<Value, Key>>
+{
+    constexpr static bool value = true;
+};
+
+template <class T>
+constexpr inline bool is_unity_map_v = is_unity_map<T>::value;
 
 // this wraps an existing property map, but always converts its values to a
 // given type
@@ -652,6 +774,22 @@ void put(ConvertedPropertyMap<PropertyMap,Type> pmap,
 {
     pmap.do_put(k, val);
 }
+
+template <class T>
+struct is_converted_map
+{
+    constexpr static bool value = false;
+};
+
+template <class Map, class Type>
+struct is_converted_map<ConvertedPropertyMap<Map, Type>>
+{
+    constexpr static bool value = true;
+};
+
+template <class T>
+constexpr inline bool is_converted_map_v = is_converted_map<T>::value;
+
 
 } // graph_tool namespace
 

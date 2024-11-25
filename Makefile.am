@@ -331,9 +331,9 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_sbm.cc \
 	src/graph/generation/graph_triadic_closure.cc \
 	src/graph/generation/graph_triangulation.cc \
-	src/graph/generation/graph_union.cc \
-	src/graph/generation/graph_union_eprop.cc \
-	src/graph/generation/graph_union_vprop.cc
+	src/graph/generation/graph_merge.cc \
+	src/graph/generation/graph_merge_eprop.cc \
+	src/graph/generation/graph_merge_vprop.cc
 libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/dynamic_sampler.hh \
 	src/graph/generation/graph_community_network.hh \
@@ -352,7 +352,7 @@ libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/graph_sbm.hh \
 	src/graph/generation/graph_triadic_closure.hh \
 	src/graph/generation/graph_triangulation.hh \
-	src/graph/generation/graph_union.hh \
+	src/graph/generation/graph_merge.hh \
 	src/graph/generation/sampler.hh \
 	src/graph/generation/urn_sampler.hh
 

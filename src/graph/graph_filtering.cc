@@ -53,6 +53,9 @@ std::any GraphInterface::get_graph_view() const
                 g_t;
             if (_edge_filter_active || _vertex_filter_active)
             {
+#ifdef DISABLE_GRAPH_FILTERING
+                throw GraphException("Graph filtering was disabled during compilation!");
+#endif
                 auto max_eindex = _mg->get_edge_index_range();
                 if (max_eindex > 0)
                     _edge_filter_map.reserve(max_eindex);
@@ -84,6 +87,9 @@ std::any GraphInterface::get_graph_view() const
         {
             if (_reversed)
             {
+#ifdef DISABLE_GRAPH_FILTERING
+                throw GraphException("Graph filtering was disabled during compilation!");
+#endif
                 pos = 1;
                 typedef std::remove_const_t<std::remove_reference_t<decltype(*u)>>
                     g_t;

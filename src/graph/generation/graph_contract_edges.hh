@@ -61,8 +61,8 @@ void contract_parallel_edges(Graph& g, EWeight eweight)
             {
                 if (loops.find(eidx[e]) != loops.end()) // self-loops
                     continue;
-                if constexpr (is_convertible_v<typename boost::property_traits<EWeight>::category,
-                                               boost::writable_property_map_tag>)
+                if constexpr (std::is_convertible_v<typename boost::property_traits<EWeight>::category,
+                                                    boost::writable_property_map_tag>)
                 {
                     auto w = eweight[iter->second];
                     put(eweight, iter->second, eweight[e] + w);

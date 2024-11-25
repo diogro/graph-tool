@@ -105,24 +105,34 @@
    .. automethod:: iter_in_neighbors
    .. automethod:: iter_all_neighbors
 
+   .. automethod:: iter_edge_range
+
    Array-based interface:
 
    .. automethod:: get_vertices
    .. automethod:: get_edges
+
    .. automethod:: get_out_edges
    .. automethod:: get_in_edges
    .. automethod:: get_all_edges
+
    .. automethod:: get_out_neighbors
    .. automethod:: get_in_neighbors
    .. automethod:: get_all_neighbors
+
    .. automethod:: get_out_degrees
    .. automethod:: get_in_degrees
    .. automethod:: get_total_degrees
+
+   .. automethod:: get_edge_range
 
    .. rubric:: Obtaining vertex and edge descriptors
 
    .. automethod:: vertex
    .. automethod:: edge
+
+   .. automethod:: set_fast_edge_lookup
+   .. automethod:: get_fast_edge_lookup
 
    .. rubric:: Number of vertices and edges
 

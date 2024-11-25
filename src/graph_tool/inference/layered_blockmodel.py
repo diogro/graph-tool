@@ -28,7 +28,7 @@ from .. import group_vector_property, ungroup_vector_property, perfect_prop_hash
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 
-from .. generation import graph_union
+from .. generation import graph_merge
 
 from . base_states import _bm_test
 
@@ -483,13 +483,13 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             else:
                 urec = ug.new_ep("vector<double>")
                 udrec = ug.new_ep("vector<double>")
-            bg, props = graph_union(bg, ug,
-                                    props=[(mrs, ug.ep["count"]),
-                                           (ec, uec),
-                                           (rec, urec),
-                                           (drec, udrec)],
-                                    intersection=ug.vertex_index,
-                                    include=True)
+            bg, props = graph_merge(bg, ug,
+                                    props={"set": [(mrs, ug.ep["count"]),
+                                                   (ec, uec),
+                                                   (rec, urec),
+                                                   (drec, udrec)]},
+                                    multiset=True,
+                                    in_place=True)
             mrs = props[0]
             ec = props[1]
             rec = props[2]

@@ -26,8 +26,6 @@
 #include <utility>
 #include <limits>
 
-#include "graph_adjacency.hh"
-
 #ifdef HAVE_SPARSEHASH
 #include SPARSEHASH_INCLUDE(dense_hash_set)
 #include SPARSEHASH_INCLUDE(dense_hash_map)
@@ -106,15 +104,6 @@ struct empty_key<std::tuple<>>
     }
 };
 
-template <class Vertex>
-struct empty_key<boost::detail::adj_edge_descriptor<Vertex>>
-{
-    static boost::detail::adj_edge_descriptor<Vertex> get()
-    {
-        return boost::detail::adj_edge_descriptor<Vertex>();
-    }
-};
-
 template <class Key>
 struct deleted_key
 {
@@ -188,17 +177,6 @@ struct deleted_key<std::tuple<>>
     static std::tuple<> get()
     {
         return std::tuple<>();
-    }
-};
-
-template <class Vertex>
-struct deleted_key<boost::detail::adj_edge_descriptor<Vertex>>
-{
-    static boost::detail::adj_edge_descriptor<Vertex> get()
-    {
-        boost::detail::adj_edge_descriptor<Vertex> e;
-        e.idx--;
-        return e;
     }
 };
 

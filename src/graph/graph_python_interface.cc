@@ -192,38 +192,22 @@ python::object get_edge(GraphInterface& gi, size_t s, size_t t, bool all_edges)
     python::list es;
     run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& gp)
+         [&](auto& gp)
          {
-             typedef std::remove_reference_t<decltype(*gp)> g_t;
-             auto& g = *gp;
-             size_t k_t = is_directed(g) ?
-                 in_degreeS()(t, g) : out_degree(t, g);
-             if (out_degree(s, g) <= k_t)
+             typedef std::decay_t<decltype(*gp)> g_t;
+             if (!all_edges)
              {
-                 for (auto e : out_edges_range(vertex(s, g), g))
-                 {
-                     if (target(e, g) == vertex(t, g))
-                     {
-                         es.append(PythonEdge<g_t>(gp, e));
-                         if (!all_edges)
-                             break;
-                     }
-                 }
+                 auto [e, exists] = edge(s, t, *gp);
+                 if (exists)
+                     es.append(PythonEdge<g_t>(gp, e));
              }
              else
              {
-                 for (auto e : in_or_out_edges_range(vertex(t, g), g))
-                 {
-                     auto w = source(e, g);
-                     if (w == vertex(s, g))
-                     {
-                         if (!is_directed(g) && e.s != s)
-                             std::swap(e.s, e.t);
-                         es.append(PythonEdge<g_t>(gp, e));
-                         if (!all_edges)
-                             break;
-                     }
-                 }
+                 edge_range_iter(s, t, *gp,
+                                 [&](const auto& e)
+                                 {
+                                     es.append(PythonEdge<g_t>(gp, e));
+                                 });
              }
          })();
     return es;
@@ -599,6 +583,90 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
 #endif
 }
 
+python::object get_edge_range_iter(GraphInterface& gi, size_t s, size_t t,
+                                   python::list oeprops)
+{
+#ifdef HAVE_BOOST_COROUTINE
+    auto yield_dispatch =
+        [&](auto& yield)
+        {
+            typedef DynamicPropertyMapWrap<python::object,
+                                           GraphInterface::edge_t>
+                converted_map_t;
+
+            std::vector<converted_map_t> eprops;
+            for (int i = 0; i < python::len(oeprops); ++i)
+                eprops.emplace_back(python::extract<std::any>(oeprops[i])(),
+                                    edge_properties);
+            run_action<>(false)
+                (gi,
+                 [&](auto& g)
+                 {
+                     edge_range_iter(s, t, g,
+                                     [&](const auto& e)
+                                     {
+                                         python::list elist;
+                                         for (auto& ep : eprops)
+                                             elist.append(get(ep, e));
+                                         yield(elist);
+                                     });
+                 })();
+        };
+    return boost::python::object(CoroGenerator(yield_dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
+#endif
+}
+
+python::object get_edge_range_list(GraphInterface& gi, size_t u, size_t v,
+                                   python::list oeprops)
+{
+    std::vector<std::any> aeprops;
+    for (int i = 0; i < python::len(oeprops); ++i)
+    {
+        aeprops.push_back(python::extract<std::any>(oeprops[i])());
+        if (!belongs(edge_scalar_properties, aeprops.back()))
+            throw ValueException("edge property map must be of scalar type");
+    }
+
+    size_t etype =
+        hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
+
+    if (!aeprops.empty())
+        etype = value_type_promotion<decltype(edge_scalar_properties)>(aeprops);
+
+    python::object ret;
+    hana::for_each
+        (scalar_types,
+         [&](auto t)
+         {
+            typedef typename decltype(t)::type t_t;
+            if (etype != hana::index_if(value_types, hana::equal.to(t)).value().value)
+                return;
+            typedef DynamicPropertyMapWrap<t_t, GraphInterface::edge_t>
+                converted_map_t;
+            std::vector<converted_map_t> eprops;
+            for (auto& aep: aeprops)
+                eprops.emplace_back(aep, edge_scalar_properties);
+
+            std::vector<t_t> elist;
+            run_action<>()(gi,
+                           [&](auto& g)
+                           {
+                               edge_range_iter
+                                   (u, v, g,
+                                    [&](const auto& e)
+                                    {
+                                        for (auto& ep : eprops)
+                                            elist.push_back(get(ep, e));
+                                    });
+                           })();
+            ret = wrap_vector_owned(elist);
+        });
+
+    return ret;
+}
+
 python::object get_degree_list(GraphInterface& gi, python::object ovlist,
                                std::any eprop, int kind)
 {
@@ -895,6 +963,9 @@ void export_python_interface()
     def("add_edge_list_hashed", graph_tool::do_add_edge_list_hashed);
     def("add_edge_list_iter", graph_tool::do_add_edge_list_iter);
     def("get_edge", get_edge);
+
+    def("get_edge_range_iter", get_edge_range_iter);
+    def("get_edge_range_list", get_edge_range_list);
 
     def("get_vertex_list", &get_vertex_list<range_t::FULL>);
     def("get_vertex_iter", &get_vertex_iter<range_t::FULL>);

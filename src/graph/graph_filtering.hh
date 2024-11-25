@@ -92,17 +92,101 @@ private:
     std::vector<const std::type_info*> _args;
 };
 
-struct same_arg_t {};
+struct type_func_t {};
+
+struct same_arg_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T x) { return x; }
+};
 constexpr inline auto same_arg_type = hana::tuple_t<same_arg_t>;
 
-struct vprop_same_t {};
+struct vprop_same_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T)
+    {
+        return hana::type<vprop_map_t<typename T::type::value_type>>();
+    }
+};
 constexpr inline auto vprop_same_type = hana::tuple_t<vprop_same_t>;
 
-struct eprop_same_t {};
+struct eprop_same_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T)
+    {
+        return hana::type<eprop_map_t<typename T::type::value_type>>();
+    }
+};
+
 constexpr inline auto eprop_same_type = hana::tuple_t<eprop_same_t>;
 
-struct dynamic_prop_t {};
+struct dynamic_prop_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T)
+    {
+        return hana::type<DynamicPropertyMapWrap<typename T::type::value_type,
+                                                 typename T::type::key_type>>();
+    }
+};
+
 constexpr inline auto dynamic_prop_type = hana::tuple_t<dynamic_prop_t>;
+
+struct velem_dprop_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T)
+    {
+        typedef typename T::type::value_type val_t;
+        if constexpr (std::is_same_v<val_t, boost::python::object>)
+            return hana::type<DynamicPropertyMapWrap<typename T::type::value_type,
+                                                     typename T::type::key_type>>();
+        else
+            return hana::type<DynamicPropertyMapWrap<typename T::type::value_type::value_type,
+                                                     typename T::type::key_type>>();
+    }
+};
+
+constexpr inline auto velem_dprop_type = hana::tuple_t<velem_dprop_t>;
+
+struct velem_vprop_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T)
+    {
+        typedef typename T::type::value_type val_t;
+        if constexpr (std::is_same_v<val_t, boost::python::object>)
+            return hana::type<vprop_map_t<typename T::type::value_type>>();
+        else
+            return hana::type<vprop_map_t<typename T::type::value_type::value_type>>();
+    }
+};
+
+constexpr inline auto velem_vprop_type = hana::tuple_t<velem_vprop_t>;
+
+struct velem_eprop_t
+    : public type_func_t
+{
+    template <class T>
+    static auto get(T)
+    {
+        typedef typename T::type::value_type val_t;
+        if constexpr (std::is_same_v<val_t, boost::python::object>)
+            return hana::type<eprop_map_t<typename T::type::value_type>>();
+        else
+            return hana::type<eprop_map_t<typename T::type::value_type::value_type>>();
+    }
+};
+
+constexpr inline auto velem_eprop_type = hana::tuple_t<velem_eprop_t>;
 
 template <bool uncheck=true>
 struct gt_dispatch
@@ -111,7 +195,7 @@ struct gt_dispatch
         : _gil_release(gil_release) {};
 
     template <class Type, class IndexMap>
-    static auto pmap(boost::checked_vector_property_map<Type,IndexMap>& a)
+    static auto& pmap(boost::checked_vector_property_map<Type,IndexMap>& a)
     {
         if constexpr (uncheck)
             return a.get_unchecked();
@@ -145,21 +229,14 @@ struct gt_dispatch
                                 struct stop_transform {};
                                 try
                                 {
-                                    constexpr auto fats
+                                    auto fats
                                         = hana::fold
                                         (ats, hana::tuple(),
                                          [](auto xs, auto x)
                                          {
                                              typedef typename decltype(+x)::type x_t;
-                                             if constexpr (std::is_same_v<x_t, same_arg_t>)
-                                                 return hana::append(xs, hana::back(xs));
-                                             else if constexpr (std::is_same_v<x_t, vprop_same_t>)
-                                                 return hana::append(xs, hana::type<vprop_map_t<typename decltype(+hana::back(xs))::type::value_type>>());
-                                             else if constexpr (std::is_same_v<x_t, eprop_same_t>)
-                                                 return hana::append(xs, hana::type<eprop_map_t<typename decltype(+hana::back(xs))::type::value_type>>());
-                                             else if constexpr (std::is_same_v<x_t, dynamic_prop_t>)
-                                                 return hana::append(xs, hana::type<DynamicPropertyMapWrap<typename decltype(+hana::back(xs))::type::value_type,
-                                                                                                           typename decltype(+hana::back(xs))::type::key_type>>());
+                                             if constexpr (std::is_base_of_v<type_func_t, x_t>)
+                                                 return hana::append(xs, x_t::get(hana::back(xs)));
                                              else
                                                  return hana::append(xs, x);
                                          });
@@ -239,9 +316,14 @@ struct graph_view
     typedef std::conditional_t<directed,
                                base_t,
                                boost::undirected_adaptor<base_t>> directed_t;
+
+#ifndef DISABLE_GRAPH_FILTERING
     typedef std::conditional_t<reversed && is_directed_v<directed_t>,
                                boost::reversed_graph<directed_t>,
                                directed_t> reversed_t;
+#else
+    typedef directed_t reversed_t;
+#endif
 
     typedef eprop_map_t<uint8_t>::unchecked_t eprop;
     typedef vprop_map_t<uint8_t>::unchecked_t vprop;
@@ -250,9 +332,13 @@ struct graph_view
                               MaskFilter<eprop>,
                               MaskFilter<vprop>> filtered_graph_t;
 
+#ifndef DISABLE_GRAPH_FILTERING
     typedef std::conditional_t<filtered,
                                filtered_graph_t,
                                reversed_t> type;
+#else
+    typedef reversed_t type;
+#endif
 };
 
 template <bool directed, bool reversed, bool filtered>

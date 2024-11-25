@@ -34,6 +34,36 @@ using namespace graph_tool;
 namespace graph_tool
 {
 
+std::tuple<std::string, std::string, bool> get_pmap_type(const std::any& prop)
+{
+    std::string key_type;
+    std::string type_name;
+    bool writable;
+    typedef property_traits<edge_index_map_t>::key_type edge_t;
+    hana::for_each(hana::concat(vertex_properties,
+                                edge_properties),
+                   [&](auto t)
+                   {
+                       typedef typename decltype(t)::type T;
+                       const T* ptr = std::any_cast<T>(&prop);
+                       if (ptr != 0)
+                       {
+                           typedef typename property_traits<T>::key_type
+                               key_t;
+                           typedef typename property_traits<T>::value_type
+                               value_t;
+                           if constexpr (std::is_same_v<key_t, edge_t>)
+                               key_type = "edge";
+                           else
+                               key_type = "vertex";
+                           type_name = get_type_name<value_t>();
+                           writable = (!std::is_same_v<T, vertex_index_map_t> &&
+                                       !std::is_same_v<T, edge_index_map_t>);
+                       }
+                   });
+    return {key_type, type_name, writable};
+}
+
 std::any prop_map_as(std::any amap, std::any atgt, bool copy)
 {
     std::any rmap;
@@ -85,6 +115,74 @@ std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity)
              rmap = DynamicPropertyMapWrap<val_t, key_t>(amap, edge_properties);
          },
          edge_properties)(atgt);
+    return rmap;
+}
+
+std::any vprop_map_as_dvelem(std::any amap, std::any atgt)
+{
+    auto overtex_scalar_vector_properties =
+        hana::append(vertex_scalar_vector_properties,
+                     hana::type<vprop_map_t<python::object>>());
+
+    std::any rmap;
+    gt_dispatch<false>(false)
+        ([&](auto src, auto tgt)
+         {
+             typedef typename decltype(src)::value_type sval_t;
+             typedef typename decltype(tgt)::value_type tval_t;
+             typedef typename decltype(tgt)::key_type key_t;
+
+             if constexpr (std::is_same_v<tval_t, python::object>)
+             {
+                 if (std::is_same_v<sval_t, python::object>)
+                     rmap = src;
+                 else
+                     rmap = DynamicPropertyMapWrap<tval_t, key_t>(src, vertex_properties);
+             }
+             else
+             {
+                 if (std::is_same_v<sval_t, typename tval_t::value_type>)
+                     rmap = src;
+                 else
+                     rmap = DynamicPropertyMapWrap<typename tval_t::value_type, key_t>(amap, vertex_properties);
+             }
+         },
+         vertex_properties,
+         overtex_scalar_vector_properties)(amap, atgt);
+    return rmap;
+}
+
+std::any eprop_map_as_dvelem(std::any amap, std::any atgt)
+{
+    auto oedge_scalar_vector_properties =
+        hana::append(edge_scalar_vector_properties,
+                     hana::type<eprop_map_t<python::object>>());
+
+    std::any rmap;
+    gt_dispatch<false>(false)
+        ([&](auto src, auto tgt)
+         {
+             typedef typename decltype(src)::value_type sval_t;
+             typedef typename decltype(tgt)::value_type tval_t;
+             typedef typename decltype(tgt)::key_type key_t;
+
+             if constexpr (std::is_same_v<tval_t, python::object>)
+             {
+                 if (std::is_same_v<sval_t, python::object>)
+                     rmap = src;
+                 else
+                     rmap = DynamicPropertyMapWrap<tval_t, key_t>(src, edge_properties);
+             }
+             else
+             {
+                 if (std::is_same_v<sval_t, typename tval_t::value_type>)
+                     rmap = src;
+                 else
+                     rmap = DynamicPropertyMapWrap<typename tval_t::value_type, key_t>(amap, edge_properties);
+             }
+         },
+         edge_properties,
+         oedge_scalar_vector_properties)(amap, atgt);
     return rmap;
 }
 

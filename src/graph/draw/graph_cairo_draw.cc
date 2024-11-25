@@ -54,8 +54,6 @@ using FontWeight = Cairo::FontWeight;
 #define OPERATOR_OVER Cairo::OPERATOR_OVER
 #endif
 
-#include <boost/mpl/map/map50.hpp>
-
 #include <chrono>
 
 using namespace std;
@@ -234,6 +232,7 @@ namespace graph_tool
 // color_t
 template <class T2>
 struct convert_dispatch<color_t, vector<T2>>
+    : public convert_dispatch_base
 {
     color_t operator()(const vector<T2>& cv) const
     {
@@ -246,9 +245,9 @@ struct convert_dispatch<color_t, vector<T2>>
     }
 };
 
-// vector<color_t>
 template <class T2>
 struct convert_dispatch<vector<color_t>, vector<T2>>
+    : public convert_dispatch_base
 {
     vector<color_t> operator()(const vector<T2>& cv) const
     {
@@ -272,6 +271,7 @@ template <class T2>
 struct convert_dispatch<vertex_shape_t, T2,
                         std::enable_if_t<!std::is_same_v<T2,string> &&
                                          !std::is_same_v<T2,boost::python::object>>>
+    : public convert_dispatch_base
 {
     vertex_shape_t operator()(const T2& v) const
     {
@@ -284,6 +284,7 @@ template <class T2>
 struct convert_dispatch<edge_marker_t, T2,
                         std::enable_if_t<!std::is_same_v<T2,string> &&
                                          !std::is_same_v<T2,boost::python::object>>>
+    : public convert_dispatch_base
 {
     edge_marker_t operator()(const T2& v) const
     {
@@ -2167,6 +2168,10 @@ BOOST_PYTHON_MODULE(libgraph_tool_draw)
     enum_from_int<edge_marker_t>();
 
     def("get_cts", &get_cts);
+
+    static_assert(graph_tool::is_convertible_v<vector<color_t>, vector<double>>);
+    static_assert(graph_tool::is_convertible_v<vector<color_t>, vector<int>>);
+    static_assert(graph_tool::is_convertible_v<vertex_shape_t, int>);
 }
 
 #else

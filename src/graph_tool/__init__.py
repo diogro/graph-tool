@@ -1802,8 +1802,11 @@ class Graph(object):
       :class:`~graph_tool.VertexPropertyMap` specifying the ordering of the
       vertices in the copied graph.
 
-    The value of ``set_fast_edge_removal`` is passed to
+    The value of ``fast_edge_removal`` is passed to
     :meth:`~graph_tool.Graph.set_fast_edge_removal`.
+
+    The value of ``fast_edge_lookup`` is passed to
+    :meth:`~graph_tool.Graph.set_fast_edge_lookup`.
 
     .. note::
 
@@ -1815,7 +1818,7 @@ class Graph(object):
     """
 
     def __init__(self, g=None, directed=True, prune=False, vorder=None,
-                 fast_edge_removal=False, **kwargs):
+                 fast_edge_removal=False, fast_edge_lookup=False, **kwargs):
         self.__properties = InternalPropertyDict(self)
         self.__graph_properties = PropertyDict(self.__properties, "g")
         self.__vertex_properties = PropertyDict(self.__properties, "v")
@@ -1991,7 +1994,9 @@ class Graph(object):
 
             # directedness is always a filter
             self.set_directed(g.is_directed())
+
         self.set_fast_edge_removal(fast_edge_removal)
+        self.set_fast_edge_lookup(fast_edge_lookup)
 
     def _get_any(self):
         return self.__graph.get_graph_view()
@@ -2149,10 +2154,11 @@ class Graph(object):
         If ``add_missing == True``, a new edge is created and returned, if none
         currently exists.
 
-        This operation will take :math:`O(\min(k(s), k(t)))` time, where
-        :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
-        out-degree if undirected) of vertices :math:`s` and :math:`t`.
-
+        This operation normally will take :math:`O(\min(k(s), k(t)))` time,
+        where :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
+        out-degree if undirected) of vertices :math:`s` and :math:`t`. However,
+        if :meth:`~Graph.set_fast_edge_lookup` is set to `True`, this operation
+        becomes :math:`O(1)`.
         """
         s = self.vertex(int(s))
         t = self.vertex(int(t))
@@ -2165,6 +2171,67 @@ class Graph(object):
             return edges[0]
         else:
             return None
+
+    def iter_edge_range(self, s, t, eprops):
+        r"""Return an iterator over the edge properties list ``eprops`` for
+        parallel edges between vertices ``s`` and ``t``.
+
+        This operation normally will take :math:`O(\times\min(k(s), k(t)))` time,
+        where :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
+        out-degree if undirected) of vertices :math:`s` and :math:`t`. However,
+        if :meth:`~Graph.set_fast_edge_lookup` is set to `True`, this operation
+        becomes :math:`O(m)`, where :math:`m` being the number of parallel edges.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Graph.edge`, as descriptor objects are not
+           created.
+
+        Examples
+        --------
+        >>> g = gt.Graph([(0, 1), (0, 1)])
+        >>> for i in g.iter_edge_range(0, 1, [g.edge_index]):
+        ...     print(i)
+        [0]
+        [1]
+        """
+        eiter = libcore.get_edge_range_iter(self.__graph, int(s), int(t),
+                                            [_prop("e", self, ep) for ep in eprops])
+        eiter._g = self
+        return eiter
+
+    def get_edge_range(self, s, t, eprops):
+        r"""Return a :class:`numpy.ndarray` containing the parallel edge
+        properties  ``eprops`` for the parallel edges between vertices
+        ``s`` and ``t``.
+
+        The shape of the array will be ``(m, len(eprops))``, where ``m`` is the
+        number of parallele edges, and each line will contain the edge property
+        values.
+
+        This operation normally will take :math:`O(\times\min(k(s), k(t)))` time,
+        where :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
+        out-degree if undirected) of vertices :math:`s` and :math:`t`. However,
+        if :meth:`~Graph.set_fast_edge_lookup` is set to `True`, this operation
+        becomes :math:`O(m)`, where :math:`m` being the number of parallel edges.
+
+        .. note::
+
+           The order of the edges is identical to
+           :meth:`~graph_tool.Graph.edge`.
+
+        Examples
+        --------
+        >>> g = gt.Graph([(0, 1), (0, 1)])
+        >>> g.get_edge_range(0, 1, [g.edge_index])
+        array([[0],
+               [1]])
+        """
+        edges = libcore.get_edge_range_list(self.__graph, s, t,
+                                            [_prop("e", self, ep) for ep in eprops])
+        E = edges.shape[0] // len(eprops)
+        return numpy.reshape(edges, (E, len(eprops)))
 
     def edges(self):
         """Return an :meth:`iterator <iterator.__iter__>` over the edges.
@@ -2211,7 +2278,7 @@ class Graph(object):
         5 0 7
         """
         eiter = libcore.get_edge_iter(self.__graph, 0,
-                                      [ep._get_any() for ep in eprops])
+                                      [_prop("e", self, ep) for ep in eprops])
         eiter._g = self
         return eiter
 
@@ -2233,10 +2300,9 @@ class Graph(object):
         array([[3, 2, 0],
                [4, 1, 2],
                [5, 0, 1]])
-
         """
         edges = libcore.get_edge_list(self.__graph, 0,
-                                      [ep._get_any() for ep in eprops])
+                                      [_prop("e", self, ep) for ep in eprops])
         E = edges.shape[0] // (2 + len(eprops))
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
@@ -2262,7 +2328,7 @@ class Graph(object):
         66 38674 5270
         """
         eiter = libcore.get_out_edge_iter(self.__graph, int(v),
-                                          [ep._get_any() for ep in eprops])
+                                          [_prop("e", self, ep) for ep in eprops])
         eiter._g = self
         return eiter
 
@@ -2284,7 +2350,7 @@ class Graph(object):
 
         """
         edges = libcore.get_out_edge_list(self.__graph, int(v),
-                                          [ep._get_any() for ep in eprops])
+                                          [_prop("e", self, ep) for ep in eprops])
         E = edges.shape[0] // (2 + len(eprops))
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
@@ -2308,7 +2374,7 @@ class Graph(object):
         38674 66 300230
         """
         eiter = libcore.get_in_edge_iter(self.__graph, int(v),
-                                         [ep._get_any() for ep in eprops])
+                                         [_prop("e", self, ep) for ep in eprops])
         eiter._g = self
         return eiter
 
@@ -2327,7 +2393,7 @@ class Graph(object):
                [ 38674,     66, 300230]])
         """
         edges = libcore.get_in_edge_list(self.__graph, int(v),
-                                          [ep._get_any() for ep in eprops])
+                                          [_prop("e", self, ep) for ep in eprops])
         E = edges.shape[0] // (2 + len(eprops))
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
@@ -2356,7 +2422,7 @@ class Graph(object):
         38674 66 300230
         """
         eiter = libcore.get_all_edge_iter(self.__graph, int(v),
-                                          [ep._get_any() for ep in eprops])
+                                          [_prop("e", self, ep) for ep in eprops])
         eiter._g = self
         return eiter
 
@@ -2381,7 +2447,7 @@ class Graph(object):
                [ 38674,     66, 300230]])
         """
         edges = libcore.get_all_edge_list(self.__graph, int(v),
-                                          [ep._get_any() for ep in eprops])
+                                          [_prop("e", self, ep) for ep in eprops])
         E = edges.shape[0] // (2 + len(eprops))
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
@@ -2827,6 +2893,18 @@ class Graph(object):
         enabled."""
         return self.__graph.get_keep_epos()
 
+    def set_fast_edge_lookup(self, fast=True):
+        r"""If ``fast == True`` the fast :math:`O(1)` lookup of edges will be
+        enabled. This requires an additional data structure of size :math:`O(E)`
+        to be kept at all times.  If ``fast == False``, this data structure is
+        destroyed."""
+        self.__graph.set_keep_ehash(fast)
+
+    def get_fast_edge_lookup(self):
+        r"""Return whether the fast :math:`O(1)` lookup of edges is currently
+        enabled."""
+        return self.__graph.get_keep_ehash()
+
     def clear(self):
         """Remove all vertices and edges from the graph."""
         self.__graph.clear()
@@ -3255,6 +3333,9 @@ class Graph(object):
         if "_Graph__fast_edge_removal" in self.gp:
             self.set_fast_edge_removal(self.gp["_Graph__fast_edge_removal"])
             del self.gp["_Graph__fast_edge_removal"]
+        if "_Graph__fast_edge_lookup" in self.gp:
+            self.set_fast_edge_lookup(self.gp["_Graph__fast_edge_lookup"])
+            del self.gp["_Graph__fast_edge_lookup"]
 
         self.shrink_to_fit()
 
@@ -3285,6 +3366,9 @@ class Graph(object):
 
         if self.get_fast_edge_removal():
             u.gp["_Graph__fast_edge_removal"] = self.new_gp("bool", val=True)
+
+        if self.get_fast_edge_lookup():
+            u.gp["_Graph__fast_edge_lookup"] = self.new_gp("bool", val=True)
 
         if isinstance(file_name, str):
             file_name = os.path.expanduser(file_name)

@@ -47,70 +47,132 @@ std::string lexical_cast(const std::vector<T>& v)
 namespace graph_tool
 {
 
+template <class T>
+struct is_vector
+{
+    static bool const value = false;
+};
+
+template <class T>
+struct is_vector<std::vector<T>>
+{
+    static bool const value = true;
+};
+
+template <class T>
+constexpr bool is_vector_v = is_vector<T>::value;
+
 // handle type convertions
 
-template <class T1, class T2, class Enable = void>
+template <class To, class From, class Enable = void>
 struct convert_dispatch;
 
-// generic types
-template <class Type1, class Type2>
-Type1 convert(const Type2& v)
+template <class To, class From>
+struct is_convertible;
+
+template <class To, class From, bool check=false>
+//std::conditional_t<std::is_same_v<To, From>, const To&, To>
+auto convert(const From& v)
 {
     try
     {
-        if constexpr (std::is_same_v<Type1, Type2>)
+        if constexpr (std::is_same_v<To, From>)
         {
-            return v;
+            return (const To&)v;
         }
-        else if constexpr (std::is_same_v<Type1, boost::python::object>)
+        else if constexpr (std::is_same_v<To, boost::python::object>)
         {
             return boost::python::object(v);
         }
-        else if constexpr (std::is_same_v<Type2, boost::python::object>)
+        else if constexpr (std::is_same_v<From, boost::python::object>)
         {
-            boost::python::extract<Type1> x(v);
+            boost::python::extract<To> x(v);
             if (x.check())
+            {
                 return x();
+            }
             else
-                throw boost::bad_lexical_cast();
+            {
+                if constexpr (is_vector_v<To>)
+                {
+                    To y;
+                    for (int i = 0; i < boost::python::len(v); ++i)
+                    {
+                        boost::python::extract<typename To::value_type> x(v[i]);
+                        if (x.check())
+                            y.push_back(x());
+                        else
+                            throw boost::bad_lexical_cast();
+                    }
+                    return y;
+                }
+                else
+                {
+                    throw boost::bad_lexical_cast();
+                }
+            }
         }
-        else if constexpr (std::is_same_v<Type2, std::string>)
+        else if constexpr (std::is_same_v<From, std::string> && std::is_scalar_v<To>)
         {
             //uint8_t is not char, it is bool!
-            if (std::is_same_v<Type1, uint8_t>)
-                return convert<Type1,int>(boost::lexical_cast<int>(v));
+            if (std::is_same_v<To, uint8_t>)
+                return convert<To,int>(boost::lexical_cast<int>(v));
             else
-                return boost::lexical_cast<Type1>(v);
+                return boost::lexical_cast<To>(v);
         }
-        else if constexpr (std::is_same_v<Type1, std::string>)
+        else if constexpr (std::is_same_v<To, std::string> && std::is_scalar_v<From>)
         {
             //uint8_t is not char, it is bool!
-            if (std::is_same_v<Type2, uint8_t>)
-                return boost::lexical_cast<std::string>(convert<int, Type2>(v));
+            if (std::is_same_v<From, uint8_t>)
+                return boost::lexical_cast<std::string>(convert<int, From>(v));
             else
                 return boost::lexical_cast<std::string>(v);
         }
-        else if constexpr (std::is_convertible_v<Type2,Type1>)
+        else if constexpr (std::is_convertible_v<From, To>)
         {
-            return Type1(v);
+            return To(v);
+        }
+        else if constexpr (is_vector_v<To> && is_vector_v<From>)
+        {
+            constexpr bool is_conv =
+                graph_tool::is_convertible<typename To::value_type,
+                                           typename From::value_type>::value;
+            if constexpr (is_conv)
+            {
+                To v2(v.size());
+                for (size_t i = 0; i < v.size(); ++i)
+                    v2[i] = convert<typename To::value_type,
+                                    typename From::value_type>(v[i]);
+                return v2;
+            }
+            else
+            {
+                if constexpr (check)
+                    return convert_dispatch<To, From>::check();
+                else
+                    return convert_dispatch<To, From>()(v);
+            }
         }
         else
         {
-            return convert_dispatch<Type1, Type2>()(v);
+            if constexpr (check)
+                return convert_dispatch<To, From>::check();
+            else
+                return convert_dispatch<To, From>()(v);
         }
     }
     catch (boost::bad_lexical_cast&)
     {
-        std::string name1 = name_demangle(typeid(Type1).name());
-        std::string name2 = name_demangle(typeid(Type2).name());
+        std::string name1 = name_demangle(typeid(To).name());
+        std::string name2 = name_demangle(typeid(From).name());
         std::string val_name;
         try
         {
-            if constexpr (std::is_same_v<Type2, boost::python::object>)
+            if constexpr (std::is_same_v<From, boost::python::object>)
             {
                 val_name = boost::python::extract<std::string>(v.attr("__str__")());
             }
-            else if constexpr (std::is_same_v<Type2, std::vector<boost::python::object>>)
+            else if constexpr (std::is_same_v<From, std::vector<boost::python::object>>)
             {
                 val_name = "[";
                 for (size_t i = 0; i < v.size(); ++i)
@@ -135,30 +197,34 @@ Type1 convert(const Type2& v)
     }
 }
 
-// specific specializations
-
-// vectors
-template <class T1, class T2>
-struct convert_dispatch<std::vector<T1>, std::vector<T2>>
-{
-    std::vector<T1> operator()(const std::vector<T2>& v) const
-    {
-        std::vector<T1> v2(v.size());
-        for (size_t i = 0; i < v.size(); ++i)
-            v2[i] = convert<T1, T2>(v[i]);
-        return v2;
-    }
-};
+// extensible specializations
 
 // default action
-template <class T1, class T2, class Enable>
+template <class To, class From, class Enable>
 struct convert_dispatch
 {
-    T1 operator()(const T2&) const
+    To operator()(const From&) const
     {
         throw boost::bad_lexical_cast();
     }
+
+    static void check() {}
 };
+
+struct convert_dispatch_base
+{
+    static void* check() { return nullptr; }
+};
+
+template <class To, class From>
+struct is_convertible
+{
+    constexpr static bool value =
+        !std::is_void_v<decltype(convert<To, From, true>(From()))>;
+};
+
+template <class To, class From>
+constexpr bool is_convertible_v = is_convertible<To, From>::value;
 
 } // namespace graph_tool
 

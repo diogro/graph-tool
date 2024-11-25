@@ -170,6 +170,12 @@ edge(const typename graph_traits<Graph>::vertex_descriptor u,
     return edge(v, u, g.original_graph());
 }
 
+template <class Vertex, class Graph, class F>
+void edge_range_iter(Vertex s, Vertex t, const reversed_graph<Graph>& g, F&& f)
+{
+    edge_range_iter(t, s, g.original_graph(), std::forward<F>(f));
+}
+
 template <class Graph>
 auto
 in_edges(const typename graph_traits<Graph>::vertex_descriptor u,

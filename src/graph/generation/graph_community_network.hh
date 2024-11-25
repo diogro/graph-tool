@@ -60,7 +60,7 @@ struct get_community_network_vertices
             {
                 comms[s] = v = add_vertex(cg);
                 put_dispatch(cs_map, v, s,
-                             typename boost::is_convertible
+                             typename std::is_convertible
                              <typename property_traits<CommunityMap>::category,
                              writable_property_map_tag>::type());
             }
@@ -76,7 +76,7 @@ struct get_community_network_vertices
     void put_dispatch(PropertyMap cs_map,
                       const typename property_traits<PropertyMap>::key_type& v,
                       const typename property_traits<PropertyMap>::value_type& val,
-                      mpl::true_ /*is_writable*/) const
+                      std::true_type /*is_writable*/) const
     {
         put(cs_map, v, val);
     }
@@ -85,7 +85,7 @@ struct get_community_network_vertices
     void put_dispatch(PropertyMap,
                       const typename property_traits<PropertyMap>::key_type&,
                       const typename property_traits<PropertyMap>::value_type&,
-                      mpl::false_ /*is_writable*/) const
+                      std::false_type /*is_writable*/) const
     {
     }
 

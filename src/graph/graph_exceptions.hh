@@ -26,7 +26,8 @@
 // This is the main exception which will be thrown the outside world, when
 // things go wrong
 
-namespace graph_tool{
+namespace graph_tool
+{
 
 class GraphException : public std::exception
 {
@@ -52,6 +53,6 @@ public:
     virtual ~ValueException() throw ();
 };
 
-} // namespace std
+} // namespace graph_tool
 
 #endif // GRAPH_EXCEPTIONS_HH

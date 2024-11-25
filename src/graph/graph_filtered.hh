@@ -526,6 +526,31 @@ edge(typename filt_graph<G, EP, VP>::vertex_descriptor u,
     return std::make_pair(e, exists && g._edge_pred(e));
 }
 
+template <typename G, typename EP, typename VP, typename F>
+void edge_range_iter(typename filt_graph<G, EP, VP>::vertex_descriptor u,
+                     typename filt_graph<G, EP, VP>::vertex_descriptor v,
+                     const filt_graph<G, EP, VP>& g, F&& f)
+{
+    typedef typename graph_traits<G>::edge_descriptor edge_t;
+    typedef decltype(f(edge_t())) ret_t;
+    edge_range_iter(u, v, g._g,
+                    [&](const auto& e)
+                    {
+                        if constexpr (std::is_same_v<ret_t, bool>)
+                        {
+                            if (g._edge_pred(e))
+                                return f(e);
+                            return true;
+                        }
+                        else
+                        {
+                            if (g._edge_pred(e))
+                                f(e);
+                        }
+                    });
+}
+
+
 template <typename G, typename EP, typename VP>
 [[gnu::always_inline]] inline
 std::pair<typename filt_graph<G, EP, VP>::out_edge_iterator,

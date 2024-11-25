@@ -77,14 +77,18 @@ Graph transformations
    remove_self_loops
    label_self_loops
 
-Graph operations
-++++++++++++++++
+Graph set operations
+++++++++++++++++++++
 
 .. autosummary::
    :nosignatures:
    :toctree: autosummary
 
+   graph_merge
    graph_union
+   graph_difference
+   graph_sym_difference
+   graph_intersection
 
 Deterministic graphs
 ++++++++++++++++++++
@@ -111,14 +115,21 @@ import numpy.random
 import scipy.optimize
 import scipy.sparse
 
+from collections import defaultdict
+from collections.abc import Iterable
+
+from copy import copy
+
 __all__ = ["random_graph", "random_rewire", "add_random_edges",
            "remove_random_edges", "generate_sbm", "solve_sbm_fugacities",
            "generate_maxent_sbm", "generate_knn", "generate_triadic_closure",
-           "predecessor_tree", "line_graph", "graph_union", "triangulation",
-           "lattice", "geometric_graph", "price_network", "complete_graph",
-           "circular_graph", "condensation_graph", "contract_parallel_edges",
-           "expand_parallel_edges", "remove_parallel_edges", "remove_self_loops",
-           "label_parallel_edges", "label_self_loops", "remove_labeled_edges"]
+           "predecessor_tree", "line_graph", "graph_merge", "graph_union",
+           "graph_difference", "graph_sym_difference", "graph_intersection",
+           "triangulation", "lattice", "geometric_graph", "price_network",
+           "complete_graph", "circular_graph", "condensation_graph",
+           "contract_parallel_edges", "expand_parallel_edges",
+           "remove_parallel_edges", "remove_self_loops", "label_parallel_edges",
+           "label_self_loops", "remove_labeled_edges"]
 
 def random_graph(N, deg_sampler, directed=True,
                  parallel_edges=False, self_loops=False, block_membership=None,
@@ -1830,44 +1841,148 @@ def line_graph(g):
                                         _prop("v", lg, vertex_map))
     return lg, vertex_map
 
-
-def graph_union(g1, g2, intersection=None, props=None, include=False,
-                internal_props=False):
-    """Return the union of graphs ``g1`` and ``g2``, composed of all edges and
-    vertices of ``g1`` and ``g2``, without overlap (if ``intersection ==
-    None``).
+@_parallel
+def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
+                internal_props={}, in_place=False, multiset=False,
+                diff=False, sym_diff=False, intersect=False, symmetric=False,
+                fast_lookup=True, fast_symmetric=True, simple=False):
+    """Merge the edges of graph ``g2`` into ``g1``, combining their weights, and
+    including or excluding the edges according to the resulting weight.
 
     Parameters
     ----------
     g1 : :class:`~graph_tool.Graph`
-       First graph in the union.
+       Graph to be merged into.
     g2 : :class:`~graph_tool.Graph`
-       Second graph in the union.
-    intersection : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-       Vertex property map owned by `g2` which maps each of its vertices
-       to vertex indices belonging to `g1`. Negative values mean no mapping
-       exists, and thus both vertices in `g1` and `g2` will be present in the
-       union graph.
-    props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-       Each element in this list must be a tuple of two PropertyMap objects. The
-       first element must be a property of `g1`, and the second of `g2`. If either
-       value is ``None``, an empty map is created. The values of the property
-       maps are propagated into the union graph, and returned.
-    include : bool (optional, default: ``False``)
-       If ``True``, graph `g2` is inserted in-place into `g1`, which is
+       Graph to be merged from.
+    eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g1``. If not provided, each edge will be assumed to have unity weight.
+    eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g2``. If not provided, each edge will be assumed to have unity weight.
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+       Vertex property map owned by ``g2`` which maps each of its vertices to
+       vertex indices belonging to ``g1``, in which case they are considered to
+       be identical. Negative values mean no mapping exists, and thus both
+       vertices in ``g1`` and ``g2`` will be present in the merged graph. If this
+       argument is not provided (i.e. ``vmap`` is ``None``), both vertex sets will
+       be added to the merge. If ``vmap`` is ``g2.vertex_index``, and the vertex
+       indexes are identical in both graphs, the merge will correspond only to
+       the edge sets. A special value of ``vmap == "identity"`` is a shortcut
+       for ``vmap = g2.vertex_index``.
+    props : dictionary with list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``{}``)
+       Property maps to be considered in the merge. The key in this dictionary
+       must be a string indicating the merge rule:
+
+       ``"set"``
+           The value from ``g2`` will be set, overwriting the value from ``g1``.
+       ``"sum"``
+           The value from ``g2`` will be summed to the value from ``g1``.
+       ``"diff"``
+          The value from ``g2`` will be subtracted from the value from ``g1``.
+       ``"idx_inc"``
+          The scalar value from ``g2`` will be used as an index to increment the
+          vector value from ``g1`` by one. Alternnatively, if the values from
+          ``g2`` are vectors, they will be interpreted as an ``(index,
+          increment)`` pair.
+       ``"append"``
+          The scalar value from ``g2`` will be appended to the vector value from
+          ``g1``.
+       ``"concat"``
+          The vector value from ``g2`` will be concatenated to the vector value
+          from ``g1``.
+
+       The values of the dicitionary must be lists, where each each element is a
+       pair of :class:`~graph_tool.PropertyMap` objects. The first element must
+       be a property of ``g1``, and the second of ``g2``. If either value is
+       ``None``, an new map will be created, and set to appropriately empty
+       values.
+
+       The values of the property maps are propagated into the merged graph, and
+       returned in a similar fashion.
+    internal_props : dictionary with iternal property names (optional, default: ``{}``)
+       Internal property maps to be considered in the merge. The key in this
+       dictionary must be a string indicating the merge rule, as documented in
+       the ``props`` parameter.
+
+       The values must be lists of ``(k, name)`` pairs where ``k`` is one of
+       ``"e"``, ``"v"``, ``"g"``, for edge, vertex, or graph properties,
+       respectively, and ``"name"`` is the name of the property map.
+
+       An alternative value of ``"all"`` indicates that all property maps should
+       be considerd. E.g. ``props = {"set": "all"}`` will set all the internal
+       property maps to the merged graph.
+
+       If an intenal property map with the given name is not present in one of
+       the graphs, an new map will be created, and set appropriately to empty
+       values.
+    in_place : ``bool`` (optional, default: ``False``)
+       If ``True``, graph `g2` is inserted in-place into `g1`, which is then
        modified. If ``False``, a new graph is created, and both graphs remain
        unmodified.
-    internal_props : bool (optional, default: ``False``)
-       If ``True``, all internal property maps are propagated, in addition
-       to ``props``.
+    multiset : ``bool`` (optional, default: ``False``)
+       If ``True``, the edges in the merged graph will form a multiset, so that
+       a single edge that exists in both ``g1`` and ``g2`` becomes a parallel
+       edge in the merged graph.
+    diff : ``bool`` (optional, default: ``False``)
+       If ``True`` the weights of the merged edges will be the weights of ``g1``
+       subtracted by those of ``g2``, otherwise they will be summed.
+    sym_diff : ``bool`` (optional, default: ``False``)
+       If ``True`` the merged edges will have as weights the absolute difference
+       between the weights of the edges in ``g1`` and ``g2``.
+    intersect : ``bool`` (optional, default: ``False``)
+       If ``True`` an edge will be merged only if its weights in both ``g1``
+       and ``g2`` are nonzero.
+    symmetric : ``bool`` (optional, default: ``False``)
+       If ``True`` the edges in ``g1`` that are not present in ``g2`` will be
+       removed, if they do not fulfill the merge conditions.
+    fast_lookup : ``bool`` (optional, default: ``True``)
+       If ``True`` fast edge lookup in ``g1`` will be enabled via
+       :meth:`~graph_tool.Graph.set_fast_edge_lookup()`.
+    fast_symmetric : ``bool`` (optional, default: ``True``)
+       If ``True`` and ``symmetric is True or simple is False``, then fast edge
+       lookup in ``g1`` will be enabled via
+       :meth:`~graph_tool.Graph.set_fast_edge_lookup()`.
+    simple : ``bool`` (optional, default: ``False``)
+       If ``True``, it will be assumed that both ``g1`` and ``g2`` are simple
+       graphs, for a faster version of the algorithm valid only in that case.
 
     Returns
     -------
     ug : :class:`~graph_tool.Graph`
-        The union graph
-    props : list of :class:`~graph_tool.PropertyMap` objects
-        List of propagated properties.  This is only returned if `props` is not
-        empty.
+        The merged graph.
+    w : :class:`~graph_tool.EdgePropertyMap`
+        The edge weights of the merged graph. This is only returned if
+        ``eweight1`` is not ``None``.
+    props : dictionary with lists of :class:`~graph_tool.PropertyMap` objects
+        List of properties in the merged graph, index by merge type. This is
+        only returned if `props` is not empty. Internal property maps are not
+        included in this list.
+
+    See Also
+    --------
+    graph_union: Union of the edge sets between two graphs.
+    graph_difference: Difference of the edge sets between two graphs.
+    graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
+    graph_intersection: Intersection of the edge sets between two graphs.
+    condensation_graph: Obtain the condensation graph.
+
+    Notes
+    -----
+
+    The algorithm runs in time :math:`O(N_1 + N_2 + E_1 + E_2)`, where :math:`N_1`,
+    :math:`N_2`, :math:`E_1`, and :math:`E_2` are the number of vertices and
+    edges, for ``g1`` and ``g2``, respectively.
+
+    If ``symmetric is False``, ``in_place is True``, and either ``multiset is
+    True`` or both :meth:`~graph_tool.Graph.get_fast_edge_lookup` and
+    :meth:`~graph_tool.Graph.get_fast_edge_removal` returns ``True`` for ``g1``,
+    the algorithmic complexity becomes instead :math:`O(N_2 + E_2)`. In this
+    situation it becomes efficient to merge a relatively small graph ``g2`` into
+    an arbitrarily large graph ``g1``.
+
+    @parallel@
 
     Examples
     --------
@@ -1880,132 +1995,674 @@ def graph_union(g1, g2, intersection=None, props=None, include=False,
        seed(42)
        gt.seed_rng(42)
 
-    >>> g = gt.triangulation(random((300,2)))[0]
-    >>> ug = gt.graph_union(g, g)
-    >>> uug = gt.graph_union(g, ug)
-    >>> pos = gt.sfdp_layout(g)
-    >>> gt.graph_draw(g, pos=pos, adjust_aspect=False, output="graph_original.pdf")
+    >>> g1 = gt.collection.ns["lesmis"]
+    >>> g2 = gt.random_graph(77, lambda: np.random.poisson(1), directed=False, model="erdos")
+    >>> label1 = g1.new_ep("int", val=0)
+    >>> label2 = g2.new_ep("int", val=1)
+    >>> u, ps = gt.graph_merge(g1, g2, props={"set": [(label1, label2)]})
+    >>> label = ps["set"][0]
+    >>> gt.graph_draw(g1, pos=g1.vp._pos, output="g1.pdf")
     <...>
-
-    >>> pos = gt.sfdp_layout(ug)
-    >>> gt.graph_draw(ug, pos=pos, adjust_aspect=False, output="graph_union.pdf")
+    >>> gt.graph_draw(g2, pos=g1.vp._pos, output="g2.pdf")
     <...>
-
-    >>> pos = gt.sfdp_layout(uug)
-    >>> gt.graph_draw(uug, pos=pos, adjust_aspect=False, output="graph_union2.pdf")
+    >>> gt.graph_draw(u, pos=u.own_property(g1.vp._pos),
+    ...               edge_color=label.t(lambda x: "black" if x == 0 else "blue",
+    ...                                   value_type="string", no_array=True),
+    ...               edge_pen_width=2, output="gmerge.pdf")
     <...>
 
     .. testcleanup::
 
-       conv_png("graph_original.pdf")
-       conv_png("graph_union.pdf")
-       conv_png("graph_union2.pdf")
+       conv_png("g1.pdf")
+       conv_png("g2.pdf")
+       conv_png("gmerge.pdf")
 
-    .. image:: graph_original.png
+    .. image:: g1.png
        :width: 33%
-    .. image:: graph_union.png
+    .. image:: g2.png
        :width: 33%
-    .. image:: graph_union2.png
+    .. image:: gmerge.png
        :width: 33%
 
     """
-    pnames = None
-    if props is None:
-        props = []
-    if internal_props:
-        pnames = []
-        for (k, name), p1 in g1.properties.items():
-            if k == 'g':
-                continue
+
+    props = defaultdict(list, {k: copy(v) for k, v in props.items()})
+    internal_props = defaultdict(list, {k: copy(v) for k, v in internal_props.items()})
+
+    if in_place and g1.base == g2.base:
+        g2 = g2.copy()
+        if eweight2 is not None:
+            eweight2 = g2.copy_property(eweight2)
+        for mt in props.keys():
+            for i, (p1, p2) in enumerate(list(props[mt])):
+                if p2 is not None:
+                    props[mt][i] = (p1, g2.copy_property(p2))
+
+    pnames = {}
+    for mt, names in internal_props.items():
+        pnames[mt] = []
+        if names == "all":
+            names = list(set(g1.properties.keys()) |
+                         set(g2.properties.keys()))
+            internal_props[mt] = names
+        for k, name in names:
+            p1 = g1.properties.get((k, name), None)
             p2 = g2.properties.get((k, name), None)
-            props.append((p1, p2))
-            pnames.append(name)
-        for (k, name), p2 in g2.properties.items():
-            if k == 'g' or (k, name) in g1.properties:
-                continue
-            props.append((None, p2))
-            pnames.append(name)
-        gprops = [[(name, g1.properties[('g', name)]) for name in g1.graph_properties.keys()],
-                  [(name, g2.properties[('g', name)]) for name in g2.graph_properties.keys()]]
-    if not include:
+            props[mt].append((p1, p2))
+            pnames[mt].append(name)
+
+    if not in_place:
         g1 = GraphView(g1, skip_properties=True)
-        p1s = []
-        for i, (p1, p2) in enumerate(props):
-            if p1 is None:
-                continue
-            if p1.key_type() == "v":
-                g1.vp[str(i)] = p1
-            elif p1.key_type() == "e":
-                g1.ep[str(i)] = p1
-
+        for mt in props.keys():
+            for i, (p1, p2) in enumerate(props[mt]):
+                if p1 is None:
+                    continue
+                g1.properties[(p1.key_type(), str(i))] = p1
+        if eweight1 is not None:
+            g1.ep["eweight"] = eweight1
         g1 = Graph(g1, prune=True)
+        if eweight1 is not None:
+            eweight1 = g1.ep["eweight"]
+        for mt in props.keys():
+            for i, (p1, p2) in enumerate(props[mt]):
+                if p1 is None:
+                    continue
+                props[mt][i] = (g1.properties[(p1.key_type(), str(i))], p2)
+        g1.properties.clear()
 
-        for i, (p1, p2) in enumerate(props):
-            if p1 is None:
-                continue
-            if str(i) in g1.vp:
-                props[i] = (g1.vp[str(i)], p2)
-                del g1.vp[str(i)]
-            else:
-                props[i] = (g1.ep[str(i)], p2)
-                del g1.ep[str(i)]
-
-    if intersection is None:
-        intersection = g2.new_vertex_property("int64_t", -1)
+    if vmap == "identity":
+        vmap = g2.vertex_index
+    elif vmap is None:
+        vmap = g2.new_vp("int", val=-1)
     else:
-        intersection = intersection.copy("int64_t")
+        vmap = vmap.copy("int64_t")
 
-    u1 = GraphView(g1, directed=True, skip_properties=True)
-    u2 = GraphView(g2, directed=True, skip_properties=True)
+    if g1.is_directed() != g2.is_directed():
+        u2 = GraphView(g2, directed=g1.is_directed(), skip_properties=True)
+    else:
+        u2 = g2
 
-    vmap, emap = libgraph_tool_generation.graph_union(u1._Graph__graph,
+    if not multiset and fast_lookup:
+        g1_fast = (g1.get_fast_edge_lookup(),
+                   g1.get_fast_edge_removal())
+        g1.set_fast_edge_lookup(True)
+        g1.set_fast_edge_removal(True)
+
+    if fast_symmetric and (symmetric or not simple):
+        g2_fast = g2.get_fast_edge_lookup()
+        g2.set_fast_edge_lookup(True)
+
+    if eweight2 is None and eweight1 is not None:
+        eweight2 = u2.new_ep("int", val=1)
+
+    if eweight1 is None and eweight2 is not None:
+        eweight1 = g1.new_ep("int", val=1)
+
+    vmap, emap = libgraph_tool_generation.graph_merge(g1._Graph__graph,
                                                       u2._Graph__graph,
-                                                      _prop("v", g2,
-                                                            intersection))
+                                                      _prop("v", g2, vmap),
+                                                      _prop("e", g1, eweight1),
+                                                      _prop("e", g2, eweight2),
+                                                      multiset, diff, sym_diff,
+                                                      intersect, symmetric,
+                                                      simple)
+    if not multiset and fast_lookup:
+        g1.set_fast_edge_lookup(g1_fast[0])
+        g1.set_fast_edge_removal(g1_fast[1])
 
-    n_props = []
-    for p1, p2 in props:
-        if p1 is None:
-            p1 = g1.new_property(p2.key_type(), p2.value_type())
-        else:
-            p1 = u1.own_property(p1)
-        if p2 is None:
-            p2 = g2.new_property(p1.key_type(), p1.value_type())
-        else:
-            p2 = u2.own_property(p2)
-        if not include:
-            p1 = g1.copy_property(p1)
-        if p2.value_type() != p1.value_type():
-            p2 = g2.copy_property(p2, value_type=p1.value_type())
-        if p1.key_type() == 'v':
-            libgraph_tool_generation.\
-                  vertex_property_union(u1._Graph__graph, u2._Graph__graph,
-                                        vmap, emap,
-                                        _prop(p1.key_type(), g1, p1),
-                                        _prop(p2.key_type(), g2, p2))
-        else:
-            libgraph_tool_generation.\
-                  edge_property_union(u1._Graph__graph, u2._Graph__graph,
-                                      vmap, emap,
-                                      _prop(p1.key_type(), g1, p1),
-                                      _prop(p2.key_type(), g2, p2))
-        n_props.append(p1)
+    if fast_symmetric and (symmetric or not simple):
+        g2.set_fast_edge_lookup(g2_fast)
 
-    if pnames is not None:
-        for name, p in zip(pnames, n_props):
+    u1 = GraphView(g1, directed=True, reversed=g1.is_reversed(),
+                   skip_properties=True)
+    u2 = GraphView(g2, directed=True, reversed=g2.is_reversed(),
+                   skip_properties=True)
+
+    merge_t = libgraph_tool_generation.merge_t
+    n_props = defaultdict(list)
+    for mt in props.keys():
+        n_props[mt] = []
+        for p1, p2 in props[mt]:
+            if p1 is None:
+                if p2 is None:
+                    continue
+                val_t = p2.value_type()
+                if mt == "idx_inc":
+                    if "vector" in p2.value_type():
+                        val_t = p2.value_type()
+                    else:
+                        val_t = "vector<int>"
+                elif mt == "append":
+                    if "vector" not in p2.value_type():
+                        val_t = "vector<%s>" % p2.value_type()
+                p1 = g1.new_property(p2.key_type(), val_t)
+            else:
+                p1 = g1.own_property(p1)
+            if p2 is None:
+                val_t = p1.value_type()
+                if mt == "idx_inc":
+                    val_t = "int"
+                elif mt == "append":
+                    if "vector" in p1.value_type():
+                        val_t = p1.value_type().split("<")[1].split(">")[0]
+                p2 = g2.new_property(p1.key_type(), val_t)
+            else:
+                p2 = u2.own_property(p2)
+            if p1.key_type() == 'v':
+                libgraph_tool_generation.\
+                      vertex_property_merge(u1._Graph__graph,
+                                            u2._Graph__graph,
+                                            vmap, emap,
+                                            _prop(p1.key_type(), u1, p1),
+                                            _prop(p2.key_type(), u2, p2),
+                                            getattr(merge_t, mt), simple)
+            elif p1.key_type() == 'e':
+                libgraph_tool_generation.\
+                      edge_property_merge(u1._Graph__graph,
+                                          u2._Graph__graph,
+                                          vmap, emap,
+                                          _prop(p1.key_type(), u1, p1),
+                                          _prop(p2.key_type(), u2, p2),
+                                          getattr(merge_t, mt), simple)
+            else:
+                mt_ = getattr(merge_t, mt)
+                if mt_ == merge_t.set:
+                    p1[g1] = p2[g2]
+                elif mt_ == merge_t.sum:
+                    p1[g1] += p2[g2]
+                elif mt_ == merge_t.diff:
+                    p1[g1] -= p2[g2]
+                elif mt_ == merge_t.idx_inc:
+                    idx = p2[g2]
+                    if isinstance(idx, Iterable):
+                        idx, diff = idx
+                    else:
+                        diff = 1
+                    p1[g1][idx] += diff
+                elif mt_ == merge_t.append:
+                    p1[g1].append(p2[g2])
+                elif mt_ == merge_t.concat:
+                    p1[g1].extend(p2[g2])
+            n_props[mt].append(p1)
+        if len(n_props[mt]) == 0:
+            del n_props[mt]
+
+    for mt in pnames.keys():
+        for name, p in zip(pnames[mt], n_props[mt]):
             g1.properties[(p.key_type(), name)] = p
-        if not include:
-            for name, p in gprops[0]:
-                g1.graph_properties[name] = g1.own_property(p.copy())
-        for name, p in gprops[1]:
-            if name not in g1.graph_properties:
-                g1.graph_properties[name] = g1.own_property(p.copy())
-        n_props = []
+        del n_props[mt][-len(internal_props[mt]):]
+        if len(n_props[mt]) == 0:
+            del n_props[mt]
 
+
+    ret = [g1]
+    if eweight1 is not None:
+        ret += [eweight1]
     if len(n_props) > 0:
-        return g1, n_props
-    else:
-        return g1
+        ret += [n_props]
+    return tuple(ret) if len(ret) > 1 else ret[0]
+
+
+@_parallel
+def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
+                internal_props=False, in_place=False, multiset=False, **kwargs):
+    """Return a graph containing the union of the vertices and edges
+    of graphs ``g1`` and ``g2``.
+
+    Parameters
+    ----------
+    g1 : :class:`~graph_tool.Graph`
+       Graph to be merged into.
+    g2 : :class:`~graph_tool.Graph`
+       Graph to be merged from.
+    eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g1``. If not provided, each edge will be assumed to have unity weight.
+    eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g2``. If not provided, each edge will be assumed to have unity weight.
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+       Vertex property map owned by ``g2`` which maps each of its vertices to
+       vertex indices belonging to ``g1``, in which case they are considered to
+       be identical. Negative values mean no mapping exists, and thus both
+       vertices in ``g1`` and ``g2`` will be present in the union graph. If this
+       argument is not provided (i.e. ``vmap`` is ``None``), both vertex sets will
+       be added to the union. If ``vmap`` is ``g2.vertex_index``, and the vertex
+       indexes are identical in both graphs, the union will correspond only to
+       the edge sets. A special value of ``vmap == "identity"`` is a shortcut
+       for ``vmap = g2.vertex_index``.
+    props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
+       Property maps to be included in the union. Each element of th list must
+       be a pair of :class:`~graph_tool.PropertyMap` objects. The first
+       element must be a property of ``g1``, and the second of ``g2``. If either
+       value is ``None``, an new map will be created, and set to appropriately
+       empty values.
+    internal_props : ``bool`` (optional, default: ``False``)
+       If ``True`` all internal property maps of ``g1`` and ``g2`` will be
+       included in the union.
+    in_place : ``bool`` (optional, default: ``False``)
+       If ``True``, graph `g2` is inserted in-place into `g1`, which is then
+       modified. If ``False``, a new graph is created, and both graphs remain
+       unmodified.
+    multiset : ``bool`` (optional, default: ``False``)
+       If ``True``, the edges in the union graph will form a multiset, so that
+       a single edge that exists in both ``g1`` and ``g2`` becomes a parallel
+       edge in the union graph.
+
+    Returns
+    -------
+    ug : :class:`~graph_tool.Graph`
+        The union graph.
+    w : :class:`~graph_tool.EdgePropertyMap`
+        The edge weights of the union graph. This is only returned if
+        ``eweight1`` is not ``None``.
+    props : list of :class:`~graph_tool.PropertyMap` objects
+        List of properties in the merged graph. This is only returned if `props`
+        is not empty. Internal property maps are not included in this list.
+
+    See Also
+    --------
+    graph_merge: Merge the edge sets between two graphs.
+    graph_difference: Difference of the edge sets between two graphs.
+    graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
+    graph_intersection: Intersection of the edge sets between two graphs.
+
+    Notes
+    -----
+
+    This algorithm is a wrapper around :func:`graph_merge`, and shares with it
+    the same algorithmic complexity.
+
+    @parallel@
+
+    Examples
+    --------
+
+    .. testcode::
+       :hide:
+
+       from numpy.random import random, seed
+       from pylab import *
+       seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.collection.ns["lesmis"]
+    >>> u1 = gt.GraphView(g, efilt=np.random.random(g.num_edges()) < .5)
+    >>> u2 = gt.graph_difference(g, u1)
+    >>> u = gt.graph_union(u1, u2)
+    >>> gt.similarity(g, u)
+    1.0
+    >>> gt.graph_draw(u1, pos=g.vp._pos, output="gsub.pdf")
+    <...>
+    >>> gt.graph_draw(u2, pos=g.vp._pos, output="gdiff.pdf")
+    <...>
+    >>> gt.graph_draw(u, pos=g.vp._pos, output="gunion.pdf")
+    <...>
+
+    .. testcleanup::
+
+       conv_png("gsub.pdf")
+       conv_png("gdiff.pdf")
+       conv_png("gunion.pdf")
+
+    .. image:: gsub.png
+       :width: 33%
+    .. image:: gdiff.png
+       :width: 33%
+    .. image:: gunion.png
+       :width: 33%
+
+    """
+
+    return graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
+                       internal_props={"set": "all"} if internal_props else {},
+                       in_place=in_place, multiset=multiset, **kwargs)
+
+
+@_parallel
+def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
+                         props=[], internal_props=False, in_place=False,
+                         **kwargs):
+    """Return a graph containing the symmetric difference of the edges
+    of graphs ``g1`` and ``g2``.
+
+    Parameters
+    ----------
+    g1 : :class:`~graph_tool.Graph`
+       Graph to be merged into.
+    g2 : :class:`~graph_tool.Graph`
+       Graph to be merged from.
+    eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g1``. If not provided, each edge will be assumed to have unity weight.
+    eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g2``. If not provided, each edge will be assumed to have unity weight.
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+       Vertex property map owned by ``g2`` which maps each of its vertices to
+       vertex indices belonging to ``g1``, in which case they are considered to
+       be identical. Negative values mean no mapping exists, and thus both
+       vertices in ``g1`` and ``g2`` will be present in the difference graph. If
+       this argument is not provided (i.e. ``vmap`` is ``None``), both vertex sets
+       will be added to the difference. If ``vmap`` is ``g2.vertex_index``, and
+       the vertex indexes are identical in both graphs, the difference will
+       correspond only to the edge sets. A special value of ``vmap ==
+       "identity"`` is a shortcut for ``vmap = g2.vertex_index``.
+    props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
+       Property maps to be included in the difference. Each element of th list must
+       be a pair of :class:`~graph_tool.PropertyMap` objects. The first
+       element must be a property of ``g1``, and the second of ``g2``. If either
+       value is ``None``, an new map will be created, and set to appropriately
+       empty values.
+    internal_props : ``bool`` (optional, default: ``False``)
+       If ``True`` all internal property maps of ``g1`` and ``g2`` will be
+       included in the difference.
+    in_place : ``bool`` (optional, default: ``False``)
+       If ``True``, the symmetric difference is computed in-place into `g1`,
+       which is then modified. If ``False``, a new graph is created, and both
+       graphs remain unmodified.
+
+    Returns
+    -------
+    ug : :class:`~graph_tool.Graph`
+        The symmetric difference graph.
+    w : :class:`~graph_tool.EdgePropertyMap`
+        The edge weights of the difference graph. This is only returned if
+        ``eweight1`` is not ``None``.
+    props : list of :class:`~graph_tool.PropertyMap` objects
+        List of properties in the difference graph. This is only returned if `props`
+        is not empty. Internal property maps are not included in this list.
+
+    See Also
+    --------
+    graph_merge: Merge the edge sets between two graphs.
+    graph_union: Union of the edge sets between two graphs.
+    graph_difference: Difference of the edge sets between two graphs.
+    graph_intersection: Intersection of the edge sets between two graphs.
+
+    Notes
+    -----
+
+    This algorithm is a wrapper around :func:`graph_merge`, and shares with it
+    the same algorithmic complexity.
+
+    @parallel@
+
+    Examples
+    --------
+
+    .. testcode::
+       :hide:
+
+       from numpy.random import random, seed
+       from pylab import *
+       seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.collection.ns["lesmis"]
+    >>> u1 = gt.GraphView(g, efilt=np.random.random(g.num_edges()) < .5)
+    >>> u2 = gt.GraphView(g, efilt=np.random.random(g.num_edges()) < .5)
+    >>> u = gt.graph_sym_difference(u1, u2)
+    >>> gt.graph_draw(u1, pos=g.vp._pos, output="u1.pdf")
+    <...>
+    >>> gt.graph_draw(u2, pos=g.vp._pos, output="u2.pdf")
+    <...>
+    >>> gt.graph_draw(u, pos=g.vp._pos, output="gsdiff.pdf")
+    <...>
+
+    .. testcleanup::
+
+       conv_png("u1.pdf")
+       conv_png("u2.pdf")
+       conv_png("gsdiff.pdf")
+
+    .. image:: u1.png
+       :width: 33%
+    .. image:: u2.png
+       :width: 33%
+    .. image:: gsdiff.png
+       :width: 33%
+
+    """
+
+    return graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
+                       internal_props={"set": "all"} if internal_props else {},
+                       in_place=in_place, sym_diff=True, **kwargs)
+
+@_parallel
+def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
+                     props=[], internal_props=False, in_place=False, **kwargs):
+    """Return a graph containing the differences of the edges of graphs ``g1``
+    and ``g2``, i.e. the edges in ``g1`` that are not in ``g2``.
+
+    Parameters
+    ----------
+    g1 : :class:`~graph_tool.Graph`
+       Graph to be subtracted from.
+    g2 : :class:`~graph_tool.Graph`
+       Graph to subtract.
+    eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g1``. If not provided, each edge will be assumed to have unity weight.
+    eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g2``. If not provided, each edge will be assumed to have unity weight.
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+       Vertex property map owned by ``g2`` which maps each of its vertices to
+       vertex indices belonging to ``g1``, in which case they are considered to
+       be identical. Negative values mean no mapping exists, and thus both
+       vertices in ``g1`` and ``g2`` will be present in the difference graph. If
+       this argument is not provided (i.e. ``vmap`` is ``None``), both vertex sets
+       will be added to the difference. If ``vmap`` is ``g2.vertex_index``, and
+       the vertex indexes are identical in both graphs, the difference will
+       correspond only to the edge sets. A special value of ``vmap ==
+       "identity"`` is a shortcut for ``vmap = g2.vertex_index``.
+    props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
+       Property maps to be included in the difference. Each element of th list must
+       be a pair of :class:`~graph_tool.PropertyMap` objects. The first
+       element must be a property of ``g1``, and the second of ``g2``. If either
+       value is ``None``, an new map will be created, and set to appropriately
+       empty values.
+    internal_props : ``bool`` (optional, default: ``False``)
+       If ``True`` all internal property maps of ``g1`` and ``g2`` will be
+       included in the difference.
+    in_place : ``bool`` (optional, default: ``False``)
+       If ``True``, graph `g2` is subtracted in-place from `g1`, which is then
+       modified. If ``False``, a new graph is created, and both graphs remain
+       unmodified.
+
+    Returns
+    -------
+    ug : :class:`~graph_tool.Graph`
+        The symmetric difference graph.
+    w : :class:`~graph_tool.EdgePropertyMap`
+        The edge weights of the difference graph. This is only returned if
+        ``eweight1`` is not ``None``.
+    props : list of :class:`~graph_tool.PropertyMap` objects
+        List of properties in the difference graph. This is only returned if `props`
+        is not empty. Internal property maps are not included in this list.
+
+    See Also
+    --------
+    graph_merge: Merge the edge sets between two graphs.
+    graph_union: Union of the edge sets between two graphs.
+    graph_sym_difference: Symmetric difference of the edge sets between two graphs.
+    graph_intersection: Intersection of the edge sets between two graphs.
+
+    Notes
+    -----
+
+    This algorithm is a wrapper around :func:`graph_merge`, and shares with it
+    the same algorithmic complexity.
+
+    @parallel@
+
+    Examples
+    --------
+
+    .. testcode::
+       :hide:
+
+       from numpy.random import random, seed
+       from pylab import *
+       seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.collection.ns["lesmis"]
+    >>> u1 = gt.GraphView(g, efilt=np.random.random(g.num_edges()) < .5)
+    >>> u2 = gt.graph_difference(g, u1)
+    >>> u = gt.graph_union(u1, u2)
+    >>> gt.similarity(g, u)
+    1.0
+    >>> gt.graph_draw(u1, pos=g.vp._pos, output="gsub.pdf")
+    <...>
+    >>> gt.graph_draw(u2, pos=g.vp._pos, output="gdiff.pdf")
+    <...>
+    >>> gt.graph_draw(u, pos=g.vp._pos, output="gunion.pdf")
+    <...>
+
+    .. testcleanup::
+
+       conv_png("gsub.pdf")
+       conv_png("gdiff.pdf")
+       conv_png("gunion.pdf")
+
+    .. image:: gsub.png
+       :width: 33%
+    .. image:: gdiff.png
+       :width: 33%
+    .. image:: gunion.png
+       :width: 33%
+
+    """
+
+    return graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
+                       internal_props={"set": "all"} if internal_props else {},
+                       in_place=in_place, diff=True, **kwargs)
+
+@_parallel
+def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
+                       props=[], internal_props=False, in_place=False, **kwargs):
+    """Return a graph containing the intersection of the edges of graphs ``g1``
+    and ``g2``.
+
+    Parameters
+    ----------
+    g1 : :class:`~graph_tool.Graph`
+       Graph to be subtracted from.
+    g2 : :class:`~graph_tool.Graph`
+       Graph to be compared to.
+    eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g1``. If not provided, each edge will be assumed to have unity weight.
+    eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+       If provided, this will determine the weights of the edges of graph
+       ``g2``. If not provided, each edge will be assumed to have unity weight.
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+       Vertex property map owned by ``g2`` which maps each of its vertices to
+       vertex indices belonging to ``g1``, in which case they are considered to
+       be identical. Negative values mean no mapping exists, and thus both
+       vertices in ``g1`` and ``g2`` will be present in the intersection graph. If this
+       argument is not provided (i.e. ``vmap`` is ``None``), both vertex sets will
+       be added to the intersection. If ``vmap`` is ``g2.vertex_index``, and the vertex
+       indexes are identical in both graphs, the intersection will correspond only to
+       the edge sets. A special value of ``vmap == "identity"`` is a shortcut
+       for ``vmap = g2.vertex_index``.
+    props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
+       Property maps to be included in the intersection. Each element of th list must
+       be a pair of :class:`~graph_tool.PropertyMap` objects. The first
+       element must be a property of ``g1``, and the second of ``g2``. If either
+       value is ``None``, an new map will be created, and set to appropriately
+       empty values.
+    internal_props : ``bool`` (optional, default: ``False``)
+       If ``True`` all internal property maps of ``g1`` and ``g2`` will be
+       included in the intersection.
+    in_place : ``bool`` (optional, default: ``False``)
+       If ``True``, the intersection is obtained in-place by subtracting edges
+       from `g1`, which is then modified. If ``False``, a new graph is created,
+       and both graphs remain unmodified.
+
+    Returns
+    -------
+    ug : :class:`~graph_tool.Graph`
+        The intersection graph.
+    w : :class:`~graph_tool.EdgePropertyMap`
+        The edge weights of the intersection graph. This is only returned if
+        ``eweight1`` is not ``None``.
+    props : list of :class:`~graph_tool.PropertyMap` objects
+        List of properties in the merged graph. This is only returned if `props`
+        is not empty. Internal property maps are not included in this list.
+
+    See Also
+    --------
+    graph_merge: Merge the edge sets between two graphs.
+    graph_union: Union of the edge sets between two graphs.
+    graph_difference: Difference of the edge sets between two graphs.
+    graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
+
+    Notes
+    -----
+
+    This algorithm is a wrapper around :func:`graph_merge`, and shares with it
+    the same algorithmic complexity.
+
+    @parallel@
+
+    Examples
+    --------
+
+    .. testcode::
+       :hide:
+
+       from numpy.random import random, seed
+       from pylab import *
+       seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.collection.ns["lesmis"]
+    >>> u1 = gt.GraphView(g, efilt=np.random.random(g.num_edges()) < .5)
+    >>> u2 = gt.GraphView(g, efilt=np.random.random(g.num_edges()) < .5)
+    >>> u = gt.graph_intersection(u1, u2)
+    >>> gt.graph_draw(u1, pos=g.vp._pos, output="gsub1_int.pdf")
+    <...>
+    >>> gt.graph_draw(u2, pos=g.vp._pos, output="gsub2_int.pdf")
+    <...>
+    >>> gt.graph_draw(u, pos=g.vp._pos, output="gint.pdf")
+    <...>
+
+    .. testcleanup::
+
+       conv_png("gsub1_int.pdf")
+       conv_png("gsub2_int.pdf")
+       conv_png("gint.pdf")
+
+    .. image:: gsub1_int.png
+       :width: 33%
+    .. image:: gsub2_int.png
+       :width: 33%
+    .. image:: gint.png
+       :width: 33%
+
+    """
+
+    ret_w = True
+    if eweight1 is None:
+        eweight1 = g1.new_ep("int", val=1)
+        ret_w = False
+
+    ret = graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
+                      internal_props={"set": "all"} if internal_props else {},
+                      in_place=in_place, intersect=True, symmetric=True,
+                      **kwargs)
+
+    if ret_w:
+        return ret
+    ret = list(ret)
+    del ret[1]
+    ret = tuple(ret)
+    if len(ret) > 1:
+        return ret
+    return ret[0]
 
 
 @_limit_args({"type": ["simple", "delaunay"]})
@@ -2490,14 +3147,14 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
        :align: center
        :width: 60%
 
-       Price network with :math:`N=2\times 10^4` nodes and :math:`c=1`.  The
+       Price network with :math:`N=2\times 10^4` vertices and :math:`c=1`.  The
        colors represent the order in which vertices were added.
 
     .. figure:: price-network-broader.png
        :align: center
        :width: 60%
 
-       Price network with :math:`N=2\times 10^4` nodes and :math:`c=0.1`.  The
+       Price network with :math:`N=2\times 10^4` vertices and :math:`c=0.1`.  The
        colors represent the order in which vertices were added.
 
 

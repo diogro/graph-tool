@@ -525,6 +525,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .def("get_reversed", &GraphInterface::get_reversed)
         .def("set_keep_epos", &GraphInterface::set_keep_epos)
         .def("get_keep_epos", &GraphInterface::get_keep_epos)
+        .def("set_keep_ehash", &GraphInterface::set_keep_ehash)
+        .def("get_keep_ehash", &GraphInterface::get_keep_ehash)
         .def("set_vertex_filter_property",
              &GraphInterface::set_vertex_filter_property)
         .def("is_vertex_filter_active", &GraphInterface::is_vertex_filter_active)

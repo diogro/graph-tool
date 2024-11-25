@@ -35,8 +35,8 @@
 #include "transform_iterator.hh"
 
 #include "graph_adaptor.hh"
-
 #include "openmp.hh"
+#include "hash_map_wrap.hh"
 
 namespace boost
 {
@@ -62,6 +62,9 @@ edges(const adj_list<Vertex>& g);
 template <class Vertex>
 std::pair<typename adj_list<Vertex>::edge_descriptor, bool>
 edge(Vertex s, Vertex t, const adj_list<Vertex>& g);
+
+template <class Vertex, class F>
+void edge_range_iter(Vertex s, Vertex t, const adj_list<Vertex>& g, F&& f);
 
 template <class Vertex>
 size_t out_degree(Vertex v, const adj_list<Vertex>& g);
@@ -177,6 +180,7 @@ struct adj_edge_descriptor
         : s(std::numeric_limits<Vertex>::max()),
           t(std::numeric_limits<Vertex>::max()),
           idx(std::numeric_limits<Vertex>::max()) {};
+
     adj_edge_descriptor(Vertex s, Vertex t, Vertex idx)
         : s(s), t(t), idx(idx) {}
 
@@ -184,10 +188,12 @@ struct adj_edge_descriptor
     {
         return idx == other.idx;
     }
+
     bool operator!=(const adj_edge_descriptor& other) const
     {
         return idx != other.idx;
     }
+
     bool operator<(const adj_edge_descriptor& other) const
     {
         return idx < other.idx;
@@ -211,7 +217,7 @@ public:
     typedef typename integer_range<Vertex>::iterator vertex_iterator;
 
     adj_list(size_t n = 0): _edges(n), _n_edges(0), _edge_index_range(0),
-                            _keep_epos(false) {}
+                            _keep_epos(false), _keep_ehash(false) {}
 
     struct get_vertex
     {
@@ -316,7 +322,6 @@ public:
 
     typedef base_edge_iterator<make_out_edge> out_edge_iterator;
     typedef base_edge_iterator<make_in_edge> in_edge_iterator;
-
 
     template <class Iter>
     struct make_in_or_out_edge
@@ -438,6 +443,9 @@ public:
 
         if (_keep_epos)
             rebuild_epos();
+
+        if (_keep_ehash)
+            rebuild_ehash();
     }
 
     void set_keep_epos(bool keep)
@@ -449,7 +457,8 @@ public:
         }
         else
         {
-            _epos.clear();
+            std::decay_t<decltype(_epos)> tmp;
+            _epos.swap(tmp);
         }
         _keep_epos = keep;
     }
@@ -457,6 +466,28 @@ public:
     bool get_keep_epos()
     {
         return _keep_epos;
+    }
+
+    void set_keep_ehash(bool keep)
+    {
+        if (keep)
+        {
+            if (!_keep_ehash)
+                rebuild_ehash();
+        }
+        else
+        {
+            std::decay_t<decltype(_ehash)> htmp;
+            _ehash.swap(htmp);
+            std::decay_t<decltype(_ehpos)> ptmp;
+            _ehpos.swap(ptmp);
+        }
+        _keep_ehash = keep;
+    }
+
+    bool get_keep_ehash()
+    {
+        return _keep_ehash;
     }
 
     size_t get_edge_index_range() const { return _edge_index_range; }
@@ -494,6 +525,7 @@ public:
         if (_keep_epos)
             _epos.resize(_edge_index_range);
         _epos.shrink_to_fit();
+        _ehash.shrink_to_fit();
     }
 
     [[gnu::always_inline]] [[gnu::flatten]]
@@ -535,6 +567,10 @@ private:
     bool _keep_epos;
     std::vector<std::pair<uint32_t, uint32_t>> _epos; // out, in
 
+    bool _keep_ehash;
+    std::vector<gt_hash_map<Vertex, std::vector<Vertex>>> _ehash;
+    std::vector<uint32_t> _ehpos;
+
     void rebuild_epos()
     {
         _epos.resize(_edge_index_range);
@@ -573,6 +609,40 @@ private:
 #endif
     }
 
+    void rebuild_ehash()
+    {
+        _ehash.clear();
+        _ehash.resize(_edges.size());
+        _ehpos.resize(_edge_index_range);
+        #pragma omp parallel for schedule(runtime) if (_edges.size() > get_openmp_min_thresh())
+        for (size_t v = 0; v < _edges.size(); ++v)
+        {
+            auto [iter, eend] = out_edges(v, *this);
+            for (; iter != eend; ++iter)
+                add_ehash(*iter);
+        }
+    }
+
+    void add_ehash(const edge_descriptor& e)
+    {
+        auto& es = _ehash[e.s][e.t];
+        es.push_back(e.idx);
+        if (_ehpos.size() <= e.idx)
+            _ehpos.resize(e.idx + 1);
+        _ehpos[e.idx] = es.size() - 1;
+    }
+
+    void remove_ehash(const edge_descriptor& e)
+    {
+        auto& es = _ehash[e.s][e.t];
+        auto pos = _ehpos[e.idx];
+        _ehpos[es.back()] = pos;
+        es[pos] = es.back();
+        es.pop_back();
+        if (es.empty())
+            _ehash[e.s].erase(e.t);
+    }
+
     // manipulation functions
     friend std::pair<vertex_iterator, vertex_iterator>
     vertices<>(const adj_list<Vertex>& g);
@@ -582,6 +652,9 @@ private:
 
     friend std::pair<edge_descriptor, bool>
     edge<>(Vertex s, Vertex t, const adj_list<Vertex>& g);
+
+    template <class V, class F>
+    friend void edge_range_iter(V s, V t, const adj_list<V>& g, F&& f);
 
     friend size_t out_degree<>(Vertex v, const adj_list<Vertex>& g);
 
@@ -680,12 +753,12 @@ struct graph_traits<adj_list<Vertex> >
     static Vertex null_vertex() { return adj_list<Vertex>::null_vertex(); }
 
 private:
-    BOOST_STATIC_ASSERT((is_convertible<typename std::iterator_traits<out_edge_iterator>::iterator_category,
-                                        std::random_access_iterator_tag>::value));
-    BOOST_STATIC_ASSERT((is_convertible<typename std::iterator_traits<in_edge_iterator>::iterator_category,
-                                        std::random_access_iterator_tag>::value));
-    BOOST_STATIC_ASSERT((is_convertible<typename std::iterator_traits<adjacency_iterator>::iterator_category,
-                                        std::random_access_iterator_tag>::value));
+    BOOST_STATIC_ASSERT((std::is_convertible<typename std::iterator_traits<out_edge_iterator>::iterator_category,
+                                             std::random_access_iterator_tag>::value));
+    BOOST_STATIC_ASSERT((std::is_convertible<typename std::iterator_traits<in_edge_iterator>::iterator_category,
+                                             std::random_access_iterator_tag>::value));
+    BOOST_STATIC_ASSERT((std::is_convertible<typename std::iterator_traits<adjacency_iterator>::iterator_category,
+                                             std::random_access_iterator_tag>::value));
 };
 
 template <class Vertex>
@@ -772,15 +845,106 @@ std::pair<typename adj_list<Vertex>::edge_descriptor, bool>
 edge(Vertex s, Vertex t, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::edge_descriptor edge_descriptor;
-    const auto& pes = g._edges[s];
-    auto pos = pes.first;
-    const auto& es = pes.second;
-    auto end = es.begin() + pos;
-    auto iter = std::find_if(es.begin(), end,
-                             [&](const auto& e) -> bool {return e.first == t;});
-    if (iter != end)
-        return {edge_descriptor(s, t, iter->second), true};
-    return {edge_descriptor(), false};
+    if (g._keep_ehash)
+    {
+        auto& es = g._ehash[s];
+        auto iter = es.find(t);
+        if (iter != es.end())
+            return {edge_descriptor(s, t, iter->second.front()), true};
+        return {edge_descriptor(), false};
+    }
+
+    if (out_degree(s, g) < in_degree(t, g))
+    {
+        const auto& pes = g._edges[s];
+        auto pos = pes.first;
+        const auto& es = pes.second;
+        auto end = es.begin() + pos;
+        auto iter = std::find_if(es.begin(), end,
+                                 [&](const auto& e) { return e.first == t; });
+        if (iter != end)
+            return {edge_descriptor(s, t, iter->second), true};
+        return {edge_descriptor(), false};
+    }
+    else
+    {
+        const auto& pes = g._edges[t];
+        auto pos = pes.first;
+        const auto& es = pes.second;
+        auto iter = std::find_if(es.begin() + pos, es.end(),
+                                 [&](const auto& e) { return e.first == s; });
+        if (iter != es.end())
+            return {edge_descriptor(s, t, iter->second), true};
+        return {edge_descriptor(), false};
+    }
+}
+
+template <class Vertex, class F>
+void edge_range_iter(Vertex s, Vertex t, const adj_list<Vertex>& g, F&& f)
+{
+    typedef typename adj_list<Vertex>::edge_descriptor edge_descriptor;
+    typedef decltype(f(edge_descriptor())) ret_t;
+    if (g._keep_ehash)
+    {
+        auto& es = g._ehash[s];
+        auto iter = es.find(t);
+        if (iter != es.end())
+        {
+            for (auto idx : iter->second)
+            {
+                if constexpr (std::is_same_v<ret_t, bool>)
+                {
+                    if (!f(edge_descriptor(s, t, idx)))
+                        break;
+                }
+                else
+                {
+                    f(edge_descriptor(s, t, idx));
+                }
+            }
+        }
+    }
+    else
+    {
+        if (out_degree(s, g) < in_degree(t, g))
+        {
+            auto [iter, eend] = out_edges(s, g);
+            for (; iter != eend; ++iter)
+            {
+                if (target(*iter, g) == t)
+                {
+                    if constexpr (std::is_same_v<ret_t, bool>)
+                    {
+                        if (!f(*iter))
+                            break;
+                    }
+                    else
+                    {
+                        f(*iter);
+                    }
+                }
+            }
+        }
+        else
+        {
+            auto [iter, eend] = in_edges(t, g);
+            for (; iter != eend; ++iter)
+            {
+                if (source(*iter, g) == s)
+                {
+                    if constexpr (std::is_same_v<ret_t, bool>)
+                    {
+                        if (!f(*iter))
+                            break;
+                    }
+                    else
+                    {
+                        f(*iter);
+                    }
+                }
+            }
+        }
+    }
 }
 
 template <class Vertex>
@@ -989,6 +1153,10 @@ add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
     }
 
     typedef typename adj_list<Vertex>::edge_descriptor edge_descriptor;
+
+    if (g._keep_ehash)
+        g.add_ehash(edge_descriptor(s, t, idx));
+
     return {edge_descriptor(s, t, idx), true};
 }
 
@@ -1064,6 +1232,9 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
 
     g._free_indices.push_back(idx);
     g._n_edges--;
+
+    if (g._keep_ehash)
+        g.remove_ehash(e);
 }
 
 template <class Vertex>
@@ -1071,6 +1242,8 @@ template <class Vertex>
 Vertex add_vertex(adj_list<Vertex>& g)
 {
     g._edges.emplace_back();
+    if (g._keep_ehash)
+        g._ehash.emplace_back();
     return g._edges.size() - 1;
 }
 
@@ -1082,6 +1255,13 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
 
     if (!g._keep_epos)
     {
+        if (g._keep_ehash)
+        {
+            auto [iter, eend] = out_edges(v, g);
+            for (; iter != eend; ++iter)
+                g.remove_ehash(*iter);
+        }
+
         auto& pos = g._edges[v].first;
         auto& es  = g._edges[v].second;
         for (size_t i = 0; i < es.size(); ++i)
@@ -1089,6 +1269,7 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
             auto u = es[i].first;
             if (u == v)
                 continue;
+            auto idx = es[i].second;
             auto& u_pos = g._edges[u].first;
             auto& u_es = g._edges[u].second;
             if (i < pos)
@@ -1101,9 +1282,7 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
                                    u_es.end(),
                                    [&](auto& e)
                                    {
-                                       if (!pred(mk_in_edge.def(v, e)))
-                                           return false;
-                                       return e.first == v;
+                                       return e.second == idx;
                                    });
                 u_es.erase(iter, u_es.end());
             }
@@ -1116,9 +1295,7 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
                                            u_es.begin() + u_pos,
                                            [&](auto& e)
                                            {
-                                               if (!pred(mk_out_edge.def(v, e)))
-                                                   return false;
-                                               return e.first == v;
+                                               return e.second == idx;
                                            });
                 u_es.erase(iter, u_es.begin() + u_pos);
                 u_pos = iter - u_es.begin();
@@ -1194,6 +1371,9 @@ void remove_vertex(Vertex v, adj_list<Vertex>& g)
                 e.first--;
         }
     }
+
+    if (g._keep_ehash)
+        g.rebuild_ehash();
 }
 
 // O(k + k_last)
@@ -1205,6 +1385,13 @@ void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
     clear_vertex(v, g);
     if (v < back)
     {
+        if (g._keep_ehash)
+        {
+            auto [iter, eend] = out_edges(back, g);
+            for (; iter != eend; ++iter)
+                g.remove_ehash(*iter);
+        }
+
         g._edges[v] = g._edges[back];
 
         auto pos = g._edges[v].first;
@@ -1244,11 +1431,18 @@ void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
                 }
             }
         }
+
+        if (g._keep_ehash)
+        {
+            auto [iter, eend] = out_edges(v, g);
+            for (; iter != eend; ++iter)
+                g.add_ehash(*iter);
+        }
     }
     g._edges.pop_back();
+    if (g._keep_ehash)
+        g._ehash.pop_back();
 }
-
-
 
 template <class Vertex>
 [[gnu::always_inline]] inline
@@ -1346,6 +1540,28 @@ struct hash<boost::detail::adj_edge_descriptor<Vertex>>
 };
 
 } // namespace std
+
+// for hash_map_wrap.hh
+
+template <class Vertex>
+struct empty_key<boost::detail::adj_edge_descriptor<Vertex>>
+{
+    static boost::detail::adj_edge_descriptor<Vertex> get()
+    {
+        return boost::detail::adj_edge_descriptor<Vertex>();
+    }
+};
+
+template <class Vertex>
+struct deleted_key<boost::detail::adj_edge_descriptor<Vertex>>
+{
+    static boost::detail::adj_edge_descriptor<Vertex> get()
+    {
+        boost::detail::adj_edge_descriptor<Vertex> e;
+        e.idx--;
+        return e;
+    }
+};
 
 
 #endif //GRAPH_ADJACENCY_HH

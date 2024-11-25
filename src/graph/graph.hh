@@ -85,6 +85,8 @@ public:
     bool get_reversed() {return _reversed;}
     void set_keep_epos(bool keep) {_mg->set_keep_epos(keep);}
     bool get_keep_epos() {return _mg->get_keep_epos();}
+    void set_keep_ehash(bool keep) {_mg->set_keep_ehash(keep);}
+    bool get_keep_ehash() {return _mg->get_keep_ehash();}
 
 
     // graph filtering

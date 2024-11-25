@@ -167,6 +167,37 @@ edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
     return res;
 }
 
+template <class Vertex, class Graph, class F>
+void edge_range_iter(Vertex s, Vertex t, const undirected_adaptor<Graph>& g, F&& f)
+{
+    typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+    typedef decltype(f(edge_t())) ret_t;
+
+    bool ret = true;
+    edge_range_iter(s, t, g.original_graph(),
+                    [&](const auto& e)
+                    {
+                        if constexpr (std::is_same_v<ret_t, bool>)
+                            return ret = f(e);
+                        else
+                            f(e);
+                    });
+    if constexpr (std::is_same_v<ret_t, bool>)
+    {
+        if (!ret)
+            return;
+    }
+    edge_range_iter(t, s, g.original_graph(),
+                    [&](auto e)
+                    {
+                        std::swap(e.s, e.t);
+                        if constexpr (std::is_same_v<ret_t, bool>)
+                            return f(e);
+                        else
+                            f(e);
+                    });
+}
+
 //==============================================================================
 // out_edges(u,g)
 //==============================================================================
