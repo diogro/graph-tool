@@ -2031,7 +2031,7 @@ def zero_mean(s, g):
 
 class PseudoNormalBlockState(BPBlockStateBase):
     def __init__(self, s, g=None, fix_mean=True, positive=True, pslack=1e-6,
-                 **kwargs):
+                 theta_range=(-200, np.inf), **kwargs):
         r"""State for network reconstruction based on the multivariate normal
         distribution, using the Pseudolikelihood approximation and the
         stochastic block model as a prior.
@@ -2047,7 +2047,8 @@ class PseudoNormalBlockState(BPBlockStateBase):
         if fix_mean:
             s = zero_mean(s, g)
         BPBlockStateBase.__init__(self, s, g=g, positive=positive, pslack=pslack,
-                                  directed=False, **kwargs)
+                                  directed=False, theta_range=theta_range,
+                                  **kwargs)
         self.theta_first = False
 
     def _make_state(self):
