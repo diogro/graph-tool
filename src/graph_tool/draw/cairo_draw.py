@@ -1617,16 +1617,40 @@ class GraphArtist(matplotlib.artist.Artist):
         cairo-based backend is being used."""
         self.raster = raster
 
-    def fit_view(self, scale=1, margin=.1, yflip=False):
+    def fit_view(self, scale=1, margin=.1, yflip=False, keep_aspect=True,
+                 set_axis_aspect=False):
         """Set axis limits to fit the graph, optionally scaling it via the
         ``scale`` parameter, and adding a relative margin given by ``margin``.
-        If ``yflip is True``, the y axis is flipped upside down.
+        If ``yflip is True``, the y axis is flipped upside down. If
+        ``keep_aspect is True``, the aspect ratio is preserved via the data
+        limits. Otherwise, if ``set_axis_aspect is True``, the aspect of the
+        axis will be changed to match the data aspect.
         """
         x, y = ungroup_vector_property(self.pos, [0, 1])
-        l, r = x.a.min(), x.a.max()
-        b, t = y.a.min(), y.a.max()
+        l, r = x.fa.min(), x.fa.max()
+        b, t = y.fa.min(), y.fa.max()
         w = r - l
         h = t - b
+
+        if keep_aspect:
+            ll, ur = (self.ax.get_position() *
+                      self.ax.get_figure().get_size_inches())
+            dw, dh = ur - ll
+            a = dh / dw
+            ar = h / w
+            if ar > a:
+                nw = h / a
+                l -= (nw - w) / 2
+                r += (nw - w) / 2
+                w = nw
+            else:
+                nh = w * a
+                b -= (nh - h) / 2
+                t += (nh - h) / 2
+                h = nh
+        elif set_axis_aspect:
+            self.ax.set_aspect(h / w)
+
         w *= scale
         h *= scale
         self.ax.set_xlim(l - w * margin, r + w * margin)
