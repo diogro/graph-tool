@@ -125,7 +125,7 @@ convergence is reached:
 
 .. testcode:: dynamics
 
-   state = gt.IsingGlauberBlockState(X)
+   state = gt.IsingGlauberBlockState(X, directed=False, self_loops=False)
 
    for i in range(10):
        delta, *_ = state.mcmc_sweep(beta=np.inf, niter=10)
@@ -219,7 +219,7 @@ This is done by initializing the reconstruction state as
 
 .. testcode:: dynamics
 
-   lstate = gt.IsingGlauberBlockState(X, disable_xdist=True, disable_tdist=True)
+   lstate = gt.IsingGlauberBlockState(X, disable_xdist=True, disable_tdist=True, directed=False, self_loops=False)
 
 This method requires a sparsity parameter :math:`\lambda` to be set, e.g.
 the following sets :math:`\lambda=200`,
