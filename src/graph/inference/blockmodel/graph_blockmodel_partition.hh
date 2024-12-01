@@ -56,7 +56,7 @@ std::tuple<size_t, size_t>& get_deg(size_t v, Eprop&,
 }
 
 template <bool use_rmap>
-class partition_stats_base
+class partition_stats
 {
 public:
 
@@ -64,15 +64,15 @@ public:
 
     template <class Graph, class Vprop, class VWprop, class Eprop, class Degs,
               class Vlist>
-    partition_stats_base(Graph& g, Vprop& b, Vlist&& vlist, size_t E, size_t B,
-                         VWprop& vweight, Eprop& eweight, Degs& degs)
+    partition_stats(Graph& g, Vprop& b, Vlist&& vlist, size_t E, size_t B,
+                    VWprop& vweight, Eprop& eweight, Degs& degs)
         : _directed(graph_tool::is_directed(g)), _N(0), _E(E), _total_B(B)
     {
         if constexpr (!use_rmap)
         {
             if (_directed)
-                _hist_in.resize(B, nullptr);
-            _hist_out.resize(B, nullptr);
+                _hist_in.resize(B);
+            _hist_out.resize(B);
             _total.resize(B);
             _ep.resize(B);
             _em.resize(B);
@@ -104,31 +104,10 @@ public:
         }
     }
 
-    ~partition_stats_base()
+    template <bool out>
+    map_t& get_hist(size_t r)
     {
-        for (auto* h : _hist_in)
-        {
-            if (h != nullptr)
-                delete h;
-        }
-        for (auto* h : _hist_out)
-        {
-            if (h != nullptr)
-                delete h;
-        }
-    }
-
-    template <bool out, bool create=true>
-    auto& get_hist(size_t r)
-    {
-        auto& h = (out) ? _hist_out[r] : _hist_in[r];
-        if (h == nullptr)
-        {
-            if constexpr (!create)
-                return _dummy;
-            h = new map_t();
-        }
-        return *h;
+        return (out) ? _hist_out[r] : _hist_in[r];
     };
 
     size_t get_r(size_t r)
@@ -147,8 +126,8 @@ public:
         if (r >= _hist_out.size())
         {
             if (_directed)
-                _hist_in.resize(r + 1, nullptr);
-            _hist_out.resize(r + 1, nullptr);
+                _hist_in.resize(r + 1);
+            _hist_out.resize(r + 1);
             _total.resize(r + 1);
             _ep.resize(r + 1);
             _em.resize(r + 1);
@@ -181,11 +160,11 @@ public:
             {
                 if (_directed)
                 {
-                    for (auto& k_c : get_hist<false, false>(r))
+                    for (auto& k_c : get_hist<false>(r))
                         S -= xlogx_fast(k_c.second);
                 }
 
-                for (auto& k_c : get_hist<true, false>(r))
+                for (auto& k_c : get_hist<true>(r))
                 {
                     S -= xlogx_fast(k_c.second);
                     total += k_c.second;
@@ -193,8 +172,8 @@ public:
             }
             else
             {
-                auto& h_out = get_hist<true, false>(r);
-                auto& h_in = (_directed) ? get_hist<false, false>(r) : h_out;
+                auto& h_out = get_hist<true>(r);
+                auto& h_in = (_directed) ? get_hist<false>(r) : h_out;
 
                 if (_directed)
                 {
@@ -288,11 +267,11 @@ public:
             {
                 if (_directed)
                 {
-                    for (auto& k_c : get_hist<false, false>(r))
+                    for (auto& k_c : get_hist<false>(r))
                         S -= lgamma_fast(k_c.second + 1);
                 }
 
-                for (auto& k_c : get_hist<true, false>(r))
+                for (auto& k_c : get_hist<true>(r))
                 {
                     S -= lgamma_fast(k_c.second + 1);
                     total += k_c.second;
@@ -300,8 +279,8 @@ public:
             }
             else
             {
-                auto& h_out = get_hist<true, false>(r);
-                auto& h_in = (_directed) ? get_hist<false, false>(r) : h_out;
+                auto& h_out = get_hist<true>(r);
+                auto& h_in = (_directed) ? get_hist<false>(r) : h_out;
 
                 if (_directed)
                 {
@@ -535,25 +514,19 @@ public:
                 int nd = 0;
                 if (_directed)
                 {
-                    if (_hist_in[s] != nullptr)
-                    {
-                        auto& h = *_hist_in[s];
-                        auto iter = h.find(get<0>(deg));
-                        if (iter != h.end())
-                            nd = iter->second;
-                    }
+                    auto& h = _hist_in[s];
+                    auto iter = h.find(get<0>(deg));
+                    if (iter != h.end())
+                        nd = iter->second;
                     assert(nd + delta >= 0);
                     S -= xlogx_fast(nd + delta);
                 }
 
                 nd = 0;
-                if (_hist_out[s] != nullptr)
-                {
-                    auto& h = *_hist_out[s];
-                    auto iter = h.find(get<1>(deg));
-                    if (iter != h.end())
-                        nd = iter->second;
-                }
+                auto& h = _hist_out[s];
+                auto iter = h.find(get<1>(deg));
+                if (iter != h.end())
+                    nd = iter->second;
 
                 return S - xlogx_fast(nd + delta);
             };
@@ -647,24 +620,18 @@ public:
                 int nd = 0;
                 if (_directed)
                 {
-                    if (_hist_in[r] != nullptr)
-                    {
-                        auto& h = *_hist_in[r];
-                        auto iter = h.find(get<0>(deg));
-                        if (iter != h.end())
-                            nd = iter->second;
-                    }
+                    auto& h = _hist_in[r];
+                    auto iter = h.find(get<0>(deg));
+                    if (iter != h.end())
+                        nd = iter->second;
                     S -= lgamma_fast(nd + delta + 1);
                 }
 
                 nd = 0;
-                if (_hist_out[r] != nullptr)
-                {
-                    auto& h = *_hist_out[r];
-                    auto iter = h.find(get<1>(deg));
-                    if (iter != h.end())
-                        nd = iter->second;
-                }
+                auto& h = _hist_out[r];
+                auto iter = h.find(get<1>(deg));
+                if (iter != h.end())
+                    nd = iter->second;
 
                 return S - lgamma_fast(nd + delta + 1);
             };
@@ -718,7 +685,7 @@ public:
         int dk = diff * n;
 
         auto change_hist =
-            [&](auto& hist, auto& h, size_t k)
+            [&](auto& h, size_t k)
             {
                 auto iter = h.insert({k, 0}).first;
                 iter->second += dk;
@@ -727,15 +694,15 @@ public:
                     h.erase(iter);
                     if (h.empty())
                     {
-                        delete hist[r];
-                        hist[r] = nullptr;
+                        map_t empty;
+                        h.swap(empty);
                     }
                 }
             };
 
         if (_directed)
-            change_hist(_hist_in, get_hist<false>(r), kin);
-        change_hist(_hist_out, get_hist<true>(r), kout);
+            change_hist(get_hist<false>(r), kin);
+        change_hist(get_hist<true>(r), kout);
 
         if (_directed)
             _em[r] += dk * kin;
@@ -800,20 +767,6 @@ public:
         }
     }
 
-    void copy_hists()
-    {
-        typedef decltype(_hist_out) hist_t;
-        for (auto* h : std::array<hist_t*,2>({&_hist_out, &_hist_in}))
-        {
-            auto& hist = *h;
-            for (size_t r = 0; r < hist.size(); ++r)
-            {
-                if (hist[r] != nullptr)
-                    hist[r] = new map_t(*hist[r]);
-            }
-        }
-    }
-
 private:
     bool _directed;
     vector<size_t> _bmap;
@@ -821,42 +774,12 @@ private:
     size_t _E;
     size_t _actual_B;
     size_t _total_B;
-    vector<map_t*> _hist_in, _hist_out;
+    vector<map_t> _hist_in, _hist_out;
     vector<int> _total;
     vector<int> _ep;
     vector<int> _em;
     map_t _dummy;
 };
-
-template <bool use_rmap>
-class partition_stats:
-        public partition_stats_base<use_rmap>
-{
-public:
-    typedef partition_stats_base<use_rmap> base_t;
-
-    template <class... Args>
-    partition_stats(Args&&... args)
-        : base_t(args...)
-    {
-    }
-
-    partition_stats(const partition_stats& o)
-        : base_t(o)
-    {
-        base_t::copy_hists();
-    }
-
-    partition_stats& operator=(const partition_stats& other)
-    {
-        if (this == &other)
-            return *this;
-        base_t::operator=(other);
-        base_t::copy_hists();
-        return *this;
-    }
-};
-
 
 } //namespace graph_tool
 #endif // GRAPH_BLOCKMODEL_PARTITION_HH
