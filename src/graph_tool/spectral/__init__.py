@@ -286,7 +286,7 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : str (optional, default: "total")
+    deg : str (optional, default: "out")
         Degree to be used, in case of a directed graph.
     norm : bool (optional, default: False)
         Whether to compute the normalized Laplacian.
