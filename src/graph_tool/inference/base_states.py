@@ -318,6 +318,8 @@ class MultiflipMCMCState(EntropyState):
             it will be selected as the number of nodes in the graph.
         psplit : ``float`` (optional, default: ``1``)
             Relative probability of proposing a group split.
+        pmerge : ``float`` (optional, default: ``1``)
+            Relative probability of proposing a group merge.
         pmergesplit : ``float`` (optional, default: ``1``)
             Relative probability of proposing a marge-split move.
         pmovelabel : ``float`` (optional, default: ``0``)
@@ -460,7 +462,7 @@ class MultilevelMCMCState(EntropyState):
             Minimum number of groups to be considered in the search.
         b_min : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, this will be used for the partition corresponding to ``B_min``.
-        B_max : ``int`` (optional, default: ``1``)
+        B_max : ``int`` (optional, default: ``numpy.iinfo(numpy.uint64).max``)
             Maximum number of groups to be considered in the search.
         b_max : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, this will be used for the partition corresponding to ``B_max``.
