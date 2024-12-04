@@ -2092,6 +2092,8 @@ def shortest_distance(g, source=None, target=None, weights=None,
     else:
         u = g
 
+    get_pred = pred_map is not None
+
     if source is not None:
         if numpy.issubdtype(dist_map.a.dtype, numpy.integer):
             dist_map.set_value(numpy.iinfo(dist_map.a.dtype).max)
@@ -2111,7 +2113,8 @@ def shortest_distance(g, source=None, target=None, weights=None,
                                          _prop("e", u, weights),
                                          _prop("v", u, pmap),
                                          float(max_dist),
-                                         negative_weights, reached, dag)
+                                         negative_weights, reached, dag,
+                                         get_pred, return_reached)
     else:
         libgraph_tool_topology.get_all_dists(u._Graph__graph,
                                              _prop("v", u, dist_map),
