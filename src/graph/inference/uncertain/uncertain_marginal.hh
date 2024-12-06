@@ -23,6 +23,9 @@
 #include "../support/graph_state.hh"
 #include "../blockmodel/graph_blockmodel_util.hh"
 
+#include <mutex>
+#include <shared_mutex>
+
 namespace graph_tool
 {
 using namespace boost;
@@ -45,71 +48,98 @@ void collect_marginal(Graph& g, UGraph& u, Eprop ecount, Xprop x, XSprop xsum,
 {
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-    gt_hash_map<std::tuple<vertex_t, vertex_t>, edge_t> emap;
-    for (auto e : edges_range(g))
-    {
-        std::tuple<vertex_t, vertex_t> vs(source(e, g), target(e, g));
-        if (!graph_tool::is_directed(g) && get<0>(vs) > get<1>(vs))
-            std::swap(get<0>(vs), get<1>(vs));
-        emap[vs] = e;
-    }
 
-    for (auto e : edges_range(u))
-    {
-        std::tuple<vertex_t, vertex_t> vs(source(e, u), target(e, u));
-        if (!graph_tool::is_directed(g) && get<0>(vs) > get<1>(vs))
-            std::swap(get<0>(vs), get<1>(vs));
-        edge_t ge;
-        auto iter = emap.find(vs);
-        if (iter == emap.end())
-        {
-            ge = add_edge(get<0>(vs), get<1>(vs), g).first;
-            emap[vs] = ge;
-            put(ecount, ge, 0);
-            put(xsum, ge, 0);
-            put(x2sum, ge, 0);
-        }
-        else
-        {
-            ge = iter->second;
-        }
-        put(ecount, ge, get(ecount, ge) + 1);
-        put(xsum, ge, get(xsum, ge) + get(x, e));
-        put(x2sum, ge, get(x2sum, ge) + get(x, e) * get(x, e));
-        if constexpr (!std::is_same_v<Cprop, dummy_property>)
-        {
-            auto xe = get(x, e);
-            auto& xs_e = xs[ge];
-            auto& xc_e = xcount[ge];
-            auto iter = std::lower_bound(xs_e.begin(), xs_e.end(), xe);
-            if (iter == xs_e.end() || *iter != xe)
-            {
-                iter = xs_e.insert(iter, xe);
-                xc_e.insert(xc_e.begin() + (iter - xs_e.begin()), 0);
-            }
-            xc_e[iter - xs_e.begin()]++;
-        }
-    }
+    std::vector<gt_hash_map<vertex_t, edge_t>> emap(num_vertices(g));
+    parallel_vertex_loop
+        (g,
+         [&](auto v)
+         {
+             auto& em = emap[v];
+             for (auto e : out_edges_range(v, g))
+             {
+                 auto w = target(e, g);
+                 if (!graph_tool::is_directed(g) && v > w)
+                     continue;
+                 em[w] = e;
+             }
+         });
+
+    std::shared_mutex mutex;
+
+    parallel_vertex_loop
+        (u,
+         [&](auto v)
+         {
+             auto& em = emap[v];
+             bool self = false;
+             for (auto e : out_edges_range(v, u))
+             {
+                 auto w = target(e, u);
+                 if (!graph_tool::is_directed(u) && (v > w || (v == w && self)))
+                     continue;
+                 if (v == w)
+                     self = !self;
+                 edge_t ge;
+                 auto iter = em.find(w);
+                 if (iter == em.end())
+                 {
+                     std::unique_lock lock(mutex);
+                     ge = add_edge(v, w, g).first;
+                     em[w] = ge;
+                     put(ecount, ge, 0);
+                     put(xsum, ge, 0);
+                     put(x2sum, ge, 0);
+                 }
+                 else
+                 {
+                     ge = iter->second;
+                 }
+
+                 std::shared_lock lock(mutex);
+                 put(ecount, ge, get(ecount, ge) + 1);
+                 put(xsum, ge, get(xsum, ge) + get(x, e));
+                 put(x2sum, ge, get(x2sum, ge) + get(x, e) * get(x, e));
+                 if constexpr (!std::is_same_v<Cprop, dummy_property>)
+                 {
+                     auto xe = get(x, e);
+                     auto& xs_e = xs[ge];
+                     auto& xc_e = xcount[ge];
+                     auto iter = std::lower_bound(xs_e.begin(), xs_e.end(), xe);
+                     if (iter == xs_e.end() || *iter != xe)
+                     {
+                         iter = xs_e.insert(iter, xe);
+                         xc_e.insert(xc_e.begin() + (iter - xs_e.begin()), 0);
+                     }
+                     xc_e[iter - xs_e.begin()]++;
+                 }
+             }
+         });
 
     if constexpr (!std::is_same_v<Cprop, dummy_property>)
     {
-        for (auto v : vertices_range(u))
-        {
-            auto e = edge(v, v, u);
-            if (e.second)
-                continue;
-            auto ge = edge(v, v, g);
-            if (!ge.second)
-                ge = add_edge(v, v, g);
-            auto& xs_e = xs[ge.first];
-            auto& xc_e = xcount[ge.first];
-            if (xs_e.empty() || xs_e.front() != 0)
-            {
-                xs_e.insert(xs_e.begin(), 0);
-                xc_e.insert(xc_e.begin(), 0);
-            }
-            xc_e.front()++;
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 auto e = edge(v, v, u);
+                 if (e.second)
+                     return;
+                 auto ge = edge(v, v, g);
+                 if (!ge.second)
+                 {
+                     std::unique_lock lock(mutex);
+                     ge = add_edge(v, v, g);
+                 }
+                 std::shared_lock lock(mutex);
+                 auto& xs_e = xs[ge.first];
+                 auto& xc_e = xcount[ge.first];
+                 if (xs_e.empty() || xs_e.front() != 0)
+                 {
+                     xs_e.insert(xs_e.begin(), 0);
+                     xc_e.insert(xc_e.begin(), 0);
+                 }
+                 xc_e.front()++;
+             });
     }
 }
 
