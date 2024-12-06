@@ -81,7 +81,7 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCDynamicsState(ATs&&... as)
             : MCMCDynamicsStateBase<Ts...>(as...),
-              _vlist(num_edges(_state._u)),
+              _vlist(num_vertices(_state._u)),
               _vmutex(num_vertices(_state._u))
         {
             _elist_states_free.reserve(size_t(get_num_threads()));
