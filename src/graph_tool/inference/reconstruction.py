@@ -441,9 +441,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
         r"""Clear candidate edges for MCMC."""
         self.ecandidates = np.zeros((0, 2), dtype="int64")
 
-    def mcmc_sweep(self, beta=1, niter=1, k=1, keep_elist=False, edge=True,
-                   edge_swap=True, edge_multiflip=True, theta=True,
-                   theta_multiflip=True, sbm=True, xvals=True, tvals=True,
+    def mcmc_sweep(self, beta=1, niter=1, k=1, keep_elist=False, edge=1,
+                   edge_swap=1, edge_multiflip=None, theta=1,
+                   theta_multiflip=1, sbm=1, xvals=1, tvals=1,
                    verbose=False, elist_args={}, edge_mcmc_args={},
                    edge_swap_mcmc_args={}, edge_multiflip_mcmc_args={},
                    xvals_mcmc_args={}, theta_mcmc_args={},
@@ -464,43 +464,43 @@ class DynamicsBlockStateBase(UncertainBaseState):
         k : ``int`` (optional, default: ``1``)
             :math:`\kappa` parameter to be passed to :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.
-        elist_args : ``dict`` (optiona, default: ``{}``)
+        elist_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.
         keep_elist : ``boolean`` (optional, default: ``False``)
             If ``True``, the candidate edge list from last call will be re-used
             (if it exists).
-        edge : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.edge_mcmc_sweep`.
-        edge_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        edge : ``float`` (optional, default: ``1``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.edge_mcmc_sweep` will be called.
+        edge_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.edge_mcmc_sweep`.
-        edge_swap : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.swap_mcmc_sweep`.
-        edge_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        edge_swap : ``float`` (optional, default: ``1.``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.swap_mcmc_sweep` will be called.
+        edge_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.swap_mcmc_sweep`.
-        edge_multiflip : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.edge_multiflip_mcmc_sweep`.
-        edge_multiflip_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        edge_multiflip : ``float`` (optional, default: ``1 if np.isinf(beta) else .1``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.edge_multiflip_mcmc_sweep` will be called.
+        edge_multiflip_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.edge_multiflip_mcmc_sweep`.
-        theta : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.theta_mcmc_sweep`.
-        theta_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        theta : ``float`` (optional, default: ``1.``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.theta_mcmc_sweep` will be called.
+        theta_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.theta_mcmc_sweep`.
-        theta_multiflip : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.theta_multiflip_mcmc_sweep`.
-        theta_multiflip_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        theta_multiflip : ``float`` (optional, default: ``1.``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.theta_multiflip_mcmc_sweep` will be called.
+        theta_multiflip_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.theta_multiflip_mcmc_sweep`.
-        sbm : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.sbm_mcmc_sweep`.
-        sbm_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        sbm : ``float`` (optional, default: ``1.``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.sbm_mcmc_sweep` will be called.
+        sbm_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.sbm_mcmc_sweep`.
-        xvals : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.xvals_sweep`.
-        xvals_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        xvals : ``float`` (optional, default: ``1.``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.xvals_sweep` will be called.
+        xvals_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.xvals_sweep`.
-        tvals : ``boolean`` (optiona, default: ``True``)
-            Whether to call :meth:`~.DynamicsBlockStateBase.tvals_sweep`.
-        tvals_mcmc_args : ``dict`` (optiona, default: ``{}``)
+        tvals : ``float`` (optional, default: ``1.``)
+            Probability with which :meth:`~.DynamicsBlockStateBase.tvals_sweep` will be called.
+        tvals_mcmc_args : ``dict`` (optional, default: ``{}``)
             Paramters to pass to call :meth:`~.DynamicsBlockStateBase.tvals_sweep`.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
@@ -519,17 +519,20 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         ret = (0, 0, 0)
 
+        if edge_multiflip is None:
+            edge_multiflip = 1 if np.isinf(beta) else .1
+
         def theta_mcmc():
             nonlocal ret
             if self.tmax_bound != self.tmin_bound:
-                if theta:
+                if np.random.random() < theta:
                     if verbose:
                         print("theta_mcmc_sweep:")
                     tret = self.theta_mcmc_sweep(**dict(dict(beta=beta, niter=niter,
                                                              **kwargs), **theta_mcmc_args))
                     ret = (sum(x) for x in zip(ret, tret))
                 if not self.disable_tdist:
-                    if theta_multiflip:
+                    if np.random.random() < theta_multiflip:
                         if verbose:
                             print("theta_multiflip_mcmc_sweep:")
                         tret = self.theta_multiflip_mcmc_sweep(**dict(dict(beta=beta,
@@ -537,7 +540,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                                                                            **kwargs),
                                                                       **theta_multiflip_mcmc_args))
                         ret = (sum(x) for x in zip(ret, tret))
-                    if tvals:
+                    if np.random.random() < tvals:
                         if verbose:
                             print("tvals_sweep:")
                         eret = self.tvals_sweep(**dict(dict(beta=beta,
@@ -549,7 +552,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         if self.theta_first:
             theta_mcmc()
 
-        if edge:
+        if np.random.random() < edge:
             if verbose:
                 print("edge_mcmc_sweep:")
             edge_mcmc_args = dict(edge_mcmc_args, k=k, keep_elist=keep_elist,
@@ -559,7 +562,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             ret = (sum(x) for x in zip(ret, eret))
             keep_elist = True
 
-        if edge_swap:
+        if np.random.random() < edge_swap:
             if verbose:
                 print("swap_mcmc_sweep:")
             eret = self.swap_mcmc_sweep(**dict(dict(beta=beta, niter=niter,
@@ -568,7 +571,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             keep_elist = True
 
         if self.xmax_bound != self.xmin_bound and not self.disable_xdist:
-            if edge_multiflip:
+            if np.random.random() < edge_multiflip:
                 if verbose:
                     print("edge_multiflip_sweep:")
                 eret = self.edge_multiflip_mcmc_sweep(**dict(dict(beta=beta,
@@ -576,7 +579,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                                                                   **kwargs),
                                                              **edge_multiflip_mcmc_args))
                 ret = (sum(x) for x in zip(ret, eret))
-            if xvals:
+            if np.random.random() < xvals:
                 if verbose:
                     print("xvals_sweep:")
                 eret = self.xvals_sweep(**dict(dict(beta=beta, niter=10 * niter,
@@ -587,7 +590,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         if not self.theta_first:
             theta_mcmc()
 
-        if sbm:
+        if np.random.random() < sbm:
             if verbose:
                 print("sbm_mcmc_sweep:")
             kwargs = kwargs.copy()
