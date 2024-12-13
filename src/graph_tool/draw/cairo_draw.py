@@ -443,7 +443,7 @@ def _convert(attr, val, cmap, vnorm, pmap_default=False, g=None, k=None):
                 g = val.get_graph()
                 if val.value_type() in ["int16_t", "int32_t", "int64_t",
                                         "unsigned long", "unsigned int"]:
-                    if not is_seq:
+                    if not is_seq and vnorm is None:
                         nval = val.copy()
                         nval.fa = rankdata(val.fa, method='dense') - 1
                     else:
