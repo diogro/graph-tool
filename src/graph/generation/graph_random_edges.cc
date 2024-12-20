@@ -26,12 +26,12 @@ using namespace graph_tool;
 void _add_random_edges(GraphInterface& gi, size_t E, bool parallel,
                        bool self_loops, bool filtered, boost::any w, rng_t& rng)
 {
-    if (!w.empty() && !belongs<writable_edge_scalar_properties>()(w))
+    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge weight property must be scalar and writable");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<writable_edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(writable_edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
     if(w.empty())
         w = weight_map_t();
@@ -40,18 +40,18 @@ void _add_random_edges(GraphInterface& gi, size_t E, bool parallel,
         (gi,
          [&](auto& g, auto eweight) { add_random_edges(g, E, parallel, self_loops,
                                                        filtered, get_checked(eweight), rng); },
-         weight_props_t())(w);
+         weight_props_t)(w);
 }
 
 void _remove_random_edges(GraphInterface& gi, size_t E, boost::any w,
                           bool counts, rng_t& rng)
 {
-    if (!w.empty() && !belongs<writable_edge_scalar_properties>()(w))
+    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge weight property must be scalar and writeable");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<writable_edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(writable_edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
     if(w.empty())
         w = weight_map_t();
@@ -60,7 +60,7 @@ void _remove_random_edges(GraphInterface& gi, size_t E, boost::any w,
         (gi,
          [&](auto& g, auto eweight) { remove_random_edges(g, E, eweight, counts,
                                                           rng); },
-         weight_props_t())(w);
+         weight_props_t)(w);
 }
 
 using namespace boost::python;

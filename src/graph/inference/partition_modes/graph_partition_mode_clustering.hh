@@ -38,7 +38,7 @@ typedef std::vector<int32_t> b_t;
 typedef PartitionModeState::bv_t bv_t;
 
 #define BLOCK_STATE_params                                                     \
-    ((g, &, always_directed_never_reversed, 1))                                \
+    ((g, &, decltype(always_directed_never_reversed), 1))                      \
     ((_abg, &, boost::any&, 0))                                                \
     ((obs,, boost::python::object, 0))                                         \
     ((relabel_init,, bool, 0))                                                 \
@@ -68,7 +68,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     ModeClusterState(ATs&&... args)
         : ModeClusterStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _M(python::len(_obs)),
           _pos(_M),
           _modes(_M),
@@ -445,14 +445,14 @@ public:
         base._count.resize(n);
 
         adj_list<> g;
-        typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-        typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-        typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+        vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+        vprop_map_t<bool> partition(get(vertex_index_t(), g));
+        eprop_map_t<double> mrs(get(edge_index_t(), g));
 
         get_contingency_graph<true>(g, partition, label, mrs, x._nr, base._nr);
 
         typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-        typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+        vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
         auto u = undirected_adaptor<adj_list<>>(g);
         //maximum_weighted_matching(u, mrs, match);

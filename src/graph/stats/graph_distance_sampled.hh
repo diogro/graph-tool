@@ -151,7 +151,7 @@ struct get_sampled_distance_histogram
         void operator()(const Graph& g, Vertex s, VertexIndex& vertex_index,
                         DistanceMap& dist_map, no_weightS) const
         {
-            typedef typename vprop_map_t<default_color_type>::type::unchecked_t vmap_t;
+            typedef vprop_map_t<default_color_type>::unchecked_t vmap_t;
             vmap_t color_map(vertex_index, num_vertices(g));
             parallel_vertex_loop
                 (g,

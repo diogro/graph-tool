@@ -30,7 +30,7 @@ using namespace graph_tool;
 void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
                               boost::any op, size_t update)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
     auto b = any_cast<vmap_t>(ob).get_unchecked();
 
     run_action<>()
@@ -49,7 +49,7 @@ void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
                       pv[r] += up;
                   });
          },
-         vertex_scalar_vector_properties())(op);
+         vertex_scalar_vector_properties)(op);
 }
 
 class BlockPairHist
@@ -104,10 +104,10 @@ public:
 void collect_edge_marginals(GraphInterface& gi, boost::any ob,
                             boost::any op, size_t update)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
     auto b = any_cast<vmap_t>(ob).get_unchecked();
 
-    typedef eprop_map_t<python::object>::type
+    typedef eprop_map_t<python::object>
         emap_t;
     auto pe = any_cast<emap_t>(op).get_unchecked(gi.get_edge_index_range());
 
@@ -154,7 +154,7 @@ double mf_entropy(GraphInterface& gi, boost::any opv)
                  }
              }
          },
-         vertex_scalar_vector_properties())(opv);
+         vertex_scalar_vector_properties)(opv);
 
     return H;
 }
@@ -162,10 +162,10 @@ double mf_entropy(GraphInterface& gi, boost::any opv)
 boost::python::tuple bethe_entropy(GraphInterface& gi, boost::any op,
                                    boost::any opv)
 {
-    typedef vprop_map_t<vector<double>>::type vmap_t;
+    typedef vprop_map_t<vector<double>> vmap_t;
     vmap_t pv = any_cast<vmap_t>(opv);
 
-    typedef eprop_map_t<boost::python::object>::type emap_t;
+    typedef eprop_map_t<boost::python::object> emap_t;
     auto pe = any_cast<emap_t>(op).get_unchecked();
 
     double H=0, Hmf=0;
@@ -296,7 +296,7 @@ static vector<int32_t> unlabel_partition(vector<int32_t> b)
 void collect_partitions(boost::any& ob, PartitionHist& h, double update,
                         bool unlabel)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
     auto& b = any_cast<vmap_t&>(ob);
     auto& v = b.get_storage();
     if (unlabel)
@@ -313,7 +313,7 @@ void collect_partitions(boost::any& ob, PartitionHist& h, double update,
 void collect_hierarchical_partitions(python::object ovb, PartitionHist& h,
                                      size_t update, bool unlabel)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
     vector<int32_t> v;
     for (int i = 0; i < len(ovb); ++i)
     {

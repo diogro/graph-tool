@@ -30,12 +30,12 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef eprop_map_t<int32_t>::type emap_t;
-typedef eprop_map_t<std::vector<int32_t>>::type evmap_t;
-typedef vprop_map_t<int32_t>::type vmap_t;
+typedef eprop_map_t<int32_t> emap_t;
+typedef eprop_map_t<std::vector<int32_t>> evmap_t;
+typedef vprop_map_t<int32_t> vmap_t;
 
 #define LATENT_CLOSURE_STATE_params                                            \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((oa,, python::list, 0))                                                   \
     ((oaw,, python::list, 0))                                                  \
     ((om,, python::list, 0))                                                   \
@@ -89,7 +89,7 @@ struct LatentClosure
         {
             std::vector<g_t*> vs;
             for (int i = 0; i < python::len(oa); ++i)
-                vs.push_back(&boost::any_cast<std::reference_wrapper<g_t>>(python::extract<boost::any&>(oa[i])()).get());
+                vs.push_back(boost::any_cast<std::shared_ptr<g_t>>(python::extract<boost::any&>(oa[i])()).get());
             return vs;
         }
 
@@ -221,14 +221,14 @@ struct LatentClosure
 
         bool _blayer;
 
-        typename vprop_map_t<int8_t>::type::unchecked_t _mark;
+        vprop_map_t<int8_t>::unchecked_t _mark;
 
         GraphInterface::edge_t _null_edge;
 
         std::vector<LatentClosureState*> _cstates;
 
-        typename vprop_map_t<int32_t>::type::unchecked_t _M;
-        typename vprop_map_t<int32_t>::type::unchecked_t _E;
+        vprop_map_t<int32_t>::unchecked_t _M;
+        vprop_map_t<int32_t>::unchecked_t _E;
         size_t _Nm = 0;
         size_t _Ne = 0;
         size_t _i = std::numeric_limits<size_t>::max();
@@ -702,8 +702,8 @@ struct LatentClosure
 
         bool check()
         {
-            typename vprop_map_t<int32_t>::type::unchecked_t M(num_vertices(_gc));
-            typename vprop_map_t<int32_t>::type::unchecked_t E(num_vertices(_gc));
+            vprop_map_t<int32_t>::unchecked_t M(num_vertices(_gc));
+            vprop_map_t<int32_t>::unchecked_t E(num_vertices(_gc));
 
             for (auto e : edges_range(_gc))
             {

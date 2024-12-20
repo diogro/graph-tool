@@ -84,10 +84,10 @@ assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
                           boost::any weight)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props = hana::append(edge_scalar_properties,
+                                     hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(weight.empty())
@@ -103,7 +103,7 @@ assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), a, a_err);
          },
-         all_selectors(), weight_props_t())(degree_selector(deg), weight);
+         all_selectors, weight_props)(degree_selector(deg), weight);
     return make_pair(a, a_err);
 }
 
@@ -112,10 +112,10 @@ scalar_assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
                                  boost::any weight)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props = hana::append(edge_scalar_properties,
+                                     hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(weight.empty())
@@ -131,7 +131,7 @@ scalar_assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), a, a_err);
          },
-         scalar_selectors(), weight_props_t())(degree_selector(deg), weight);
+         all_selectors, weight_props)(degree_selector(deg), weight);
     return make_pair(a, a_err);
 }
 

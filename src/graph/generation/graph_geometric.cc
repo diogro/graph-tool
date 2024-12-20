@@ -26,17 +26,6 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-
-typedef graph_tool::detail::get_all_graph_views
-    ::apply<graph_tool::detail::filt_scalar_type, mpl::bool_<false>,
-            mpl::bool_<true>,mpl::bool_<false>,
-            mpl::bool_<true>,mpl::bool_<true> >::type graph_views;
-
-typedef property_map_types::apply<mpl::vector<vector<double> >,
-                                  GraphInterface::vertex_index_map_t,
-                                  mpl::bool_<false> >::type prop_types;
-
-
 void geometric(GraphInterface& gi, python::object opoints, double r,
                python::object orange, bool periodic, boost::any pos)
 {
@@ -44,6 +33,8 @@ void geometric(GraphInterface& gi, python::object opoints, double r,
     size_t size = python::extract<size_t>(shape[0]);
     vector<vector<double> > points(size);
     vector<pair<double, double> > range(python::len(orange));
+
+    auto prop_types = hana::tuple_t<vprop_map_t<vector<double>>>;
 
     size = python::extract<size_t>(shape[1]);
     for(size_t i = 0; i < points.size(); ++i)
@@ -59,7 +50,12 @@ void geometric(GraphInterface& gi, python::object opoints, double r,
         range[i].second = python::extract<double>(orange[i][1]);
     }
 
-    run_action<graph_views>()
+    auto gviews =
+        get_graph_views(hana::tuple_t<std::false_type>,
+                        hana::tuple_t<std::false_type>,
+                        hana::tuple_t<std::false_type>);
+
+    run_action<decltype(gviews)>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -67,7 +63,7 @@ void geometric(GraphInterface& gi, python::object opoints, double r,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), points, range, r, periodic);
          },
-         prop_types())(pos);
+         prop_types)(pos);
 }
 
 using namespace boost::python;

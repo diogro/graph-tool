@@ -33,12 +33,12 @@ void GraphInterface::copy_edge_property(const GraphInterface& src,
         (
             [&](auto&& graph, auto&& a2, auto&& a3)
             {
-                return copy_property<edge_selector, edge_properties>()(
+                return copy_property<edge_selector, decltype(edge_properties)>()(
                     std::forward<decltype(graph)>(graph),
                     std::forward<decltype(a2)>(a2),
                     std::forward<decltype(a3)>(a3), prop_src);
             },
-            all_graph_views(), all_graph_views(), writable_edge_properties())(
+            all_graph_views, all_graph_views, writable_edge_properties)(
             this->get_graph_view(), src.get_graph_view(), prop_tgt);
 }
 
@@ -51,11 +51,11 @@ void copy_external_edge_property(const GraphInterface& src,
         (
             [&](auto&& graph, auto&& a2, auto&& a3)
             {
-                return copy_external_edge_property_dispatch<edge_properties>()(
+                return copy_external_edge_property_dispatch<decltype(edge_properties)>()(
                     std::forward<decltype(graph)>(graph),
                     std::forward<decltype(a2)>(a2),
                     std::forward<decltype(a3)>(a3), prop_src);
             },
-            all_graph_views(), all_graph_views(), writable_edge_properties())(
+            all_graph_views, all_graph_views, writable_edge_properties)(
             tgt.get_graph_view(), src.get_graph_view(), prop_tgt);
 }

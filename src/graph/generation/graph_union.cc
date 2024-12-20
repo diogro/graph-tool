@@ -24,16 +24,16 @@
 using namespace graph_tool;
 using namespace boost;
 
-typedef vprop_map_t<int64_t>::type vprop_t;
+typedef vprop_map_t<int64_t> vprop_t;
 
-typedef eprop_map_t<GraphInterface::edge_t>::type eprop_t;
+typedef eprop_map_t<GraphInterface::edge_t> eprop_t;
 
 boost::python::tuple graph_union_dispatch(GraphInterface& ugi, GraphInterface& gi,
                                           boost::any avprop)
 {
     vprop_t vprop = boost::any_cast<vprop_t>(avprop);
     eprop_t eprop(gi.get_edge_index());
-    gt_dispatch<boost::mpl::true_>()
+    gt_dispatch<false>()
         (
             [&](auto&& graph, auto&& a2)
             {
@@ -41,8 +41,8 @@ boost::python::tuple graph_union_dispatch(GraphInterface& ugi, GraphInterface& g
                     (std::forward<decltype(graph)>(graph),
                      std::forward<decltype(a2)>(a2), vprop, eprop);
             },
-            always_directed(),
-            always_directed())(ugi.get_graph_view(), gi.get_graph_view());
+            always_directed,
+            always_directed)(ugi.get_graph_view(), gi.get_graph_view());
     return boost::python::make_tuple(avprop, boost::any(eprop));
 }
 

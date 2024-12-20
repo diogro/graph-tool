@@ -139,7 +139,7 @@ void get_all_dists(GraphInterface& gi, boost::any dist_map, boost::any weight,
                      (std::forward<decltype(graph)>(graph),
                       std::forward<decltype(a2)>(a2));
              },
-             vertex_scalar_vector_properties())(dist_map);
+             vertex_scalar_vector_properties)(dist_map);
     }
     else
     {
@@ -152,8 +152,8 @@ void get_all_dists(GraphInterface& gi, boost::any dist_map, boost::any weight,
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3), dense);
              },
-             vertex_scalar_vector_properties(),
-             edge_scalar_properties())(dist_map, weight);
+             vertex_scalar_vector_properties,
+             edge_scalar_properties)(dist_map, weight);
     }
 }
 

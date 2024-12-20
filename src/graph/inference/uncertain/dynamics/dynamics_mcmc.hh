@@ -47,7 +47,7 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((elist,, elist_t, 0))                                                     \
     ((ecandidates,, elist_t, 0))                                               \
@@ -151,7 +151,7 @@ struct MCMC
 
             auto& [u, v] = uv;
 
-            if (graph_tool::is_directed(_state._u) || u == v)
+            if (is_directed(_state._u) || u == v)
             {
                 if (std::isinf(_beta))
                     return _vmutex[v].try_lock();
@@ -174,7 +174,7 @@ struct MCMC
                 return;
             auto& [u, v] = uv;
             _vmutex[v].unlock();
-            if (!graph_tool::is_directed(_state._u) && u != v)
+            if (!is_directed(_state._u) && u != v)
                 _vmutex[u].unlock();
         }
 

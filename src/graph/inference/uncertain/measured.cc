@@ -84,12 +84,12 @@ REGISTER_MOD
                                +[](state_t& state, GraphInterface& gi,
                                    boost::any aw)
                                 {
-                                    typedef eprop_map_t<int32_t>::type emap_t;
+                                    typedef eprop_map_t<int32_t> emap_t;
                                     auto w = any_cast<emap_t>(aw).get_unchecked();
                                     gt_dispatch<>()
                                         ([&](auto& g)
                                          { set_state(state, g, w); },
-                                         all_graph_views())
+                                         all_graph_views)
                                         (gi.get_graph_view());
                                 })
                           .def("remove_edge_dS", &state_t::remove_edge_dS)

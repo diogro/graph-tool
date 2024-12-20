@@ -42,7 +42,7 @@ public:
                 vertices(state._g).second),
           _N(num_vertices(state._g)),
           _sample_vertex(0, _N - 1),
-          _v_in_sampler(graph_tool::is_directed(state._g) ?
+          _v_in_sampler(is_directed(state._g) ?
                         __v_in_sampler : _v_out_sampler),
           _esample(esample),
           _usample(usample)
@@ -75,16 +75,16 @@ public:
                 continue;
             _rs_pos[me] = _rs_sampler.insert({r, s}, mrs);
 
-            if (!graph_tool::is_directed(_state._g) && r == s)
+            if (!is_directed(_state._g) && r == s)
                 mrs *= 2;
 
             if (r >= _r_out_sampler.size())
                 _r_out_sampler.resize(r + 1);
             _r_out_pos[me] = _r_out_sampler[r].insert(s, mrs);
 
-            if (graph_tool::is_directed(_state._g) || r != s)
+            if (is_directed(_state._g) || r != s)
             {
-                auto& r_in_sampler = graph_tool::is_directed(_state._g) ?
+                auto& r_in_sampler = is_directed(_state._g) ?
                     _r_in_sampler : _r_out_sampler;
                 if (s >= r_in_sampler.size())
                     r_in_sampler.resize(s + 1);
@@ -97,7 +97,7 @@ public:
             size_t r = state._b[v];
             if (r >= _v_out_sampler.size())
             {
-                if (graph_tool::is_directed(_state._g))
+                if (is_directed(_state._g))
                     _v_in_sampler.resize(r+1);
                 _v_out_sampler.resize(r+1);
             }
@@ -106,7 +106,7 @@ public:
                 get_deg(v, state._eweight, state._degs, state._g) :
                 std::make_tuple(size_t(0), size_t(0));
 
-            if (graph_tool::is_directed(_state._g))
+            if (is_directed(_state._g))
                 _v_in_pos[v] = _v_in_sampler[r].insert(v, kin + 1);
             _v_out_pos[v] = _v_out_sampler[r].insert(v, kout + 1);
         }
@@ -116,7 +116,7 @@ public:
 
     std::tuple<size_t, size_t> get_edge(size_t u, size_t v)
     {
-        if (!graph_tool::is_directed(_state._g) && u > v)
+        if (!is_directed(_state._g) && u > v)
             return {v, u};
         return {u, v};
     }
@@ -164,9 +164,9 @@ public:
             _r_out_sampler[r].remove(_r_out_pos[me]);
             _r_out_pos[me] = std::numeric_limits<size_t>::max();
 
-            if (graph_tool::is_directed(_state._g) || r != s)
+            if (is_directed(_state._g) || r != s)
             {
-                auto& r_in_sampler = graph_tool::is_directed(_state._g) ?
+                auto& r_in_sampler = is_directed(_state._g) ?
                     _r_in_sampler : _r_out_sampler;
 
                 r_in_sampler[s].remove(_r_in_pos[me]);
@@ -177,16 +177,16 @@ public:
         {
             _rs_pos[me] = _rs_sampler.insert({r, s}, ers);
 
-            if (!graph_tool::is_directed(_state._g) && r == s)
+            if (!is_directed(_state._g) && r == s)
                 ers *= 2;
 
             if (r >= _r_out_sampler.size())
                 _r_out_sampler.resize(r + 1);
             _r_out_pos[me] = _r_out_sampler[r].insert(s, ers);
 
-            if (graph_tool::is_directed(_state._g) || r != s)
+            if (is_directed(_state._g) || r != s)
             {
-                auto& r_in_sampler = graph_tool::is_directed(_state._g) ?
+                auto& r_in_sampler = is_directed(_state._g) ?
                     _r_in_sampler : _r_out_sampler;
 
                 if (s >= r_in_sampler.size())
@@ -199,14 +199,14 @@ public:
             _rs_sampler.update(_rs_pos[me], delta, true);
 
             int dm = delta;
-            if (!graph_tool::is_directed(_state._g) && r == s)
+            if (!is_directed(_state._g) && r == s)
                 dm *= 2;
 
             _r_out_sampler[r].update(_r_out_pos[me], dm, true);
 
-            if (graph_tool::is_directed(_state._g) || r != s)
+            if (is_directed(_state._g) || r != s)
             {
-                auto& r_in_sampler = graph_tool::is_directed(_state._g) ?
+                auto& r_in_sampler = is_directed(_state._g) ?
                     _r_in_sampler : _r_out_sampler;
 
                 r_in_sampler[s].update(_r_in_pos[me], dm, true);
@@ -216,13 +216,13 @@ public:
         if (_state._deg_corr)
         {
             size_t ku = get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
-            size_t kv = (graph_tool::is_directed(_state._g)) ?
+            size_t kv = (is_directed(_state._g)) ?
                 get<0>(get_deg(v, _state._eweight, _state._degs, _state._g)) :
                 get<1>(get_deg(v, _state._eweight, _state._degs, _state._g));
 
             if (delta < 0)
             {
-                if (u != v || graph_tool::is_directed(_state._g))
+                if (u != v || is_directed(_state._g))
                 {
                     ku += delta;
                     kv += delta;
@@ -237,10 +237,10 @@ public:
             _v_out_sampler[r].remove(_v_out_pos[u]);
             _v_out_pos[u] = _v_out_sampler[r].insert(u, ku + 1);
 
-            if (u != v || graph_tool::is_directed(_state._g))
+            if (u != v || is_directed(_state._g))
             {
                 s = _state._b[v];
-                if (graph_tool::is_directed(_state._g))
+                if (is_directed(_state._g))
                 {
                     _v_in_sampler[s].remove(_v_in_pos[v]);
                     _v_in_pos[v] = _v_in_sampler[s].insert(v, kv + 1);
@@ -307,11 +307,11 @@ public:
             return -log(_edges.size() + delta);
 
         auto& g = _state._g;
-        auto E = graph_tool::is_directed(g) ? (_E + delta) :
+        auto E = is_directed(g) ? (_E + delta) :
             2 * (_E + delta);
 
         double lu = -safelog_fast(_N) - safelog_fast(_tgts.size());
-        if (!graph_tool::is_directed(g) && u != v)
+        if (!is_directed(g) && u != v)
             lu += log(2);
 
         if (_usample == 1 || E == 0)
@@ -324,7 +324,7 @@ public:
         if (_state._deg_corr)
         {
             ku = get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
-            kv = (graph_tool::is_directed(_state._g)) ?
+            kv = (is_directed(_state._g)) ?
                 get<0>(get_deg(v, _state._eweight, _state._degs, _state._g)) :
                 get<1>(get_deg(v, _state._eweight, _state._degs, _state._g));
         }
@@ -333,17 +333,17 @@ public:
         size_t ers = (me == _state._emat.get_null_edge()) ? 0 : _state._mrs[me];
         ers += delta;
 
-        if (!graph_tool::is_directed(g) && r == s)
+        if (!is_directed(g) && r == s)
             ers *= 2;
 
         size_t nr = _state._wr[r];
         size_t ns = _state._wr[s];
         size_t er = _state._mrp[r];
-        size_t es = graph_tool::is_directed(g) ? _state._mrm[s] : _state._mrp[s];
+        size_t es = is_directed(g) ? _state._mrm[s] : _state._mrp[s];
 
         if (_state._deg_corr)
         {
-            if (r != s || graph_tool::is_directed(g))
+            if (r != s || is_directed(g))
             {
                 er += delta;
                 es += delta;
@@ -354,7 +354,7 @@ public:
                 es += 2 * delta;
             }
 
-            if (u != v || graph_tool::is_directed(g))
+            if (u != v || is_directed(g))
             {
                 ku += delta;
                 kv += delta;
@@ -380,7 +380,7 @@ public:
                       (safelog_fast(ku + 1) - safelog_fast(er + nr)) +
                       (safelog_fast(kv + 1) - safelog_fast(es + ns)));
 
-                if (!graph_tool::is_directed(g) && u != v)
+                if (!is_directed(g) && u != v)
                     lp += log(2);
 
                 lp = log_sum_exp(lp + log1p(-_usample),
@@ -450,20 +450,20 @@ public:
 
         size_t ku = 0;
         if (_state._deg_corr)
-            ku = (graph_tool::is_directed(_state._g)) ?
+            ku = (is_directed(_state._g)) ?
                 get<0>(get_deg(u, _state._eweight, _state._degs, _state._g)) :
                 get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
 
         auto&& me = _state._emat.get_me(r, s);
         size_t ers = (me == _state._emat.get_null_edge()) ? 0 : _state._mrs[me];
 
-        if (!graph_tool::is_directed(g) && r == s)
+        if (!is_directed(g) && r == s)
             ers *= 2;
 
         size_t ns = _state._wr[s];
         size_t er = _state._mrp[r];
         size_t es = (_state._deg_corr) ?
-            (graph_tool::is_directed(g) ? _state._mrm[s] : _state._mrp[s]) : 0;
+            (is_directed(g) ? _state._mrm[s] : _state._mrp[s]) : 0;
 
         double lN = safelog_fast(_N);
 
@@ -531,13 +531,13 @@ public:
             size_t s = target(me, _state._bg);
             std::tie(r, s) = get_edge(r, s);
 
-            if (!graph_tool::is_directed(_state._g) && r == s)
+            if (!is_directed(_state._g) && r == s)
                 mrs *= 2;
 
             assert(_r_out_sampler[r].get_prob(_r_out_pos[me]) == mrs);
-            if (graph_tool::is_directed(_state._g) || r != s)
+            if (is_directed(_state._g) || r != s)
             {
-                auto& r_in_sampler = graph_tool::is_directed(_state._g) ?
+                auto& r_in_sampler = is_directed(_state._g) ?
                     _r_in_sampler : _r_out_sampler;
                 assert(r_in_sampler[s].get_prob(_r_in_pos[me]) == mrs);
             }
@@ -567,13 +567,13 @@ public:
                 size_t mrs = 0;
                 if (me != _state._emat.get_null_edge())
                     mrs = _state._mrs[me];
-                if (!graph_tool::is_directed(_state._g) && r == s)
+                if (!is_directed(_state._g) && r == s)
                     mrs *= 2;
                 assert(mrs == ers);
             }
         }
 
-        auto& r_in_sampler = graph_tool::is_directed(_state._g) ?
+        auto& r_in_sampler = is_directed(_state._g) ?
             _r_in_sampler : _r_out_sampler;
 
         for (size_t s = 0; s < r_in_sampler.size(); ++s)
@@ -589,7 +589,7 @@ public:
                 size_t mrs = 0;
                 if (me != _state._emat.get_null_edge())
                     mrs = _state._mrs[me];
-                if (!graph_tool::is_directed(_state._g) && r == s)
+                if (!is_directed(_state._g) && r == s)
                     mrs *= 2;
                 assert(mrs == ers);
             }
@@ -614,21 +614,21 @@ public:
 
     typedef DynamicSampler<std::tuple<size_t, size_t>> rs_sampler_t;
     rs_sampler_t _rs_sampler;
-    eprop_map_t<size_t>::type _rs_pos;
+    eprop_map_t<size_t> _rs_pos;
 
     typedef DynamicSampler<size_t> r_sampler_t;
     std::vector<r_sampler_t> _r_out_sampler;
-    eprop_map_t<size_t>::type _r_out_pos;
+    eprop_map_t<size_t> _r_out_pos;
 
     std::vector<r_sampler_t> _r_in_sampler;
-    eprop_map_t<size_t>::type _r_in_pos;
+    eprop_map_t<size_t> _r_in_pos;
 
     typedef DynamicSampler<size_t> vsampler_t;
     vector<vsampler_t> __v_in_sampler, _v_out_sampler;
     vector<vsampler_t>& _v_in_sampler;
 
-    vprop_map_t<size_t>::type _v_in_pos;
-    vprop_map_t<size_t>::type _v_out_pos;
+    vprop_map_t<size_t> _v_in_pos;
+    vprop_map_t<size_t> _v_out_pos;
 
     std::vector<std::tuple<size_t, size_t>> _edges;
     gt_hash_map<std::tuple<size_t, size_t>, size_t> _edge_pos;

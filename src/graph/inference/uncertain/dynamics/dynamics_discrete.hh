@@ -69,7 +69,7 @@ public:
         set_params(params);
     };
 
-    typedef typename vprop_map_t<std::vector<uint8_t>>::type amap_t;
+    typedef vprop_map_t<std::vector<uint8_t>> amap_t;
 
     virtual void set_params(python::dict) {}
 
@@ -112,7 +112,7 @@ inline double l1p2cosh(T x) // log(1 + exp(x) + exp(-x))
 class IsingBaseState
 {
 public:
-    typedef vprop_map_t<int>::type::unchecked_t theta_t;
+    typedef vprop_map_t<int>::unchecked_t theta_t;
 
     using double_int_t = typename std::conditional<sizeof(double) == sizeof(uint32_t), uint32_t,
                          typename std::conditional<sizeof(double) == sizeof(uint64_t), uint64_t,

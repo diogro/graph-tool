@@ -36,10 +36,10 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t>::type vmap_t;
+typedef vprop_map_t<int32_t> vmap_t;
 
 #define MCMC_BLOCK_STATE_params(State)                                         \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
@@ -132,8 +132,8 @@ struct MCMC
 
         typename State::_entropy_args_t& _entropy_args;
 
-        vprop_map_t<int32_t>::type::unchecked_t _bh;
-        vprop_map_t<int32_t>::type::unchecked_t _hpclabel;
+        vprop_map_t<int32_t>::unchecked_t _bh;
+        vprop_map_t<int32_t>::unchecked_t _hpclabel;
 
         idx_set<size_t> _rs;
 

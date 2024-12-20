@@ -30,25 +30,25 @@ boost::any graph_tool::degree_selector(GraphInterface::deg_t deg)
 
     GraphInterface::degree_t* d = boost::get<GraphInterface::degree_t>(&deg);
 
-    if (d != 0)
+    if (d != nullptr)
     {
-        mpl::for_each<selectors>(
-            [&](auto&& graph)
-            {
-                return get_degree_selector()
-                    (std::forward<decltype(graph)>(graph), *d, sel);
-            });
+        hana::for_each(degree_selectors,
+                       [&](auto s)
+                       {
+                           return get_degree_selector()
+                               (typename decltype(+s)::type(), *d, sel);
+                       });
     }
     else
     {
         boost::any* d = boost::get<boost::any>(&deg);
         bool found = false;
-        mpl::for_each<vertex_properties>(
-            [&](auto&& graph)
-            {
-                return get_scalar_selector()
-                    (std::forward<decltype(graph)>(graph), *d, sel, found);
-            });
+        hana::for_each(vertex_properties,
+                       [&](auto s)
+                       {
+                           return get_scalar_selector()
+                               (typename decltype(+s)::type(), *d, sel, found);
+                       });
         if (!found)
             throw ValueException("invalid degree selector");
     }

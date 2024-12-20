@@ -37,12 +37,12 @@ struct modularity_entropy_args_t
     double gamma;
 };
 
-typedef vprop_map_t<int32_t>::type vmap_t;
-typedef mpl::vector<eprop_map_t<int32_t>::type,
-                    eprop_map_t<double>::type> emaps_t;
+typedef vprop_map_t<int32_t> vmap_t;
+typedef decltype(hana::tuple_t<eprop_map_t<int32_t>,
+                               eprop_map_t<double>>) emaps_t;
 
 #define BLOCK_STATE_params                                                     \
-    ((g, &, never_directed, 1))                                                \
+    ((g, &, decltype(never_directed), 1))                                      \
     ((eweight,, emaps_t, 1))                                                   \
     ((_abg, &, boost::any&, 0))                                                \
     ((b,, vmap_t, 0))
@@ -65,8 +65,8 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     ModularityState(ATs&&... args)
         : ModularityStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
-          _N(HardNumVertices()(_g)),
+          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _N(hard_num_vertices(_g)),
           _E(0),
           _bclabel(_N),
           _pclabel(_N),

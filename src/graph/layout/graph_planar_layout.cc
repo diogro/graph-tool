@@ -33,9 +33,9 @@ struct point_t
 
 void planar_layout(GraphInterface& gi, boost::any aembed_map, boost::any apos)
 {
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed), false>()
         (gi,
-         [&](auto& g, auto& _embed, auto& _pos)
+         [](auto& g, auto _embed, auto _pos)
          {
              typedef typename std::remove_reference<decltype(g)>::type g_t;
              typedef typename graph_traits<g_t>::edge_descriptor edge_t;
@@ -51,12 +51,12 @@ void planar_layout(GraphInterface& gi, boost::any aembed_map, boost::any apos)
                  edges[ei] = e;
              }
 
-             typename vprop_map_t<std::vector<edge_t>>::type::unchecked_t
+             typename vprop_map_t<std::vector<edge_t>>::unchecked_t
                  embed(get(vertex_index, g), num_vertices(g));
 
              parallel_vertex_loop
                  (g,
-                  [&](auto& v)
+                  [&](auto v)
                   {
                       for (auto ei : _embed[v])
                           embed[v].push_back(edges[ei]);
@@ -67,22 +67,22 @@ void planar_layout(GraphInterface& gi, boost::any aembed_map, boost::any apos)
 
              assert(ordering.size() >= 3);
 
-             typename vprop_map_t<point_t>::type::unchecked_t
+             vprop_map_t<point_t>::unchecked_t
                  pos(get(vertex_index_t(), g), num_vertices(g));
 
              chrobak_payne_straight_line_drawing(g, embed, ordering.begin(),
                                                  ordering.end(), pos);
              parallel_vertex_loop
                  (g,
-                  [&](auto& v)
+                  [&](auto v)
                   {
                       auto& p = pos[v];
-                      typedef typename std::remove_reference<decltype(_pos[v][0])>::type val_t;
+                      typedef typename property_traits<decltype(_pos)>::value_type::value_type val_t;
                       _pos[v] = {val_t(p.x), val_t(p.y)};
                   });
 
          },
-         vertex_scalar_vector_properties(), vertex_scalar_vector_properties())
+         vertex_scalar_vector_properties, vertex_scalar_vector_properties)
         (aembed_map, apos);
 }
 

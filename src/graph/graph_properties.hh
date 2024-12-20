@@ -25,16 +25,18 @@
 #include <boost/python/object.hpp>
 #include <boost/python/extract.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/any.hpp>
 
 #include <boost/property_map/property_map.hpp>
 #include "fast_vector_property_map.hh"
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/for_each.hpp>
-#include <boost/mpl/transform.hpp>
-#include <boost/mpl/find.hpp>
-#include <boost/mpl/bind.hpp>
-
 #include "graph_exceptions.hh"
+#include "graph_adjacency.hh"
+#include "demangle.hh"
+
+
+#include <boost/hana.hpp>
+namespace hana = boost::hana;
+using namespace hana::literals;
 
 // this file provides general functions for manipulating graph properties
 
@@ -53,39 +55,51 @@ namespace graph_tool
 //       broken, and use a vector<uint8_t> instead!
 //       see: http://www.gotw.ca/publications/N1211.pdf
 
-typedef boost::mpl::vector15<uint8_t, int16_t, int32_t, int64_t, double,
-                             long double, std::string, std::vector<uint8_t>,
-                             std::vector<int16_t>, std::vector<int32_t>,
-                             std::vector<int64_t>, std::vector<double>,
-                             std::vector<long double>, std::vector<std::string>,
-                             boost::python::object> value_types;
+inline constexpr auto value_types =
+    hana::tuple_t<uint8_t, int16_t, int32_t, int64_t, double,
+                  long double, std::string, std::vector<uint8_t>,
+                  std::vector<int16_t>, std::vector<int32_t>,
+                  std::vector<int64_t>, std::vector<double>,
+                  std::vector<long double>,
+                  std::vector<std::string>,
+                  boost::python::object>;
 
-extern const char* type_names[]; // respective type names (defined in
-                                 // graph_properties.cc)
+
+// respective type names
+inline const char* type_names[] =
+    {"bool", "int16_t", "int32_t", "int64_t", "double", "long double",
+     "string", "vector<bool>", "vector<int16_t>", "vector<int32_t>",
+     "vector<int64_t>", "vector<double>", "vector<long double>",
+     "vector<string>", "python::object"};
 
 // scalar types: types contained in value_types which are scalar
-typedef boost::mpl::vector6<uint8_t, int16_t, int32_t, int64_t, double, long double>
-    scalar_types;
+inline constexpr auto scalar_types =
+    hana::filter(value_types, [](auto t){return std::is_scalar<typename decltype(t)::type>(); });
 
 // integer_types: scalar types which are integer
-typedef boost::mpl::vector4<uint8_t, int16_t, int32_t, int64_t> integer_types;
+inline constexpr auto integer_types =
+    hana::filter(value_types, [](auto t){return std::is_integral<typename decltype(t)::type>(); });
 
 // floating_types: scalar types which are floating point
-typedef boost::mpl::vector2<double, long double> floating_types;
-
-struct make_vector
-{
-    template <class ValueType> struct apply { typedef std::vector<ValueType> type; };
-};
+inline constexpr auto floating_types =
+    hana::filter(value_types, [](auto t){return std::is_floating_point<typename decltype(t)::type>(); });
 
 // scalar_vector_types: vector types with floating point values
-typedef boost::mpl::transform<scalar_types,make_vector>::type scalar_vector_types;
+inline constexpr auto vector_types =
+    hana::transform(hana::append(scalar_types, hana::type<std::string>()),
+                    [](auto t){return hana::type<std::vector<typename decltype(t)::type>>(); });
+
+// scalar_vector_types: vector types with floating point values
+inline constexpr auto scalar_vector_types =
+    hana::transform(scalar_types, [](auto t){return hana::type<std::vector<typename decltype(t)::type>>(); });
 
 // integer_vector_types: vector types with floating point values
-typedef boost::mpl::transform<integer_types,make_vector>::type integer_vector_types;
+inline constexpr auto integer_vector_types =
+    hana::transform(integer_types, [](auto t){return hana::type<std::vector<typename decltype(t)::type>>(); });
 
 // floating_vector_types: vector types with floating point values
-typedef boost::mpl::transform<floating_types,make_vector>::type floating_vector_types;
+inline constexpr auto floating_vector_types =
+    hana::transform(floating_types, [](auto t){return hana::type<std::vector<typename decltype(t)::type>>(); });
 
 //
 // Property Map Types
@@ -93,49 +107,124 @@ typedef boost::mpl::transform<floating_types,make_vector>::type floating_vector_
 
 // metafunction to generate the correct property map type given a value type and
 // an index map
+template <class ValueType, class IndexMap>
 struct property_map_type
 {
-    template <class ValueType, class IndexMap>
-    struct apply
-    {
-        typedef boost::checked_vector_property_map<ValueType,IndexMap> type;
-    };
+    typedef boost::checked_vector_property_map<ValueType,IndexMap> type;
 };
 
-// metafunction to get the sequence of property map types of ValueTypes and
-// IndexMap
-struct property_map_types
+template <class ValType, class IndexMap>
+using property_map_t = typename property_map_type<ValType, IndexMap>::type;
+
+template <class IndexMap, class Vals>
+constexpr auto get_prop_types(Vals vals)
 {
-   // this wraps an unary metafunction class Bind into a unary metafunction,
-   // i.e., it is an identity operation. I'm not sure why it's necessary, but
-   // using pure unary bind expressions below didn't work for me, and this fixed
-   // it.
-    template <class Bind>
-    struct bind_wrap1
-    {
-        template <class T1> struct apply
-        { typedef typename Bind::template apply<T1>::type type; };
-    };
+    return hana::transform(vals, [](auto t){return hana::type<property_map_t<typename decltype(t)::type, IndexMap>>(); });
+}
 
-    template <class ValueTypes, class IndexMap,
-              class IncludeIndexMap = boost::mpl::bool_<true>>
-    struct apply
-    {
-        typedef typename boost::mpl::transform<
-            ValueTypes,
-            bind_wrap1<boost::mpl::bind2<property_map_type,
-                                         boost::mpl::_1,
-                                         IndexMap>>
-            >::type scalar_properties;
+typedef boost::property_map<boost::adj_list<size_t>,
+                            boost::edge_index_t>::type edge_index_map_t;
 
-        // put index map itself
-        typedef typename boost::mpl::if_<
-            IncludeIndexMap,
-            typename boost::mpl::push_back<scalar_properties,IndexMap>::type,
-            scalar_properties
-            >::type type;
-    };
+typedef boost::property_map<boost::adj_list<size_t>,
+                            boost::vertex_index_t>::type vertex_index_map_t;
+
+template <class ValType>
+struct eprop_map_type
+{
+    typedef property_map_t<ValType, edge_index_map_t> type;
 };
+
+template <class ValType>
+using eprop_map_t = typename eprop_map_type<ValType>::type;
+
+template <class ValType>
+struct vprop_map_type
+{
+    typedef property_map_t<ValType, vertex_index_map_t> type;
+};
+
+template <class ValType>
+using vprop_map_t = typename vprop_map_type<ValType>::type;
+
+template <class Vals>
+constexpr auto get_eprop_types(Vals vals)
+{
+    return get_prop_types<boost::property_map<boost::adj_list<size_t>,
+                                              boost::edge_index_t>::type>(vals);
+}
+
+template <class Vals>
+constexpr auto get_vprop_types(Vals vals)
+{
+    return get_prop_types<boost::property_map<boost::adj_list<size_t>,
+                                              boost::vertex_index_t>::type>(vals);
+}
+
+inline constexpr auto vertex_properties =
+    hana::append(get_vprop_types(value_types), hana::type<vertex_index_map_t>());
+
+inline constexpr auto writable_vertex_properties =
+    get_vprop_types(value_types);
+
+inline constexpr auto vertex_scalar_properties =
+    hana::append(get_vprop_types(scalar_types), hana::type<vertex_index_map_t>());
+
+inline constexpr auto writable_vertex_scalar_properties =
+    get_vprop_types(scalar_types);
+
+inline constexpr auto vertex_integer_properties =
+    hana::append(get_vprop_types(integer_types), hana::type<vertex_index_map_t>());
+
+inline constexpr auto writable_vertex_integer_properties =
+    get_vprop_types(integer_types);
+
+inline constexpr auto vertex_floating_properties =
+    get_vprop_types(floating_types);
+
+inline constexpr auto vertex_vector_properties =
+    get_vprop_types(vector_types);
+
+inline constexpr auto vertex_scalar_vector_properties =
+    get_vprop_types(scalar_vector_types);
+
+inline constexpr auto vertex_integer_vector_properties =
+    get_vprop_types(integer_vector_types);
+
+inline constexpr auto vertex_floating_vector_properties =
+    get_vprop_types(floating_vector_types);
+
+inline constexpr auto edge_properties =
+    hana::append(get_eprop_types(value_types), hana::type<edge_index_map_t>());
+
+inline constexpr auto writable_edge_properties =
+    get_eprop_types(value_types);
+
+inline constexpr auto edge_scalar_properties =
+    hana::append(get_eprop_types(scalar_types), hana::type<edge_index_map_t>());
+
+inline constexpr auto writable_edge_scalar_properties =
+    get_eprop_types(scalar_types);
+
+inline constexpr auto edge_integer_properties =
+    hana::append(get_eprop_types(integer_types), hana::type<edge_index_map_t>());
+
+inline constexpr auto writable_edge_integer_properties =
+    get_eprop_types(integer_types);
+
+inline constexpr auto edge_floating_properties =
+    get_eprop_types(floating_types);
+
+inline constexpr auto edge_vector_properties =
+    get_eprop_types(vector_types);
+
+inline constexpr auto edge_scalar_vector_properties =
+    get_eprop_types(scalar_vector_types);
+
+inline constexpr auto edge_integer_vector_properties =
+    get_eprop_types(integer_vector_types);
+
+inline constexpr auto edge_floating_vector_properties =
+    get_eprop_types(floating_vector_types);
 
 // Property map manipulation
 // =========================
@@ -146,91 +235,37 @@ struct property_map_types
 // this functor tests whether or not a given boost::any object holds a type
 // contained in a given type Sequence
 template <class Sequence>
-struct belongs
+bool belongs(Sequence seq, const boost::any& prop)
 {
-    struct get_type
-    {
-        get_type(const boost::any& val, bool& found)
-            : _val(val), _found(found) {}
-
-        template <class Type>
-        void operator()(Type) const
-        {
-            const Type* ptr = boost::any_cast<Type>(&_val);
-            if (ptr != 0)
-                _found = true;
-        }
-
-        const boost::any& _val;
-        bool& _found;
-    };
-
-    bool operator()(const boost::any& prop)
-    {
-        bool found = false;
-        boost::mpl::for_each<Sequence>(get_type(prop, found));
-        return found;
-    }
-};
+    bool found = false;
+    hana::for_each(seq,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(t)::type T;
+                       const T* ptr = boost::any_cast<T>(&prop);
+                       if (ptr != 0)
+                           found = true;
+                   });
+    return found;
+}
 
 // this will return the name of a given type
-template <class TypeSequence = value_types,
-          class NamedSequence = value_types>
-class get_type_name
+template <class Type>
+std::string get_type_name()
 {
-public:
-    get_type_name(const char* names[] = type_names)
-        : _type_names(names)
+    if constexpr (hana::find(value_types, hana::type<Type>()) ==
+                  hana::just(hana::type<Type>()))
     {
-        if (_all_names.empty())
-        {
-            boost::mpl::for_each<TypeSequence>
-                ([this](auto t){ get_all_names()(t, _type_names, _all_names); });
-        }
+        constexpr size_t index =
+            hana::index_if(value_types,
+                           hana::equal.to(hana::type<Type>())).value().value;
+        return type_names[index];
     }
-
-    const std::string& operator()(const std::type_info& type) const
+    else
     {
-        std::string const* name;
-        boost::mpl::for_each<TypeSequence>
-            ([this, &type, &name](auto t){ find_name()(t, type, _all_names, name); });
-        return *name;
+        return name_demangle(typeid(Type).name());
     }
-
-    const std::vector<std::string>& all_names() const
-    {
-        return _all_names;
-    }
-
-private:
-    struct find_name
-    {
-        template <class Type>
-        void operator()(Type, const std::type_info& type,
-                        const std::vector<std::string>& all_names,
-                        std::string const*& name) const
-        {
-            size_t index = boost::mpl::find<TypeSequence,Type>::type::pos::value;
-            if (type == typeid(Type))
-                name = &all_names[index];
-        }
-    };
-
-    struct get_all_names
-    {
-        typedef void result_type;
-        template <class Type>
-        void operator()(Type, const char** t_names,
-                        std::vector<std::string>& names) const
-        {
-            size_t index = boost::mpl::find<NamedSequence,Type>::type::pos::value;
-            names.push_back(t_names[index]);
-        }
-    };
-
-    const char** _type_names;
-    std::vector<std::string> _all_names;
-};
+}
 
 //
 // Extra Property Map Types
@@ -337,11 +372,11 @@ public:
     typedef boost::read_write_property_map_tag category;
 
     template <class PropertyTypes>
-    DynamicPropertyMapWrap(boost::any pmap, PropertyTypes)
+    DynamicPropertyMapWrap(boost::any pmap, PropertyTypes pts)
     {
         ValueConverter* converter = 0;
-        boost::mpl::for_each<PropertyTypes>
-            ([&pmap, &converter](auto t){ choose_converter()(t, pmap, converter); });
+        hana::for_each(pts, [&](auto t){ choose_converter()(typename decltype(t)::type(),
+                                                            pmap, converter); });
         if (converter == 0)
             throw boost::bad_lexical_cast();
         else

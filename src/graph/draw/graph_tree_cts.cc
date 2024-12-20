@@ -163,9 +163,7 @@ void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path,
 template <class Graph>
 void graph_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
 {
-    typename property_map_type::apply<size_t,
-                                      typename property_map<Graph, vertex_index_t>::type>::type
-        cpred;
+    vprop_map_t<size_t> cpred;
     auto pred = cpred.get_unchecked(num_vertices(g));
 
     undirected_adaptor<Graph> ug(g);
@@ -232,8 +230,8 @@ struct do_get_cts
 void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
              boost::any obeta, boost::any octs, bool is_tree, size_t max_depth)
 {
-    typedef eprop_map_t<vector<double>>::type eprop_t;
-    typedef eprop_map_t<double>::type beprop_t;
+    typedef eprop_map_t<vector<double>> eprop_t;
+    typedef eprop_map_t<double> beprop_t;
 
     eprop_t cts = boost::any_cast<eprop_t>(octs);
     beprop_t beta = boost::any_cast<beprop_t>(obeta);
@@ -248,7 +246,7 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
                      std::forward<decltype(a3)>(a3), beta, cts, is_tree,
                      max_depth);
             },
-            graph_tool::all_graph_views(), graph_tool::always_directed(),
-            vertex_scalar_vector_properties())(gi.get_graph_view(),
+            graph_tool::all_graph_views, graph_tool::always_directed,
+            vertex_scalar_vector_properties)(gi.get_graph_view(),
                                                tgi.get_graph_view(), otpos);
 }

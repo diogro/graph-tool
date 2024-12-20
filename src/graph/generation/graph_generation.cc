@@ -59,22 +59,19 @@ void generate_graph(GraphInterface& gi, size_t N,
                     bool no_self_loops, bool undirected, rng_t& rng,
                     bool verbose, bool verify)
 {
-    typedef graph_tool::detail::get_all_graph_views::apply<
-    graph_tool::detail::filt_scalar_type, boost::mpl::bool_<false>,
-        boost::mpl::bool_<false>, boost::mpl::bool_<false>,
-        boost::mpl::bool_<true>, boost::mpl::bool_<true> >::type graph_views;
+    auto gviews = get_graph_views(hana::tuple_t<std::true_type, std::false_type>,
+                                  hana::tuple_t<std::false_type>,
+                                  hana::tuple_t<std::false_type, std::true_type>);
 
     if (undirected)
         gi.set_directed(false);
 
-    run_action<graph_views>(false)
+    run_action<decltype(gviews)>(false)
         (gi,
          [&](auto&& graph)
          {
-             return gen_graph()
-                 (std::forward<decltype(graph)>(graph), N,
-                  PythonFuncWrap(deg_sample), no_parallel, no_self_loops, rng,
-                  verbose, verify);
+             gen_graph()(graph, N, PythonFuncWrap(deg_sample), no_parallel,
+                         no_self_loops, rng, verbose, verify);
          })();
 }
 

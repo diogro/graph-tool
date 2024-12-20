@@ -133,7 +133,10 @@ public:
     bool is_valid() const
     {
         if (_g.expired())
+        {
+            std::cout << "expired" << std::endl;
             return false;
+        }
         std::shared_ptr<Graph> gp = _g.lock();
         Graph& g = *gp.get();
         return _v < num_vertices(g);
@@ -187,13 +190,13 @@ public:
         std::shared_ptr<Graph> gp = _g.lock();
         Graph& g = *gp.get();
         boost::python::object in_deg;
-        if (!belongs<edge_scalar_properties>()(pmap))
+        if (!belongs(edge_scalar_properties, pmap))
             throw ValueException("edge weight property must be of scalar type");
         gt_dispatch<>(false)
             ([&g, &in_deg, this](auto const & v)
              {
                  return get_degree<in_degreeS>()(g, _v, v, in_deg);
-             }, edge_scalar_properties())(pmap);
+             }, edge_scalar_properties)(pmap);
         return in_deg;
     }
 
@@ -214,13 +217,13 @@ public:
         std::shared_ptr<Graph> gp = _g.lock();
         Graph& g = *gp.get();
         boost::python::object out_deg;
-        if (!belongs<edge_scalar_properties>()(pmap))
+        if (!belongs(edge_scalar_properties, pmap))
             throw ValueException("edge weight property must be of scalar type");
         gt_dispatch<>(false)
             ([&g, &out_deg, this](auto const & v)
              {
                  return get_degree<out_degreeS>()(g, _v, v, out_deg);
-             },edge_scalar_properties())(pmap);
+             },edge_scalar_properties)(pmap);
         return out_deg;
     }
 
@@ -425,26 +428,17 @@ private:
 
 // metafunction to determine wether or not to return copies or internal
 // references to property types
+template <class ValueType>
 struct return_reference
 {
-    template <class ValueType>
-    struct apply
-    {
-        // return actual references only for non-string and non-python::object
-        // classes
+    // return actual references only for non-string and non-python::object
+    // classes
 
-        typedef typename boost::mpl::if_<
-            typename boost::mpl::and_<
-                std::is_class<ValueType>,
-                typename boost::mpl::and_<
-                    typename boost::mpl::not_<std::is_same<ValueType,
-                                                           std::string> >::type,
-                    typename boost::mpl::not_<std::is_same<ValueType,
-                                                           boost::python::object> >::type>::type
-                >::type,
-            boost::mpl::bool_<true>,
-            boost::mpl::bool_<false> >::type type;
-    };
+    typedef std::conditional_t<std::is_class_v<ValueType> &&
+                               !std::is_same_v<ValueType, std::string> &&
+                               !std::is_same_v<ValueType, boost::python::object>,
+                               std::true_type,
+                               std::false_type> type;
 };
 
 template <class PropertyMap>
@@ -456,10 +450,10 @@ public:
 
     typedef typename boost::property_traits<PropertyMap>::value_type value_type;
 
-    typedef typename boost::mpl::if_<
-        typename return_reference::apply<value_type>::type,
-        value_type&,
-        value_type>::type reference;
+    typedef std::conditional_t
+        <return_reference<value_type>::type::value,
+         value_type&,
+         value_type> reference;
 
     template <class PythonDescriptor>
     reference get_value(const PythonDescriptor& key)
@@ -501,12 +495,10 @@ public:
 
     std::string get_type() const
     {
-        if (std::is_same<typename boost::mpl::find<value_types,value_type>::type,
-                         typename boost::mpl::end<value_types>::type>::value)
+        if constexpr (hana::find(value_types, hana::type<value_type>()) != hana::just(hana::type<value_type>()))
             return name_demangle(typeid(value_type).name());
         else
-            return type_names[boost::mpl::find<value_types,
-                                               value_type>::type::pos::value];
+            return type_names[hana::index_if(value_types, hana::equal.to(hana::type<value_type>())).value().value];
     }
 
     boost::any get_map() const
@@ -523,30 +515,24 @@ public:
 
     boost::python::object get_array(size_t size)
     {
-        typedef typename boost::mpl::or_<
-            typename boost::mpl::or_<
-                std::is_same<PropertyMap,
-                             GraphInterface::vertex_index_map_t>,
-                std::is_same<PropertyMap,
-                             GraphInterface::edge_index_map_t> >::type,
-            typename boost::mpl::not_<
-                typename boost::mpl::has_key<numpy_types, value_type>::type >
-            ::type>::type isnt_vector_map;
-        return get_array_dispatch(size, isnt_vector_map());
+        constexpr bool isnt_vector_map =
+            (std::is_same_v<PropertyMap,
+                            GraphInterface::vertex_index_map_t> ||
+             std::is_same_v<PropertyMap,
+                            GraphInterface::edge_index_map_t>) ||
+            !boost::mpl::has_key<numpy_types, value_type>::type::value;
+        if constexpr (isnt_vector_map)
+        {
+            return boost::python::object();
+        }
+        else
+        {
+            _pmap.resize(size);
+            return wrap_vector_not_owned(_pmap.get_storage());
+        }
     }
 
-    boost::python::object get_array_dispatch(size_t size, boost::mpl::bool_<false>)
-    {
-        _pmap.resize(size);
-        return wrap_vector_not_owned(_pmap.get_storage());
-    }
-
-    boost::python::object get_array_dispatch(size_t, boost::mpl::bool_<true>)
-    {
-        return boost::python::object();
-    }
-
-    bool is_writable() const
+    constexpr bool is_writable() const
     {
         return std::is_convertible<typename boost::property_traits<PropertyMap>::category,
                                    boost::writable_property_map_tag>::value;
@@ -661,11 +647,12 @@ struct new_property_map
     void operator()(ValueType, IndexMap index, const std::string& type_name,
                     boost::any pmap, boost::python::object& new_prop, bool& found) const
     {
-        size_t i = boost::mpl::find<value_types,ValueType>::type::pos::value;
+        constexpr size_t i =
+            hana::index_if(value_types,
+                           hana::equal.to(hana::type<ValueType>())).value().value;
         if (type_name == type_names[i])
         {
-            typedef typename property_map_type::apply<ValueType, IndexMap>::type
-                map_t;
+            typedef property_map_t<ValueType, IndexMap> map_t;
             map_t prop;
             if (pmap.empty())
                 prop = map_t(index);
@@ -684,11 +671,13 @@ boost::python::object new_property(const std::string& type, IndexMap index_map,
 {
     boost::python::object prop;
     bool found = false;
-    boost::mpl::for_each<value_types>(
-        [&](auto t)
-        {
-            return new_property_map()(t, index_map, type, pmap, prop, found);
-        });
+    hana::for_each(value_types,
+                   [&](auto t)
+                   {
+                       return new_property_map()(typename decltype(t)::type(),
+                                                 index_map, type, pmap, prop,
+                                                 found);
+                   });
 
     if (!found)
         throw ValueException("Invalid property type: " + type);

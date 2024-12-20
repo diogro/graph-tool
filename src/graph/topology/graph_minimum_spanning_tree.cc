@@ -102,11 +102,6 @@ struct get_prim_min_span_tree
     }
 };
 
-typedef property_map_types::apply<mpl::vector<uint8_t>,
-                                  GraphInterface::edge_index_map_t,
-                                  mpl::bool_<false> >::type
-    tree_properties;
-
 void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
                                boost::any tree_map)
 {
@@ -116,10 +111,10 @@ void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
     if (weight_map.empty())
         weight_map = cweight_t();
 
-    typedef mpl::push_back<writable_edge_scalar_properties, cweight_t>::type
-        weight_maps;
+    auto weight_maps = hana::append(writable_edge_scalar_properties,
+                                    hana::type<cweight_t>());
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -128,8 +123,8 @@ void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3));
          },
-         weight_maps(),
-         writable_edge_scalar_properties())(weight_map, tree_map);
+         weight_maps,
+         writable_edge_scalar_properties)(weight_map, tree_map);
 }
 
 void get_prim_spanning_tree(GraphInterface& gi, size_t root,
@@ -140,10 +135,11 @@ void get_prim_spanning_tree(GraphInterface& gi, size_t root,
     if (weight_map.empty())
         weight_map = cweight_t();
 
-    typedef mpl::push_back<writable_edge_scalar_properties, cweight_t>::type
-        weight_maps;
+    auto weight_maps = hana::append(writable_edge_scalar_properties,
+                                    hana::type<cweight_t>());
+    auto tree_properties = hana::tuple_t<eprop_map_t<uint8_t>>;
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -152,7 +148,7 @@ void get_prim_spanning_tree(GraphInterface& gi, size_t root,
                   gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3));
          },
-         weight_maps(), tree_properties())(weight_map, tree_map);
+         weight_maps, tree_properties)(weight_map, tree_map);
 }
 
 

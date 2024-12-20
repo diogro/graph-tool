@@ -62,12 +62,12 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
                     boost::any ohalf_edges, boost::any oeindex, boost::any orec,
                     boost::any oerec)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    typedef vprop_map_t<int64_t>::type vimap_t;
-    typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
-    typedef eprop_map_t<vector<int32_t>>::type evmap_t;
-    typedef eprop_map_t<int64_t>::type emap_t;
-    typedef eprop_map_t<vector<double>>::type ermap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<int64_t> vimap_t;
+    typedef vprop_map_t<vector<int64_t>> vvmap_t;
+    typedef eprop_map_t<vector<int32_t>> evmap_t;
+    typedef eprop_map_t<int64_t> emap_t;
+    typedef eprop_map_t<vector<double>> ermap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
@@ -105,8 +105,8 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
 
 void get_be_from_b_overlap(GraphInterface& gi, boost::any obe, boost::any ob)
 {
-    typedef vprop_map_t<int32_t>::type    vmap_t;
-    typedef eprop_map_t<vector<int32_t>>::type evmap_t;
+    typedef vprop_map_t<int32_t>    vmap_t;
+    typedef eprop_map_t<vector<int32_t>> evmap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
@@ -143,8 +143,8 @@ struct get_nodeset_overlap
 void get_nodeset_overlap(GraphInterface& gi, boost::any onode_index,
                          boost::any ohalf_edges)
 {
-    typedef vprop_map_t<int64_t>::type vmap_t;
-    typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
+    typedef vprop_map_t<int64_t> vmap_t;
+    typedef vprop_map_t<vector<int64_t>> vvmap_t;
 
     vmap_t node_index = any_cast<vmap_t>(onode_index);
     vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
@@ -223,7 +223,7 @@ REGISTER_MOD
                       +[](state_t& state, GraphInterface& gi,
                           boost::any obe)
                       {
-                          typedef eprop_map_t<vector<int32_t>>::type evmap_t;
+                          typedef eprop_map_t<vector<int32_t>> evmap_t;
                           evmap_t be = any_cast<evmap_t>(obe);
                           run_action<>()(gi,
                                          [&](auto& g)
@@ -236,7 +236,7 @@ REGISTER_MOD
                           boost::any obc_in, boost::any obc_out,
                           boost::any obc_total)
                       {
-                          typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+                          typedef vprop_map_t<vector<int32_t>> vvmap_t;
                           vvmap_t bv = any_cast<vvmap_t>(obv);
                           vvmap_t bc_in = any_cast<vvmap_t>(obc_in);
                           vvmap_t bc_out = any_cast<vvmap_t>(obc_out);
@@ -253,8 +253,8 @@ REGISTER_MOD
                       +[](state_t& state, GraphInterface& gi, boost::any obv,
                           boost::any ob)
                       {
-                          typedef vprop_map_t<int32_t>::type vmap_t;
-                          typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+                          typedef vprop_map_t<int32_t> vmap_t;
+                          typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
                           vvmap_t bv = any_cast<vvmap_t>(obv);
                           vmap_t b = any_cast<vmap_t>(ob);
@@ -268,8 +268,8 @@ REGISTER_MOD
                       +[](state_t&, GraphInterface& gi, boost::any obv,
                           boost::any obc_total, boost::any ob)
                       {
-                          typedef vprop_map_t<int32_t>::type vmap_t;
-                          typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+                          typedef vprop_map_t<int32_t> vmap_t;
+                          typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
                           vmap_t b = any_cast<vmap_t>(ob);
                           vvmap_t bv = any_cast<vvmap_t>(obv);

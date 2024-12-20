@@ -31,8 +31,8 @@ using namespace boost;
 using namespace std;
 
 #define UNCERTAIN_STATE_params                                                 \
-    ((g, &, all_graph_views, 1))                                               \
-    ((q,, eprop_map_t<double>::type, 0))                                       \
+    ((g, &, decltype(all_graph_views), 1))                                     \
+    ((q,, eprop_map_t<double>, 0))                                             \
     ((q_default,, double, 0))                                                  \
     ((S_const,, double, 0))                                                    \
     ((self_loops,, bool, 0))                                                   \
@@ -96,7 +96,7 @@ struct Uncertain
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
         {
-            if (!graph_tool::is_directed(g) && u > v)
+            if (!is_directed(g) && u > v)
                 std::swap(u, v);
             auto& qe = edges[u];
             if (insert)

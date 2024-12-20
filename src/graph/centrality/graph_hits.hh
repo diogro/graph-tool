@@ -52,7 +52,7 @@ struct get_hits
         CentralityMap y_temp(vertex_index, num_vertices(g));
 
         // init centrality
-        auto V = HardNumVertices()(g);
+        auto V = hard_num_vertices(g);
         parallel_vertex_loop
             (g,
              [&](auto v)

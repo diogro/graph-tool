@@ -31,64 +31,64 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
 
+template <class GP>
 class DJKVisitorWrapper
 {
 public:
-    DJKVisitorWrapper(GraphInterface& gi, python::object vis)
-        : _gi(gi), _vis(vis) {}
+    DJKVisitorWrapper(GP& gp, python::object vis)
+        : _gp(gp), _vis(vis) {}
 
     template <class Vertex, class Graph>
     void initialize_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("initialize_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("initialize_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Vertex, class Graph>
     void discover_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("discover_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("discover_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Vertex, class Graph>
     void examine_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("examine_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("examine_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Edge, class Graph>
     void examine_edge(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("examine_edge")(PythonEdge<Graph>(gp, e));
+        _vis.attr("examine_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_relaxed(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("edge_relaxed")(PythonEdge<Graph>(gp, e));
+        _vis.attr("edge_relaxed")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_not_relaxed(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("edge_not_relaxed")(PythonEdge<Graph>(gp, e));
+        _vis.attr("edge_not_relaxed")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Vertex, class Graph>
     void finish_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("finish_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("finish_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
 private:
-    GraphInterface& _gi;
+    GP _gp;
     boost::python::object _vis;
 };
 
@@ -138,7 +138,7 @@ struct do_djk_search
         dtype_t i = python::extract<dtype_t>(range.second);
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
-                                                       edge_properties());
+                                                       edge_properties);
 
         if (vertex(s, g) == graph_traits<Graph>::null_vertex())
         {
@@ -213,40 +213,38 @@ void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
                      python::object cmp, python::object cmb,
                      python::object zero, python::object inf)
 {
-    typedef typename property_map_type::
-        apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_t;
+    typedef vprop_map_t<int64_t> pred_t;
     pred_t pred = any_cast<pred_t>(pred_map);
-    run_action<graph_tool::all_graph_views, mpl::true_>(false)
+    run_action<decltype(graph_view_ptrs), false>(false)
         (g,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& gp, auto&& a2)
          {
              return do_djk_search()
-                 (std::forward<decltype(graph)>(graph), source,
+                 (*gp, source,
                   std::forward<decltype(a2)>(a2), pred, weight,
-                  DJKVisitorWrapper(g, vis), DJKCmp(cmp), DJKCmb(cmb),
+                  DJKVisitorWrapper<decltype(gp)>(gp, vis), DJKCmp(cmp), DJKCmb(cmb),
                   make_pair(zero, inf));
          },
-         writable_vertex_properties())(dist_map);
+         writable_vertex_properties)(dist_map);
 }
 
 #ifdef HAVE_BOOST_COROUTINE
 
+template <class GP>
 class DJKGeneratorVisitor : public dijkstra_visitor<>
 {
 public:
-    DJKGeneratorVisitor(GraphInterface& gi,
-                        coro_t::push_type& yield)
-        : _gi(gi), _yield(yield) {}
+    DJKGeneratorVisitor(GP& gp, coro_t::push_type& yield)
+        : _gp(gp), _yield(yield) {}
 
     template <class Edge, class Graph>
     void edge_relaxed(const Edge& e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
+        _yield(boost::python::object(PythonEdge<Graph>(_gp, e)));
     }
 
 private:
-    GraphInterface& _gi;
+    GP _gp;
     coro_t::push_type& _yield;
 };
 
@@ -265,17 +263,18 @@ boost::python::object dijkstra_search_generator(GraphInterface& g,
     auto dispatch = [&](auto& yield)
         {
             DJKGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::all_graph_views, mpl::true_>(false)
+            run_action<decltype(graph_view_ptrs), false>(false)
                 (g,
-                 [&](auto&& graph, auto&& a2)
+                 [&](auto&& gp, auto&& a2)
                  {
                      return do_djk_search()
-                         (std::forward<decltype(graph)>(graph), source,
+                         (*gp, source,
                           std::forward<decltype(a2)>(a2), dummy_property_map(),
-                          weight, vis, DJKCmp(cmp), DJKCmb(cmb),
+                          weight, DJKGeneratorVisitor<decltype(gp)>(gp, yield),
+                          DJKCmp(cmp), DJKCmb(cmb),
                           make_pair(zero, inf));
                  },
-                 writable_vertex_properties())(dist_map);
+                 writable_vertex_properties)(dist_map);
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else
@@ -292,19 +291,19 @@ boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
-            DJKGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::all_graph_views, mpl::true_>(false)
+            run_action<decltype(graph_view_ptrs), false>(false)
                 (g,
-                 [&](auto&& graph, auto&& a2, auto&& a3)
+                 [&](auto&& gp, auto&& a2, auto&& a3)
                  {
                      return do_djk_search_fast()
-                         (std::forward<decltype(graph)>(graph), source,
+                         (*gp, source,
                           std::forward<decltype(a2)>(a2),
-                          std::forward<decltype(a3)>(a3), vis,
+                          std::forward<decltype(a3)>(a3),
+                          DJKGeneratorVisitor<decltype(gp)>(gp, yield),
                           make_pair(zero, inf));
                  },
-                 writable_vertex_scalar_properties(),
-                 edge_scalar_properties())(dist_map, weight);
+                 writable_vertex_scalar_properties,
+                 edge_scalar_properties)(dist_map, weight);
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else
@@ -321,7 +320,7 @@ public:
     template <class Edge, class Graph>
     void edge_relaxed(const Edge& e, Graph& g)
     {
-        _edges.push_back({{source(e, g), target(e,g)}});
+        _edges.push_back({{source(e, g), target(e, g)}});
     }
 
 private:
@@ -340,7 +339,7 @@ boost::python::object dijkstra_search_array(GraphInterface& g,
 {
     std::vector<std::array<size_t, 2>> edges;
     DJKArrayVisitor vis(edges);
-    run_action<graph_tool::all_graph_views, mpl::true_>(false)
+    run_action<decltype(graph_tool::all_graph_views), false>(false)
         (g,
          [&](auto&& graph, auto&& a2)
          {
@@ -349,7 +348,7 @@ boost::python::object dijkstra_search_array(GraphInterface& g,
                   std::forward<decltype(a2)>(a2), dummy_property_map(), weight,
                   vis, DJKCmp(cmp), DJKCmb(cmb), make_pair(zero, inf));
          },
-         writable_vertex_properties())(dist_map);
+         writable_vertex_properties)(dist_map);
     return wrap_vector_owned<size_t,2>(edges);
 }
 
@@ -362,7 +361,7 @@ boost::python::object dijkstra_search_array_fast(GraphInterface& g,
 {
     std::vector<std::array<size_t, 2>> edges;
     DJKArrayVisitor vis(edges);
-    run_action<graph_tool::all_graph_views, mpl::true_>(false)
+    run_action<decltype(graph_tool::all_graph_views), false>(false)
         (g,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -371,8 +370,8 @@ boost::python::object dijkstra_search_array_fast(GraphInterface& g,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), vis, make_pair(zero, inf));
          },
-         writable_vertex_scalar_properties(),
-         edge_scalar_properties())(dist_map, weight);
+         writable_vertex_scalar_properties,
+         edge_scalar_properties)(dist_map, weight);
     return wrap_vector_owned<size_t,2>(edges);
 }
 

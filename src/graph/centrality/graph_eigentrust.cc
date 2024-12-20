@@ -28,9 +28,9 @@ using namespace graph_tool;
 size_t eigentrust(GraphInterface& g, boost::any c, boost::any t,
                   double epslon, size_t max_iter)
 {
-    if (!belongs<writable_edge_scalar_properties>()(c))
+    if (!belongs(writable_edge_scalar_properties, c))
         throw ValueException("edge property must be writable");
-    if (!belongs<vertex_floating_properties>()(t))
+    if (!belongs(vertex_floating_properties, t))
         throw ValueException("vertex property must be of floating point"
                              " value type");
 
@@ -44,7 +44,7 @@ size_t eigentrust(GraphInterface& g, boost::any c, boost::any t,
                   g.get_edge_index(), std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), epslon, max_iter, iter);
          },
-         writable_edge_scalar_properties(), vertex_floating_properties())(c, t);
+         writable_edge_scalar_properties, vertex_floating_properties)(c, t);
     return iter;
 }
 

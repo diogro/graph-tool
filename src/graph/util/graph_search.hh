@@ -58,8 +58,8 @@ bool operator<=(const string& s1, const string& s2)
 // find vertices which match a certain (inclusive) property range
 struct find_vertices
 {
-    template <class Graph, class DegreeSelector>
-    void operator()(Graph& g, GraphInterface& gi, DegreeSelector deg,
+    template <class Graph, class GP, class DegreeSelector>
+    void operator()(Graph& g, GP& gp, DegreeSelector deg,
                     python::tuple& prange, python::list& ret) const
     {
         typedef typename DegreeSelector::value_type value_type;
@@ -73,7 +73,6 @@ struct find_vertices
             nt = 1; // python is not thread-safe
         #endif
 
-        auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
         #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) num_threads(nt)
@@ -99,8 +98,8 @@ struct find_vertices
 // find edges which match a certain (inclusive) property range
 struct find_edges
 {
-    template <class Graph, class EdgeIndex, class EdgeProperty>
-    void operator()(Graph& g, GraphInterface& gi, EdgeIndex eindex,
+    template <class Graph, class GP, class EdgeIndex, class EdgeProperty>
+    void operator()(Graph& g, GP& gp, EdgeIndex eindex,
                     EdgeProperty prop, python::tuple& prange, python::list& ret)
         const
     {
@@ -117,7 +116,6 @@ struct find_edges
             nt = 1; // python is not thread-safe
         #endif
 
-        auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
         #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
@@ -126,7 +124,7 @@ struct find_edges
             (g,
              [&](auto e)
              {
-                 if (!graph_tool::is_directed(g))
+                 if (!is_directed(g))
                  {
                      if (edge_set.find(eindex[e]) == edge_set.end())
                          edge_set.insert(eindex[e]);

@@ -40,10 +40,10 @@ namespace detail {
     template <typename EdgePredicate, typename VertexPredicate, typename Graph>
     struct out_edge_pred
     {
-        out_edge_pred() { }
-        out_edge_pred(EdgePredicate ep, VertexPredicate vp,
+        out_edge_pred(const EdgePredicate& ep, const VertexPredicate& vp,
                       const Graph& g)
             : _edge_pred(ep), _vertex_pred(vp), _g(&g) { }
+        out_edge_pred() {}
 
         template <typename Edge>
         bool operator()(const Edge& e) const
@@ -58,10 +58,10 @@ namespace detail {
     template <typename EdgePredicate, typename VertexPredicate, typename Graph>
     struct in_edge_pred
     {
-        in_edge_pred() { }
-        in_edge_pred(EdgePredicate ep, VertexPredicate vp,
+        in_edge_pred(const EdgePredicate& ep, const VertexPredicate& vp,
                      const Graph& g)
             : _edge_pred(ep), _vertex_pred(vp), _g(&g) { }
+        in_edge_pred() {}
 
         template <typename Edge>
         bool operator()(const Edge& e) const
@@ -76,16 +76,16 @@ namespace detail {
     template <typename EdgePredicate, typename VertexPredicate, typename Graph>
     struct edge_pred
     {
-        edge_pred() { }
-        edge_pred(EdgePredicate ep, VertexPredicate vp,
+        edge_pred(const EdgePredicate& ep, const VertexPredicate& vp,
                   const Graph& g)
             : _edge_pred(ep), _vertex_pred(vp), _g(&g) { }
+        edge_pred() {}
 
         template <typename Edge>
         bool operator()(const Edge& e) const
         {
-            return _edge_pred(e)
-                && _vertex_pred(source(e, *_g)) && _vertex_pred(target(e, *_g));
+            return _edge_pred(e) && _vertex_pred(source(e, *_g)) &&
+                _vertex_pred(target(e, *_g));
         }
         EdgePredicate _edge_pred;
         VertexPredicate _vertex_pred;
@@ -108,8 +108,8 @@ template <class G>
 struct filt_graph_base
 {
   typedef graph_traits<G> Traits;
-  typedef typename Traits::vertex_descriptor          vertex_descriptor;
-  typedef typename Traits::edge_descriptor            edge_descriptor;
+  typedef typename Traits::vertex_descriptor    vertex_descriptor;
+  typedef typename Traits::edge_descriptor      edge_descriptor;
   filt_graph_base(const G& g) : _g(g) { }
   //protected:
   const G& _g;
@@ -153,9 +153,9 @@ public:
     typedef typename Traits::traversal_category         traversal_category;
 
     // IncidenceGraph requirements
-    typedef filter_iterator<
-        OutEdgePred, typename Traits::out_edge_iterator
-        > out_edge_iterator;
+    typedef filter_iterator<OutEdgePred,
+                            typename Traits::out_edge_iterator>
+        out_edge_iterator;
 
     typedef typename Traits::degree_size_type          degree_size_type;
 
@@ -166,13 +166,13 @@ public:
         adjacency_iterator;
 
     // BidirectionalGraph requirements
-    typedef filter_iterator<
-        InEdgePred, typename Traits::in_edge_iterator
-        > in_edge_iterator;
+    typedef filter_iterator<InEdgePred,
+                            typename Traits::in_edge_iterator>
+       in_edge_iterator;
 
-    typedef filter_iterator<
-        EdgePred, typename Graph::all_edge_iterator
-        > all_edge_iterator;
+    typedef filter_iterator<EdgePred,
+                            typename Graph::all_edge_iterator>
+       all_edge_iterator;
 
     typedef typename inv_adjacency_iterator_generator<self,
                                                       vertex_descriptor,
@@ -180,15 +180,15 @@ public:
         in_adjacency_iterator;
 
     // VertexListGraph requirements
-    typedef filter_iterator<
-        VertexPredicate, typename Traits::vertex_iterator
-        > vertex_iterator;
+    typedef filter_iterator<VertexPredicate,
+                            typename Traits::vertex_iterator>
+        vertex_iterator;
     typedef typename Traits::vertices_size_type        vertices_size_type;
 
     // EdgeListGraph requirements
-    typedef filter_iterator<
-        EdgePred, typename Traits::edge_iterator
-        > edge_iterator;
+    typedef filter_iterator<EdgePred,
+                            typename Traits::edge_iterator>
+       edge_iterator;
     typedef typename Traits::edges_size_type           edges_size_type;
 
     typedef filt_graph_tag graph_tag;

@@ -567,7 +567,7 @@ struct gen_graph
                 typename graph_traits<Graph>::vertex_descriptor t =
                     vertex(vertices[t_i].index, g);
 
-                if ((s == t) && (!graph_tool::is_directed(g) &&
+                if ((s == t) && (!is_directed(g) &&
                                  s_deg.second < 2))
                     continue;
 

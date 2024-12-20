@@ -33,28 +33,28 @@ using namespace graph_tool;
 
 struct do_astar_search
 {
-    template <class Graph, class DistanceMap>
-    void operator()(Graph& g, size_t s, DistanceMap dist, pair<boost::any,
-                    boost::any> pc, boost::any aweight, AStarVisitorWrapper vis,
+    template <class GP, class DistanceMap, class Visitor>
+    void operator()(GP& gp, size_t s, DistanceMap dist, pair<boost::any,
+                    boost::any> pc, boost::any aweight, Visitor vis,
                     pair<AStarCmp, AStarCmb> cmp, pair<python::object,
-                    python::object> range, python::object h,
-                    GraphInterface& gi) const
+                    python::object> range, python::object h) const
     {
+        typedef std::remove_reference_t<decltype(*gp)> g_t;
+        auto& g = *gp;
 
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
+        typedef typename graph_traits<g_t>::edge_descriptor edge_t;
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
 
         checked_vector_property_map<default_color_type,
                                     decltype(get(vertex_index, g))>
             color(get(vertex_index, g));
-        typedef typename property_map_type::
-            apply<int64_t, decltype(get(vertex_index, g))>::type pred_t;
-        typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+        typedef vprop_map_t<int64_t> pred_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
-                                                       edge_properties());
+                                                       edge_properties);
         astar_search_no_init(g, vertex(s, g),
-                             AStarH<Graph, dtype_t>(gi, g, h), vis,
+                             AStarH<GP, dtype_t>(gp, h), vis,
                              any_cast<pred_t>(pc.first),
                              any_cast<DistanceMap>(pc.second), dist, weight,
                              color, get(vertex_index, g), cmp.first,
@@ -62,6 +62,12 @@ struct do_astar_search
     }
 };
 
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
 
 void a_star_search_implicit(GraphInterface& g, size_t source,
                             boost::any dist_map, boost::any pred,
@@ -70,18 +76,18 @@ void a_star_search_implicit(GraphInterface& g, size_t source,
                             python::object cmb, python::object zero,
                             python::object inf, python::object h)
 {
-    run_action<graph_tool::all_graph_views, mpl::true_>(false)
+    run_action<decltype(graph_view_ptrs), false>(false)
         (g,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& gp, auto&& a2)
          {
              return do_astar_search()
-                 (std::forward<decltype(graph)>(graph), source,
+                 (gp, source,
                   std::forward<decltype(a2)>(a2), make_pair(pred, cost), weight,
-                  AStarVisitorWrapper(g, vis),
+                  AStarVisitorWrapper<decltype(gp)>(gp, vis),
                   make_pair(AStarCmp(cmp), AStarCmb(cmb)), make_pair(zero, inf),
-                  h, g);
+                  h);
          },
-         writable_vertex_properties())(dist_map);
+         writable_vertex_properties)(dist_map);
 }
 
 #define __MOD__ search

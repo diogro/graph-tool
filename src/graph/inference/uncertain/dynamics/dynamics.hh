@@ -61,12 +61,12 @@ struct dentropy_args_t:
     bool active = true;
 };
 
-typedef eprop_map_t<double>::type xmap_t;
-typedef vprop_map_t<double>::type tmap_t;
-typedef vprop_map_t<double>::type smap_t;
+typedef eprop_map_t<double> xmap_t;
+typedef vprop_map_t<double> tmap_t;
+typedef vprop_map_t<double> smap_t;
 
 #define DYNAMICS_STATE_params                                                  \
-    ((g, &, never_filtered_never_reversed, 1))                                 \
+    ((g, &, decltype(never_filtered_never_reversed), 1))                       \
     ((x,, xmap_t, 0))                                                          \
     ((params,, python::dict, 0))                                               \
     ((theta,, tmap_t, 0))                                                      \
@@ -199,7 +199,7 @@ struct Dynamics
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
         {
-            if (!graph_tool::is_directed(g) && u > v)
+            if (!is_directed(g) && u > v)
                 std::swap(u, v);
             auto& qe = edges[u];
 
@@ -229,7 +229,7 @@ struct Dynamics
         template <class Graph, class Elist>
         void _erase_edge(size_t u, size_t v, Graph& g, Elist& edges)
         {
-            if (!graph_tool::is_directed(g) && u > v)
+            if (!is_directed(g) && u > v)
                 std::swap(u, v);
             auto& qe = edges[u];
 
@@ -542,7 +542,7 @@ struct Dynamics
                  });
 
             size_t N = num_vertices(_u);
-            size_t T = graph_tool::is_directed(_u) ?
+            size_t T = is_directed(_u) ?
                 N * (_self_loops ? N : N-1) :
                 (N * (_self_loops ? N + 1 : N - 1)) / 2;
             S += (T - _E) * edge_x_S(0, ea);
@@ -578,7 +578,7 @@ struct Dynamics
                 return 0;
             double dS = 0;
             dS += _dstate->get_edge_dS(u, v, x, nx);
-            if (u != v && !graph_tool::is_directed(_u) && !isinf(dS) && reciprocal)
+            if (u != v && !is_directed(_u) && !isinf(dS) && reciprocal)
                 dS += _dstate->get_edge_dS(v, u, x, nx);
             assert(!std::isinf(dS) && !std::isnan(dS));
             return dS * ea.alpha;
@@ -847,7 +847,7 @@ struct Dynamics
             get_es([&](auto u, auto v, auto m)
                    {
                        edges[v].push_back(u);
-                       if (!graph_tool::is_directed(_u))
+                       if (!is_directed(_u))
                            edges[u].push_back(v);
                        eds.emplace_back(u, v, m);
                    });
@@ -952,7 +952,7 @@ struct Dynamics
                 if (dstate)
                 {
                     _dstate->update_edge(u, v, x, 0);
-                    if (u != v && !graph_tool::is_directed(_u))
+                    if (u != v && !is_directed(_u))
                         _dstate->update_edge(v, u, x, 0);
                 }
             }
@@ -1006,7 +1006,7 @@ struct Dynamics
                     if (dstate)
                     {
                         _dstate->update_edge(u, v, 0, nx);
-                        if (u != v && !graph_tool::is_directed(_u))
+                        if (u != v && !is_directed(_u))
                             _dstate->update_edge(v, u, 0, nx);
                     }
                 }
@@ -1052,7 +1052,7 @@ struct Dynamics
                 if (dstate)
                 {
                     _dstate->update_edge(u, v, x, nx);
-                    if (u != v && !graph_tool::is_directed(_u))
+                    if (u != v && !is_directed(_u))
                         _dstate->update_edge(v, u, x, nx);
                 }
             }
@@ -1074,7 +1074,7 @@ struct Dynamics
             get_es([&](auto u, auto v, auto m)
                    {
                        edges[v].push_back(u);
-                       if (!graph_tool::is_directed(_u))
+                       if (!is_directed(_u))
                            edges[u].push_back(v);
                        eds.emplace_back(u, v, m);
                    });
@@ -1344,35 +1344,35 @@ struct Dynamics
                 ([&](auto u, auto v){ return d__(u, v, allow_edges); },
                  num_vertices(_u));
 
-            reversed_graph<Graph> g_(g);
             size_t n_tot = 0;
             size_t n_iter = 1;
 
             if (k > 0)
             {
+                auto& g_r = make_reversed_graph(g);
                 if (!knn)
                 {
                     if (exact)
-                        n_tot = gen_k_nearest_exact<true>(g_, d, k, false, w);
+                        n_tot = gen_k_nearest_exact<true>(g_r, d, k, false, w);
                     else if (use_hint)
                         std::tie(n_tot, n_iter) =
-                            gen_k_nearest<true>(g_, d, k, r, max_rk, epsilon, c_stop,
+                            gen_k_nearest<true>(g_r, d, k, r, max_rk, epsilon, c_stop,
                                                 max_iter, w, _u, false, verbose, rng_);
                     else
                         std::tie(n_tot, n_iter) =
-                            gen_k_nearest<true>(g_, d, k, r, max_rk, epsilon, c_stop,
+                            gen_k_nearest<true>(g_r, d, k, r, max_rk, epsilon, c_stop,
                                                 max_iter, w, _dummy_hint, false,
                                                 verbose, rng_);
                 }
                 else
                 {
                     if (exact)
-                        n_tot = gen_knn_exact<true>(g_, d, k, w);
+                        n_tot = gen_knn_exact<true>(g_r, d, k, w);
                     else if (use_hint)
-                        n_tot = gen_knn<true>(g_, d, k, r, max_rk, epsilon, c_stop,
+                        n_tot = gen_knn<true>(g_r, d, k, r, max_rk, epsilon, c_stop,
                                               max_iter, w, _u, verbose, rng_);
                     else
-                        n_tot = gen_knn<true>(g_, d, k, r, max_rk, epsilon, c_stop,
+                        n_tot = gen_knn<true>(g_r, d, k, r, max_rk, epsilon, c_stop,
                                               max_iter, w, _dummy_hint, verbose, rng_);
                 }
             }
@@ -1570,7 +1570,7 @@ struct Dynamics
         double edge_diff(size_t u, size_t v, double h, const dentropy_args_t& ea)
         {
             auto get_dS =
-                [=](auto x, auto nx)
+                [&](auto x, auto nx)
                 {
                     return (dstate_edge_dS(u, v, x, nx, ea) +
                             (edge_x_S(nx, ea) - edge_x_S(x, ea)));
@@ -1603,7 +1603,7 @@ struct Dynamics
             auto dispatch =
                 [&](size_t u, size_t v, auto&& f)
                 {
-                    bool dir = graph_tool::is_directed(_u) || u == v;
+                    bool dir = is_directed(_u) || u == v;
 
                     if (dir)
                         vmutex[v].lock();
@@ -1708,27 +1708,6 @@ struct Dynamics
             else
                 c -= (c - b) / 2;
             return {a, c};
-        }
-
-        template <class RNG>
-        std::tuple<double, BisectionSampler>
-        sample_old_x(size_t u, size_t v, double pu, double beta,
-                     const entropy_args_t& ea, const bisect_args_t& ba,
-                     RNG& rng)
-        {
-            auto [nx, sampler] = sample_x(u, v, beta, ea, ba, false, rng);
-            SetBisectionSampler set_sampler(_xvals, sampler);
-            return {set_sampler.sample(pu, beta, _xdelta, rng), sampler};
-        }
-
-        template <class RNG>
-        std::tuple<double, BisectionSampler>
-        sample_old_t(size_t v, double pu, double beta, const entropy_args_t& ea,
-                     const bisect_args_t& ba, RNG& rng)
-        {
-            auto [nx, sampler] = sample_t(v, beta, ea, ba, false, rng);
-            SetBisectionSampler set_sampler(_tvals, sampler);
-            return {set_sampler.sample(pu, beta, _tdelta, rng), sampler};
         }
 
         template <bool try_zero, class F, class U, class Hist, class Vals,

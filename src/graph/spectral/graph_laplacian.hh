@@ -89,7 +89,7 @@ struct get_laplacian
             j[pos] = get(index, source(e, g));
 
             ++pos;
-            if (!graph_tool::is_directed(g))
+            if (!is_directed(g))
             {
                 data[pos] = -get(weight, e) * r;
                 i[pos] = get(index, source(e, g));

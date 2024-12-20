@@ -34,7 +34,7 @@ namespace graph_tool
 
 constexpr size_t null_group = std::numeric_limits<size_t>::max();
 
-typedef vprop_map_t<std::tuple<size_t, size_t>>::type degs_map_t;
+typedef vprop_map_t<std::tuple<size_t, size_t>> degs_map_t;
 
 struct simple_degs_t {};
 
@@ -66,7 +66,7 @@ public:
               class Vlist>
     partition_stats(Graph& g, Vprop& b, Vlist&& vlist, size_t E, size_t B,
                     VWprop& vweight, Eprop& eweight, Degs& degs)
-        : _directed(graph_tool::is_directed(g)), _N(0), _E(E), _total_B(B)
+        : _directed(is_directed(g)), _N(0), _E(E), _total_B(B)
     {
         if constexpr (!use_rmap)
         {
@@ -351,7 +351,7 @@ public:
     template <class Graph>
     double get_edges_dl(size_t B, Graph& g, int dE = 0)
     {
-        size_t BB = (graph_tool::is_directed(g)) ? B * B : (B * (B + 1)) / 2;
+        size_t BB = (is_directed(g)) ? B * B : (B * (B + 1)) / 2;
         return lbinom_fast(BB + _E + dE - 1, _E + dE);
     }
 

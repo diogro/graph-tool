@@ -36,16 +36,9 @@ GraphInterface::GraphInterface()
      _directed(true),
      _graph_index(0),
      _vertex_filter_map(_vertex_index),
-     _vertex_filter_invert(false),
      _vertex_filter_active(false),
      _edge_filter_map(_edge_index),
-     _edge_filter_invert(false),
      _edge_filter_active(false)
-{
-}
-
-// the destructor
-GraphInterface::~GraphInterface()
 {
 }
 
@@ -55,8 +48,7 @@ size_t GraphInterface::get_num_vertices(bool filtered)
 {
     size_t n = 0;
     if (filtered && is_vertex_filter_active())
-        run_action<>()(*this, lambda::var(n) =
-                       lambda::bind<size_t>(HardNumVertices(),lambda::_1))();
+        run_action<>()(*this, [&](auto& g){ n = hard_num_vertices(g); })();
     else
         n = num_vertices(*_mg);
     return n;
@@ -70,8 +62,7 @@ size_t GraphInterface::get_num_edges(bool filtered)
     using namespace boost::lambda;
     size_t n = 0;
     if (filtered && (is_edge_filter_active() || is_vertex_filter_active()))
-        run_action<>()(*this, lambda::var(n) =
-                       lambda::bind<size_t>(HardNumEdges(),lambda::_1))();
+        run_action<>()(*this, [&](auto& g){ n = hard_num_edges(g); })();
     else
         n = num_edges(*_mg);
     return n;

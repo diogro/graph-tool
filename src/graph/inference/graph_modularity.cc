@@ -30,15 +30,15 @@ double modularity(GraphInterface& gi, double gamma, boost::any weight,
     double Q = 0;
 
     typedef UnityPropertyMap<int, GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        edge_props_t;
+    auto edge_props_t = hana::append(edge_scalar_properties,
+                                     hana::type<weight_map_t>());
 
     if(weight.empty())
         weight = weight_map_t();
 
     run_action<>()
-        (gi, [&](auto& g, auto& w, auto& b){ Q = get_modularity(g, gamma, w, b);},
-         edge_props_t(), vertex_scalar_properties())
+        (gi, [&](auto& g, auto w, auto b){ Q = get_modularity(g, gamma, w, b);},
+         edge_props_t, vertex_scalar_properties)
         (weight, property);
 
     return Q;

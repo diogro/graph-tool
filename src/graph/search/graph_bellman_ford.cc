@@ -29,55 +29,57 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
 
+template <class GP>
 class BFVisitorWrapper
 {
 public:
-    BFVisitorWrapper(GraphInterface& gi, python::object vis)
-        : _gi(gi), _vis(vis) {}
+    BFVisitorWrapper(GP& gp, python::object vis)
+        : _gp(gp), _vis(vis) {}
 
     template <class Edge, class Graph>
     void examine_edge(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("examine_edge")
-            (PythonEdge<Graph>(gp, e));
+            (PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_relaxed(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_relaxed")
-            (PythonEdge<Graph>(gp, e));
+            (PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_not_relaxed(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_not_relaxed")
-            (PythonEdge<Graph>(gp, e));
+            (PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_minimized(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_minimized")
-            (PythonEdge<Graph>(gp, e));
+            (PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_not_minimized(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_not_minimized")
-            (PythonEdge<Graph>(gp, e));
+            (PythonEdge<Graph>(_gp, e));
     }
 
 private:
-    GraphInterface& _gi;
+    GP _gp;
     python::object _vis;
 };
 
@@ -116,9 +118,9 @@ private:
 
 struct do_bf_search
 {
-    template <class Graph, class DistanceMap>
+    template <class Graph, class DistanceMap, class Visitor>
     void operator()(Graph& g, size_t s, DistanceMap dist, boost::any pred_map,
-                    boost::any aweight, BFVisitorWrapper vis, pair<BFCmp,
+                    boost::any aweight, Visitor vis, pair<BFCmp,
                     BFCmb> cm, pair<python::object, python::object> range,
                     bool& ret) const
     {
@@ -126,14 +128,13 @@ struct do_bf_search
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
 
-        typedef typename property_map_type::
-            apply<int64_t, decltype(get(vertex_index, g))>::type pred_t;
+        typedef vprop_map_t<int64_t> pred_t;
         pred_t pred = any_cast<pred_t>(pred_map);
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
-                                                       edge_properties());
+                                                       edge_properties);
         ret = bellman_ford_shortest_paths
-            (g, HardNumVertices()(g),
+            (g, hard_num_vertices(g),
              root_vertex(vertex(s, g)).visitor(vis).weight_map(weight).
              distance_map(dist).
              predecessor_map(pred).
@@ -151,17 +152,17 @@ bool bellman_ford_search(GraphInterface& g, size_t source, boost::any dist_map,
                          python::object inf)
 {
     bool ret = false;
-    run_action<graph_tool::all_graph_views, mpl::true_>(false)
+    run_action<decltype(graph_view_ptrs), false>(false)
         (g,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& gp, auto&& a2)
          {
              return do_bf_search()
-                 (std::forward<decltype(graph)>(graph), source,
+                 (*gp, source,
                   std::forward<decltype(a2)>(a2), pred_map, weight,
-                  BFVisitorWrapper(g, vis), make_pair(BFCmp(cmp), BFCmb(cmb)),
+                  BFVisitorWrapper<decltype(gp)>(gp, vis), make_pair(BFCmp(cmp), BFCmb(cmb)),
                   make_pair(zero, inf), ret);
          },
-         writable_vertex_properties())(dist_map);
+         writable_vertex_properties)(dist_map);
     return ret;
 }
 

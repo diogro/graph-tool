@@ -43,7 +43,7 @@ struct get_eigentrust
 
         // Norm c values
         InferredTrustMap c_sum(vertex_index);
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
         {
             TrustMap c_temp(edge_index, c.get_storage().size());
             parallel_vertex_loop
@@ -75,7 +75,7 @@ struct get_eigentrust
         }
 
         // init inferred trust t
-        auto V = HardNumVertices()(g);
+        auto V = hard_num_vertices(g);
         parallel_vertex_loop(g, [&](auto v) { t[v] = 1.0/V; });
 
         t_type delta = epslon + 1;
@@ -93,7 +93,7 @@ struct get_eigentrust
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
                          auto s = source(e, g);
-                         if (!graph_tool::is_directed(g))
+                         if (!is_directed(g))
                              t_temp[v] += get(c, e) * t[s] / abs(c_sum[s]);
                          else
                              t_temp[v] += get(c, e) * t[s];

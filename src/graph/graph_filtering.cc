@@ -23,22 +23,17 @@ using namespace graph_tool::detail;
 using namespace boost;
 using namespace std;
 
-bool graph_tool::graph_filtering_enabled()
-{
-    return true;
-}
-
 // Whenever no implementation is called, the following exception is thrown
-graph_tool::ActionNotFound::ActionNotFound(const type_info& action,
-                                           const vector<const type_info*>& args)
-    : GraphException(""), _action(action), _args(args)
+graph_tool::DispatchNotFound::DispatchNotFound(const type_info& dispatch,
+                                               const vector<const type_info*>& args)
+    : GraphException(""), _dispatch(dispatch), _args(args)
 {
     _error =
         "No static implementation was found for the desired routine. "
         "This is a graph_tool bug. :-( Please submit a bug report at "
         PACKAGE_BUGREPORT ". What follows is debug information.\n\n";
 
-    _error += "Action: " + name_demangle(_action.name()) + "\n\n";
+    _error += "Dispatch: " + name_demangle(_dispatch.name()) + "\n\n";
     for (size_t i = 0; i < _args.size(); ++i)
     {
         _error += "Arg " + lexical_cast<string>(i+1) + ": " +
@@ -47,89 +42,71 @@ graph_tool::ActionNotFound::ActionNotFound(const type_info& action,
 }
 
 
-// this will check whether a graph is filtered and return the proper view
-// encapsulated
-template <class Graph, class EdgeFilter, class VertexFilter>
-boost::any
-check_filtered(const Graph& g, const EdgeFilter& edge_filter,
-               const bool& e_invert, bool e_active, size_t max_eindex,
-               const VertexFilter& vertex_filter, const bool& v_invert,
-               bool v_active, GraphInterface& gi, bool reverse, bool directed)
+// gets the correct graph view at run time
+boost::any GraphInterface::get_graph_view() const
 {
+    size_t pos = 0;
 
-    auto check_filt = [&](auto&& u) -> boost::any
+    auto check_filt = [&](auto& u) -> boost::any
         {
-            typedef typename std::remove_const<
-                typename std::remove_reference<decltype(u)>::type>::type g_t;
-            if (e_active || v_active)
+            typedef std::remove_const_t<std::remove_reference_t<decltype(*u)>>
+                g_t;
+            if (_edge_filter_active || _vertex_filter_active)
             {
-                MaskFilter<EdgeFilter>
-                    e_filter(const_cast<EdgeFilter&>(edge_filter),
-                             const_cast<bool&>(e_invert));
-                MaskFilter<VertexFilter>
-                    v_filter(const_cast<VertexFilter&>(vertex_filter),
-                             const_cast<bool&>(v_invert));
+                auto max_eindex = _mg->get_edge_index_range();
                 if (max_eindex > 0)
-                    edge_filter.reserve(max_eindex);
-                if (num_vertices(g) > 0)
-                    vertex_filter.reserve(num_vertices(g));
+                    _edge_filter_map.reserve(max_eindex);
+                if (num_vertices(*u) > 0)
+                    _vertex_filter_map.reserve(num_vertices(*u));
 
                 typedef filt_graph<g_t,
-                                   MaskFilter<EdgeFilter>,
-                                   MaskFilter<VertexFilter>> fg_t;
+                                   MaskFilter<edge_filter_t>,
+                                   MaskFilter<vertex_filter_t>> fg_t;
 
-                fg_t init(u, e_filter, v_filter);
-                fg_t& fg = *retrieve_graph_view(gi, init);
-                return std::ref(fg);
+                MaskFilter<edge_filter_t> e_filter(_edge_filter_map);
+                MaskFilter<vertex_filter_t> v_filter(_vertex_filter_map);
+
+                auto& gviews = const_cast<decltype(_gviews)&>(_gviews);
+                if (pos >= gviews.size())
+                    gviews.resize(pos + 1);
+                auto& a = gviews[pos];
+                if (a.empty())
+                    a = std::make_shared<fg_t>(*u, e_filter, v_filter);
+                return a;
             }
             else
             {
-                return std::ref(const_cast<g_t&>(u));
+                return u;
             }
         };
 
-    auto check_reverse = [&](auto&& u) -> boost::any
+    auto check_reverse = [&](auto& u) -> boost::any
         {
-            typedef typename std::remove_const<
-                typename std::remove_reference<decltype(u)>::type>::type g_t;
-            if (reverse)
+            if (_reversed)
             {
-                typedef typename
-                    std::conditional<std::is_const<g_t>::value,
-                                     const reversed_graph<typename std::remove_const<g_t>::type>,
-                                     reversed_graph<g_t> >::type
-                    reversed_graph_t;
-                reversed_graph_t rg(u);
-                return check_filt(*retrieve_graph_view(gi, rg));
+                pos = 1;
+                typedef std::remove_const_t<std::remove_reference_t<decltype(*u)>>
+                    g_t;
+                typedef reversed_graph<g_t> rg_t;
+                std::shared_ptr<rg_t> rg = std::reinterpret_pointer_cast<rg_t>(u);
+                return check_filt(rg);
             }
             return check_filt(u);
         };
 
-    auto check_directed = [&](auto&& u) -> boost::any
+    auto check_directed = [&](auto& u) -> boost::any
         {
-            typedef typename std::remove_const<
-                typename std::remove_reference<decltype(u)>::type>::type g_t;
-            if (directed)
+            if (_directed)
                 return check_reverse(u);
+            pos = 2;
+            typedef std::remove_const_t<std::remove_reference_t<decltype(*u)>>
+                g_t;
             typedef undirected_adaptor<g_t> ug_t;
-            ug_t ug(u);
-            return check_filt(*retrieve_graph_view(gi, ug));
+            std::shared_ptr<ug_t> ug = std::reinterpret_pointer_cast<ug_t>(u);
+            return check_filt(ug);
         };
 
-    return check_directed(g);
-}
-
-// gets the correct graph view at run time
-boost::any GraphInterface::get_graph_view() const
-{
-    boost::any graph =
-        check_filtered(*_mg, _edge_filter_map, _edge_filter_invert,
-                       _edge_filter_active, _mg->get_edge_index_range(),
-                       _vertex_filter_map, _vertex_filter_invert,
-                       _vertex_filter_active,
-                       const_cast<GraphInterface&>(*this), _reversed,
-                       _directed);
-    return graph;
+    return check_directed(_mg);
 }
 
 // these test whether or not the vertex and edge filters are active
@@ -154,7 +131,7 @@ void GraphInterface::purge_edges()
     if (!is_edge_filter_active())
         return;
 
-    MaskFilter<edge_filter_t> filter(_edge_filter_map, _edge_filter_invert);
+    MaskFilter<edge_filter_t> filter(_edge_filter_map);
     vector<graph_traits<multigraph_t>::edge_descriptor> deleted_edges;
     for (auto v : vertices_range(*_mg))
     {
@@ -175,11 +152,10 @@ void GraphInterface::purge_vertices(boost::any aold_index)
     if (!is_vertex_filter_active())
         return;
 
-    typedef vprop_map_t<int64_t>::type index_prop_t;
+    typedef vprop_map_t<int64_t> index_prop_t;
     index_prop_t old_index = any_cast<index_prop_t>(aold_index);
 
-    MaskFilter<vertex_filter_t> filter(_vertex_filter_map,
-                                       _vertex_filter_invert);
+    MaskFilter<vertex_filter_t> filter(_vertex_filter_map);
     size_t N = num_vertices(*_mg);
     vector<bool> deleted(N, false);
     for (size_t i = 0; i < N; ++i)
@@ -200,13 +176,12 @@ void GraphInterface::purge_vertices(boost::any aold_index)
         old_index[vertex((N - 1) - i, *_mg)] = old_indices[i];
 }
 
-void GraphInterface::set_vertex_filter_property(boost::any property, bool invert)
+void GraphInterface::set_vertex_filter_property(boost::any property)
 {
     try
     {
         _vertex_filter_map =
             any_cast<vertex_filter_t::checked_t>(property).get_unchecked();
-        _vertex_filter_invert = invert;
         _vertex_filter_active = true;
     }
     catch(bad_any_cast&)
@@ -217,13 +192,12 @@ void GraphInterface::set_vertex_filter_property(boost::any property, bool invert
     }
 }
 
-void GraphInterface::set_edge_filter_property(boost::any property, bool invert)
+void GraphInterface::set_edge_filter_property(boost::any property)
 {
     try
     {
         _edge_filter_map =
             any_cast<edge_filter_t::checked_t>(property).get_unchecked();
-        _edge_filter_invert = invert;
         _edge_filter_active = true;
     }
     catch(bad_any_cast&)

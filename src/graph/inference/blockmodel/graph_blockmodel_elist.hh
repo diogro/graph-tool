@@ -108,7 +108,7 @@ public:
 
             auto p = _egroups[r].get_prob(iter->second);
 
-            if (!graph_tool::is_directed(bg) || r == s)
+            if (!is_directed(bg) || r == s)
             {
                 assert(p == mrs[e] * (r == s ? 2 : 1));
             }

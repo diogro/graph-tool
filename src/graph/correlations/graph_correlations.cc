@@ -32,15 +32,6 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-// implementations spread across different compile units to minimize memory
-// usage during compilation
-void graph_correlations_imp1(GraphInterface& g, boost::python::object& hist,
-                             boost::python::object& ret_bins,
-                             boost::any deg1, boost::any deg2,
-                             boost::any weight,
-                             const std::array<vector<long double>,2>& bins);
-
-
 typedef UnityPropertyMap<int,GraphInterface::edge_t> cweight_map_t;
 
 boost::python::object
@@ -63,26 +54,16 @@ get_vertex_correlation_histogram(GraphInterface& gi,
         wrapped_weight_t;
 
     if (!weight.empty())
-    {
-        weight_prop = wrapped_weight_t(weight, edge_scalar_properties());
-    }
+        weight_prop = wrapped_weight_t(weight, edge_scalar_properties);
     else
         weight_prop = cweight_map_t();
 
-    try
-    {
-        run_action<>(false)
-            (gi, get_correlation_histogram<GetNeighborsPairs>
-             (hist, bins, ret_bins),
-             scalar_selectors(), scalar_selectors(),
-             boost::mpl::vector<cweight_map_t>())
-            (degree_selector(deg1), degree_selector(deg2), weight_prop);
-    }
-    catch (ActionNotFound&)
-    {
-        graph_correlations_imp1(gi, hist, ret_bins, degree_selector(deg1),
-                                degree_selector(deg2), weight_prop, bins);
-    }
+    run_action<>(false)
+        (gi, get_correlation_histogram<GetNeighborsPairs>
+         (hist, bins, ret_bins),
+         all_selectors, all_selectors,
+         hana::tuple_t<cweight_map_t, wrapped_weight_t>)
+        (degree_selector(deg1), degree_selector(deg2), weight_prop);
 
     return boost::python::make_tuple(hist, ret_bins);
 }

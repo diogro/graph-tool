@@ -23,9 +23,9 @@
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 #include <graph_python_interface.hh>
 
-using namespace graph_tool;
 using namespace boost;
 using namespace std;
+using namespace graph_tool;
 
 struct ListMatch
 {
@@ -103,7 +103,7 @@ struct GenMatch
                     return true;
                 vmap[v] = w;
             }
-            _yield(boost::python::object(PythonPropertyMap<VertexMap>(c_vmap)));
+            _yield(boost::python::object(graph_tool::PythonPropertyMap<VertexMap>(c_vmap)));
             return true;
         }
 
@@ -180,23 +180,15 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                      boost::any edge_label1, boost::any edge_label2,
                      size_t max_n, bool induced, bool iso, bool generator)
 {
-    // typedef mpl::push_back<vertex_properties,
-    //                        UnityPropertyMap<bool,GraphInterface::vertex_t> >
-    //     ::type vertex_props_t;
+    typedef vprop_map_t<int64_t> vlabel_t;
+    auto vertex_props = hana::tuple_t<typename vlabel_t::unchecked_t,
+                                      UnityPropertyMap<bool,
+                                                       GraphInterface::vertex_t> >;
 
-    // typedef mpl::push_back<edge_properties,
-    //                        UnityPropertyMap<bool,GraphInterface::edge_t> >
-    //     ::type edge_props_t;
-
-    typedef vprop_map_t<int64_t>::type vlabel_t;
-    typedef mpl::vector2<typename vlabel_t::unchecked_t,
-                         UnityPropertyMap<bool,
-                                          GraphInterface::vertex_t> > vertex_props_t;
-
-    typedef eprop_map_t<int64_t>::type elabel_t;
-    typedef mpl::vector2<typename elabel_t::unchecked_t,
-                         UnityPropertyMap<bool,
-                                          GraphInterface::edge_t> > edge_props_t;
+    typedef eprop_map_t<int64_t> elabel_t;
+    auto edge_props = hana::tuple_t<typename elabel_t::unchecked_t,
+                                    UnityPropertyMap<bool,
+                                                     GraphInterface::edge_t> >;
 
 
     if (gi1.get_directed() != gi2.get_directed())
@@ -237,8 +229,8 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                       std::forward<decltype(a4)>(a4), edge_label2, vmaps,
                       max_n, induced, iso, ListMatch());
              },
-             all_graph_views(), all_graph_views(), vertex_props_t(),
-             edge_props_t())(gi1.get_graph_view(), gi2.get_graph_view(),
+             all_graph_views, all_graph_views, vertex_props,
+             edge_props)(gi1.get_graph_view(), gi2.get_graph_view(),
                              vertex_label1, edge_label1);
 
         python::list vmapping;
@@ -262,7 +254,7 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                           std::forward<decltype(a4)>(a4), edge_label2, vmaps,
                           max_n, induced, iso, GenMatch(yield));
                  },
-                 all_graph_views(), vertex_props_t(), edge_props_t())
+                 all_graph_views, vertex_props, edge_props)
                 (gi2.get_graph_view(), vertex_label1, edge_label1);
         };
         CoroGenerator gen(dispatch);

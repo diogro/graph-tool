@@ -144,10 +144,10 @@ struct do_out_edges_op
     void operator()(Graph& g, EProp eprop, boost::any avprop, OP op) const
     {
         typedef typename property_traits<EProp>::value_type eval_t;
-        typedef typename property_map_type::apply<
-            typename mpl::if_<std::is_same<eval_t, size_t>,
-                              int64_t, eval_t>::type,
-            GraphInterface::vertex_index_map_t>::type VProp;
+        typedef property_map_t<
+            std::conditional_t<std::is_same_v<eval_t, size_t>,
+                               int64_t, eval_t>,
+            GraphInterface::vertex_index_map_t> VProp;
 
         auto vprop = boost::any_cast<VProp>(avprop).get_unchecked(num_vertices(g));
 
@@ -181,7 +181,7 @@ void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
                      (std::forward<decltype(graph)>(graph),
                       std::forward<decltype(a2)>(a2), vprop, SumOp());
              },
-             edge_properties())(eprop);
+             edge_properties)(eprop);
     }
     else if (op == "prod")
     {
@@ -193,7 +193,7 @@ void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
                      (std::forward<decltype(graph)>(graph),
                       std::forward<decltype(a2)>(a2), vprop, ProdOp());
              },
-             edge_properties())(eprop);
+             edge_properties)(eprop);
     }
     else if (op == "min")
     {
@@ -205,7 +205,7 @@ void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
                      (std::forward<decltype(graph)>(graph),
                       std::forward<decltype(a2)>(a2), vprop, MinOp());
              },
-             edge_properties())(eprop);
+             edge_properties)(eprop);
     }
     else if (op == "max")
     {
@@ -217,6 +217,6 @@ void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
                      (std::forward<decltype(graph)>(graph),
                       std::forward<decltype(a2)>(a2), vprop, MaxOp());
              },
-             edge_properties())(eprop);
+             edge_properties)(eprop);
     }
 }

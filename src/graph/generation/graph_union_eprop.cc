@@ -28,9 +28,9 @@ using namespace graph_tool;
 using namespace boost;
 
 
-typedef vprop_map_t<int64_t>::type vprop_t;
+typedef vprop_map_t<int64_t> vprop_t;
 
-typedef eprop_map_t<GraphInterface::edge_t>::type eprop_t;
+typedef eprop_map_t<GraphInterface::edge_t> eprop_t;
 
 void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
                          boost::any p_vprop, boost::any p_eprop,
@@ -39,7 +39,7 @@ void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
     vprop_t vprop = any_cast<vprop_t>(p_vprop);
     eprop_t eprop = any_cast<eprop_t>(p_eprop);
 
-    run_action<graph_tool::detail::always_directed>()
+    run_action<decltype(graph_tool::always_directed)>()
         (ugi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -48,8 +48,8 @@ void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
                   std::forward<decltype(a2)>(a2), vprop, eprop,
                   std::forward<decltype(a3)>(a3), prop);
          },
-         always_directed(),
-         writable_edge_properties())(gi.get_graph_view(), uprop);
+         always_directed,
+         writable_edge_properties)(gi.get_graph_view(), uprop);
 }
 
 #include <boost/python.hpp>

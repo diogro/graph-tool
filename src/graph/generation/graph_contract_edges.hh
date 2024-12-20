@@ -47,7 +47,7 @@ void contract_parallel_edges(Graph& g, EWeight eweight)
         {
             auto u = target(e, g);
 
-            if (!graph_tool::is_directed(g) && u < v)
+            if (!is_directed(g) && u < v)
                 continue;
 
             auto iter = emap.find(u);
@@ -88,14 +88,14 @@ void expand_parallel_edges(Graph& g, EWeight eweight)
     for (auto v : vertices_range(g))
     {
         edges.clear();
-        if (!graph_tool::is_directed(g))
+        if (!is_directed(g))
             loops.clear();
 
         for (auto e : out_edges_range(v, g))
         {
             auto u = target(e, g);
 
-            if (!graph_tool::is_directed(g))
+            if (!is_directed(g))
             {
                 if (v > u)
                     continue;
@@ -105,7 +105,7 @@ void expand_parallel_edges(Graph& g, EWeight eweight)
 
             edges.push_back(e);
 
-            if (!graph_tool::is_directed(g) && u == v)
+            if (!is_directed(g) && u == v)
                 loops.insert(eidx[e]);
         }
 

@@ -125,7 +125,7 @@ double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g
        auto dw = std::min(w, mark[target(e, g)]);
        if (mark[target(e, g)] > 0)
        {
-           if (graph_tool::is_directed(g))
+           if (is_directed(g))
                count += dw / log(in_degreeS()(target(e, g), g, weight));
            else
                count += dw / log(out_degreeS()(target(e, g), g, weight));
@@ -149,7 +149,7 @@ double r_allocation(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
        auto dw = std::min(w, mark[target(e, g)]);
        if (mark[target(e, g)] > 0)
        {
-           if (graph_tool::is_directed(g))
+           if (is_directed(g))
                count += dw / double(in_degreeS()(target(e, g), g, weight));
            else
                count += dw / double(out_degreeS()(target(e, g), g, weight));

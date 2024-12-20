@@ -794,8 +794,7 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
     >>> print(len(vm))
     100
     >>> for i in range(len(vm)):
-    ...   g.set_vertex_filter(None)
-    ...   g.set_edge_filter(None)
+    ...   g.clear_filters()
     ...   vmask, emask = gt.mark_subgraph(g, sub, vm[i])
     ...   g.set_vertex_filter(vmask)
     ...   g.set_edge_filter(emask)
@@ -1472,7 +1471,7 @@ def extract_largest_component(g, directed=None, prune=False):
     >>> g = gt.random_graph(100, lambda: poisson(1), directed=False)
     >>> u = gt.extract_largest_component(g)
     >>> print(u)
-    <GraphView object, undirected, with 28 vertices and 27 edges, edges filtered by (<EdgePropertyMap object with value type 'bool', for Graph 0x..., at 0x...>, False), vertices filtered by (<VertexPropertyMap object with value type 'bool', for Graph 0x..., at 0x...>, False), at 0x...>
+    <GraphView object, undirected, with 28 vertices and 27 edges, edges filtered by <EdgePropertyMap object with value type 'bool', for Graph 0x..., at 0x...>, vertices filtered by <VertexPropertyMap object with value type 'bool', for Graph 0x..., at 0x...>, at 0x...>
     """
 
     c = label_largest_component(g, directed=directed)
@@ -2884,7 +2883,7 @@ def is_planar(g, embedding=False, kuratowski=False):
     >>> p, kur = gt.is_planar(g, kuratowski=True)
     >>> print(p)
     False
-    >>> g.set_edge_filter(kur, True)
+    >>> g.set_edge_filter(kur)
     >>> gt.graph_draw(g, output="kuratowski.pdf")
     <...>
 

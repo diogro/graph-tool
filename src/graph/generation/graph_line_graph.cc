@@ -47,7 +47,7 @@ struct get_line_graph
             vertex_map[v] = edge_index[e];
         }
 
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
         {
             for (auto v : vertices_range(g))
             {
@@ -87,10 +87,7 @@ struct get_line_graph
 void line_graph(GraphInterface& gi, GraphInterface& lgi,
                 boost::any edge_index)
 {
-    typedef property_map_types::apply<boost::mpl::vector<int64_t>,
-                                      GraphInterface::vertex_index_map_t,
-                                      boost::mpl::false_>::type
-        vertex_properties;
+    auto vertex_properties = hana::tuple_t<vprop_map_t<int64_t>>;
 
     run_action<>()
         (gi,
@@ -101,7 +98,7 @@ void line_graph(GraphInterface& gi, GraphInterface& lgi,
                   lgi.get_graph(), lgi.get_edge_index(),
                   std::forward<decltype(a2)>(a2));
          },
-         vertex_properties())(edge_index);
+         vertex_properties)(edge_index);
 }
 
 #include <boost/python.hpp>

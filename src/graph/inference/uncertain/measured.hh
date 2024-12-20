@@ -32,9 +32,9 @@ using namespace boost;
 using namespace std;
 
 #define MEASURED_STATE_params                                                  \
-    ((g, &, all_graph_views, 1))                                               \
-    ((n,, eprop_map_t<int>::type, 0))                                          \
-    ((x,, eprop_map_t<int>::type, 0))                                          \
+    ((g, &, decltype(all_graph_views), 1))                                     \
+    ((n,, eprop_map_t<int>, 0))                                                \
+    ((x,, eprop_map_t<int>, 0))                                                \
     ((n_default,, int, 0))                                                     \
     ((x_default,, int, 0))                                                     \
     ((alpha,, double, 0))                                                      \
@@ -97,9 +97,9 @@ struct Measured
 
             uint64_t N = num_vertices(_g);
             if (_self_loops)
-                _NP = graph_tool::is_directed(_g) ? N * N : (N * (N + 1)) / 2;
+                _NP = is_directed(_g) ? N * N : (N * (N + 1)) / 2;
             else
-                _NP = graph_tool::is_directed(_g) ? N * (N - 1) : (N * (N - 1)) / 2;
+                _NP = is_directed(_g) ? N * (N - 1) : (N * (N - 1)) / 2;
 
             _N += (_NP - gE) * _n_default;
             _X += (_NP - gE) * _x_default;
@@ -139,7 +139,7 @@ struct Measured
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
         {
-            if (!graph_tool::is_directed(g) && u > v)
+            if (!is_directed(g) && u > v)
                 std::swap(u, v);
             auto& qe = edges[u];
             if (insert)

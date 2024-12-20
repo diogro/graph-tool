@@ -42,7 +42,8 @@ public:
            Value tol = 0, RNG&... rng)
     {
         Value x_mid;
-        return search(x_min, x_mid, x_max, f, maxiter, tol, rng...);
+        return search(x_min, x_mid, x_max, std::forward<F>(f), maxiter, tol,
+                      rng...);
     }
 
     template <class F, class... RNG>

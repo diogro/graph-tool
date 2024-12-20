@@ -140,14 +140,14 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     PythonFuncWrap corr(corr_prob);
     size_t pcount = 0;
 
-    typedef eprop_map_t<uint8_t>::type emap_t;
+    typedef eprop_map_t<uint8_t> emap_t;
 
     emap_t::unchecked_t pin =
         any_cast<emap_t>(apin).get_unchecked(gi.get_edge_index_range());
 
     if (strat == "erdos")
     {
-        run_action<graph_tool::detail::never_reversed>(false)
+        run_action<decltype(never_reversed)>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -160,7 +160,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "configuration")
     {
-        run_action<graph_tool::detail::never_reversed>(false)
+        run_action<decltype(never_reversed)>(false)
             (gi,
              [&](auto&& graph)
              {
@@ -175,7 +175,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         if (block.empty())
         {
-            run_action<graph_tool::detail::never_reversed>(false)
+            run_action<decltype(never_reversed)>(false)
                 (gi,
                  [&](auto&& graph)
                  {
@@ -189,7 +189,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         }
         else
         {
-            run_action<graph_tool::detail::never_reversed>(false)
+            run_action<decltype(never_reversed)>(false)
                 (gi,
                  [&](auto&& graph, auto&& a2)
                  {
@@ -201,7 +201,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                           std::make_tuple(persist, cache, verbose), pcount, rng,
                           std::forward<decltype(a2)>(a2));
                  },
-                 vertex_properties())(block);
+                 vertex_properties)(block);
         }
     }
     else if (strat == "probabilistic-configuration")
@@ -230,7 +230,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      make_pair(niter, no_sweep),
                      std::make_tuple(persist, cache, verbose), pcount, rng);
              },
-             vertex_properties())(block);
+             vertex_properties)(block);
     }
     else
     {

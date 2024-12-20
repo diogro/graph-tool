@@ -63,55 +63,28 @@ struct is_directed_
 };
 
 template <class Graph>
-constexpr bool is_directed(const Graph&)
-{
-    return is_directed_::apply<std::remove_reference_t<Graph>>::type::value;
-}
+constexpr bool is_directed_v = is_directed_::apply<Graph>::type::value;
 
-// This will count "by hand" the number of vertices on a graph. Always O(V).
-struct HardNumVertices
+// This will actually count the number of vertices on a graph. Always O(V).
+template <class Graph>
+size_t hard_num_vertices(Graph& g)
 {
-    template <class Graph>
-    size_t operator()(Graph& g) const
-    {
-        size_t n = 0;
-        typename boost::graph_traits<Graph>::vertex_iterator v_iter, v_begin, v_end;
-        std::tie(v_begin, v_end) = vertices(g);
-        for (v_iter = v_begin; v_iter != v_end; ++v_iter)
-            n++;
-        return n;
-    }
-};
-
-// This will return the number of vertices on a graph, as given by
-// num_vertices. Can be O(1).
-struct SoftNumVertices
-{
-    template <class Graph>
-    size_t operator()(Graph& g) const { return num_vertices(g); }
+    size_t n = 0;
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
+        reduction(+:n)
+    parallel_vertex_loop_no_spawn(g, [&](auto){ ++n; });
+    return n;
 };
 
 // This will count "by hand" the number of edges on a graph. Always O(E).
-struct HardNumEdges
+template <class Graph>
+size_t hard_num_edges(Graph& g)
 {
-    template <class Graph>
-    size_t operator()(Graph& g) const
-    {
-        size_t n = 0;
-        typename boost::graph_traits<Graph>::edge_iterator e_iter, e_begin, e_end;
-        std::tie(e_begin, e_end) = edges(g);
-        for (e_iter = e_begin; e_iter != e_end; ++e_iter)
-            n++;
-        return n;
-    }
-};
-
-// This will return the number of edges on a graph, as given by num_edges. Can
-// be O(1).
-struct SoftNumEdges
-{
-    template <class Graph>
-    size_t operator()(Graph& g) const { return num_edges(g); }
+    size_t n = 0;
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
+        reduction(+:n)
+    parallel_edge_loop_no_spawn(g, [&](auto){ ++n; });
+    return n;
 };
 
 // returns true if vertices u and v are adjacent. This is O(k(u)).

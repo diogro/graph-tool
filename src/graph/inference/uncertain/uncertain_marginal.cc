@@ -25,7 +25,7 @@ using namespace graph_tool;
 void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
                                boost::any aecount)
 {
-    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef eprop_map_t<int32_t> emap_t;
     auto ecount = any_cast<emap_t>(aecount);
 
     gt_dispatch<>()
@@ -35,7 +35,7 @@ void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
                                                   dummy_property(),
                                                   dummy_property(),
                                                   dummy_property()); },
-         all_graph_views(), all_graph_views())(gi.get_graph_view(),
+         all_graph_views, all_graph_views)(gi.get_graph_view(),
                                                ui.get_graph_view());
 }
 
@@ -43,10 +43,10 @@ void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
                                 boost::any ax, boost::any aecount,
                                 boost::any axsum, boost::any ax2sum)
 {
-    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef eprop_map_t<int32_t> emap_t;
     auto ecount = any_cast<emap_t>(aecount);
 
-    typedef eprop_map_t<double>::type xmap_t;
+    typedef eprop_map_t<double> xmap_t;
     auto xsum = any_cast<xmap_t>(axsum);
     auto x2sum = any_cast<xmap_t>(ax2sum);
 
@@ -55,7 +55,7 @@ void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
                                                           x, xsum, x2sum,
                                                           dummy_property(),
                                                           dummy_property()); },
-         all_graph_views(), all_graph_views(), edge_scalar_properties())
+         all_graph_views, all_graph_views, edge_scalar_properties)
         (gi.get_graph_view(), ui.get_graph_view(), ax);
 }
 
@@ -63,10 +63,10 @@ void collect_marginal_count_dispatch(GraphInterface& gi, GraphInterface& ui,
                                      boost::any aex, boost::any aexs,
                                      boost::any aexc)
 {
-    typedef eprop_map_t<int32_t>::type ecmap_t;
+    typedef eprop_map_t<int32_t> ecmap_t;
     auto ex = any_cast<ecmap_t>(aex);
 
-    typedef eprop_map_t<std::vector<int32_t>>::type emap_t;
+    typedef eprop_map_t<std::vector<int32_t>> emap_t;
     auto exs = any_cast<emap_t>(aexs);
     auto exc = any_cast<emap_t>(aexc);
 
@@ -77,13 +77,13 @@ void collect_marginal_count_dispatch(GraphInterface& gi, GraphInterface& ui,
                                                   dummy_property(),
                                                   dummy_property(),
                                                   exs, exc); },
-         all_graph_views(), all_graph_views())(gi.get_graph_view(),
+         all_graph_views, all_graph_views)(gi.get_graph_view(),
                                                ui.get_graph_view());
 }
 
 double marginal_count_entropy(GraphInterface& gi, boost::any aexc, boost::any aeh)
 {
-    typedef eprop_map_t<double>::type ehmap_t;
+    typedef eprop_map_t<double> ehmap_t;
     auto eh = any_cast<ehmap_t>(aeh);
 
     double S_tot = 0;
@@ -111,7 +111,7 @@ double marginal_count_entropy(GraphInterface& gi, boost::any aexc, boost::any ae
                       S_tot += S;
                   });
          },
-        all_graph_views(), edge_scalar_vector_properties())
+        all_graph_views, edge_scalar_vector_properties)
         (gi.get_graph_view(), aexc);
     return S_tot;
 }
@@ -120,14 +120,14 @@ void marginal_multigraph_sample(GraphInterface& gi, boost::any axs, boost::any a
                                 boost::any ax, rng_t& rng_)
 {
     gt_dispatch<>()
-        ([&](auto& g, auto& xs, auto& xc, auto& x)
+        ([&](auto& g, auto xs, auto xc, auto x)
          {
              parallel_rng<rng_t> prng(rng_);
              parallel_edge_loop
                  (g,
                   [&](auto& e)
                   {
-                      typedef std::remove_reference_t<decltype(xs[e][0])> val_t;
+                      typedef typename property_traits<decltype(xs)>::value_type::value_type val_t;
                       std::vector<double> probs(xc[e].begin(), xc[e].end());
                       Sampler<val_t> sample(xs[e], probs);
 
@@ -135,8 +135,8 @@ void marginal_multigraph_sample(GraphInterface& gi, boost::any axs, boost::any a
                       x[e] = sample.sample(rng);
                   });
          },
-         all_graph_views(), edge_scalar_vector_properties(),
-         edge_scalar_vector_properties(), writable_edge_scalar_properties())
+         all_graph_views, edge_scalar_vector_properties,
+         edge_scalar_vector_properties, writable_edge_scalar_properties)
         (gi.get_graph_view(), axs, axc, ax);
 }
 
@@ -145,7 +145,7 @@ double marginal_multigraph_lprob(GraphInterface& gi, boost::any axs, boost::any 
 {
     double L = 0;
     gt_dispatch<>()
-        ([&](auto& g, auto& xs, auto& xc, auto& x)
+        ([&](auto& g, auto xs, auto xc, auto x)
          {
              for (auto e : edges_range(g))
              {
@@ -166,8 +166,8 @@ double marginal_multigraph_lprob(GraphInterface& gi, boost::any axs, boost::any 
                  L += std::log(p) - std::log(Z);
              }
          },
-         all_graph_views(), edge_scalar_vector_properties(),
-         edge_scalar_vector_properties(), edge_scalar_properties())
+         all_graph_views, edge_scalar_vector_properties,
+         edge_scalar_vector_properties, edge_scalar_properties)
         (gi.get_graph_view(), axs, axc, ax);
     return L;
 }
@@ -176,7 +176,7 @@ void marginal_graph_sample(GraphInterface& gi, boost::any ap,
                            boost::any ax, rng_t& rng_)
 {
     gt_dispatch<>()
-        ([&](auto& g, auto& p, auto& x)
+        ([&](auto& g, auto p, auto x)
          {
              parallel_rng<rng_t> prng(rng_);
              parallel_edge_loop
@@ -188,8 +188,8 @@ void marginal_graph_sample(GraphInterface& gi, boost::any ap,
                       x[e] = sample(rng);
                   });
          },
-         all_graph_views(), edge_scalar_properties(),
-         writable_edge_scalar_properties())
+         all_graph_views, edge_scalar_properties,
+         writable_edge_scalar_properties)
         (gi.get_graph_view(), ap, ax);
 }
 
@@ -198,7 +198,7 @@ double marginal_graph_lprob(GraphInterface& gi, boost::any ap,
 {
     double L = 0;
     gt_dispatch<>()
-        ([&](auto& g, auto& p, auto& x)
+        ([&](auto& g, auto p, auto x)
          {
              for (auto e : edges_range(g))
              {
@@ -208,8 +208,8 @@ double marginal_graph_lprob(GraphInterface& gi, boost::any ap,
                      L += std::log1p(-p[e]);
              }
          },
-         all_graph_views(), edge_scalar_properties(),
-         edge_scalar_properties())
+         all_graph_views, edge_scalar_properties,
+         edge_scalar_properties)
         (gi.get_graph_view(), ap, ax);
     return L;
 }

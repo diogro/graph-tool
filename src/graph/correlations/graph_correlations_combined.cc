@@ -49,8 +49,8 @@ get_vertex_combined_correlation_histogram(GraphInterface& gi,
     run_action<>(false)
         (gi, get_correlation_histogram<GetCombinedPair>(hist, bins,
                                                         ret_bins),
-         scalar_selectors(), scalar_selectors(),
-         boost::mpl::vector<dummy_weight>())
+         all_selectors, all_selectors,
+         boost::hana::tuple_t<dummy_weight>)
         (any(degree_selector(deg1)), any(degree_selector(deg2)),
          boost::any(dummy_weight()));
 

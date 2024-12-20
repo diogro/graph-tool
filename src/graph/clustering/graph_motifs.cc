@@ -89,21 +89,17 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
     else
         sampler = sample_some(plist, rng);
 
-    typedef property_map_type
-            ::apply<int32_t, GraphInterface::vertex_index_map_t>::type
-            vmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
     std::vector<std::vector<vmap_t> > vmaps;
 
     run_action<>()
         (g,
-         [&](auto&& graph, auto&& a2)
+         [&](auto& graph, auto& samp)
          {
              return get_all_motifs(collect_vmaps, plist[0], comp_iso, fill_list,
-                                   rng)(std::forward<decltype(graph)>(graph), k,
-                                        list, phist, vmaps,
-                                        std::forward<decltype(a2)>(a2));
+                                   rng)(graph, k, list, phist, vmaps, samp);
          },
-         boost::mpl::vector<sample_all, sample_some>())(sampler);
+         hana::tuple_t<sample_all, sample_some>)(sampler);
 
     for (size_t i = 0; i < phist.size(); ++i)
         hist.append(phist[i]);
@@ -126,17 +122,11 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
         {
             GraphInterface sub;
             sub.set_directed(g.get_directed());
-            typedef graph_tool::detail::get_all_graph_views::apply
-                <graph_tool::detail::filt_scalar_type,
-                 boost::mpl::bool_<false>, boost::mpl::bool_<false>,
-                 boost::mpl::bool_<false>, boost::mpl::bool_<true>,
-                 boost::mpl::bool_<true> >::type gviews;
-            run_action<gviews>()
+            run_action<>()
                 (sub,
-                 [&](auto&& graph)
+                 [&](auto& graph)
                  {
-                     return retrieve_from_list()
-                         (std::forward<decltype(graph)>(graph), list, done);
+                     return retrieve_from_list()(graph, list, done);
                  })();
             if (!done)
                 subgraph_list.append(sub);

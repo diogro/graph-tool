@@ -29,17 +29,17 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t>::type vmap_t;
-typedef vprop_map_t<double>::type vrmap_t;
-typedef vprop_map_t<vector<double>>::type vvmap_t;
-typedef eprop_map_t<vector<double>>::type vemap_t;
-typedef eprop_map_t<double>::type edmap_t;
+typedef vprop_map_t<int32_t> vmap_t;
+typedef vprop_map_t<double> vrmap_t;
+typedef vprop_map_t<vector<double>> vvmap_t;
+typedef eprop_map_t<vector<double>> vemap_t;
+typedef eprop_map_t<double> edmap_t;
 
 typedef multi_array_ref<double, 2> mat_t;
 typedef multi_array_ref<double, 1> vec_t;
 
 #define EM_BLOCK_STATE_params                                                  \
-    ((g, &, all_graph_views, 1))                                               \
+    ((g, &, decltype(all_graph_views), 1))                                     \
     ((prs,, mat_t, 0))                                                         \
     ((wr,, vec_t, 0))                                                          \
     ((em_s,, vemap_t, 0))                                                      \
@@ -66,7 +66,7 @@ public:
         GILRelease gil_release;
 
         _B = _prs.shape()[0];
-        _N = HardNumVertices()(_g);
+        _N = hard_num_vertices(_g);
 
         std::uniform_int_distribution<size_t> rand(0, _B - 1);
 

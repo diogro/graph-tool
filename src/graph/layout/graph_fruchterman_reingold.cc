@@ -159,35 +159,31 @@ void fruchterman_reingold_layout(GraphInterface& g, boost::any pos,
                                  double ti, double tf, size_t max_iter)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        edge_props_t;
+    auto edge_props_t = hana::append(edge_scalar_properties,
+                                     hana::type<weight_map_t>());
 
     if(weight.empty())
         weight = weight_map_t();
     if (square)
-        run_action<graph_tool::detail::never_directed>()
+        run_action<decltype(graph_tool::never_directed)>()
             (g,
-             [&](auto&& graph, auto&& a2, auto&& a3)
+             [&](auto&& g, auto pos, auto weight)
              {
-                 return get_layout<square_topology<>>()(
-                     std::forward<decltype(graph)>(graph),
-                     std::forward<decltype(a2)>(a2),
-                     std::forward<decltype(a3)>(a3), make_pair(a, r), scale,
-                     grid, make_pair(ti, tf), max_iter);
+                 return get_layout<square_topology<>>()
+                     (g, pos, weight, make_pair(a, r), scale,
+                      grid, make_pair(ti, tf), max_iter);
              },
-             vertex_floating_vector_properties(), edge_props_t())(pos, weight);
+             vertex_floating_vector_properties, edge_props_t)(pos, weight);
     else
-        run_action<graph_tool::detail::never_directed>()
+        run_action<decltype(graph_tool::never_directed)>()
             (g,
-             [&](auto&& graph, auto&& a2, auto&& a3)
+             [&](auto& g, auto pos, auto weight)
              {
-                 return get_layout<circle_topology<>>()(
-                     std::forward<decltype(graph)>(graph),
-                     std::forward<decltype(a2)>(a2),
-                     std::forward<decltype(a3)>(a3), make_pair(a, r), scale,
-                     grid, make_pair(ti, tf), max_iter);
+                 return get_layout<circle_topology<>>()
+                     (g, pos, weight, make_pair(a, r), scale,
+                      grid, make_pair(ti, tf), max_iter);
              },
-             vertex_floating_vector_properties(), edge_props_t())(pos, weight);
+             vertex_floating_vector_properties, edge_props_t)(pos, weight);
 }
 
 #include <boost/python.hpp>

@@ -38,11 +38,11 @@ class overlap_stats_t
 public:
     typedef pair<size_t, size_t> deg_t;
 
-    typedef vprop_map_t<int32_t>::type ::unchecked_t
+    typedef vprop_map_t<int32_t> ::unchecked_t
         vmap_t;
-    typedef vprop_map_t<int64_t>::type ::unchecked_t
+    typedef vprop_map_t<int64_t> ::unchecked_t
         vimap_t;
-    typedef vprop_map_t<vector<int64_t>>::type ::unchecked_t
+    typedef vprop_map_t<vector<int64_t>> ::unchecked_t
         vvmap_t;
 
     template <class Graph>
@@ -70,7 +70,7 @@ public:
 
             for (auto e : out_edges_range(v, g))
                 _out_neighbors[v] = target(e, g);
-            if (graph_tool::is_directed(g))
+            if (is_directed(g))
             {
                 for (auto e : in_edges_range(v, g))
                     _in_neighbors[v] = source(e, g);
@@ -105,9 +105,9 @@ public:
 
                         size_t r = b[u];
                         size_t s = b[w];
-                        if (!graph_tool::is_directed(g) && r > s)
+                        if (!is_directed(g) && r > s)
                             std::swap(r, s);
-                        bool is_loop = (!graph_tool::is_directed(g) &&
+                        bool is_loop = (!is_directed(g) &&
                                         (node_index[u] == node_index[w]));
                         auto k = std::make_tuple(r, s, is_loop);
                         if (_mi[w] == -1)
@@ -158,9 +158,9 @@ public:
                 s = b[w];
             }
             auto& h = _parallel_bundles[m];
-            if (!graph_tool::is_directed(g) && r > s)
+            if (!is_directed(g) && r > s)
                 std::swap(r, s);
-            bool is_loop = (!graph_tool::is_directed(g) &&
+            bool is_loop = (!is_directed(g) &&
                             (_node_index[w] == _node_index[v]));
             if (is_loop)
                 h[std::make_tuple(r, s, is_loop)] += 2;
@@ -200,9 +200,9 @@ public:
                 s = b[w];
             }
             auto& h = _parallel_bundles[m];
-            if (!graph_tool::is_directed(g) && r > s)
+            if (!is_directed(g) && r > s)
                 std::swap(r, s);
-            bool is_loop = (!graph_tool::is_directed(g) &&
+            bool is_loop = (!is_directed(g) &&
                             (_node_index[w] == _node_index[v]));
             auto iter = h.find(std::make_tuple(r, s, is_loop));
             assert(iter->second > 0);
@@ -305,9 +305,9 @@ public:
             ns = s;
         }
 
-        if (!graph_tool::is_directed(g) && r > s)
+        if (!is_directed(g) && r > s)
             std::swap(r, s);
-        if (!graph_tool::is_directed(g) && nr > ns)
+        if (!is_directed(g) && nr > ns)
             std::swap(nr, ns);
 
         auto& h = _parallel_bundles[m];
@@ -320,7 +320,7 @@ public:
                 return iter->second;
             };
 
-        bool is_loop = !graph_tool::is_directed(g) && (_node_index[u] ==
+        bool is_loop = !is_directed(g) && (_node_index[u] ==
                                                        _node_index[v]);
         int c  = get_h(std::make_tuple(r,  s, is_loop));
         int nc = get_h(std::make_tuple(nr, ns, is_loop));

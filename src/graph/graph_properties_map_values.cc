@@ -37,7 +37,7 @@ void property_map_values(GraphInterface& g, boost::any src_prop,
 {
     if (!edge)
     {
-        run_action<graph_tool::detail::always_directed_never_reversed>(false)
+        run_action<decltype(graph_tool::always_directed_never_reversed)>(false)
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {
@@ -46,8 +46,8 @@ void property_map_values(GraphInterface& g, boost::any src_prop,
                       std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3), mapper);
              },
-             vertex_properties(),
-             writable_vertex_properties())(src_prop, tgt_prop);
+             vertex_properties,
+             writable_vertex_properties)(src_prop, tgt_prop);
     }
     else
     {

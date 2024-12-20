@@ -33,7 +33,7 @@ using namespace graph_tool;
 python::object do_label_components(GraphInterface& gi, boost::any prop)
 {
     vector<size_t> hist;
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<decltype(graph_tool::all_graph_views), false>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -41,7 +41,7 @@ python::object do_label_components(GraphInterface& gi, boost::any prop)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), hist);
          },
-         writable_vertex_scalar_properties())(prop);
+         writable_vertex_scalar_properties)(prop);
     return wrap_vector_owned(hist);
 }
 
@@ -50,7 +50,7 @@ do_label_biconnected_components(GraphInterface& gi, boost::any comp,
                                 boost::any art)
 {
     vector<size_t> hist;
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -59,14 +59,14 @@ do_label_biconnected_components(GraphInterface& gi, boost::any comp,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), hist);
          },
-         writable_edge_scalar_properties(),
-         writable_vertex_scalar_properties())(comp, art);
+         writable_edge_scalar_properties,
+         writable_vertex_scalar_properties)(comp, art);
     return wrap_vector_owned(hist);
 }
 
 void do_label_out_component(GraphInterface& gi, size_t root, boost::any prop)
 {
-    run_action<graph_tool::all_graph_views, mpl::true_>()
+    run_action<decltype(graph_tool::all_graph_views), false>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -74,7 +74,7 @@ void do_label_out_component(GraphInterface& gi, size_t root, boost::any prop)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), root);
          },
-         writable_vertex_scalar_properties())(prop);
+         writable_vertex_scalar_properties)(prop);
 }
 
 void do_label_attractors(GraphInterface& gi, boost::any cprop, python::object oavec)
@@ -90,7 +90,7 @@ void do_label_attractors(GraphInterface& gi, boost::any cprop, python::object oa
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), avec);
          },
-         vertex_scalar_properties())(cprop);
+         vertex_scalar_properties)(cprop);
 }
 
 #define __MOD__ topology

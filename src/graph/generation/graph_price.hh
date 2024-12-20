@@ -30,60 +30,58 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-struct get_price
+template <class Graph>
+void get_price(Graph& g, size_t N, double gamma, double c, size_t m,
+               rng_t& rng)
 {
-    template <class Graph>
-    void operator()(Graph& g, size_t N, double gamma, double c, size_t m,
-                    rng_t& rng) const
+    typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
+                              in_degreeS, out_degreeS>::type Deg;
+
+    DynamicSampler<typename graph_traits<Graph>::vertex_descriptor> sampler;
+
+    double p;
+    for (auto v : vertices_range(g))
     {
-        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
-                                  in_degreeS, out_degreeS>::type Deg;
-
-        DynamicSampler<typename graph_traits<Graph>::vertex_descriptor> sampler;
-
-        double p;
-        for (auto v : vertices_range(g))
-        {
-            p = pow(Deg()(v, g), gamma) + c;
-            if (p < 0)
-                throw GraphException("Cannot connect edges: probabilities are negative");
-            if (p > 0)
-                sampler.insert(v, p);
-        }
-
-        if (sampler.empty())
-            throw GraphException("Cannot connect edges: seed graph is empty, or has zero probability");
-
-        idx_set<typename graph_traits<Graph>::vertex_descriptor, false, false>
-            visited(num_vertices(g));
-        for (size_t i = 0; i < N; ++i)
-        {
-            visited.clear();
-            auto v = add_vertex(g);
-            for (size_t j = 0; j < std::min(m, sampler.size()); ++j)
-            {
-                auto w = sampler.sample(rng);
-
-                if (visited.find(w) != visited.end())
-                {
-                    --j;
-                    continue;
-                }
-
-                visited.insert(w);
-                add_edge(v, w, g);
-
-                p = pow(Deg()(w, g), gamma) + c;
-
-                sampler.remove(w);
-                sampler.insert(w, p);
-            }
-            p = pow(Deg()(v, g), gamma) + c;
-            if (p > 0)
-                sampler.insert(v, p);
-        }
+        p = pow(Deg()(v, g), gamma) + c;
+        if (p < 0)
+            throw GraphException("Cannot connect edges: probabilities are negative");
+        if (p > 0)
+            sampler.insert(v, p);
     }
-};
+
+    if (sampler.empty())
+        throw GraphException("Cannot connect edges: seed graph is empty, or has zero probability");
+
+    idx_set<typename graph_traits<Graph>::vertex_descriptor>
+        visited(num_vertices(g));
+
+    for (size_t i = 0; i < N; ++i)
+    {
+        visited.clear();
+        auto v = add_vertex(g);
+        for (size_t j = 0; j < std::min(m, sampler.size()); ++j)
+        {
+            auto w = sampler.sample(rng);
+
+            if (visited.find(w) != visited.end())
+            {
+                --j;
+                continue;
+            }
+
+            visited.insert(w);
+            add_edge(v, w, g);
+
+            p = pow(Deg()(w, g), gamma) + c;
+
+            sampler.remove(w);
+            sampler.insert(w, p);
+        }
+        p = pow(Deg()(v, g), gamma) + c;
+        if (p > 0)
+            sampler.insert(v, p);
+    }
+}
 
 } // namespace graph_tool
 

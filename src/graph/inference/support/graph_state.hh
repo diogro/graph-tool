@@ -180,13 +180,26 @@ struct StateWrap
                 state_t* ptr(nullptr);
                 f(ptr);
             };
+
         auto partial_dispatch = [&](auto*... args)
             {
                 full_dispatch(args...,
                               uncheck((typename std::add_pointer<TS>::type)(nullptr))...);
             };
-        mpl::nested_for_each<TRS...>
-            ([&](auto*... args){partial_dispatch(uncheck(args)...);});
+
+        constexpr auto cp = hana::cartesian_product(hana::make_tuple(TRS()...));
+
+        hana::for_each(cp,
+                       [&](auto ats)
+                       {
+                           auto args = hana::transform(ats,
+                                                       [](auto t)
+                                                       {
+                                                           typedef typename decltype(+t)::type T;
+                                                           return uncheck(std::add_pointer_t<T>());
+                                                       });
+                           hana::unpack(args, partial_dispatch);
+                       });
     }
 
     template <class... TS, class F>
@@ -360,7 +373,7 @@ struct StateWrap
 
 
     template <class TR>
-    static boost::any get_any(python::object mobj, std::string name, TR)
+    static boost::any get_any(python::object mobj, std::string name, TR tr)
     {
         python::object obj = mobj.attr(name.c_str());
         if (PyObject_HasAttrString(obj.ptr(), "_get_any"))
@@ -371,10 +384,11 @@ struct StateWrap
         {
             boost::any ret;
             bool found = false;
-            mpl::nested_for_each<TR>
-                ([&](auto* t)
+            hana::for_each
+                (tr,
+                 [&](auto t)
                  {
-                     typedef typename std::remove_reference<decltype(*t)>::type
+                     typedef typename std::remove_reference<typename decltype(+t)::type>::type
                          val_t;
                      if constexpr (std::is_same<val_t, python::object>::value)
                      {

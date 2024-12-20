@@ -47,8 +47,8 @@ class TestStateBase
     : public DStateBase
 {
 public:
-    typedef typename eprop_map_t<double>::type emap_t;
-    typedef typename vprop_map_t<double>::type vmap_t;
+    typedef eprop_map_t<double> emap_t;
+    typedef vprop_map_t<double> vmap_t;
 
     TestStateBase(Graph& g, State& state, python::dict params)
         : _g(g),
@@ -97,7 +97,7 @@ public:
     template <bool add=false>
     edge_t& get_edge(size_t u, size_t v)
     {
-        if (!graph_tool::is_directed(_g) && u > v)
+        if (!is_directed(_g) && u > v)
             std::swap(u, v);
         if constexpr (add)
             return _edges[u][v];
@@ -154,7 +154,7 @@ public:
 
     double get_edge_dS(size_t u, size_t v, double x, double nx)
     {
-        if (!graph_tool::is_directed(_g) && u > v)
+        if (!is_directed(_g) && u > v)
             return 0;
         auto [p, mu, sigma] = get_eparams(u, v);
         return -edge_lprob(nx, p, mu, sigma) + edge_lprob(x, p, mu, sigma);
@@ -214,7 +214,7 @@ public:
 
         L += (N - k) * edge_lprob(0, _p_default, _mu_default, _sigma_default);
 
-        if (!graph_tool::is_directed(_g))
+        if (!is_directed(_g))
             L /= 2;
 
         L += norm_lpmf(_state._theta[u], _mu_v[u], _sigma_v[u]);

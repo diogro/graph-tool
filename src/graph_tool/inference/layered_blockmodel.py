@@ -239,7 +239,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                       [_prop("v", u, u.vp["brmap"]) for u in self.gs],
                                       [_prop("v", u, u.vp["vmap"]) for u in self.gs])
 
-        if self.g.get_vertex_filter()[0] is not None:
+        if self.g.get_vertex_filter() is not None:
             for u in self.gs:
                 u.set_vertex_filter(u.new_vp("bool", True))
 

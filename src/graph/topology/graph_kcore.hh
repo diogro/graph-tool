@@ -28,7 +28,7 @@ void kcore_decomposition(Graph& g, CoreMap core_map)
 {
     auto vertex_index = get(vertex_index_t(), g);
 
-    typedef typename vprop_map_t<size_t>::type::unchecked_t vmap_t;
+    typedef vprop_map_t<size_t>::unchecked_t vmap_t;
 
     vmap_t deg(vertex_index, num_vertices(g));  // Remaining degree
     vmap_t pos(vertex_index, num_vertices(g));  // Position in bin (core)

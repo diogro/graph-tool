@@ -46,13 +46,13 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         size_t r = b[v];
         if (r >= v_out_probs.size())
         {
-            if (graph_tool::is_directed(g))
+            if (is_directed(g))
                 v_in_probs.resize(r+1);
             v_out_probs.resize(r+1);
             rvs.resize(r+1);
         }
         rvs[r].push_back(v);
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
             v_in_probs[r].push_back(in_deg[v]);
         v_out_probs[r].push_back(out_deg[v]);
     }
@@ -63,12 +63,12 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
     vector<vsampler_t> v_in_sampler_, v_out_sampler;
     for (size_t r = 0; r < rvs.size(); ++r)
     {
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
             v_in_sampler_.emplace_back(rvs[r], v_in_probs[r]);
         v_out_sampler.emplace_back(rvs[r], v_out_probs[r]);
     }
 
-    auto& v_in_sampler = (graph_tool::is_directed(g)) ? v_in_sampler_ : v_out_sampler;
+    auto& v_in_sampler = (is_directed(g)) ? v_in_sampler_ : v_out_sampler;
 
     for (size_t i = 0; i < rs.shape()[0]; ++i)
     {
@@ -79,7 +79,7 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         if (p == 0)
             continue;
 
-        if (!graph_tool::is_directed(g) && r == s)
+        if (!is_directed(g) && r == s)
             p /= 2;
 
         auto& r_sampler = v_out_sampler[r];

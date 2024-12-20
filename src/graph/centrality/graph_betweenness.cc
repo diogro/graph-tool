@@ -38,8 +38,7 @@ void normalize_betweenness(const Graph& g,
     double pfactor = (p > 1 && n > 2) ? ((p - 1) * (n - 2)) : .0;
     double vfactor = (p > 0 && n > 2) ? (p * (n - 2)) : .0;
     double efactor = (p > 0 && n > 1) ? (p * (n - 1)) : .0;
-    if (std::is_convertible<typename graph_traits<Graph>::directed_category,
-                            undirected_tag>::value)
+    if constexpr (!is_directed_v<Graph>)
     {
         pfactor /= 2;
         vfactor /= 2;
@@ -50,7 +49,7 @@ void normalize_betweenness(const Graph& g,
     vfactor = (vfactor > 0) ? 1./vfactor : 0;
     efactor = (efactor > 0) ? 1./efactor : 0;
 
-    typedef typename vprop_map_t<bool>::type::unchecked_t vprop_t;
+    typedef vprop_map_t<bool>::unchecked_t vprop_t;
     vprop_t is_pivot(get(vertex_index, g), num_vertices(g));
 
     for (auto v : pivots)
@@ -132,11 +131,11 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                  boost::any edge_betweenness,
                  boost::any vertex_betweenness)
 {
-    if (!belongs<edge_floating_properties>()(edge_betweenness))
+    if (!belongs(edge_floating_properties, edge_betweenness))
         throw ValueException("edge property must be of floating point value"
                              " type");
 
-    if (!belongs<vertex_floating_properties>()(vertex_betweenness))
+    if (!belongs(vertex_floating_properties, vertex_betweenness))
         throw ValueException("vertex property must be of floating point value"
                              " type");
 
@@ -152,8 +151,8 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                       std::forward<decltype(a3)>(a3), weight,
                       g.get_edge_index_range());
              },
-             edge_floating_properties(), vertex_floating_properties())(
-                edge_betweenness, vertex_betweenness);
+             edge_floating_properties, vertex_floating_properties)
+            (edge_betweenness, vertex_betweenness);
     }
     else
     {
@@ -166,8 +165,8 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                       g.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3));
              },
-             edge_floating_properties(), vertex_floating_properties())(
-                edge_betweenness, vertex_betweenness);
+             edge_floating_properties, vertex_floating_properties)
+            (edge_betweenness, vertex_betweenness);
     }
 }
 
@@ -175,11 +174,11 @@ void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                       boost::any edge_betweenness,
                       boost::any vertex_betweenness)
 {
-    if (!belongs<edge_floating_properties>()(edge_betweenness))
+    if (!belongs(edge_floating_properties, edge_betweenness))
         throw ValueException("edge property must be of floating point value"
                              " type");
 
-    if (!belongs<vertex_floating_properties>()(vertex_betweenness))
+    if (!belongs(vertex_floating_properties, vertex_betweenness))
         throw ValueException("vertex property must be of floating point value"
                              " type");
 
@@ -189,8 +188,8 @@ void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
             {
                 normalize_betweenness(g, pivots, ep, vp, n);
             },
-         edge_floating_properties(),
-         vertex_floating_properties())
+         edge_floating_properties,
+         vertex_floating_properties)
         (edge_betweenness, vertex_betweenness);
 }
 
@@ -209,7 +208,7 @@ double central_point(GraphInterface& g,
                      boost::any vertex_betweenness)
 {
     double c = 0.0;
-    run_action<graph_tool::detail::never_reversed>()
+    run_action<decltype(graph_tool::never_reversed)>()
         (g,
          [&](auto&& graph, auto&& a2)
          {
@@ -217,7 +216,7 @@ double central_point(GraphInterface& g,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), c);
          },
-         vertex_scalar_properties())(vertex_betweenness);
+         vertex_scalar_properties)(vertex_betweenness);
     return c;
 }
 

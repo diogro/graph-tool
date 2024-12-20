@@ -60,8 +60,8 @@ struct get_reciprocity
 double reciprocity(GraphInterface& gi, boost::any aw)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
     if (aw.empty())
         aw = weight_map_t();
@@ -73,7 +73,7 @@ double reciprocity(GraphInterface& gi, boost::any aw)
          {
              return get_reciprocity()
                  (std::forward<decltype(graph)>(graph), w, reciprocity);
-         }, weight_props_t())(aw);
+         }, weight_props_t)(aw);
     return reciprocity;
 }
 

@@ -10,43 +10,47 @@ nobase_dist_graphtooldoc_DATA = \
 	COPYING.LESSER \
 	AUTHORS \
 	INSTALL \
-	src/boost-workaround/LICENSE_1_0.txt \
-	doc/centrality.rst \
-	doc/correlations.rst \
-	doc/price.py \
-	doc/search_module.rst \
-	doc/util.rst \
-	doc/clustering.rst \
-	doc/draw.rst \
-	doc/index.rst \
-	doc/spectral.rst \
-	doc/inference.rst  \
-	doc/flow.rst \
 	doc/Makefile \
-	doc/quickstart.rst \
-	doc/generation.rst \
-	doc/stats.rst \
-	doc/graph_tool.rst \
-	doc/modules.rst \
-	doc/parallel.rst \
-	doc/topology.rst \
+	doc/_static/graph-tool-logo-circle.svg \
+	doc/_static/graph-tool-logo.svg \
+	doc/centrality.rst \
+	doc/clustering.rst \
 	doc/conf.py \
-	doc/pyenv.py \
-	doc/search_example.xml \
-	doc/demos/index.rst \
+	doc/correlations.rst \
 	doc/demos/animation/animation.rst \
-	doc/demos/inference/inference.rst \
 	doc/demos/cppextensions/Makefile \
 	doc/demos/cppextensions/cppextensions.rst \
 	doc/demos/cppextensions/kcore.cc \
 	doc/demos/cppextensions/kcore.hh \
 	doc/demos/cppextensions/kcore.py \
+	doc/demos/index.rst \
+	doc/demos/inference/inference.rst \
+	doc/demos/matplotlib/matplotlib.rst \
+    doc/demos/reconstruction_direct/reconstruction.rst \
+    doc/demos/reconstruction_indirect/reconstruction.rst \
+	doc/draw.rst \
+	doc/flow.rst \
+	doc/generation.rst \
+	doc/graph_tool.rst \
+    doc/gt_format.rst \
+	doc/index.rst \
+	doc/inference.rst  \
+	doc/modules.rst \
+	doc/parallel.rst \
+	doc/price.py \
+	doc/pyenv.py \
+	doc/quickstart.rst \
+	doc/search_example.xml \
+	doc/search_module.rst \
+	doc/spectral.rst \
 	doc/sphinxext/comment_eater.py \
-	doc/sphinxext/phantom_import.py \
 	doc/sphinxext/compiler_unparse.py \
+	doc/sphinxext/phantom_import.py \
 	doc/sphinxext/traitsdoc.py \
-	doc/_static/graph-tool-logo.svg \
-	doc/_static/graph-tool-logo-circle.svg
+	doc/stats.rst \
+	doc/topology.rst \
+	doc/util.rst \
+	src/boost-workaround/LICENSE_1_0.txt
 
 EXTRA_DIST = autogen.sh
 
@@ -128,7 +132,6 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/histogram.hh \
 	src/graph/idx_map.hh \
 	src/graph/module_registry.hh \
-	src/graph/mpl_nested_loop.hh \
 	src/graph/numpy_bind.hh \
 	src/graph/npy_2_compat.h \
 	src/graph/openmp.hh \
@@ -221,9 +224,7 @@ libgraph_tool_correlations_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_correlations_la_SOURCES = \
 	src/graph/correlations/graph_assortativity.cc \
 	src/graph/correlations/graph_correlations.cc \
-	src/graph/correlations/graph_correlations_imp1.cc \
 	src/graph/correlations/graph_avg_correlations.cc \
-	src/graph/correlations/graph_avg_correlations_imp1.cc \
 	src/graph/correlations/graph_avg_correlations_combined.cc \
 	src/graph/correlations/graph_correlations_combined.cc \
 	src/graph/correlations/graph_correlations_bind.cc

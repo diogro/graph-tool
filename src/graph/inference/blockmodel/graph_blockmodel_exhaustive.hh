@@ -31,10 +31,10 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef typename vprop_map_t<int32_t>::type vmap_t;
+typedef vprop_map_t<int32_t> vmap_t;
 
 #define EXHAUSTIVE_BLOCK_STATE_params(State)                                   \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((S, , double, 0))                                                         \
     ((vlist,&, std::vector<size_t>&, 0))                                       \

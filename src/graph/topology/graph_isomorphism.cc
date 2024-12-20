@@ -67,21 +67,16 @@ struct check_iso
     };
 };
 
-typedef property_map_types::apply<integer_types,
-                                  GraphInterface::vertex_index_map_t,
-                                  mpl::bool_<false> >::type
-    vertex_props_t;
-
 bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                        boost::any ainv_map1, boost::any ainv_map2,
                        int64_t max_inv, boost::any aiso_map)
 {
     bool result;
 
-    typedef vprop_map_t<int32_t>::type iso_map_t;
+    typedef vprop_map_t<int32_t> iso_map_t;
     auto iso_map = any_cast<iso_map_t>(aiso_map);
 
-    typedef vprop_map_t<int64_t>::type inv_map_t;
+    typedef vprop_map_t<int64_t> inv_map_t;
     auto inv_map1 = any_cast<inv_map_t>(ainv_map1);
     auto inv_map2 = any_cast<inv_map_t>(ainv_map2);
 
@@ -90,48 +85,46 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     if (gi1.get_directed())
     {
         gt_dispatch<>()
-            (
-                [&](auto&& graph, auto&& a2)
-                {
-                    vprop_map_t<size_t>::type imap(get(vertex_index, graph));
+            ([&](auto&& graph, auto&& a2)
+             {
+                 vprop_map_t<size_t> imap(get(vertex_index, graph));
 
-                    check_iso()
-                        (std::forward<decltype(graph)>(graph),
-                         std::forward<decltype(a2)>(a2), inv_map1, inv_map2,
-                         max_inv, imap, gi1.get_vertex_index(),
-                         gi2.get_vertex_index(), result);
+                 check_iso()
+                     (std::forward<decltype(graph)>(graph),
+                      std::forward<decltype(a2)>(a2), inv_map1, inv_map2,
+                      max_inv, imap, gi1.get_vertex_index(),
+                      gi2.get_vertex_index(), result);
 
-                    if (result)
-                    {
-                        for (auto v : vertices_range(graph))
-                            iso_map[v] = imap[v];
-                    }
-                },
-                always_directed(),
-                always_directed())(gi1.get_graph_view(), gi2.get_graph_view());
+                 if (result)
+                 {
+                     for (auto v : vertices_range(graph))
+                         iso_map[v] = imap[v];
+                 }
+             },
+             always_directed,
+             always_directed)(gi1.get_graph_view(), gi2.get_graph_view());
     }
     else
     {
         gt_dispatch<>()
-            (
-                [&](auto&& graph, auto&& a2)
-                {
-                    vprop_map_t<size_t>::type imap(get(vertex_index, graph));
+            ([&](auto&& graph, auto&& a2)
+             {
+                 vprop_map_t<size_t> imap(get(vertex_index, graph));
 
-                    check_iso()
-                        (std::forward<decltype(graph)>(graph),
-                         std::forward<decltype(a2)>(a2), inv_map1, inv_map2,
-                         max_inv, imap, gi1.get_vertex_index(),
-                         gi2.get_vertex_index(), result);
+                 check_iso()
+                     (std::forward<decltype(graph)>(graph),
+                      std::forward<decltype(a2)>(a2), inv_map1, inv_map2,
+                      max_inv, imap, gi1.get_vertex_index(),
+                      gi2.get_vertex_index(), result);
 
-                    if (result)
-                    {
-                        for (auto v : vertices_range(graph))
-                            iso_map[v] = imap[v];
-                    }
-                },
-                never_directed(),
-                never_directed())(gi1.get_graph_view(), gi2.get_graph_view());
+                 if (result)
+                 {
+                     for (auto v : vertices_range(graph))
+                         iso_map[v] = imap[v];
+                 }
+             },
+             never_directed,
+             never_directed)(gi1.get_graph_view(), gi2.get_graph_view());
     }
 
     return result;

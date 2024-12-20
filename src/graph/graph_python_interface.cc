@@ -31,145 +31,99 @@ using namespace graph_tool;
 namespace graph_tool
 {
 
-struct get_vertex_iterator
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi,
-                    python::object& iter) const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        typedef typename graph_traits<Graph>::vertex_iterator vertex_iterator;
-        iter = python::object(PythonIterator<Graph, PythonVertex<Graph>,
-                                             vertex_iterator>(gp, vertices(g)));
-    }
-};
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
 
 python::object get_vertices(GraphInterface& gi)
 {
     python::object iter;
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph)
+         [&](auto&& gp)
          {
-             return get_vertex_iterator()
-                 (std::forward<decltype(graph)>(graph), gi, iter);
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             typedef typename graph_traits<g_t>::vertex_iterator vertex_iterator;
+             iter = python::object(PythonIterator<g_t, PythonVertex<g_t>,
+                                                  vertex_iterator>(gp, vertices(*gp)));
          })();
     return iter;
 }
-
-struct get_vertex_soft
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi, size_t i, python::object& v) const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        if (i < num_vertices(g))
-            v = python::object(PythonVertex<Graph>(gp, vertex(i, g)));
-        else
-            v = python::object(PythonVertex<Graph>(gp,
-                                                   graph_traits<Graph>::null_vertex()));
-    }
-};
-
-struct get_vertex_hard
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi, size_t i, python::object& v) const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        size_t c = 0;
-        for (auto vi : vertices_range(g))
-        {
-            if (c == i)
-            {
-                v = python::object(PythonVertex<Graph>(gp, vi));
-                return;
-            }
-            ++c;
-        }
-        v = python::object(PythonVertex<Graph>(gp,
-                                               graph_traits<Graph>::null_vertex()));
-    }
-};
 
 python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
 {
     python::object v;
-    if (!use_index)
-        run_action<>(false)
-            (gi,
-             [&](auto&& graph)
+    run_action<decltype(graph_view_ptrs)>(false)
+        (gi,
+         [&](auto&& gp)
+         {
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             auto& g = *gp;
+
+             if (!use_index)
              {
-                 return get_vertex_hard()
-                     (std::forward<decltype(graph)>(graph), gi, i, v);
-             })();
-    else
-        run_action<>(false)
-            (gi,
-             [&](auto&& graph)
+                 size_t c = 0;
+                 for (auto vi : vertices_range(g))
+                 {
+                     if (c++ == i)
+                     {
+                         v = python::object(PythonVertex<g_t>(gp, vi));
+                         return;
+                     }
+                 }
+                 v = python::object(PythonVertex<g_t>(gp,
+                                                      graph_traits<g_t>::null_vertex()));
+             }
+             else
              {
-                 return get_vertex_soft()
-                     (std::forward<decltype(graph)>(graph), gi, i, v);
-             })();
+                 if (i < num_vertices(g))
+                     v = python::object(PythonVertex<g_t>(gp, vertex(i, g)));
+                 else
+                     v = python::object(PythonVertex<g_t>(gp,
+                                                          graph_traits<g_t>::null_vertex()));
+             }
+         })();
     return v;
 }
-
-struct get_edge_iterator
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi, python::object& iter)
-        const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        typedef typename graph_traits<Graph>::edge_iterator edge_iterator;
-        iter = python::object(PythonIterator<Graph, PythonEdge<Graph>,
-                                             edge_iterator>(gp, edges(g)));
-    }
-};
 
 python::object get_edges(GraphInterface& gi)
 {
     python::object iter;
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph)
+         [&](auto&& gp)
          {
-             return get_edge_iterator()
-                 (std::forward<decltype(graph)>(graph), gi, iter);
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             auto& g = *gp;
+             typedef typename graph_traits<g_t>::edge_iterator edge_iterator;
+             iter = python::object(PythonIterator<g_t, PythonEdge<g_t>,
+                                   edge_iterator>(gp, edges(g)));
          })();
     return iter;
 }
 
-struct add_new_vertex
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi, size_t n,
-                    python::object& new_v) const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        if (n != 1)
-        {
-            for (size_t i = 0; i < n; ++i)
-                add_vertex(g);
-            new_v = python::object();
-        }
-        else
-        {
-            new_v = python::object(PythonVertex<Graph>(gp, add_vertex(g)));
-        }
-    }
-};
-
-
 python::object add_vertex(GraphInterface& gi, size_t n)
 {
     python::object v;
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph)
+         [&](auto&& gp)
          {
-             return add_new_vertex()
-                 (std::forward<decltype(graph)>(graph), gi, n, v);
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             auto& g = *gp;
+             if (n != 1)
+             {
+                 for (size_t i = 0; i < n; ++i)
+                     add_vertex(g);
+                 v = python::object();
+             }
+             else
+             {
+                 v = python::object(PythonVertex<g_t>(gp, add_vertex(g)));
+             }
          })();
     return v;
 }
@@ -195,56 +149,32 @@ void remove_vertex(GraphInterface& gi, size_t v, bool fast)
 {
     auto& g = gi.get_graph();
     if (fast)
-    {
         remove_vertex_fast(vertex(v, g), g);
-    }
     else
-    {
         remove_vertex(vertex(v, g), g);
-    }
 }
-
-struct do_clear_vertex
-{
-    template <class Graph>
-    void operator()(Graph& g, size_t v) const
-    {
-        clear_vertex(vertex(v, g), g);
-    }
-};
 
 void clear_vertex(GraphInterface& gi, size_t v)
 {
     run_action<>()
         (gi,
-         [&](auto&& graph)
+         [&](auto&& g)
          {
-             return do_clear_vertex()
-                 (std::forward<decltype(graph)>(graph), v);
+             clear_vertex(vertex(v, g), g);
          })();
 }
-
-struct add_new_edge
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi, size_t s, size_t t,
-                    python::object& new_e) const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        auto e = add_edge(vertex(s, g), vertex(t, g), g).first;
-        new_e = python::object(PythonEdge<Graph>(gp, e));
-    }
-};
 
 python::object add_edge(GraphInterface& gi, size_t s, size_t t)
 {
     python::object new_e;
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph)
+         [&](auto&& gp)
          {
-             return add_new_edge()
-                 (std::forward<decltype(graph)>(graph), gi, s, t, new_e);
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             auto& g = *gp;
+             auto e = add_edge(vertex(s, g), vertex(t, g), g).first;
+             new_e = python::object(PythonEdge<g_t>(gp, e));
          })();
     return new_e;
 }
@@ -257,55 +187,44 @@ void remove_edge(GraphInterface& gi, EdgeBase& e)
     e.invalidate();
 }
 
-struct get_edge_dispatch
-{
-    template <class Graph>
-    void operator()(Graph& g, GraphInterface& gi, size_t s, size_t t,
-                    bool all_edges, boost::python::list& es) const
-    {
-        auto gp = retrieve_graph_view<Graph>(gi, g);
-        size_t k_t = graph_tool::is_directed(g) ?
-            in_degreeS()(t, g) : out_degree(t, g);
-        if (out_degree(s, g) <= k_t)
-        {
-            for (auto e : out_edges_range(vertex(s, g), g))
-            {
-                if (target(e, g) == vertex(t, g))
-                {
-                    es.append(PythonEdge<Graph>(gp, e));
-                    if (!all_edges)
-                        break;
-                }
-            }
-        }
-        else
-        {
-            for (auto e : in_or_out_edges_range(vertex(t, g), g))
-            {
-                auto w = source(e, g);
-                if (w == vertex(s, g))
-                {
-                    if (!graph_tool::is_directed(g) && e.s != s)
-                        std::swap(e.s, e.t);
-                    es.append(PythonEdge<Graph>(gp, e));
-                    if (!all_edges)
-                        break;
-                }
-            }
-        }
-    }
-};
-
 python::object get_edge(GraphInterface& gi, size_t s, size_t t, bool all_edges)
 {
     python::list es;
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph)
+         [&](auto&& gp)
          {
-             return get_edge_dispatch()
-                 (std::forward<decltype(graph)>(graph), gi, s, t, all_edges,
-                  es);
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             auto& g = *gp;
+             size_t k_t = is_directed(g) ?
+                 in_degreeS()(t, g) : out_degree(t, g);
+             if (out_degree(s, g) <= k_t)
+             {
+                 for (auto e : out_edges_range(vertex(s, g), g))
+                 {
+                     if (target(e, g) == vertex(t, g))
+                     {
+                         es.append(PythonEdge<g_t>(gp, e));
+                         if (!all_edges)
+                             break;
+                     }
+                 }
+             }
+             else
+             {
+                 for (auto e : in_or_out_edges_range(vertex(t, g), g))
+                 {
+                     auto w = source(e, g);
+                     if (w == vertex(s, g))
+                     {
+                         if (!is_directed(g) && e.s != s)
+                             std::swap(e.s, e.t);
+                         es.append(PythonEdge<g_t>(gp, e));
+                         if (!all_edges)
+                             break;
+                     }
+                 }
+             }
          })();
     return es;
 }
@@ -318,9 +237,9 @@ struct get_degree_map
     {
         GILRelease gil_release;
         typedef typename detail::get_weight_type<Weight>::type weight_t;
-        typedef typename mpl::if_<std::is_same<weight_t, size_t>, int32_t, weight_t>::type deg_t;
+        typedef std::conditional_t<std::is_same_v<weight_t, size_t>, int32_t, weight_t> deg_t;
 
-        typedef typename vprop_map_t<deg_t>::type map_t;
+        typedef vprop_map_t<deg_t> map_t;
 
         map_t cdeg_map(get(vertex_index, g));
         typename map_t::unchecked_t deg_map = cdeg_map.get_unchecked(num_vertices(g));
@@ -342,8 +261,8 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
 
     python::object deg_map;
 
-    typedef mpl::push_back<edge_scalar_properties,
-                           detail::no_weightS>::type weight_t;
+    auto weight_t = hana::append(edge_scalar_properties,
+                                 hana::type<detail::no_weightS>());;
     if (weight.empty())
         weight = detail::no_weightS();
 
@@ -356,7 +275,7 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
                      (std::forward<decltype(graph)>(graph), deg_map,
                       in_degreeS(), std::forward<decltype(a2)>(a2));
              },
-             weight_t())(weight);
+             weight_t)(weight);
     else if (deg == "out")
         run_action<>(false)
             (const_cast<GraphInterface&>(*this),
@@ -366,7 +285,7 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
                      (std::forward<decltype(graph)>(graph), deg_map,
                       out_degreeS(), std::forward<decltype(a2)>(a2));
              },
-             weight_t())(weight);
+             weight_t)(weight);
     else if (deg == "total")
         run_action<>(false)
             (const_cast<GraphInterface&>(*this),
@@ -376,25 +295,28 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
                      (std::forward<decltype(graph)>(graph), deg_map,
                       total_degreeS(), std::forward<decltype(a2)>(a2));
              },
-             weight_t())(weight);
+             weight_t)(weight);
     return deg_map;
 }
 
 template <class PMaps>
-int value_type_promotion(std::vector<boost::any>& props)
+size_t value_type_promotion(std::vector<boost::any>& props)
 {
-    int type_pos = boost::mpl::find<value_types,int64_t>::type::pos::value;
+    size_t type_pos =
+        hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
     for (auto& aep : props)
     {
         gt_dispatch<>(false)
-            ([&](auto& ep)
+            ([&](auto ep)
              {
-                 typedef std::remove_reference_t<decltype(ep)> pmap_t;
+                 typedef decltype(ep) pmap_t;
                  typedef typename property_traits<pmap_t>::value_type val_t;
-                 if (std::is_same<val_t, size_t>::value)
-                     return;
-                 constexpr int ep_t = boost::mpl::find<value_types,val_t>::type::pos::value;
-                 type_pos = std::max(type_pos, ep_t);
+                 if constexpr (!std::is_same_v<val_t, size_t>)
+                 {
+                     constexpr size_t ep_t =
+                         hana::index_if(value_types, hana::equal.to(hana::type<val_t>())).value().value;
+                     type_pos = std::max(type_pos, ep_t);
+                 }
              }, PMaps())(aep);
     }
     return type_pos;
@@ -408,29 +330,32 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
     for (int i = 0; i < python::len(ovprops); ++i)
     {
         avprops.push_back(python::extract<boost::any>(ovprops[i])());
-        if (!belongs<vertex_scalar_properties>()(avprops.back()))
+        if (!belongs(vertex_scalar_properties, avprops.back()))
             throw ValueException("vertex property map must be of scalar type");
     }
 
-    int vtype = boost::mpl::find<value_types,int64_t>::type::pos::value;
+    size_t vtype =
+        hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
     if (!avprops.empty())
-        vtype = value_type_promotion<vertex_scalar_properties>(avprops);
+        vtype = value_type_promotion<decltype(vertex_scalar_properties)>(avprops);
 
     python::object ret;
     auto dispatch =
         [&](auto&& vrange, bool check=true)
         {
-            mpl::for_each<scalar_types>(
-                [&](auto t)
-                {
-                    typedef decltype(t) t_t;
-                    if (vtype != boost::mpl::find<value_types, t_t>::type::pos::value)
+            hana::for_each
+                (scalar_types,
+                 [&](auto t)
+                 {
+                    typedef typename decltype(t)::type t_t;
+                    if (vtype != hana::index_if(value_types, hana::equal.to(t)).value().value)
                         return;
+
                     typedef DynamicPropertyMapWrap<t_t, GraphInterface::vertex_t>
                         converted_map_t;
                     std::vector<converted_map_t> vprops;
                     for (auto& aep: avprops)
-                        vprops.emplace_back(aep, vertex_scalar_properties());
+                        vprops.emplace_back(aep, vertex_scalar_properties);
 
                     std::vector<t_t> vlist;
                     run_action<>()(gi,
@@ -442,7 +367,7 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
                                                throw ValueException("invalid vertex: " + std::to_string(v));
                                        }
 
-                                       for (auto u: vrange(g))
+                                       for (auto u : vrange(g))
                                        {
                                            vlist.push_back(u);
                                            for (auto& vp : vprops)
@@ -510,7 +435,7 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                         std::vector<converted_map_t> vprops;
                         for (int i = 0; i < python::len(ovprops); ++i)
                             vprops.emplace_back(python::extract<boost::any>(ovprops[i])(),
-                                                vertex_properties());
+                                                vertex_properties);
                         run_action<>(false)
                             (gi,
                              [&](auto& g)
@@ -554,29 +479,32 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
     for (int i = 0; i < python::len(oeprops); ++i)
     {
         aeprops.push_back(python::extract<boost::any>(oeprops[i])());
-        if (!belongs<edge_scalar_properties>()(aeprops.back()))
+        if (!belongs(edge_scalar_properties, aeprops.back()))
             throw ValueException("edge property map must be of scalar type");
     }
 
-    int etype = boost::mpl::find<value_types,int64_t>::type::pos::value;
+    size_t etype =
+        hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
+
     if (!aeprops.empty())
-        etype = value_type_promotion<edge_scalar_properties>(aeprops);
+        etype = value_type_promotion<decltype(edge_scalar_properties)>(aeprops);
 
     python::object ret;
     auto dispatch =
         [&](auto&& erange, bool check=true)
         {
-            mpl::for_each<scalar_types>(
-                [&](auto t)
-                {
-                    typedef decltype(t) t_t;
-                    if (etype != boost::mpl::find<value_types, t_t>::type::pos::value)
+            hana::for_each
+                (scalar_types,
+                 [&](auto t)
+                 {
+                    typedef typename decltype(t)::type t_t;
+                    if (etype != hana::index_if(value_types, hana::equal.to(t)).value().value)
                         return;
                     typedef DynamicPropertyMapWrap<t_t, GraphInterface::edge_t>
                         converted_map_t;
                     std::vector<converted_map_t> eprops;
                     for (auto& aep: aeprops)
-                        eprops.emplace_back(aep, edge_scalar_properties());
+                        eprops.emplace_back(aep, edge_scalar_properties);
 
                     std::vector<t_t> elist;
                     run_action<>()(gi,
@@ -631,7 +559,7 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
                     std::vector<converted_map_t> eprops;
                     for (int i = 0; i < python::len(oeprops); ++i)
                         eprops.emplace_back(python::extract<boost::any>(oeprops[i])(),
-                                            edge_properties());
+                                            edge_properties);
                     run_action<>(false)
                         (gi,
                          [&](auto& g)
@@ -686,21 +614,20 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
     }
     else
     {
-        if (!belongs<edge_scalar_properties>()(eprop))
+        if (!belongs(edge_scalar_properties, eprop))
             throw ValueException("edge weight property map must be of scalar type");
     }
 
-    typedef mpl::push_back<edge_scalar_properties,
-                           empty_t>::type eprops_t;
+    auto eprops_t = hana::append(edge_scalar_properties,
+                                 hana::type<empty_t>());
 
     auto get_degs = [&](auto deg)
         {
             run_action<>(false)(gi,
-                           [&](auto& g, auto& ew)
+                           [&](auto& g, auto ew)
                            {
                                GILRelease gil_release;
-                               typedef typename std::remove_reference
-                                   <decltype(ew)>::type::value_type val_t;
+                               typedef typename decltype(ew)::value_type val_t;
                                std::vector<val_t> dlist;
                                dlist.reserve(vlist.size());
                                for (auto v : vlist)
@@ -712,7 +639,7 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
                                }
                                gil_release.restore();
                                ret = wrap_vector_owned(dlist);
-                           }, eprops_t())(eprop);
+                           }, eprops_t)(eprop);
         };
 
     switch (kind)
@@ -740,7 +667,7 @@ struct export_python_interface
 {
     template <class Graph, class GraphViews>
     void operator()(Graph* gp, python::list vclasses,
-                    python::list eclasses, GraphViews) const
+                    python::list eclasses, GraphViews gviews) const
     {
         using namespace boost::python;
 
@@ -781,12 +708,12 @@ struct export_python_interface
             .def("__str__", &PythonEdge<Graph>::get_string)
             .def("__hash__", &PythonEdge<Graph>::get_hash);
 
-        boost::mpl::for_each<GraphViews>(
-            [&](auto&& graph)
-            {
-                return export_python_interface()
-                    (gp, std::forward<decltype(graph)>(graph), eclass);
-            });
+        hana::for_each(gviews,
+                       [&](auto graph)
+                       {
+                           return export_python_interface()
+                               (gp, typename decltype(graph)::type(), eclass);
+                       });
 
         eclasses.append(eclass);
 
@@ -908,8 +835,8 @@ bool hasattr(boost::python::object obj, std::string const& attrName)
 
 void export_python_properties();
 
-python::list* _vlist(0);
-python::list* _elist(0);
+python::list* _vlist(nullptr);
+python::list* _elist(nullptr);
 
 python::list get_vlist()
 {
@@ -932,16 +859,26 @@ void export_python_interface()
     class_<VertexBase>("VertexBase", no_init);
     class_<EdgeBase, boost::noncopyable>("EdgeBase", no_init);
 
-    typedef boost::mpl::transform<graph_tool::all_graph_views,
-                                  boost::mpl::quote1<std::add_const> >::type const_graph_views;
-    typedef boost::mpl::transform<graph_tool::all_graph_views,
-                                  boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
-    typedef boost::mpl::transform<const_graph_views,
-                                  boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
-    typedef boost::mpl::joint_view<all_graph_views, all_const_graph_views>::type graph_views;
-    boost::mpl::for_each<graph_views>(std::bind(graph_tool::export_python_interface(),
-                                                std::placeholders::_1, get_vlist(),
-                                                get_elist(), graph_views()));
+    auto const_graph_views
+        = hana::transform(graph_tool::all_graph_views,
+                          [](auto t){ return hana::type<std::add_const_t<typename decltype(t)::type>>(); });
+    auto all_graph_views
+        = hana::transform(graph_tool::all_graph_views,
+                          [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+    auto all_ptr_graph_views
+        = hana::transform(const_graph_views,
+                          [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+    auto graph_views
+        = hana::concat(all_graph_views, all_ptr_graph_views);
+
+    hana::for_each(graph_views,
+                   [&](auto graph)
+                   {
+                       graph_tool::export_python_interface()
+                           (typename decltype(+graph)::type(), get_vlist(),
+                            get_elist(), graph_views);
+                   });
+
     export_python_properties();
     def("new_vertex_property",
         &new_property<GraphInterface::vertex_index_map_t>);

@@ -168,7 +168,7 @@ python::object get_diam(GraphInterface& gi, size_t source, boost::any weight)
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       target, max_dist);
              },
-             edge_scalar_properties())(weight);
+             edge_scalar_properties)(weight);
     }
     return python::make_tuple(target, max_dist);
 }

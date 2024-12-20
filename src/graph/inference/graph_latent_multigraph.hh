@@ -38,7 +38,7 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
         auto tout = theta_out[v];
         auto tin = theta_in[v];
         auto e = add_edge(v, v, g).first;
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
             wc[e] = tout * tin;
         else
             wc[e] = (tout * tin) / 2;
@@ -60,7 +60,7 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
                  auto v = target(e, g);
                  auto l = theta_out[u] * theta_in[v];
                  auto nw = ((u != v) ? l / (1-exp(-l)) :
-                            (graph_tool::is_directed(g) ? l : l / 2));
+                            (is_directed(g) ? l : l / 2));
                  auto& ew = w[e];
                  delta = std::max(delta, abs(nw - ew));
                  ew = nw;
@@ -73,7 +73,7 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
             (g,
              [&](auto v)
              {
-                 if (graph_tool::is_directed(g))
+                 if (is_directed(g))
                  {
                      auto& tout = theta_out[v];
                      auto d = out_degreeS()(v, g, w);

@@ -20,7 +20,7 @@
 
 #include <boost/python.hpp>
 
-#define GRAPH_VIEWS never_filtered_never_reversed
+#define GRAPH_VIEWS decltype(never_filtered_never_reversed)
 #include "../../blockmodel/graph_blockmodel.hh"
 
 #include "dynamics.hh"

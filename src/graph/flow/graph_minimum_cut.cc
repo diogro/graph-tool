@@ -52,10 +52,10 @@ double min_cut(GraphInterface& gi, boost::any weight, boost::any part_map)
     if (weight.empty())
         weight = cweight_t();
 
-    typedef boost::mpl::push_back<writable_edge_scalar_properties, cweight_t>::type
-        weight_maps;
+    auto weight_maps = hana::append(writable_edge_scalar_properties,
+                                    hana::type<cweight_t>());
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -64,7 +64,7 @@ double min_cut(GraphInterface& gi, boost::any weight, boost::any part_map)
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), mc);
          },
-         weight_maps(), writable_vertex_scalar_properties())(weight, part_map);
+         weight_maps, writable_vertex_scalar_properties)(weight, part_map);
     return mc;
 }
 
@@ -82,7 +82,8 @@ struct do_get_residual_graph
 void get_residual_graph(GraphInterface& gi, boost::any capacity,
                         boost::any res, boost::any oaugment)
 {
-    typedef eprop_map_t<uint8_t>::type emap_t;
+    typedef eprop_map_t<uint8_t>
+        emap_t;
     emap_t augment = boost::any_cast<emap_t>(oaugment);
     run_action<>()
         (gi,
@@ -93,7 +94,7 @@ void get_residual_graph(GraphInterface& gi, boost::any capacity,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), augment);
          },
-         edge_scalar_properties(), edge_scalar_properties())(capacity, res);
+         edge_scalar_properties, edge_scalar_properties)(capacity, res);
 }
 
 #include <boost/python.hpp>

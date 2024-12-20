@@ -49,7 +49,7 @@ void label_parallel_edges(const Graph& g, ParallelMap parallel, bool mark_only)
                  vertex_t u = target(e, g);
 
                  // do not visit edges twice in undirected graphs
-                 if (!graph_tool::is_directed(g) && u < v)
+                 if (!is_directed(g) && u < v)
                      continue;
 
                  if (u == v)

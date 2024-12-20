@@ -30,24 +30,24 @@ using namespace graph_tool;
 size_t pagerank(GraphInterface& g, boost::any rank, boost::any pers,
                 boost::any weight, double d, double epsilon, size_t max_iter)
 {
-    if (!belongs<vertex_floating_properties>()(rank))
+    if (!belongs(vertex_floating_properties, rank))
         throw ValueException("rank vertex property must have a floating-point value type");
 
-    if (!pers.empty() && !belongs<vertex_scalar_properties>()(pers))
+    if (!pers.empty() && !belongs(vertex_scalar_properties, pers))
         throw ValueException("personalization vertex property must have a scalar value type");
 
     typedef ConstantPropertyMap<double, GraphInterface::vertex_t> pers_map_t;
-    typedef boost::mpl::push_back<vertex_scalar_properties, pers_map_t>::type
-        pers_props_t;
+    auto pers_props = hana::append(vertex_scalar_properties,
+                                   hana::type<pers_map_t>());
 
     if (pers.empty())
         pers = pers_map_t(1.0 / g.get_num_vertices());
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props = hana::append(writable_edge_scalar_properties,
+                                    hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if (weight.empty())
@@ -64,8 +64,8 @@ size_t pagerank(GraphInterface& g, boost::any rank, boost::any pers,
                   std::forward<decltype(a3)>(a3),
                   std::forward<decltype(a4)>(a4), d, epsilon, max_iter, iter);
          },
-         vertex_floating_properties(), pers_props_t(),
-         weight_props_t())(rank, pers, weight);
+         vertex_floating_properties, pers_props,
+         weight_props)(rank, pers, weight);
     return iter;
 }
 

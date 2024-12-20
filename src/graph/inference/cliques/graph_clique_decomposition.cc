@@ -30,9 +30,9 @@ clique_iter_mh(GraphInterface& gi, boost::any ac, boost::any ax,
                boost::any ais_fac, boost::any ais_max, boost::python::object oEd,
                int N, int E, double beta, size_t niter, rng_t& rng)
 {
-    typedef typename vprop_map_t<int32_t>::type vprop_t;
-    typedef typename vprop_map_t<uint8_t>::type vbprop_t;
-    typedef typename vprop_map_t<std::vector<int32_t>>::type vvprop_t;
+    typedef vprop_map_t<int32_t> vprop_t;
+    typedef vprop_map_t<uint8_t> vbprop_t;
+    typedef vprop_map_t<std::vector<int32_t>> vvprop_t;
 
     vprop_t x = boost::any_cast<vprop_t>(ax);
     vvprop_t c = boost::any_cast<vvprop_t>(ac);
@@ -51,7 +51,7 @@ clique_iter_mh(GraphInterface& gi, boost::any ac, boost::any ax,
              gil_release.restore();
              pret = boost::python::make_tuple(get<0>(ret), get<1>(ret));
          },
-         all_graph_views())
+         all_graph_views)
         (gi.get_graph_view());
     return pret;
 };

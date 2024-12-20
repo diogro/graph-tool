@@ -37,7 +37,7 @@ void get_nonbacktracking(Graph& g, Index index,
         {
             auto v = target(e1, g);
             int64_t idx1 = index[e1];
-            if (!graph_tool::is_directed(g))
+            if (!is_directed(g))
                 idx1 = (idx1 << 1) + (u > v);
             for (auto e2 : out_edges_range(v, g))
             {
@@ -45,7 +45,7 @@ void get_nonbacktracking(Graph& g, Index index,
                 if (w == u)
                     continue;
                 int64_t idx2 = index[e2];
-                if (!graph_tool::is_directed(g))
+                if (!is_directed(g))
                     idx2 = (idx2 << 1) + (v > w);
                 i.push_back(idx1);
                 j.push_back(idx2);
@@ -204,7 +204,7 @@ void get_compact_nonbacktracking(Graph& g,
 template <bool transpose, class Graph, class VIndex, class V>
 void cnbt_matvec(Graph& g, VIndex vindex, V& x, V& ret)
 {
-    size_t N = HardNumVertices()(g);
+    size_t N = hard_num_vertices(g);
     parallel_vertex_loop
         (g,
          [&](const auto& v)
@@ -240,7 +240,7 @@ template <bool transpose, class Graph, class VIndex, class V>
 void cnbt_matmat(Graph& g, VIndex vindex, V& x, V& ret)
 {
     size_t k = x.shape()[1];
-    size_t N = HardNumVertices()(g);
+    size_t N = hard_num_vertices(g);
     parallel_vertex_loop
         (g,
          [&](const auto& v)

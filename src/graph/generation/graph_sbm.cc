@@ -30,13 +30,13 @@ void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
     auto rs = get_array<int64_t, 1>(ors);
     auto ss = get_array<int64_t, 1>(oss);
 
-    typedef vprop_map_t<int32_t>::type bmap_t;
+    typedef vprop_map_t<int32_t> bmap_t;
     auto b = any_cast<bmap_t>(ab).get_unchecked();
 
     if (micro_degs)
     {
         auto probs = get_array<uint64_t, 1>(oprobs);
-        typedef vprop_map_t<int64_t>::type dmap_t;
+        typedef vprop_map_t<int64_t> dmap_t;
         auto in_deg = any_cast<dmap_t>(ain_deg).get_unchecked();
         auto out_deg = any_cast<dmap_t>(aout_deg).get_unchecked();
         run_action<>()
@@ -46,7 +46,7 @@ void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
     else
     {
         auto probs = get_array<double, 1>(oprobs);
-        typedef vprop_map_t<double>::type dmap_t;
+        typedef vprop_map_t<double> dmap_t;
         auto in_deg = any_cast<dmap_t>(ain_deg).get_unchecked();
         auto out_deg = any_cast<dmap_t>(aout_deg).get_unchecked();
         run_action<>()

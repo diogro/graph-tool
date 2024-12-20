@@ -841,13 +841,12 @@ def get_hierarchy_tree(state, empty_branches=False):
 
     t = Graph()
 
-    if g.get_vertex_filter()[0] is None:
+    if g.get_vertex_filter() is None:
         t.add_vertex(g.num_vertices())
     else:
         t.add_vertex(g.num_vertices(ignore_filter=True))
         filt = g.get_vertex_filter()
-        t.set_vertex_filter(t.own_property(filt[0].copy()),
-                            filt[1])
+        t.set_vertex_filter(t.own_property(filt.copy()))
     label = t.vertex_index.copy("int")
 
     order = t.own_property(g.degree_property_map("total").copy())
@@ -898,7 +897,7 @@ def get_hierarchy_tree(state, empty_branches=False):
     if not empty_branches:
         vmask = t.new_vertex_property("bool", True)
         t = GraphView(t, vfilt=vmask)
-        vmask = t.get_vertex_filter()[0]
+        vmask = t.get_vertex_filter()
         N = t.num_vertices()
         for vi, v in enumerate(list(t.vertices())):
             if vi < state.g.num_vertices():

@@ -96,10 +96,10 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
                   boost::python::object& ouvweight, vbmap_t& block_map,
                   boost::python::object& obrmap, boost::python::object& ouvmap)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
-    typedef eprop_map_t<int32_t>::type emap_t;
-    typedef eprop_map_t<double>::type remap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<vector<int32_t>> vvmap_t;
+    typedef eprop_map_t<int32_t> emap_t;
+    typedef eprop_map_t<double> remap_t;
 
     emap_t& ec = any_cast<emap_t&>(aec);
     vmap_t& b = any_cast<vmap_t&>(ab);
@@ -130,7 +130,7 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
                        std::vector<gt_hash_map<size_t, size_t>>
                            vhmap(num_vertices(g));
 
-                       typename vprop_map_t<gt_hash_map<size_t, size_t>>::type
+                       vprop_map_t<gt_hash_map<size_t, size_t>>
                            lw(get(vertex_index, g));
                        for (auto v : vertices_range(g))
                        {
@@ -218,8 +218,8 @@ void split_groups(boost::any& ab, boost::any& avc, boost::any& avmap,
                   vbmap_t& block_map, boost::python::object& obrmap,
                   boost::python::object& ouvmap)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
     vmap_t& b = any_cast<vmap_t&>(ab);
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
@@ -276,8 +276,8 @@ void split_groups(boost::any& ab, boost::any& avc, boost::any& avmap,
 void get_rvmap(GraphInterface& gi, boost::any& avc, boost::any& avmap,
                boost::python::object& ouvmap)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
     vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
@@ -305,8 +305,8 @@ void get_rvmap(GraphInterface& gi, boost::any& avc, boost::any& avmap,
 void get_lweights(GraphInterface& gi, boost::any& avc, boost::any& avmap,
                   boost::any& alweight, boost::python::object& ouvweight)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
     vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
@@ -334,8 +334,8 @@ void get_blweights(GraphInterface& gi, boost::any& ab, boost::any& avc,
                    boost::any& avmap, boost::any& alweight,
                    boost::python::object& ouvweight)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
     vmap_t& b = any_cast<vmap_t&>(ab);
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
@@ -424,7 +424,7 @@ typedef gt_hash_map<std::tuple<int, int>,
 ldegs_map_t get_ldegs(GraphInterface& gi, boost::any& avc, boost::any& avmap,
                       boost::python::object& oudegs)
 {
-    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
     vvmap_t& vmap = any_cast<vvmap_t&>(avmap);

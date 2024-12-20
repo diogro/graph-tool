@@ -40,15 +40,14 @@ auto&& uncheck(T&&, boost::any p)
     return boost::any_cast<T>(p);
 }
 
-typedef UnityPropertyMap<size_t,GraphInterface::edge_t> ecmap_t;
-typedef boost::mpl::push_back<edge_scalar_properties, ecmap_t>::type
-        weight_props_t;
-
 python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
                           boost::any weight1, boost::any weight2,
                           boost::any label1, boost::any label2, double norm,
                           bool asym)
 {
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> ecmap_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<ecmap_t>());
     if (weight1.empty())
         weight1 = ecmap_t();
     if (weight2.empty())
@@ -64,10 +63,10 @@ python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
              gil_release.restore();
              s = python::object(ret);
          },
-         all_graph_views(),
-         all_graph_views(),
-         weight_props_t(),
-         vertex_scalar_properties())
+         all_graph_views,
+         all_graph_views,
+         weight_props_t,
+         vertex_scalar_properties)
         (gi1.get_graph_view(), gi2.get_graph_view(), weight1, label1);
     return s;
 }

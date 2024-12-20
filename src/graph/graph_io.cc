@@ -133,47 +133,24 @@ private:
 // Property Maps
 // =============
 
-struct get_python_property
-{
-    template <class ValueType, class IndexMap>
-    void operator()(ValueType, IndexMap, dynamic_property_map& map,
-                    boost::python::object& pmap) const
-    {
-        typedef typename property_map_type::apply<ValueType, IndexMap>::type
-            map_t;
-        try
-        {
-            pmap = boost::python::object
-                (PythonPropertyMap<map_t>
-                 (dynamic_cast
-                  <boost::detail::dynamic_property_map_adaptor<map_t>&>(map)
-                  .base()));
-        } catch (bad_cast&) {}
-    }
-
-    template <class ValueType, class IndexMap>
-    void operator()(ValueType, IndexMap, boost::any& map,
-                    boost::python::object& pmap) const
-    {
-        typedef typename property_map_type::apply<ValueType, IndexMap>::type
-            map_t;
-        try
-        {
-            PythonPropertyMap<map_t> opmap(any_cast<map_t>(map));
-            pmap = boost::python::object(opmap);
-        }
-        catch (bad_any_cast&) {}
-    }
-
-};
-
 template <class IndexMap>
 boost::python::object find_property_map(dynamic_property_map& map, IndexMap)
 {
     boost::python::object pmap;
-    boost::mpl::for_each<value_types>(std::bind(get_python_property(),
-                                                std::placeholders::_1, IndexMap(), std::ref(map),
-                                                std::ref(pmap)));
+    hana::for_each(value_types,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(+t)::type val_t;
+                       typedef property_map_t<val_t, IndexMap> map_t;
+                       try
+                       {
+                           pmap = boost::python::object
+                               (PythonPropertyMap<map_t>
+                                (dynamic_cast
+                                 <boost::detail::dynamic_property_map_adaptor<map_t>&>(map)
+                                 .base()));
+                       } catch (bad_cast&) {}
+                   });
     return pmap;
 }
 
@@ -181,9 +158,18 @@ template <class IndexMap>
 boost::python::object find_property_map(boost::any& map, IndexMap)
 {
     boost::python::object pmap;
-    boost::mpl::for_each<value_types>(std::bind(get_python_property(),
-                                                std::placeholders::_1, IndexMap(), std::ref(map),
-                                                std::ref(pmap)));
+    hana::for_each(value_types,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(+t)::type val_t;
+                       typedef property_map_t<val_t, IndexMap> map_t;
+                       try
+                       {
+                           PythonPropertyMap<map_t> opmap(any_cast<map_t>(map));
+                           pmap = boost::python::object(opmap);
+                       }
+                       catch (bad_any_cast&) {}
+                   });
     return pmap;
 }
 
@@ -203,8 +189,7 @@ struct check_value_type
     {
         try
         {
-            typedef typename property_map_type::apply<ValueType, IndexMap>::type
-                map_t;
+            typedef property_map_t<ValueType, IndexMap> map_t;
             map_t vector_map(_index_map);
             vector_map[_key] = any_cast<ValueType>(_value);
             _map = new boost::detail::dynamic_property_map_adaptor<map_t>
@@ -236,28 +221,40 @@ struct create_dynamic_map
         dynamic_property_map* map;
         try
         {
-            boost::mpl::for_each<value_types>
-                (check_value_type<VertexIndexMap>(_vertex_map,
-                                                  any_cast<vertex_t>(key),
-                                                  value, map));
+            hana::for_each(value_types,
+                           [&](auto t)
+                           {
+                               typedef typename decltype(+t)::type val_t;
+                               check_value_type<VertexIndexMap>(_vertex_map,
+                                                                any_cast<vertex_t>(key),
+                                                                value, map)(val_t());
+                           });
         }
         catch (bad_any_cast&)
         {
             try
             {
-                boost::mpl::for_each<value_types>
-                    (check_value_type<EdgeIndexMap>(_edge_map,
-                                                    any_cast<edge_t>(key),
-                                                    value, map));
+                hana::for_each(value_types,
+                               [&](auto t)
+                               {
+                                   typedef typename decltype(+t)::type val_t;
+                                   check_value_type<EdgeIndexMap>(_edge_map,
+                                                                  any_cast<edge_t>(key),
+                                                                  value, map)(val_t());
+                               });
             }
             catch (bad_any_cast&)
             {
                 ConstantPropertyMap<size_t,graph_property_tag> graph_index(0);
-                boost::mpl::for_each<value_types>
-                    (check_value_type<ConstantPropertyMap<size_t,
-                                                          graph_property_tag> >
-                     (graph_index, any_cast<graph_property_tag>(key),
-                      value, map));
+                hana::for_each(value_types,
+                               [&](auto t)
+                               {
+                                   typedef typename decltype(+t)::type val_t;
+                                   check_value_type<ConstantPropertyMap<size_t,
+                                                                        graph_property_tag> >
+                                       (graph_index, any_cast<graph_property_tag>(key),
+                                        value, map)(val_t());
+                               });
             }
         }
         return DP_SMART_PTR<dynamic_property_map>(map);
@@ -487,20 +484,19 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
 
         if (format == "gt")
         {
-            typedef property_map_types::apply<value_types,
-                                              GraphInterface::graph_index_map_t>::type
-                graph_properties;
+            auto graph_properties =
+                get_prop_types<GraphInterface::graph_index_map_t>(value_types);
 
             vector<pair<string, boost::any>> agprops, avprops, aeprops;
             for (int i = 0; i < python::len(props); ++i)
             {
                 string name = python::extract<string>(props[i][0])();
                 boost::any p = python::extract<boost::any>(props[i][1].attr("get_map")())();
-                if (belongs<graph_properties>()(p))
+                if (belongs(graph_properties, p))
                     agprops.push_back(make_pair(name, p));
-                if (belongs<vertex_properties>()(p))
+                if (belongs(vertex_properties, p))
                     avprops.push_back(make_pair(name, p));
-                if (belongs<edge_properties>()(p))
+                if (belongs(edge_properties, p))
                     aeprops.push_back(make_pair(name, p));
             }
 

@@ -296,7 +296,6 @@ def show_config():
     print("compilation flags:", info.cxxflags)
     print("install prefix:", info.install_prefix)
     print("python dir:", info.python_dir)
-    print("graph filtering:", libcore.graph_filtering_enabled())
     print("openmp:", libcore.openmp_enabled())
     print("uname:", " ".join(os.uname()))
 
@@ -525,25 +524,23 @@ class PropertyMap(object):
         if g is None:
             return None
         a = self.get_array()
-        filt = (None, False)
+        filt = None
         N = None
         if self.__key_type == 'v':
             filt = g.get_vertex_filter()
             N = g.num_vertices()
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
-            if filt[0] is not None or g.edge_index_range != g.num_edges():
+            if filt is not None or g.edge_index_range != g.num_edges():
                 # we need to also consider the vertex filter *and* any existing
                 # index non-contiguity; this is O(N + E)
-                filt = (g.new_ep("bool"), False)
-                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
+                filt = g.new_ep("bool")
+                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt))
         else:
             return a
 
-        if filt[0] is not None:
-            m = numpy.asarray(filt[0].a, dtype="bool")
-            if filt[1]:
-                m = ~m
+        if filt is not None:
+            m = numpy.asarray(filt.a, dtype="bool")
         else:
             m = None
 
@@ -600,30 +597,28 @@ class PropertyMap(object):
         if g is None:
             return None
         a = self.get_array()
-        filt = [None]
+        filt = None
         if self.__key_type == 'v':
             filt = g.get_vertex_filter()
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
-            if filt[0] is not None or g.edge_index_range != g.num_edges():
+            if filt is not None or g.edge_index_range != g.num_edges():
                 # we need to also consider the vertex filter *and* any existing
                 # index non-contiguity; this is O(N + E)
-                filt = (g.new_ep("bool"), False)
-                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
+                filt = g.new_ep("bool")
+                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt))
         else:
             return a
 
         if get:
-            if a is None or filt[0] is None:
+            if a is None or filt is None:
                 return a
         else:
             if a is None:
                 raise TypeError("cannot set property map values from array for" +
                                 " property map of type: " + self.value_type())
 
-        m = numpy.asarray(filt[0].a, dtype="bool")
-        if not filt[1]:
-            m = ~m
+        m = ~numpy.asarray(filt.a, dtype="bool")
         ma = numpy.ma.array(a, mask=m, copy=False)
         if get:
             return ma
@@ -1827,8 +1822,8 @@ class Graph(object):
         self.__edge_properties = PropertyDict(self.__properties, "e")
         self.__known_properties = {}
         self.__filter_state = {"reversed": False,
-                               "edge_filter": (None, False),
-                               "vertex_filter": (None, False),
+                               "edge_filter": None,
+                               "vertex_filter": None,
                                "directed": True}
         if g is None or isinstance(g, (collections.abc.Iterable, int)):
             self.__graph = libcore.GraphInterface()
@@ -1885,8 +1880,8 @@ class Graph(object):
                 gv = g
 
             # The filters may or may not not be in the internal property maps
-            vfilt = g.get_vertex_filter()[0]
-            efilt = g.get_edge_filter()[0]
+            vfilt = g.get_vertex_filter()
+            efilt = g.get_edge_filter()
 
             if (vorder is None and ((vfilt is None and efilt is None) or
                                     (not vprune and not eprune))):
@@ -1914,9 +1909,7 @@ class Graph(object):
                 if efilt is not None:
                     if nefilt is None:
                         nefilt = self.copy_property(efilt, g=gv)
-                self.set_filters(nefilt, nvfilt,
-                                 inverted_edges=g.get_edge_filter()[1],
-                                 inverted_vertices=g.get_vertex_filter()[1])
+                self.set_filters(nefilt, nvfilt)
             else:
 
                 # Copy all internal properties from original graph.
@@ -1989,9 +1982,7 @@ class Graph(object):
                                               self.__graph.get_edge_index(),
                                               eprops[ef_pos][1])
                     epmap = EdgePropertyMap(epmap, self)
-                self.set_filters(epmap, vpmap,
-                                 inverted_edges=g.get_edge_filter()[1],
-                                 inverted_vertices=g.get_vertex_filter()[1])
+                self.set_filters(epmap, vpmap)
 
             if not rprune:
                 self.set_reversed(g.is_reversed())
@@ -2036,9 +2027,9 @@ class Graph(object):
         if len(p) > 0:
             p = ", " + p
         f = ""
-        if self.get_edge_filter()[0] is not None:
+        if self.get_edge_filter() is not None:
             f += ", edges filtered by %s" % (str(self.get_edge_filter()))
-        if self.get_vertex_filter()[0] is not None:
+        if self.get_vertex_filter() is not None:
             f += ", vertices filtered by %s" % (str(self.get_vertex_filter()))
         n = self.num_vertices()
         e = self.num_edges()
@@ -2670,7 +2661,7 @@ class Graph(object):
         # move / shift all known property maps
         # (unless removing a contiguous range at the end)
         if vmax - vmin >= len(vs) or vmax != back:
-            vfilt = self.get_vertex_filter()[0]
+            vfilt = self.get_vertex_filter()
             if vfilt is not None:
                 vfiltptr = vfilt.data_ptr()
             else:
@@ -3246,16 +3237,16 @@ class Graph(object):
             self.ep[name] = EdgePropertyMap(prop, self)
         for name, prop in props[2].items():
             self.gp[name] = GraphPropertyMap(prop, self)
-        if "_Graph__save__vfilter" in self.gp:
-            self.set_vertex_filter(self.vp["_Graph__save__vfilter"],
-                                   self.gp["_Graph__save__vfilter"])
+        if "_Graph__save__vfilter" in self.vp:
+            self.set_vertex_filter(self.vp["_Graph__save__vfilter"])
             del self.vp["_Graph__save__vfilter"]
-            del self.gp["_Graph__save__vfilter"]
-        if "_Graph__save__efilter" in self.gp:
-            self.set_edge_filter(self.ep["_Graph__save__efilter"],
-                                 self.gp["_Graph__save__efilter"])
+            if "_Graph__save__vfilter" in self.vp:
+                del self.vp["_Graph__save__vfilter"] # backwards compatibility
+        if "_Graph__save__efilter" in self.ep:
+            self.set_edge_filter(self.ep["_Graph__save__efilter"])
             del self.ep["_Graph__save__efilter"]
-            del self.gp["_Graph__save__efilter"]
+            if "_Graph__save__efilter" in self.gp:
+                del self.gp["_Graph__save__efilter"] # backwards compatibility
         if "_Graph__reversed" in self.gp:
             self.set_reversed(True)
             del self.gp["_Graph__reversed"]
@@ -3282,14 +3273,10 @@ class Graph(object):
         u = GraphView(self, reversed=self.is_reversed(), skip_vfilt=True,
                       skip_efilt=True)
 
-        if self.get_vertex_filter()[0] is not None:
-            u.gp["_Graph__save__vfilter"] = \
-                self.new_gp("bool", val= self.get_vertex_filter()[1])
-            u.vp["_Graph__save__vfilter"] = self.get_vertex_filter()[0]
-        if self.get_edge_filter()[0] is not None:
-            u.gp["_Graph__save__efilter"] = \
-                self.new_gp("bool", val=self.get_edge_filter()[1])
-            u.ep["_Graph__save__efilter"] = self.get_edge_filter()[0]
+        if self.get_vertex_filter() is not None:
+            u.vp["_Graph__save__vfilter"] = self.get_vertex_filter()
+        if self.get_edge_filter() is not None:
+            u.ep["_Graph__save__efilter"] = self.get_edge_filter()
 
         if self.is_reversed():
             u.gp["_Graph__reversed"] = self.new_gp("bool", val=True)
@@ -3386,14 +3373,11 @@ class Graph(object):
     # Filtering
     # =========
 
-    def set_filters(self, eprop, vprop, inverted_edges=False, inverted_vertices=False):
-        """Set the boolean properties for edge and vertex filters, respectively.  Only
-        the vertices and edges with value different than ``False`` are kept in
-        the filtered graph. If either the ``inverted_edges`` or
-        ``inverted_vertex`` options are supplied with the value ``True``, only
-        the edges or vertices with value ``False`` are kept. If any of the
-        supplied property is ``None``, an empty filter is constructed which
-        allows all edges or vertices.
+    def set_filters(self, eprop, vprop):
+        """Set the boolean properties for edge and vertex filters, respectively.
+        Only the vertices and edges with value different than ``False`` are kept
+        in the filtered graph. If any of the supplied properties is ``None``, an
+        empty filter is constructed which allows all edges or vertices.
 
         .. note::
 
@@ -3412,30 +3396,27 @@ class Graph(object):
 
         if eprop is None:
             eprop = self.new_edge_property("bool")
-            eprop.a = not inverted_edges
+            eprop.a = True
         else:
             eprop = self.own_property(eprop)
 
         if vprop is None:
             vprop = self.new_vertex_property("bool")
-            vprop.a = not inverted_vertices
+            vprop.a = True
         else:
             vprop = self.own_property(vprop)
 
-        self.__graph.set_vertex_filter_property(_prop("v", self, vprop),
-                                                inverted_vertices)
-        self.__filter_state["vertex_filter"] = (vprop, inverted_vertices)
+        self.__graph.set_vertex_filter_property(_prop("v", self, vprop))
+        self.__filter_state["vertex_filter"] = vprop
 
-        self.__graph.set_edge_filter_property(_prop("e", self, eprop),
-                                              inverted_edges)
-        self.__filter_state["edge_filter"] = (eprop, inverted_edges)
+        self.__graph.set_edge_filter_property(_prop("e", self, eprop))
+        self.__filter_state["edge_filter"] = eprop
 
-    def set_vertex_filter(self, prop, inverted=False):
+    def set_vertex_filter(self, prop):
         """Set the vertex boolean filter property. Only the vertices with value
-        different than ``False`` are kept in the filtered graph. If the ``inverted``
-        option is supplied with value ``True``, only the vertices with value
-        ``False`` are kept. If the supplied property is ``None``, the filter is
-        replaced by an uniform filter allowing all vertices.
+        different than ``False`` are kept in the filtered graph. If the supplied
+        property is ``None``, the filter is replaced by an uniform filter
+        allowing all vertices.
 
         .. note::
 
@@ -3456,31 +3437,26 @@ class Graph(object):
         efilt = None
 
         eprop = self.get_edge_filter()
-        if eprop[0] is None and vfilt is not None:
-            efilt = self.new_edge_property("bool")
-            efilt.a = True
-        if eprop[0] is not None and vfilt is None:
-            vfilt = self.new_vertex_property("bool")
-            vfilt.a = not inverted
+        if eprop is None and vfilt is not None:
+            efilt = self.new_ep("bool", val=True)
+        if eprop is not None and vfilt is None:
+            vfilt = self.new_vp("bool", val=True)
 
-        self.__graph.set_vertex_filter_property(_prop("v", self, vfilt),
-                                                inverted)
-        self.__filter_state["vertex_filter"] = (vfilt, inverted)
+        self.__graph.set_vertex_filter_property(_prop("v", self, vfilt))
+        self.__filter_state["vertex_filter"] = vfilt
 
         if efilt is not None:
             self.set_edge_filter(efilt)
 
     def get_vertex_filter(self):
-        """Return a tuple with the vertex filter property and bool value
-        indicating whether or not it is inverted."""
+        """Return the vertex filter property."""
         return self.__filter_state["vertex_filter"]
 
-    def set_edge_filter(self, prop, inverted=False):
+    def set_edge_filter(self, prop):
         """Set the edge boolean filter property. Only the edges with value
-        different than ``False`` are kept in the filtered graph. If the ``inverted``
-        option is supplied with value ``True``, only the edges with value ``False``
-        are kept. If the supplied property is ``None``, the filter is
-        replaced by an uniform filter allowing all edges.
+        different than ``False`` are kept in the filtered graph. If the supplied
+        property is ``None``, the filter is replaced by an uniform filter
+        allowing all edges.
 
         .. note::
 
@@ -3501,21 +3477,18 @@ class Graph(object):
         vfilt = None
 
         vprop = self.get_vertex_filter()
-        if vprop[0] is None and efilt is not None:
-            vfilt = self.new_vertex_property("bool")
-            vfilt.a = True
-        if vprop[0] is not None and efilt is None:
-            efilt = self.new_edge_property("bool")
-            efilt.a = not inverted
-        self.__graph.set_edge_filter_property(_prop("e", self, efilt), inverted)
-        self.__filter_state["edge_filter"] = (efilt, inverted)
+        if vprop is None and efilt is not None:
+            vfilt = self.new_vp("bool", val=True)
+        if vprop is not None and efilt is None:
+            efilt = self.new_ep("bool", val=True)
+        self.__graph.set_edge_filter_property(_prop("e", self, efilt))
+        self.__filter_state["edge_filter"] = efilt
 
         if vfilt is not None:
             self.set_vertex_filter(vfilt)
 
     def get_edge_filter(self):
-        """Return a tuple with the edge filter property and bool value
-        indicating whether or not it is inverted."""
+        """Return the edge filter property map."""
         return self.__filter_state["edge_filter"]
 
     def clear_filters(self):
@@ -3533,10 +3506,10 @@ class Graph(object):
            edge descriptors.
 
         """
-        self.__graph.set_vertex_filter_property(_prop("v", self, None), False)
-        self.__filter_state["vertex_filter"] = (None, False)
-        self.__graph.set_edge_filter_property(_prop("e", self, None), False)
-        self.__filter_state["edge_filter"] = (None, False)
+        self.__graph.set_vertex_filter_property(_prop("v", self, None))
+        self.__filter_state["vertex_filter"] = None
+        self.__graph.set_edge_filter_property(_prop("e", self, None))
+        self.__filter_state["edge_filter"] = None
 
     def purge_vertices(self, in_place=False):
         """Remove all vertices of the graph which are currently being filtered out. This
@@ -3594,8 +3567,8 @@ class Graph(object):
 
             # update edge filter if set
             efilt = self.get_edge_filter()
-            if efilt[0] is not None:
-                self.set_edge_filter(efilt[0], efilt[1])
+            if efilt is not None:
+                self.set_edge_filter(efilt)
 
     def purge_edges(self):
         """Remove all edges of the graph which are currently being filtered out. This
@@ -3620,10 +3593,8 @@ class Graph(object):
     def set_filter_state(self, state):
         """Set the filter state of the graph."""
         if libcore.graph_filtering_enabled():
-            self.set_vertex_filter(state["vertex_filter"][0],
-                                   state["vertex_filter"][1])
-            self.set_edge_filter(state["edge_filter"][0],
-                                 state["edge_filter"][1])
+            self.set_vertex_filter(state["vertex_filter"])
+            self.set_edge_filter(state["edge_filter"])
         self.set_directed(state["directed"])
         self.set_reversed(state["reversed"])
 
@@ -3892,19 +3863,19 @@ class GraphView(Graph):
 
         # set already existing filters
         if not skip_efilt:
-            ef = list(g.get_edge_filter())
-            if ef[0] is not None:
-                ef[0] = self.own_property(ef[0].copy())
+            ef = g.get_edge_filter()
+            if ef is not None:
+                ef = self.own_property(ef.copy())
         else:
-            ef = [None, False]
+            ef = None
         if not skip_vfilt:
-            vf = list(g.get_vertex_filter())
-            if vf[0] is not None:
-                vf[0] = self.own_property(vf[0].copy())
+            vf = g.get_vertex_filter()
+            if vf is not None:
+                vf = self.own_property(vf.copy())
         else:
-            vf = [None, False]
+            vf = None
 
-        self.set_filters(ef[0], vf[0], ef[1], vf[1])
+        self.set_filters(ef, vf)
 
         if efilt is not None:
             if not isinstance(efilt, PropertyMap):
@@ -3917,12 +3888,8 @@ class GraphView(Graph):
                 efilt = emap
             efilt = self.own_property(efilt)
             ef = self.get_edge_filter()
-            if ef[0] is not None:
-                if not ef[1]:
-                    ef[0].fa = efilt.fa
-                else:
-                    ef[0].fa = numpy.logical_not(efilt.fa)
-                self.set_edge_filter(ef[0], ef[1])
+            if ef is not None:
+                ef.fa = efilt.fa
             else:
                 self.set_edge_filter(efilt)
 
@@ -3937,12 +3904,8 @@ class GraphView(Graph):
                 vfilt = vmap
             vfilt = self.own_property(vfilt)
             vf = self.get_vertex_filter()
-            if vf[0] is not None:
-                if not vf[1]:
-                    vf[0].fa = vfilt.fa
-                else:
-                    vf[0].fa = numpy.logical_not(vfilt.fa)
-                self.set_vertex_filter(vf[0], vf[1])
+            if vf is not None:
+                vf.fa = vfilt.fa
             else:
                 self.set_vertex_filter(vfilt)
 

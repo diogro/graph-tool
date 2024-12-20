@@ -34,14 +34,11 @@ struct get_dominator_tree
     }
 };
 
-typedef property_map_types::apply<mpl::vector<int32_t>,
-                                  GraphInterface::vertex_index_map_t,
-                                  mpl::bool_<false> >::type
-    pred_properties;
-
 void dominator_tree(GraphInterface& gi, size_t entry, boost::any pred_map)
 {
-    run_action<graph_tool::detail::always_directed>()
+    auto pred_properties = hana::tuple_t<vprop_map_t<int32_t>>;
+
+    run_action<decltype(graph_tool::always_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -49,7 +46,7 @@ void dominator_tree(GraphInterface& gi, size_t entry, boost::any pred_map)
                  (std::forward<decltype(graph)>(graph), entry,
                   std::forward<decltype(a2)>(a2));
          },
-         pred_properties())(pred_map);
+         pred_properties)(pred_map);
 }
 
 #include <boost/python.hpp>

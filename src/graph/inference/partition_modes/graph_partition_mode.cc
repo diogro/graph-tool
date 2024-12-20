@@ -97,7 +97,7 @@ REGISTER_MOD
                       (gi, [&](auto& g, auto bm)
                       {
                           state.get_marginal(g, bm);
-                      }, vertex_scalar_vector_properties())(obm);
+                      }, vertex_scalar_vector_properties)(obm);
               })
         .def("get_map",
              +[](PartitionModeState& state,
@@ -107,7 +107,7 @@ REGISTER_MOD
                       (gi, [&](auto& g, auto b)
                       {
                           state.get_map(g, b);
-                      }, writable_vertex_scalar_properties())(ob);
+                      }, writable_vertex_scalar_properties)(ob);
               })
         .def("get_map_bs",
              +[](PartitionModeState& state)
@@ -392,9 +392,9 @@ REGISTER_MOD
          {
              auto x = get_array<int32_t, 1>(ox);
              auto y = get_array<int32_t, 1>(oy);
-             auto label = any_cast<vprop_map_t<int32_t>::type>(alabel);
-             auto partition = any_cast<vprop_map_t<uint8_t>::type>(apartition);
-             auto mrs = any_cast<eprop_map_t<int32_t>::type>(amrs);
+             auto label = any_cast<vprop_map_t<int32_t>>(alabel);
+             auto partition = any_cast<vprop_map_t<uint8_t>>(apartition);
+             auto mrs = any_cast<eprop_map_t<int32_t>>(amrs);
              run_action<>()
                  (gi, [&](auto& g)
                   {

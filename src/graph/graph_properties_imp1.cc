@@ -38,21 +38,15 @@ struct do_edge_endpoint
                     boost::any aeprop, size_t edge_index_range) const
     {
         typedef typename property_traits<VertexPropertyMap>::value_type vval_t;
-        typedef typename boost::mpl::if_<std::is_same<vval_t, size_t>, int64_t, vval_t>::type
+        typedef std::conditional_t<std::is_same_v<vval_t, size_t>, int64_t, vval_t>
             val_t;
-        typedef typename property_map_type::apply<val_t, EdgeIndexMap>::type
-            eprop_t;
+        typedef property_map_t<val_t, EdgeIndexMap> eprop_t;
         eprop_t eprop = any_cast<eprop_t>(aeprop);
         eprop.reserve(edge_index_range);
 
-        #ifdef _OPENMP
-        size_t __attribute__ ((unused)) nt = omp_get_num_threads();
-        if (std::is_convertible<val_t,python::object>::value)
-            nt = 1; // python is not thread-safe
-        #endif
+        bool is_object = std::is_same_v<val_t,python::object>;
 
-        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
-            num_threads(nt)
+        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh() && !is_object)
         parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
@@ -61,7 +55,7 @@ struct do_edge_endpoint
                  {
                      auto s = v;
                      auto t = target(e, g);
-                     if (!graph_tool::is_directed(g) && s > t)
+                     if (!is_directed(g) && s > t)
                          continue;
                      if (src)
                          eprop[e] = prop[s];
@@ -85,7 +79,7 @@ void edge_endpoint(GraphInterface& gi, boost::any prop,
                      std::forward<decltype(graph)>(graph), gi.get_edge_index(),
                      std::forward<decltype(a2)>(a2), eprop, edge_index_range);
              },
-             vertex_properties())(prop);
+             vertex_properties)(prop);
     else
         run_action<>()
             (gi,
@@ -95,5 +89,5 @@ void edge_endpoint(GraphInterface& gi, boost::any prop,
                      std::forward<decltype(graph)>(graph), gi.get_edge_index(),
                      std::forward<decltype(a2)>(a2), eprop, edge_index_range);
              },
-             vertex_properties())(prop);
+             vertex_properties)(prop);
 }

@@ -52,15 +52,15 @@ struct get_hits_dispatch
 long double hits(GraphInterface& g, boost::any w, boost::any x, boost::any y,
                  double epsilon, size_t max_iter)
 {
-    if (!w.empty() && !belongs<writable_edge_scalar_properties>()(w))
+    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge property must be writable");
-    if (!belongs<vertex_floating_properties>()(x))
+    if (!belongs(vertex_floating_properties, x))
         throw ValueException("vertex property must be of floating point"
                              " value type");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<writable_edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props = hana::append(writable_edge_scalar_properties,
+                                    hana::type<weight_map_t>());
 
     if(w.empty())
         w = weight_map_t();
@@ -75,7 +75,7 @@ long double hits(GraphInterface& g, boost::any w, boost::any x, boost::any y,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), y, epsilon, max_iter, eig);
          },
-         weight_props_t(), vertex_floating_properties())(w, x);
+         weight_props, vertex_floating_properties)(w, x);
     return eig;
 }
 

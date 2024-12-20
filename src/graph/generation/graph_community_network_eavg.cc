@@ -33,7 +33,7 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
-typedef eprop_map_t<int32_t>::type ecount_map_t;
+typedef eprop_map_t<int32_t> ecount_map_t;
 
 struct get_weighted_edge_property_dispatch
 {
@@ -58,8 +58,8 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
                             boost::any eweight, boost::python::list aeprops,
                             bool self_loops, bool parallel_edges)
 {
-    typedef boost::mpl::push_back<writable_edge_scalar_properties, no_eweight_map_t>::type
-        eweight_properties;
+    auto weight_maps_t = hana::append(writable_edge_scalar_properties,
+                                      hana::type<no_eweight_map_t>());
 
     bool no_weight = false;
     if (eweight.empty())
@@ -68,12 +68,9 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
         eweight = no_eweight_map_t();
     }
 
-    typedef boost::mpl::insert_range<writable_edge_scalar_properties,
-                                     boost::mpl::end<writable_edge_scalar_properties>::type,
-                                     edge_scalar_vector_properties>::type eprops_temp;
-    typedef boost::mpl::push_back<eprops_temp,
-                                  eprop_map_t<boost::python::object>::type >::type
-        eprops_t;
+    auto eprops_t = hana::append(hana::concat(writable_edge_scalar_properties,
+                                              edge_scalar_vector_properties),
+                                 hana::type<eprop_map_t<boost::python::object>>());
 
     for(int i = 0; i < boost::python::len(aeprops); ++i)
     {
@@ -93,7 +90,7 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
                           std::forward<decltype(a2)>(a2),
                           std::forward<decltype(a3)>(a3), temp);
                  },
-                 eweight_properties(), eprops_t())(eweight, eprop);
+                 weight_maps_t, eprops_t)(eweight, eprop);
 
             // sum weighted values
             sum_eprops(gi, cgi, community_property,

@@ -21,7 +21,7 @@
 #include "graph_tool.hh"
 #include "random.hh"
 
-#define GRAPH_VIEWS never_filtered_never_reversed
+#define GRAPH_VIEWS decltype(never_filtered_never_reversed)
 #include "../../blockmodel/graph_blockmodel.hh"
 
 #include "dynamics.hh"
@@ -320,12 +320,12 @@ REGISTER_MOD
                                    bool include_edges, bool use_hint, size_t nrandom,
                                    bool verbose, rng_t& rng)
                                 {
-                                    typedef eprop_map_t<double>::type wmap_t;
+                                    typedef eprop_map_t<double> wmap_t;
                                     wmap_t w = boost::any_cast<wmap_t>(aw);
-                                    typedef eprop_map_t<int32_t>::type eimap_t;
+                                    typedef eprop_map_t<int32_t> eimap_t;
                                     eimap_t ei = boost::any_cast<eimap_t>(aei);
                                     std::tuple<size_t, size_t, size_t> ret;
-                                    run_action<always_directed_never_filtered_never_reversed>()
+                                    run_action<decltype(always_directed_never_filtered_never_reversed)>()
                                         (gi,
                                          [&](auto& g)
                                          {

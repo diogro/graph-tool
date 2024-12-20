@@ -41,7 +41,7 @@ struct get_arf_layout
 
         pos_t delta = epsilon + 1;
         size_t n_iter = 0;
-        pos_t r = d*sqrt(pos_t(HardNumVertices()(g)));
+        pos_t r = d*sqrt(pos_t(hard_num_vertices(g)));
         while (delta > epsilon && (max_iter == 0 || n_iter < max_iter))
         {
             delta = 0;

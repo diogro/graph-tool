@@ -34,14 +34,14 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef eprop_map_t<int32_t>::type emap_t;
-typedef vprop_map_t<std::vector<int32_t>>::type vcvmap_t;
+typedef eprop_map_t<int32_t> emap_t;
+typedef vprop_map_t<std::vector<int32_t>> vcvmap_t;
 
 typedef gt_hash_map<size_t, size_t> bmap_t;
 typedef std::vector<bmap_t> vbmap_t;
 
 #define LAYERED_BLOCK_STATE_params                                             \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((alayer_states,, std::vector<boost::any>, 0))                             \
     ((ablock_rmaps,, std::vector<boost::any>, 0))                              \
     ((ec,, emap_t, 0))                                                         \
@@ -91,7 +91,7 @@ struct Layers
         using BaseState::_partition_stats;
         using BaseState::get_move_entries;
 
-        typedef vprop_map_t<int32_t>::type block_rmap_t;
+        typedef vprop_map_t<int32_t> block_rmap_t;
 
         class LayerState
             : public BaseState
@@ -1096,17 +1096,17 @@ struct Layers
         }
 
 
-        vprop_map_t<int32_t>::type::unchecked_t& get_b()
+        vprop_map_t<int32_t>::unchecked_t& get_b()
         {
             return BaseState::_b;
         }
 
-        vprop_map_t<int32_t>::type::unchecked_t& get_pclabel()
+        vprop_map_t<int32_t>::unchecked_t& get_pclabel()
         {
             return BaseState::_pclabel;
         }
 
-        vprop_map_t<int32_t>::type::unchecked_t& get_bclabel()
+        vprop_map_t<int32_t>::unchecked_t& get_bclabel()
         {
             return BaseState::_bclabel;
         }

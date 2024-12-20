@@ -38,7 +38,7 @@ class discrete_state_base
 {
 public:
     typedef Value s_t;
-    typedef typename vprop_map_t<s_t>::type::unchecked_t smap_t;
+    typedef typename vprop_map_t<s_t>::unchecked_t smap_t;
 
     discrete_state_base(smap_t s, smap_t s_temp)
         : _s(s), _s_temp(s_temp),
@@ -79,9 +79,9 @@ public:
 
     enum State { S, I, R, E };
 
-    typedef typename eprop_map_t<double>::type::unchecked_t bmap_t;
+    typedef eprop_map_t<double>::unchecked_t bmap_t;
     typedef std::conditional_t<weighted, bmap_t, double> beta_t;
-    typedef typename vprop_map_t<double>::type::unchecked_t rmap_t;
+    typedef vprop_map_t<double>::unchecked_t rmap_t;
 
     template <class Graph, class RNG>
     SI_state(Graph& g, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -126,7 +126,7 @@ public:
         {
             if constexpr (constant_beta)
             {
-                eprop_map_t<double>::type beta(get(edge_index_t(), g));
+                eprop_map_t<double> beta(get(edge_index_t(), g));
                 for (auto e : edges_range(g))
                     beta[e] = std::log1p(-_beta[e]);
                 _beta = beta;
@@ -288,7 +288,7 @@ protected:
     rmap_t _r;
 
     typedef std::conditional_t<weighted,
-                               typename vprop_map_t<double>::type::unchecked_t,
+                               vprop_map_t<double>::unchecked_t,
                                discrete_state_base<>::smap_t> m_t;
     m_t _m, _m_temp;
     std::vector<double> _prob;
@@ -453,7 +453,7 @@ public:
         }
 
         int32_t t;
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
         {
             if (in_degreeS()(v, g) == 0)
                 t = s;
@@ -535,8 +535,8 @@ private:
 class binary_threshold_state: public discrete_state_base<>
 {
 public:
-    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
 
     template <class Graph, class RNG>
     binary_threshold_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -581,8 +581,8 @@ class ising_glauber_state: public discrete_state_base<>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     ising_glauber_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -619,8 +619,8 @@ class cising_glauber_state: public discrete_state_base<double>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     cising_glauber_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -670,8 +670,8 @@ class ising_metropolis_state: public discrete_state_base<>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     ising_metropolis_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -772,7 +772,7 @@ class generalized_binary_state: public discrete_state_base<>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
 
     template <class Graph, class RNG>
     generalized_binary_state(Graph& g, smap_t s, smap_t s_temp,
@@ -783,7 +783,7 @@ public:
     {
         for (auto v : vertices_range(g))
         {
-            auto k = (graph_tool::is_directed(g)) ?
+            auto k = (is_directed(g)) ?
                 in_degreeS()(v, g) : out_degree(v, g);
             if (_f.shape()[0] < k || _f.shape()[1] < k)
                 throw ValueException("f matrix should have dimensions at least as large as the largest (in-)degree");
@@ -825,8 +825,8 @@ class potts_glauber_state: public discrete_state_base<>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<std::vector<double>>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<std::vector<double>>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     potts_glauber_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -888,8 +888,8 @@ class potts_metropolis_state: public discrete_state_base<>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<std::vector<double>>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<std::vector<double>>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     potts_metropolis_state(Graph&, smap_t s, smap_t s_temp, python::dict params,
@@ -977,7 +977,7 @@ public:
         }
 
         size_t w;
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
         {
             if (in_degreeS()(v, g) == 0)
                 return 0;
@@ -1025,7 +1025,7 @@ private:
 class boolean_state: public discrete_state_base<uint8_t>
 {
 public:
-    typedef vprop_map_t<std::vector<uint8_t>>::type::unchecked_t fmap_t;
+    typedef vprop_map_t<std::vector<uint8_t>>::unchecked_t fmap_t;
 
     template <class Graph, class RNG>
     boolean_state(Graph& g, smap_t s, smap_t s_temp, python::dict params, RNG& rng)
@@ -1040,7 +1040,7 @@ public:
         for (auto v : vertices_range(g))
         {
             auto& f_v = _f[v];
-            size_t k = (graph_tool::is_directed(g)) ? in_degreeS()(v, g) : out_degree(v, g);
+            size_t k = (is_directed(g)) ? in_degreeS()(v, g) : out_degree(v, g);
             size_t M = 1 << k;
             for (size_t pos = f_v.size(); pos < M; ++pos)
                 f_v.push_back(random(rng));
@@ -1081,8 +1081,8 @@ class normal_state: public discrete_state_base<double>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
@@ -1119,8 +1119,8 @@ class linear_normal_state: public discrete_state_base<double>
 {
 public:
 
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
-    typedef vprop_map_t<double>::type::unchecked_t hmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t hmap_t;
 
     template <class Graph, class RNG>
     linear_normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)

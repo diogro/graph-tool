@@ -61,7 +61,7 @@ struct get_closeness
         typedef typename get_val_type<WeightMap>::type val_type;
 
         get_vertex_dists_t get_vertex_dists;
-        size_t HN = HardNumVertices()(g);
+        size_t HN = hard_num_vertices(g);
         parallel_vertex_loop
             (g,
              [&](auto v)

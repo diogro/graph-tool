@@ -35,7 +35,7 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((beta,, double, 0))                                                       \
     ((step,, double, 0))                                                       \
@@ -110,7 +110,7 @@ struct MCMCXDelta
 
         void lock_edge(size_t u, size_t v)
         {
-            if (graph_tool::is_directed(_state._u) || u == v)
+            if (is_directed(_state._u) || u == v)
                 _vmutex[v].lock();
             else
                 std::lock(_vmutex[u], _vmutex[v]);
@@ -119,7 +119,7 @@ struct MCMCXDelta
         void unlock_edge(size_t u, size_t v)
         {
             _vmutex[v].unlock();
-            if (!graph_tool::is_directed(_state._u) && u != v)
+            if (!is_directed(_state._u) && u != v)
                 _vmutex[u].unlock();
         }
 

@@ -38,7 +38,7 @@ struct do_get_radial
                     bool order_propagate) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-        typedef typename vprop_map_t<typename property_traits<WeightMap>::value_type>::type vcount_t;
+        typedef vprop_map_t<typename property_traits<WeightMap>::value_type> vcount_t;
         typename vcount_t::unchecked_t count(get(vertex_index, g), num_vertices(g));
 
         if (!weighted)
@@ -58,7 +58,7 @@ struct do_get_radial
                 }
             }
 
-            typedef vprop_map_t<uint8_t>::type vmark_t;
+            typedef vprop_map_t<uint8_t> vmark_t;
             vmark_t::unchecked_t mark(get(vertex_index, g), num_vertices(g));
 
             while (!q.empty())
@@ -78,7 +78,7 @@ struct do_get_radial
             }
         }
 
-        vprop_map_t<double>::type::unchecked_t vorder(get(vertex_index, g));
+        vprop_map_t<double>::unchecked_t vorder(get(vertex_index, g));
 
         if (order_propagate)
         {
@@ -151,7 +151,7 @@ struct do_get_radial
         }
 
 
-        typedef vprop_map_t<double>::type vangle_t;
+        typedef vprop_map_t<double> vangle_t;
         vangle_t::unchecked_t angle(get(vertex_index, g), num_vertices(g));
 
         double d_sum = 0;
@@ -194,15 +194,15 @@ void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
                 boost::any oorder, boost::any oweight, size_t root,
                 bool weighted, double r, bool order_propagate)
 {
-    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int32_t> vmap_t;
 
     vmap_t levels = boost::any_cast<vmap_t>(olevels);
 
-    typedef vprop_map_t<double>::type wmap_t;
+    typedef vprop_map_t<double> wmap_t;
 
     wmap_t weight = boost::any_cast<wmap_t>(oweight);
 
-    run_action<graph_tool::detail::always_directed>()
+    run_action<decltype(graph_tool::always_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -212,7 +212,7 @@ void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
                   std::forward<decltype(a3)>(a3), weight, root, weighted, r,
                   order_propagate);
          },
-         vertex_scalar_vector_properties(), vertex_properties())(otpos, oorder);
+         vertex_scalar_vector_properties, vertex_properties)(otpos, oorder);
 }
 
 #include <boost/python.hpp>

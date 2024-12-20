@@ -30,22 +30,20 @@ void arf_layout(GraphInterface& g, boost::any pos, boost::any weight, double d,
                 size_t dim)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        edge_props_t;
+    auto edge_props_t = hana::append(edge_scalar_properties,
+                                     hana::type<weight_map_t>());
 
     if(weight.empty())
         weight = weight_map_t();
-    run_action<graph_tool::detail::never_directed>()
+
+    run_action<decltype(graph_tool::never_directed), false>()
         (g,
-         [&](auto&& graph, auto&& a2, auto&& a3)
+         [&](auto& g, auto pos, auto weight)
          {
-             return get_arf_layout()
-                 (std::forward<decltype(graph)>(graph),
-                  std::forward<decltype(a2)>(a2),
-                  std::forward<decltype(a3)>(a3), a, d, dt, epsilon, max_iter,
-                  dim);
+             return get_arf_layout()(g, pos, weight, a, d, dt, epsilon,
+                                     max_iter, dim);
          },
-         vertex_floating_vector_properties(), edge_props_t())(pos, weight);
+         vertex_floating_vector_properties, edge_props_t)(pos, weight);
 }
 
 #include <boost/python.hpp>

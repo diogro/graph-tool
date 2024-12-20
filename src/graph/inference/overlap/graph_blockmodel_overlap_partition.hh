@@ -87,7 +87,7 @@ struct overlap_partition_stats_t
     overlap_partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E,
                               size_t B, Eprop& eweight, overlap_stats_t& ostats)
         : _overlap_stats(&ostats),
-          _directed(graph_tool::is_directed(g))
+          _directed(is_directed(g))
     {
         _D = 0;
         _N = vlist.size();
@@ -598,7 +598,7 @@ struct overlap_partition_stats_t
         {
             auto get_x = [&g](size_t B) -> size_t
                 {
-                    if (graph_tool::is_directed(g))
+                    if (is_directed(g))
                         return B * B;
                     else
                         return (B * (B + 1)) / 2;

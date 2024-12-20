@@ -188,7 +188,7 @@ private:
                                       std::vector<item_t>>::type
         sampler_t;
 
-    typedef typename vprop_map_t<sampler_t>::type::unchecked_t vsampler_t;
+    typedef vprop_map_t<sampler_t>::unchecked_t vsampler_t;
     vsampler_t _sampler;
 
     bool _self_loops;

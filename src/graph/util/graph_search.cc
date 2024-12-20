@@ -27,21 +27,27 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
+
+
 // find vertices which match a certain (inclusive) property range
 python::list
-find_vertex_range(GraphInterface& gi, GraphInterface::deg_t deg,
+find_vertex_range(GraphInterface& gi, GraphInterface::deg_t adeg,
                   python::tuple range)
 {
     python::list ret;
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& gp, auto&& deg)
          {
-             return find_vertices()
-                 (std::forward<decltype(graph)>(graph), gi,
-                  std::forward<decltype(a2)>(a2), range, ret);
+             return find_vertices()(*gp, gp, deg, range, ret);
          },
-         all_selectors())(degree_selector(deg));
+         all_selectors)(degree_selector(adeg));
     return ret;
 }
 
@@ -50,22 +56,16 @@ python::list
 find_edge_range(GraphInterface& gi, boost::any eprop, python::tuple range)
 {
     python::list ret;
-    typedef property_map_types::apply<value_types,
-                                      GraphInterface::edge_index_map_t,
-                                      mpl::bool_<true> >::type
-        all_edge_props;
 
     GraphInterface::edge_index_map_t eindex =
         any_cast<GraphInterface::edge_index_map_t>(gi.get_edge_index());
-    run_action<>(false)
+    run_action<decltype(graph_view_ptrs)>(false)
         (gi,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& gp, auto&& prop)
          {
-             return find_edges()
-                 (std::forward<decltype(graph)>(graph), gi, eindex,
-                  std::forward<decltype(a2)>(a2), range, ret);
+             return find_edges()(*gp, gp, eindex, prop, range, ret);
          },
-         all_edge_props())(eprop);
+         edge_properties)(eprop);
     return ret;
 }
 

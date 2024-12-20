@@ -46,10 +46,10 @@ vector<int32_t> get_tsp(GraphInterface& gi, size_t src, boost::any weight_map)
     if (weight_map.empty())
         weight_map = cweight_t();
 
-    typedef mpl::push_back<edge_scalar_properties, cweight_t>::type
-        weight_maps;
+    auto weight_maps = hana::append(edge_scalar_properties,
+                                    hana::type<cweight_t>());
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -57,7 +57,7 @@ vector<int32_t> get_tsp(GraphInterface& gi, size_t src, boost::any weight_map)
                  (std::forward<decltype(graph)>(graph), src,
                   std::forward<decltype(a2)>(a2), tour);
          },
-         weight_maps())(weight_map);
+         weight_maps)(weight_map);
 
     return tour;
 }

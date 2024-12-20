@@ -35,14 +35,14 @@ template <class BV>
 size_t partition_overlap(BV& x, BV& y)
 {
     adj_list<> g;
-    typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-    typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-    typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+    vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+    vprop_map_t<bool> partition(get(vertex_index_t(), g));
+    eprop_map_t<double> mrs(get(edge_index_t(), g));
 
     get_contingency_graph<false>(g, partition, label, mrs, x, y);
 
     typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-    typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+    vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
     auto u = undirected_adaptor<adj_list<>>(g);
     //maximum_weighted_matching(u, mrs, match);
@@ -65,14 +65,14 @@ template <class BX, class BY>
 void partition_align_labels(BX&& x, BY&& y)
 {
     adj_list<> g;
-    typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-    typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-    typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+    vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+    vprop_map_t<bool> partition(get(vertex_index_t(), g));
+    eprop_map_t<double> mrs(get(edge_index_t(), g));
 
     get_contingency_graph<false>(g, partition, label, mrs, x, y);
 
     typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-    typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+    vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
     auto u = undirected_adaptor<adj_list<>>(g);
     maximum_bipartite_weighted_matching(u, partition, mrs, match);
@@ -626,14 +626,14 @@ public:
         }
 
         adj_list<> g;
-        typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-        typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-        typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+        vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+        vprop_map_t<bool> partition(get(vertex_index_t(), g));
+        eprop_map_t<double> mrs(get(edge_index_t(), g));
 
         get_contingency_graph<true>(g, partition, label, mrs, b, _nr);
 
         typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-        typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+        vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
         auto u = undirected_adaptor<adj_list<>>(g);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
@@ -684,14 +684,14 @@ public:
     void align_mode(PartitionModeState& mode)
     {
         adj_list<> g;
-        typename vprop_map_t<int32_t>::type label(get(vertex_index_t(), g));
-        typename vprop_map_t<bool>::type partition(get(vertex_index_t(), g));
-        typename eprop_map_t<double>::type mrs(get(edge_index_t(), g));
+        vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+        vprop_map_t<bool> partition(get(vertex_index_t(), g));
+        eprop_map_t<double> mrs(get(edge_index_t(), g));
 
         get_contingency_graph<true>(g, partition, label, mrs, _nr, mode._nr);
 
         typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
-        typename vprop_map_t<vertex_t>::type match(get(vertex_index_t(), g));
+        vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
         auto u = undirected_adaptor<adj_list<>>(g);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);

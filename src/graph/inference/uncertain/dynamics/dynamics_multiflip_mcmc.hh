@@ -38,7 +38,7 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
@@ -131,7 +131,7 @@ struct MCMC
         template <class F>
         auto do_lock_dispatch(F&& f, size_t u, size_t v)
         {
-            if (graph_tool::is_directed(_state._u) || u == v)
+            if (is_directed(_state._u) || u == v)
                 _state._v_mutex[v].lock();
             else
                 std::lock(_state._v_mutex[u], _state._v_mutex[v]);
@@ -139,7 +139,7 @@ struct MCMC
             auto ret = f();
 
             _state._v_mutex[v].unlock();
-            if (!graph_tool::is_directed(_state._u) && u != v)
+            if (!is_directed(_state._u) && u != v)
                 _state._v_mutex[u].unlock();
 
             return ret;
@@ -269,7 +269,7 @@ struct MCMC
         void virtual_move_lock(size_t idx, double r, const std::array<double,d>& s)
         {
             auto [u, v] = get_edge(idx);
-            if (graph_tool::is_directed(_state._u) || u == v)
+            if (is_directed(_state._u) || u == v)
                 _state._v_mutex[v].lock();
             else
                 std::lock(_state._v_mutex[u], _state._v_mutex[v]);
@@ -298,7 +298,7 @@ struct MCMC
             _move_locked = false;
             _move_mutex.unlock();
             _state._v_mutex[v].unlock();
-            if (!graph_tool::is_directed(_state._u) && u != v)
+            if (!is_directed(_state._u) && u != v)
                 _state._v_mutex[u].unlock();
         }
 
@@ -376,7 +376,7 @@ struct MCMC
                          _move_mutex.unlock();
                      });
                 _state._v_mutex[v].unlock();
-                if (!graph_tool::is_directed(_state._u) && u != v)
+                if (!is_directed(_state._u) && u != v)
                     _state._v_mutex[u].unlock();
             }
         }

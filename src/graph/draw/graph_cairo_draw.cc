@@ -147,55 +147,55 @@ typedef pair<double, double> pos_t;
 typedef std::tuple<double, double, double, double> color_t;
 typedef gt_hash_map<int, boost::any> attrs_t;
 
-typedef boost::mpl::map47<
-    boost::mpl::pair<boost::mpl::int_<VERTEX_SHAPE>, vertex_shape_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_FILL_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_SIZE>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_ASPECT>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_ROTATION>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_ANCHOR>, int32_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_PENWIDTH>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_HALO>, uint8_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_HALO_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_HALO_SIZE>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT>, string>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT_POSITION>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT_ROTATION>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT_OFFSET>, vector<double>>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT_OUT_WIDTH>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_TEXT_OUT_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_FONT_FAMILY>, string>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_FONT_SLANT>, int32_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_FONT_WEIGHT>, int32_t>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_FONT_SIZE>, double>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_SURFACE>, boost::python::object>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_PIE_FRACTIONS>, vector<double>>,
-    boost::mpl::pair<boost::mpl::int_<VERTEX_PIE_COLORS>, vector<color_t>>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_PENWIDTH>, double>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_START_MARKER>, edge_marker_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_MID_MARKER>, edge_marker_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_END_MARKER>, edge_marker_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_MARKER_SIZE>, double>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_MID_MARKER_POSITION>, double>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_CONTROL_POINTS>, vector<double>>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_DASH_STYLE>, vector<double>>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_GRADIENT>, vector<double>>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_TEXT>, string>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_TEXT_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_TEXT_DISTANCE>, double>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_TEXT_PARALLEL>, uint8_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_TEXT_OUT_WIDTH>, double>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_TEXT_OUT_COLOR>, color_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_FONT_FAMILY>, string>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_FONT_SLANT>, int32_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_FONT_WEIGHT>, int32_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_FONT_SIZE>, double>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_SLOPPY>, uint8_t>,
-    boost::mpl::pair<boost::mpl::int_<EDGE_SEAMLESS>, uint8_t>>
-        attr_types;
+inline constexpr auto attr_types =
+    hana::make_map(
+        hana::make_pair(hana::int_c<VERTEX_SHAPE>, hana::type<vertex_shape_t>()),
+        hana::make_pair(hana::int_c<VERTEX_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<VERTEX_FILL_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<VERTEX_SIZE>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_ASPECT>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_ROTATION>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_ANCHOR>, hana::type<int32_t>()),
+        hana::make_pair(hana::int_c<VERTEX_PENWIDTH>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_HALO>, hana::type<uint8_t>()),
+        hana::make_pair(hana::int_c<VERTEX_HALO_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<VERTEX_HALO_SIZE>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT>, hana::type<string>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT_POSITION>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT_ROTATION>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT_OFFSET>, hana::type<vector<double>>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT_OUT_WIDTH>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_TEXT_OUT_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<VERTEX_FONT_FAMILY>, hana::type<string>()),
+        hana::make_pair(hana::int_c<VERTEX_FONT_SLANT>, hana::type<int32_t>()),
+        hana::make_pair(hana::int_c<VERTEX_FONT_WEIGHT>, hana::type<int32_t>()),
+        hana::make_pair(hana::int_c<VERTEX_FONT_SIZE>, hana::type<double>()),
+        hana::make_pair(hana::int_c<VERTEX_SURFACE>, hana::type<boost::python::object>()),
+        hana::make_pair(hana::int_c<VERTEX_PIE_FRACTIONS>, hana::type<vector<double>>()),
+        hana::make_pair(hana::int_c<VERTEX_PIE_COLORS>, hana::type<vector<color_t>>()),
+        hana::make_pair(hana::int_c<EDGE_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<EDGE_PENWIDTH>, hana::type<double>()),
+        hana::make_pair(hana::int_c<EDGE_START_MARKER>, hana::type<edge_marker_t>()),
+        hana::make_pair(hana::int_c<EDGE_MID_MARKER>, hana::type<edge_marker_t>()),
+        hana::make_pair(hana::int_c<EDGE_END_MARKER>, hana::type<edge_marker_t>()),
+        hana::make_pair(hana::int_c<EDGE_MARKER_SIZE>, hana::type<double>()),
+        hana::make_pair(hana::int_c<EDGE_MID_MARKER_POSITION>, hana::type<double>()),
+        hana::make_pair(hana::int_c<EDGE_CONTROL_POINTS>, hana::type<vector<double>>()),
+        hana::make_pair(hana::int_c<EDGE_DASH_STYLE>, hana::type<vector<double>>()),
+        hana::make_pair(hana::int_c<EDGE_GRADIENT>, hana::type<vector<double>>()),
+        hana::make_pair(hana::int_c<EDGE_TEXT>, hana::type<string>()),
+        hana::make_pair(hana::int_c<EDGE_TEXT_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<EDGE_TEXT_DISTANCE>, hana::type<double>()),
+        hana::make_pair(hana::int_c<EDGE_TEXT_PARALLEL>, hana::type<uint8_t>()),
+        hana::make_pair(hana::int_c<EDGE_TEXT_OUT_WIDTH>, hana::type<double>()),
+        hana::make_pair(hana::int_c<EDGE_TEXT_OUT_COLOR>, hana::type<color_t>()),
+        hana::make_pair(hana::int_c<EDGE_FONT_FAMILY>, hana::type<string>()),
+        hana::make_pair(hana::int_c<EDGE_FONT_SLANT>, hana::type<int32_t>()),
+        hana::make_pair(hana::int_c<EDGE_FONT_WEIGHT>, hana::type<int32_t>()),
+        hana::make_pair(hana::int_c<EDGE_FONT_SIZE>, hana::type<double>()),
+        hana::make_pair(hana::int_c<EDGE_SLOPPY>, hana::type<uint8_t>()),
+        hana::make_pair(hana::int_c<EDGE_SEAMLESS>, hana::type<uint8_t>()));
 
 namespace std
 {
@@ -1720,29 +1720,7 @@ struct ordered_range
 };
 
 template <class Descriptor, class PropMaps>
-struct get_pmap
-{
-    get_pmap(boost::any& opmap, boost::any& pmap, int type)
-        : _opmap(opmap), _pmap(pmap), _type(type) {}
-    boost::any& _opmap;
-    boost::any& _pmap;
-    int _type;
-
-    template <class ValueType>
-    void operator()(ValueType) const
-    {
-        typedef typename ValueType::second val_t;
-
-        typedef DynamicPropertyMapWrap<val_t, Descriptor, Converter> pmap_t;
-
-        if (_type == ValueType::first::value)
-            _pmap = pmap_t(_opmap, PropMaps());
-    }
-};
-
-
-template <class Descriptor, class PropMaps>
-void populate_attrs(boost::python::dict vattrs, attrs_t& attrs)
+void populate_attrs(PropMaps ps, boost::python::dict vattrs, attrs_t& attrs)
 {
     boost::python::list items = vattrs.items();
     for (int i = 0; i < boost::python::len(items); ++i)
@@ -1750,29 +1728,17 @@ void populate_attrs(boost::python::dict vattrs, attrs_t& attrs)
         boost::any oattr = boost::python::extract<boost::any>(items[i][1])();
         boost::any pmap;
         int type = boost::python::extract<int>(items[i][0])();
-        boost::mpl::for_each<attr_types>(get_pmap<Descriptor,PropMaps>(oattr, pmap,
-                                                                       type));
+        hana::for_each(attr_types,
+                       [&](auto t)
+                       {
+                           typedef typename decltype(+hana::second(t))::type val_t;
+                           typedef DynamicPropertyMapWrap<val_t, Descriptor, Converter> pmap_t;
+                           if (type == hana::first(t).value)
+                               pmap = pmap_t(oattr, ps);
+                       });
         attrs[type] = pmap;
     }
 }
-
-
-struct get_dval
-{
-    get_dval(boost::python::object& odval, boost::any& dval, int type)
-        : _odval(odval), _dval(dval), _type(type) {}
-    boost::python::object& _odval;
-    boost::any& _dval;
-    int _type;
-
-    template <class ValueType>
-    void operator()(ValueType) const
-    {
-        typedef typename ValueType::second val_t;
-        if (_type == int(ValueType::first::value))
-            _dval = boost::python::extract<val_t>(_odval)();
-    }
-};
 
 void populate_defaults(boost::python::dict odefaults, attrs_t& defaults)
 {
@@ -1782,7 +1748,13 @@ void populate_defaults(boost::python::dict odefaults, attrs_t& defaults)
         boost::python::object odval = items[i][1];
         boost::any dval;
         int type = boost::python::extract<int>(items[i][0])();
-        boost::mpl::for_each<attr_types>(get_dval(odval, dval, type));
+        hana::for_each(attr_types,
+                       [&](auto t)
+                       {
+                           typedef typename decltype(+hana::second(t))::type val_t;
+                           if (type == hana::first(t).value)
+                               dval = boost::python::extract<val_t>(odval)();
+                       });
         if (dval.empty())
             throw ValueException("Invalid attribute type.");
         defaults[type] = dval;
@@ -1796,7 +1768,7 @@ struct populate_edge_attrs
                     boost::python::dict oedefaults, attrs_t& edefaults) const
     {
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
-        populate_attrs<edge_t, edge_properties>(oeattrs, eattrs);
+        populate_attrs<edge_t>(edge_properties, oeattrs, eattrs);
         populate_defaults(oedefaults, edefaults);
     }
 };
@@ -1854,7 +1826,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
 
             typedef graph_traits<GraphInterface::multigraph_t>::vertex_descriptor vertex_t;
 
-            populate_attrs<vertex_t, vertex_properties>(ovattrs, vattrs);
+            populate_attrs<vertex_t>(vertex_properties, ovattrs, vattrs);
             populate_defaults(ovdefaults, vdefaults);
 
             run_action<>(false)
@@ -1866,10 +1838,11 @@ boost::python::object cairo_draw(GraphInterface& gi,
                           oedefaults, edefaults);
                  })();
 
-            typedef boost::mpl::push_back<vertex_scalar_properties, no_order>::type
-               vorder_t;
-            typedef boost::mpl::push_back<edge_scalar_properties, no_order>::type
-               eorder_t;
+            auto vorder_t = hana::append(vertex_scalar_properties,
+                                         hana::type<no_order>());
+            auto eorder_t = hana::append(edge_scalar_properties,
+                                         hana::type<no_order>());
+
             if (vorder.empty())
                 vorder = no_order();
             if (eorder.empty())
@@ -1897,8 +1870,8 @@ boost::python::object cairo_draw(GraphInterface& gi,
                               vdefaults, edefaults, mtime, dt, count, cr,
                               yield);
                      },
-                     vertex_scalar_vector_properties(),
-                     vorder_t())(pos, vorder);
+                     vertex_scalar_vector_properties,
+                     vorder_t)(pos, vorder);
 
             run_action<>(false)
                 (gi,
@@ -1911,7 +1884,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                           vdefaults, edefaults, res, mtime, dt, count, cr,
                           yield);
                  },
-                 vertex_scalar_vector_properties(), eorder_t())(pos, eorder);
+                 vertex_scalar_vector_properties, eorder_t)(pos, eorder);
 
             if (!nodesfirst)
             {
@@ -1926,8 +1899,8 @@ boost::python::object cairo_draw(GraphInterface& gi,
                               vdefaults, edefaults, mtime, dt, count, cr,
                               yield);
                      },
-                     vertex_scalar_vector_properties(),
-                     vorder_t())(pos, vorder);
+                     vertex_scalar_vector_properties,
+                     vorder_t)(pos, vorder);
             }
         };
 
@@ -1966,7 +1939,7 @@ void apply_transforms(GraphInterface& gi, boost::any pos, double xx, double yx,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), m);
          },
-         vertex_scalar_vector_properties())(pos);
+         vertex_scalar_vector_properties)(pos);
 }
 
 struct do_put_parallel_splines
@@ -2104,11 +2077,11 @@ void put_parallel_splines(GraphInterface& gi, boost::any opos,
                           double parallel_distance)
 {
     DynamicPropertyMapWrap<vector<double>, GraphInterface::vertex_t>
-        pos(opos, vertex_scalar_vector_properties());
+        pos(opos, vertex_scalar_vector_properties);
     DynamicPropertyMapWrap<int, GraphInterface::edge_t>
-        l(ol, edge_scalar_properties());
+        l(ol, edge_scalar_properties);
     DynamicPropertyMapWrap<double, GraphInterface::vertex_t>
-        angle(loop_angle, vertex_scalar_properties());
+        angle(loop_angle, vertex_scalar_properties);
 
     run_action<>()
         (gi,
@@ -2118,7 +2091,7 @@ void put_parallel_splines(GraphInterface& gi, boost::any opos,
                  (std::forward<decltype(graph)>(graph), pos, l,
                   std::forward<decltype(a2)>(a2), angle, parallel_distance);
          },
-         edge_scalar_vector_properties())(splines);
+         edge_scalar_vector_properties)(splines);
 }
 
 

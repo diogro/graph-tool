@@ -30,16 +30,13 @@ void GraphInterface::copy_vertex_property(const GraphInterface& src,
                                           boost::any prop_tgt)
 {
     gt_dispatch<>()
-        (
-            [&](auto&& graph, auto&& a2, auto&& a3)
-            {
-                return copy_property<vertex_selector, vertex_properties>()(
-                    std::forward<decltype(graph)>(graph),
-                    std::forward<decltype(a2)>(a2),
-                    std::forward<decltype(a3)>(a3), prop_src);
-            },
-            all_graph_views(), all_graph_views(), writable_vertex_properties())(
-            this->get_graph_view(), src.get_graph_view(), prop_tgt);
+        ([&](auto& graph, auto src, auto ptgt)
+         {
+             copy_property<vertex_selector, decltype(vertex_properties)>()
+                 (graph, src, ptgt, prop_src);
+         },
+         all_graph_views, all_graph_views, writable_vertex_properties)
+         (this->get_graph_view(), src.get_graph_view(), prop_tgt);
 }
 
 bool compare_vertex_properties(const GraphInterface& gi,
@@ -52,7 +49,7 @@ bool compare_vertex_properties(const GraphInterface& gi,
          {
              ret = compare_props<vertex_selector>(g, p1, p2);
          },
-         all_graph_views(), vertex_properties(), vertex_properties())
+         all_graph_views, vertex_properties, vertex_properties)
         (gi.get_graph_view(), prop1, prop2);
     return ret;
 }
@@ -67,7 +64,7 @@ bool compare_edge_properties(const GraphInterface& gi,
          {
              ret = compare_props<edge_selector>(g, p1, p2);
          },
-         all_graph_views(), edge_properties(), edge_properties())
+         all_graph_views, edge_properties, edge_properties)
         (gi.get_graph_view(), prop1, prop2);
     return ret;
 }

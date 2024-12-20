@@ -39,10 +39,10 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
 {
     typedef UnityPropertyMap<int,GraphInterface::vertex_t> vweight_map_t;
     typedef UnityPropertyMap<int,GraphInterface::edge_t> eweight_map_t;
-    typedef mpl::push_back<vertex_scalar_properties, vweight_map_t>::type
-        vertex_props_t;
-    typedef mpl::push_back<edge_scalar_properties, eweight_map_t>::type
-        edge_props_t;
+    auto vertex_props_t = hana::append(vertex_scalar_properties,
+                                       hana::type<vweight_map_t>());
+    auto edge_props_t = hana::append(edge_scalar_properties,
+                                     hana::type<eweight_map_t>());
 
     double C = python::extract<double>(spring_parms[0]);
     double K = python::extract<double>(spring_parms[1]);
@@ -58,11 +58,11 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
 
     double r = python::extract<double>(spring_parms[5]);
     size_t kc = python::extract<double>(spring_parms[6]);
-    typedef vprop_map_t<int32_t>::type c_map_t;
+    typedef vprop_map_t<int32_t> c_map_t;
     c_map_t c_map = boost::any_cast<c_map_t>(python::extract<any&>(spring_parms[7])());
 
     double R = python::extract<double>(spring_parms[8]);
-    typedef vprop_map_t<double>::type o_map_t;
+    typedef vprop_map_t<double> o_map_t;
     o_map_t o_map = boost::any_cast<o_map_t>(python::extract<any&>(spring_parms[9])());
 
     if(vweight.empty())
@@ -70,10 +70,10 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
     if(eweight.empty())
         eweight = eweight_map_t();
 
-    typedef vprop_map_t<uint8_t>::type pin_map_t;
+    typedef vprop_map_t<uint8_t> pin_map_t;
     pin_map_t pin_map = boost::any_cast<pin_map_t>(pin);
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (g,
          [&](auto&& graph, auto&& pos, auto&& vweight, auto&& eweight)
          {
@@ -86,8 +86,8 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
                                     step_schedule, max_level, epsilon, max_iter,
                                     adaptive, verbose, rng);
          },
-         vertex_floating_vector_properties(), vertex_props_t(),
-         edge_props_t())(pos, vweight, eweight);
+         vertex_floating_vector_properties, vertex_props_t,
+         edge_props_t)(pos, vweight, eweight);
 }
 
 struct do_propagate_pos
@@ -129,10 +129,7 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
                    boost::any cvmap, boost::any pos, boost::any cpos,
                    double delta, rng_t& rng)
 {
-    typedef mpl::vector<property_map_type::apply
-                            <int32_t,
-                             GraphInterface::vertex_index_map_t>::type>::type
-        vmaps_t;
+    auto vmaps_t = hana::tuple_t<vprop_map_t<int32_t>>;
 
     gt_dispatch<>()
         (
@@ -144,8 +141,8 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
                      std::forward<decltype(a3)>(a3), cvmap,
                      std::forward<decltype(a4)>(a4), cpos, delta, rng);
             },
-            all_graph_views(), all_graph_views(), vmaps_t(),
-            vertex_floating_vector_properties())(
+            all_graph_views, all_graph_views, vmaps_t,
+            vertex_floating_vector_properties)(
             gi.get_graph_view(), cgi.get_graph_view(), vmap, pos);
 }
 
@@ -209,8 +206,8 @@ void propagate_pos_mivs(GraphInterface& gi, boost::any mivs, boost::any pos,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), delta, rng);
          },
-         vertex_scalar_properties(),
-         vertex_floating_vector_properties())(mivs, pos);
+         vertex_scalar_properties,
+         vertex_floating_vector_properties)(mivs, pos);
 }
 
 
@@ -251,37 +248,24 @@ double avg_dist(GraphInterface& gi, boost::any pos)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), d);
          },
-         vertex_scalar_vector_properties())(pos);
+         vertex_scalar_vector_properties)(pos);
     return d;
 }
 
-
-struct do_sanitize_pos
-{
-    template <class Graph, class PosMap>
-    void operator()(Graph& g, PosMap pos) const
-    {
-        parallel_vertex_loop
-                (g,
-                 [&](auto v)
-                 {
-                     pos[v].resize(2);
-                 });
-    }
-};
-
-
-void sanitize_pos(GraphInterface& gi, boost::any pos)
+void sanitize_pos(GraphInterface& gi, boost::any apos)
 {
     run_action<>()
         (gi,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& g, auto&& pos)
          {
-             return do_sanitize_pos()
-                 (std::forward<decltype(graph)>(graph),
-                  std::forward<decltype(a2)>(a2));
+             parallel_vertex_loop
+                 (g,
+                  [&](auto v)
+                  {
+                      pos[v].resize(2);
+                  });
          },
-         vertex_scalar_vector_properties())(pos);
+         vertex_scalar_vector_properties)(apos);
 }
 
 #include <boost/python.hpp>

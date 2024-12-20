@@ -39,25 +39,18 @@ using std::iterator_traits;
 #include "fast_vector_property_map.hh"
 #include <boost/variant.hpp>
 #include <boost/mpl/bool_fwd.hpp>
+
 #include "graph_properties.hh"
 
 #include "openmp.hh"
 
 namespace graph_tool
-{
 
+{
 // GraphInterface
 // this class is the main interface to the internally kept graph. This is how
 // the external world will manipulate the graph. All the algorithms should be
 // registered here. This class will be exported to python in graph_bind.hh
-
-namespace detail
-{
-// Generic graph_action functor. See graph_filtering.hh for details.
-template <class Action, class GraphViews, class Wrap = boost::mpl::false_,
-          class... TRS>
-struct graph_action;
-}
 
 class GraphInterface
 {
@@ -66,7 +59,6 @@ public:
     GraphInterface(const GraphInterface& g, bool keep_ref,
                    boost::python::object ovprops, boost::python::object oeprops,
                    boost::python::object vorder);
-    ~GraphInterface();
 
     // useful enums
 
@@ -96,9 +88,9 @@ public:
 
 
     // graph filtering
-    void set_vertex_filter_property(boost::any prop, bool invert);
+    void set_vertex_filter_property(boost::any prop);
     bool is_vertex_filter_active() const;
-    void set_edge_filter_property(boost::any prop, bool invert);
+    void set_edge_filter_property(boost::any prop);
     bool is_edge_filter_active() const;
 
     // graph modification
@@ -158,25 +150,20 @@ public:
 
     // Gets the encapsulated graph view. See graph_filtering.cc for details
     boost::any get_graph_view() const;
-    std::vector<std::shared_ptr<void>>& get_graph_views() {return _graph_views;}
 
 private:
 
-    // Generic graph_action functor. See graph_filtering.hh for details.
-    template <class Action, class GraphViews, class Wrap, class... TRS>
-    friend struct detail::graph_action;
-
     // this is the main graph
     std::shared_ptr<multigraph_t> _mg;
+
+    // holds filtered graph views pointers
+    std::vector<boost::any> _gviews;
 
     // vertex index map
     vertex_index_map_t _vertex_index;
 
     // edge index map
     edge_index_map_t _edge_index;
-
-    // this will hold an instance of the graph views at run time
-    std::vector<std::shared_ptr<void>> _graph_views;
 
     // reverse and directed states
     bool _reversed;
@@ -189,43 +176,14 @@ private:
     typedef boost::unchecked_vector_property_map<uint8_t,vertex_index_map_t>
         vertex_filter_t;
     vertex_filter_t _vertex_filter_map;
-    bool _vertex_filter_invert;
     bool _vertex_filter_active;
 
     // edge filter
     typedef boost::unchecked_vector_property_map<uint8_t,edge_index_map_t>
         edge_filter_t;
     edge_filter_t _edge_filter_map;
-    bool _edge_filter_invert;
     bool _edge_filter_active;
 };
-
-// convenience metafunctions to get property map types
-
-template <class ValType>
-struct eprop_map_t
-{
-    typedef typename property_map_type::apply<ValType,
-                                              GraphInterface::edge_index_map_t>::type
-        type;
-};
-
-template <class ValType>
-struct vprop_map_t
-{
-    typedef typename property_map_type::apply<ValType,
-                                              GraphInterface::vertex_index_map_t>::type
-        type;
-};
-
-template <class ValType>
-struct gprop_map_t
-{
-    typedef typename property_map_type::apply<ValType,
-                                              GraphInterface::graph_index_map_t>::type
-        type;
-};
-
 
 } //namespace graph_tool
 

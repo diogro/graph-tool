@@ -32,7 +32,7 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
-typedef eprop_map_t<int32_t>::type ::unchecked_t ecount_map_t;
+typedef eprop_map_t<int32_t> ::unchecked_t ecount_map_t;
 
 struct get_community_network_edges_dispatch
 {
@@ -66,8 +66,8 @@ void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
                              boost::any edge_count, boost::any eweight,
                              bool self_loops, bool parallel_edges)
 {
-    typedef boost::mpl::push_back<writable_edge_scalar_properties, no_eweight_map_t>::type
-        eweight_properties;
+    auto eweight_properties = hana::append(writable_edge_scalar_properties,
+                                           hana::type<no_eweight_map_t>());
 
     if (eweight.empty())
         eweight = no_eweight_map_t();
@@ -83,6 +83,6 @@ void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
                  condensed_community_property, std::forward<decltype(a3)>(a3),
                  edge_count);
          },
-         writable_vertex_properties(),
-         eweight_properties())(community_property, eweight);
+         writable_vertex_properties,
+         eweight_properties)(community_property, eweight);
 }

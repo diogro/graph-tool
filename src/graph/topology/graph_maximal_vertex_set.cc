@@ -183,7 +183,7 @@ void maximal_vertex_set(GraphInterface& gi, boost::any mvs, bool high_deg,
                  (std::forward<decltype(graph)>(graph), gi.get_vertex_index(),
                   std::forward<decltype(a2)>(a2), high_deg, rng);
          },
-         writable_vertex_scalar_properties())(mvs);
+         writable_vertex_scalar_properties)(mvs);
 }
 
 #define __MOD__ topology

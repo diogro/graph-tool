@@ -78,7 +78,7 @@ struct vector_from_list
         python::object o(x);
         vector<ValueType> value;
         auto init_iter =
-            [&]
+            [&]()
             {
                 python::stl_input_iterator<ValueType> iter(o), end;
                 for (; iter != end; ++iter)
@@ -165,7 +165,7 @@ struct export_vector_types
     void operator()(ValueType, std::string type_name = "") const
     {
         if (type_name.empty())
-            type_name = get_type_name<>()(typeid(ValueType));
+            type_name = get_type_name<ValueType>();
         std::replace(type_name.begin(), type_name.end(), ' ', '_');
         string name = "Vector_" + type_name;
         class_<vector<ValueType> > vc(name.c_str());
@@ -399,7 +399,7 @@ void set_unpickler(boost::python::object o)
 boost::python::list get_property_types()
 {
     boost::python::list plist;
-    for (int i = 0; i < boost::mpl::size<value_types>::value; ++i)
+    for (size_t i = 0; i < hana::length(value_types).value; ++i)
         plist.append(string(type_names[i]));
     return plist;
 }
@@ -503,10 +503,10 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .def("hash_code", &std::type_info::hash_code);
     def("name_demangle", &name_demangle);
 
-    def("graph_filtering_enabled", &graph_filtering_enabled);
     export_openmp();
 
-    boost::mpl::for_each<boost::mpl::push_back<scalar_types,string>::type>(export_vector_types<>());
+    boost::hana::for_each(boost::hana::append(scalar_types,boost::hana::type<string>()),
+                          [](auto t){export_vector_types<>()(typename decltype(+t)::type());});
     export_vector_types<>()(size_t(), "size_t");
     export_vector_types<>()(std::vector<double>(), "Vector_double");
     export_vector_types<false,false>()(boost::any(), "any");

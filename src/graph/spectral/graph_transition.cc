@@ -34,14 +34,14 @@ void transition(GraphInterface& g, boost::any index, boost::any weight,
                 python::object odata, python::object oi,
                 python::object oj)
 {
-    if (!belongs<vertex_scalar_properties>()(index))
+    if (!belongs(vertex_scalar_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(weight.empty())
@@ -59,21 +59,21 @@ void transition(GraphInterface& g, boost::any index, boost::any weight,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), data, i, j);
          },
-         vertex_scalar_properties(), weight_props_t())(index, weight);
+         vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
 void transition_matvec(GraphInterface& g, boost::any index, boost::any weight,
                        boost::any deg, python::object ov, python::object oret,
                        bool transpose)
 {
-    if (!belongs<vertex_scalar_properties>()(index))
+    if (!belongs(vertex_scalar_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     typedef UnityPropertyMap<double, GraphInterface::edge_t> weight_map_t;
-    typedef mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(weight.empty())
@@ -82,7 +82,7 @@ void transition_matvec(GraphInterface& g, boost::any index, boost::any weight,
     multi_array_ref<double,1> v = get_array<double,1>(ov);
     multi_array_ref<double,1> ret = get_array<double,1>(oret);
 
-    typedef typename vprop_map_t<double>::type deg_t;
+    typedef vprop_map_t<double> deg_t;
     deg_t::unchecked_t d = any_cast<deg_t>(deg).get_unchecked();
 
     run_action<>()
@@ -94,27 +94,27 @@ void transition_matvec(GraphInterface& g, boost::any index, boost::any weight,
              else
                  return trans_matvec<true>(graph, vi, w, d, v, ret);
          },
-         vertex_scalar_properties(), weight_props_t())(index, weight);
+         vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
 void transition_matmat(GraphInterface& g, boost::any index, boost::any weight,
                        boost::any deg, python::object ov, python::object oret,
                        bool transpose)
 {
-    if (!belongs<vertex_scalar_properties>()(index))
+    if (!belongs(vertex_scalar_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     typedef UnityPropertyMap<double, GraphInterface::edge_t> weight_map_t;
-    typedef mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(weight.empty())
         weight = weight_map_t();
 
-    typedef typename vprop_map_t<double>::type deg_t;
+    typedef vprop_map_t<double> deg_t;
     deg_t::unchecked_t d = any_cast<deg_t>(deg).get_unchecked();
 
     multi_array_ref<double,2> v = get_array<double,2>(ov);
@@ -129,7 +129,7 @@ void transition_matmat(GraphInterface& g, boost::any index, boost::any weight,
              else
                  return trans_matmat<true>(graph, vi, w, d, v, ret);
          },
-         vertex_scalar_properties(), weight_props_t())(index, weight);
+         vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
 #define __MOD__ spectral

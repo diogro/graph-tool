@@ -39,8 +39,8 @@ struct mark_planar_edge
 
 struct do_maximal_planar
 {
-    typedef typename eprop_map_t<size_t>::type::unchecked_t eimap_t;
-    typedef typename vprop_map_t<size_t>::type::unchecked_t vimap_t;
+    typedef eprop_map_t<size_t>::unchecked_t eimap_t;
+    typedef vprop_map_t<size_t>::unchecked_t vimap_t;
 
     template <class Graph>
     eimap_t get_edge_index(const Graph& g) const
@@ -55,8 +55,7 @@ struct do_maximal_planar
     template <class Graph>
     void operator()(Graph& g) const
     {
-
-        typename vprop_map_t<vector<typename graph_traits<Graph>::edge_descriptor>>::type::unchecked_t
+        typename vprop_map_t<vector<typename graph_traits<Graph>::edge_descriptor>>::unchecked_t
             embedding(num_vertices(g));
 
         eimap_t edge_index = get_edge_index(g);
@@ -83,7 +82,7 @@ struct do_maximal_planar
 
 void maximal_planar(GraphInterface& gi)
 {
-    run_action<graph_tool::detail::never_directed, mpl::true_>()
+    run_action<decltype(graph_tool::never_directed), false>()
         (gi,
          [&](auto&& graph)
          {

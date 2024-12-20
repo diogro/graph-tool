@@ -129,10 +129,10 @@ REGISTER_MOD
                   double H = 0;
                   run_action<>()
                       (gi,
-                       [&](auto& g, auto& s)
+                       [&](auto& g, auto s)
                        {
                            H = state.energy(g, s);
-                       }, vertex_scalar_properties())(as);
+                       }, vertex_scalar_properties)(as);
                   return H;
               })
          .def("energies",
@@ -141,10 +141,10 @@ REGISTER_MOD
                   double H = 0;
                   run_action<>()
                       (gi,
-                       [&](auto& g, auto& s)
+                       [&](auto& g, auto s)
                        {
                            H = state.energies(g, s);
-                       }, vertex_scalar_vector_properties())(as);
+                       }, vertex_scalar_vector_properties)(as);
                   return H;
               })
          .def("marginal_lprob",
@@ -153,10 +153,10 @@ REGISTER_MOD
                   double L = 0;
                   run_action<>()
                       (gi,
-                       [&](auto& g, auto& s)
+                       [&](auto& g, auto s)
                        {
                            L = state.marginal_lprob(g, s);
-                       }, vertex_scalar_properties())(as);
+                       }, vertex_scalar_properties)(as);
                   return L;
               })
          .def("marginal_lprobs",
@@ -165,10 +165,10 @@ REGISTER_MOD
                   double L = 0;
                   run_action<>()
                       (gi,
-                       [&](auto& g, auto& s)
+                       [&](auto& g, auto s)
                        {
                            L = state.marginal_lprobs(g, s);
-                       }, vertex_scalar_vector_properties())(as);
+                       }, vertex_scalar_vector_properties)(as);
                   return L;
               })
          .def("sample",
@@ -176,10 +176,10 @@ REGISTER_MOD
               {
                   run_action<>()
                       (gi,
-                       [&](auto& g, auto& s)
+                       [&](auto& g, auto s)
                        {
                            state.sample(g, s, rng);
-                       }, writable_vertex_scalar_properties())(as);
+                       }, writable_vertex_scalar_properties)(as);
               });
 
      def("make_normal_bp_state", &make_normal_bp_state);

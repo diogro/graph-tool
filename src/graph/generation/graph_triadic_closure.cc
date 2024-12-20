@@ -28,16 +28,16 @@ void generate_triadic_closure(GraphInterface& gi,
                               boost::any aEs,
                               bool probs, rng_t& rng)
 {
-    typedef eprop_map_t<uint8_t>::type emap_t;
+    typedef eprop_map_t<uint8_t> emap_t;
     auto curr = any_cast<emap_t>(acurr).get_unchecked();
 
-    typedef eprop_map_t<int64_t>::type eemap_t;
+    typedef eprop_map_t<int64_t> eemap_t;
     auto ego = any_cast<eemap_t>(aego);
 
     run_action<>()(gi,
                    [&](auto& g, auto Es) { gen_triadic_closure(g, curr, ego, Es,
                                                                probs, rng); },
-                   vertex_scalar_properties())(aEs);
+                   vertex_scalar_properties)(aEs);
 }
 
 using namespace boost::python;

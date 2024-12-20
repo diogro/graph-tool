@@ -22,12 +22,18 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
+constexpr inline auto gviews = get_graph_views(hana::tuple_t<std::true_type>,
+                                               hana::tuple_t<std::false_type>,
+                                               hana::tuple_t<std::false_type>);
+
+
+
 void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                   double r, size_t max_rk, double epsilon, bool c_stop,
                   size_t max_iter, boost::any aw, bool verbose,  rng_t& rng)
 
 {
-    typedef eprop_map_t<double>::type emap_t;
+    typedef eprop_map_t<double> emap_t;
     auto w = any_cast<emap_t>(aw);
     adj_list<> h(gi.get_num_vertices());
 
@@ -46,7 +52,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                 return sqrt(d);
             };
 
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<decltype(gviews)>()
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -66,7 +72,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                 return d;
             };
 
-        run_action<always_directed_never_filtered_never_reversed>(false)
+        run_action<decltype(gviews)>(false)
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -95,13 +101,13 @@ double euclidean(T u, T v, const M& m)
 void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
                         boost::any aw)
 {
-    typedef eprop_map_t<double>::type emap_t;
+    typedef eprop_map_t<double> emap_t;
     auto w = any_cast<emap_t>(aw);
 
     try
     {
         auto m = get_array<double, 2>(om);
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<decltype(gviews)>()
             (gi, [&](auto& g) { gen_knn_exact<true>(g,
                                                     [&](auto u, auto v)
                                                     { return euclidean(u, v, m); },
@@ -109,7 +115,7 @@ void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
     }
     catch (InvalidNumpyConversion&)
     {
-        run_action<always_directed_never_filtered_never_reversed>(false)
+        run_action<decltype(gviews)>(false)
             (gi, [&](auto& g) { gen_knn_exact<false>(g,
                                               [&](auto u, auto v)
                                               {
@@ -127,7 +133,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                         bool verbose, rng_t& rng)
 
 {
-    typedef eprop_map_t<double>::type emap_t;
+    typedef eprop_map_t<double> emap_t;
     auto w = any_cast<emap_t>(aw);
     adj_list<> h(gi.get_num_vertices());
 
@@ -141,7 +147,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                 return euclidean(u, v, m);
             };
 
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<decltype(gviews)>()
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -161,7 +167,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                 return d;
             };
 
-        run_action<always_directed_never_filtered_never_reversed>(false)
+        run_action<decltype(gviews)>(false)
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -176,13 +182,14 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
 void generate_k_nearest_exact(GraphInterface& gi, boost::python::object om, size_t k,
                               boost::any aw, bool directed)
 {
-    typedef eprop_map_t<double>::type emap_t;
+    typedef eprop_map_t<double> emap_t;
     auto w = any_cast<emap_t>(aw);
 
     try
     {
         auto m = get_array<double, 2>(om);
-        run_action<always_directed_never_filtered_never_reversed>()
+        run_action<decltype(gviews)>
+()
             (gi, [&](auto& g) { gen_k_nearest_exact<true>(g,
                                                           [&](auto u, auto v)
                                                           { return euclidean(u, v, m); },
@@ -190,7 +197,7 @@ void generate_k_nearest_exact(GraphInterface& gi, boost::python::object om, size
     }
     catch (InvalidNumpyConversion&)
     {
-        run_action<always_directed_never_filtered_never_reversed>(false)
+        run_action<decltype(gviews)>(false)
             (gi, [&](auto& g) { gen_k_nearest_exact<false>(g,
                                                            [&](auto u, auto v)
                                                            {

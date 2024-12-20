@@ -37,7 +37,7 @@ class continuous_state_base
 {
 public:
     typedef Value s_t;
-    typedef typename vprop_map_t<s_t>::type::unchecked_t smap_t;
+    typedef typename vprop_map_t<s_t>::unchecked_t smap_t;
 
     continuous_state_base(smap_t s, smap_t s_diff)
         : _s(s), _s_diff(s_diff) {}
@@ -53,8 +53,8 @@ class linear_state: public continuous_state_base<>
 {
 public:
 
-    typedef vprop_map_t<double>::type::unchecked_t vmap_t;
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t vmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
 
     template <class Graph, class RNG>
     linear_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
@@ -93,8 +93,8 @@ class LV_state: public continuous_state_base<>
 {
 public:
 
-    typedef vprop_map_t<double>::type::unchecked_t vmap_t;
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t vmap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
 
     template <class Graph, class RNG>
     LV_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
@@ -139,8 +139,8 @@ class kuramoto_state: public continuous_state_base<>
 {
 public:
 
-    typedef vprop_map_t<double>::type::unchecked_t omap_t;
-    typedef eprop_map_t<double>::type::unchecked_t wmap_t;
+    typedef vprop_map_t<double>::unchecked_t omap_t;
+    typedef eprop_map_t<double>::unchecked_t wmap_t;
 
     template <class Graph, class RNG>
     kuramoto_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)

@@ -28,13 +28,11 @@ void predecessor_graph(GraphInterface& gi, GraphInterface& gpi,
 {
     run_action<>()
         (gi,
-         [&](auto&& graph, auto&& a2)
+         [&](auto& g, auto pred)
          {
-             return get_predecessor_graph()
-                 (std::forward<decltype(graph)>(graph), gpi.get_graph(),
-                  std::forward<decltype(a2)>(a2));
+             return get_predecessor_graph()(g, gpi.get_graph(), pred);
          },
-         vertex_scalar_properties())(pred_map);
+         vertex_scalar_properties)(pred_map);
 }
 
 #include <boost/python.hpp>

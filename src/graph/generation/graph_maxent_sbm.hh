@@ -559,7 +559,7 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
         {
             for (auto& vin : vertices_in[s])
             {
-                if (!graph_tool::is_directed(g) && r == s && vin.first > vout.first)
+                if (!is_directed(g) && r == s && vin.first > vout.first)
                     continue;
 
                 double p = vout.first * vin.first * m;
@@ -573,7 +573,7 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                 if (r == s && theta_l.find({vout.first, vin.first}) != theta_l.end())
                 {
                     n = vout.second.size() * (vin.second.size() - 1);
-                    if (!graph_tool::is_directed(g))
+                    if (!is_directed(g))
                         n /= 2;
                     if (self_loops)
                         n += vin.second.size();
@@ -593,7 +593,7 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                     {
                          u = uniform_sample(vout.second, rng);
                          v = uniform_sample(vin.second, rng);
-                         if (!graph_tool::is_directed(g) && u > v)
+                         if (!is_directed(g) && u > v)
                              std::swap(u, v);
                     }
                     while ((u == v && !self_loops) ||

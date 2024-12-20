@@ -48,8 +48,8 @@ struct get_planar_embedding
         EdgeMap _edge_map;
     };
 
-    typedef typename eprop_map_t<size_t>::type::unchecked_t eimap_t;
-    typedef typename vprop_map_t<size_t>::type::unchecked_t vimap_t;
+    typedef eprop_map_t<size_t>::unchecked_t eimap_t;
+    typedef vprop_map_t<size_t>::unchecked_t vimap_t;
 
     template <class Graph>
     eimap_t get_edge_index(const Graph& g) const
@@ -67,7 +67,7 @@ struct get_planar_embedding
                     KurMap kur_map, bool& is_planar) const
     {
         edge_inserter<KurMap> kur_insert(kur_map);
-        typename vprop_map_t<vector<typename graph_traits<Graph>::edge_descriptor>>::type::unchecked_t
+        typename vprop_map_t<vector<typename graph_traits<Graph>::edge_descriptor>>::unchecked_t
             embedding(num_vertices(g));
         eimap_t edge_index = get_edge_index(g);
         is_planar = boyer_myrvold_planarity_test
@@ -109,16 +109,16 @@ bool is_planar(GraphInterface& gi, boost::any embed_map, boost::any kur_map)
     if (kur_map.empty())
         kur_map = dummy_property_map();
 
-    typedef mpl::push_back<writable_edge_scalar_properties,
-                           dummy_property_map>::type edge_map_types;
-    typedef mpl::push_back<vertex_scalar_vector_properties,
-                           dummy_property_map>::type vertex_map_types;
+    auto edge_map_types = hana::append(writable_edge_scalar_properties,
+                                       hana::type<dummy_property_map>());
+    auto vertex_map_types = hana::append(vertex_scalar_vector_properties,
+                                         hana::type<dummy_property_map>());
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi, std::bind(get_planar_embedding(), std::placeholders::_1,
                        std::placeholders::_2, std::placeholders::_3,
                        std::ref(is_planar)),
-         vertex_map_types(), edge_map_types())
+         vertex_map_types, edge_map_types)
         (embed_map, kur_map);
     return is_planar;
 }

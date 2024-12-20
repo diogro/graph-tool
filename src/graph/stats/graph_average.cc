@@ -36,25 +36,24 @@ get_vertex_average(GraphInterface& gi, GraphInterface::deg_t deg)
     python::object a, dev;
     size_t count;
 
-    typedef mpl::joint_view<vertex_scalar_properties,
-                            vertex_scalar_vector_properties>
-        vertex_numeric_properties_c;
+    auto vertex_numeric_properties_c =
+        hana::concat(vertex_scalar_properties,
+                     vertex_scalar_vector_properties);
 
-    typedef property_map_types::apply<mpl::vector<python::object>,
-                                      GraphInterface::vertex_index_map_t>::type
-        python_properties;
+    auto python_properties =
+        hana::tuple_t<vprop_map_t<python::object>>;
 
-    typedef mpl::joint_view<vertex_numeric_properties_c,
-                            python_properties>
-        vertex_numeric_properties;
+    auto vertex_numeric_properties =
+        hana::concat(vertex_numeric_properties_c,
+                     python_properties);
 
-    typedef mpl::transform<vertex_numeric_properties,
-                           scalar_selector_type,
-                           mpl::back_inserter<degree_selectors> >::type
-        numeric_selectors;
+    auto numeric_selectors =
+        hana::concat(degree_selectors,
+                     hana::transform(vertex_numeric_properties,
+                                     [](auto t){ return hana::type<scalarS<typename decltype(+t)::type>>(); }));
 
     run_action<>(false)(gi, get_average<VertexAverageTraverse>(a,dev,count),
-                        numeric_selectors())(degree_selector(deg));
+                        numeric_selectors)(degree_selector(deg));
     return python::make_tuple(a, dev, count);
 }
 
@@ -62,23 +61,22 @@ get_vertex_average(GraphInterface& gi, GraphInterface::deg_t deg)
 python::object
 get_edge_average(GraphInterface& gi, boost::any prop)
 {
-    typedef mpl::joint_view<edge_scalar_properties,
-                            edge_scalar_vector_properties>
-        edge_numeric_properties_c;
+    auto edge_numeric_properties_c =
+        hana::concat(edge_scalar_properties,
+                     edge_scalar_vector_properties);
 
-    typedef property_map_types::apply<mpl::vector<python::object>,
-                                      GraphInterface::edge_index_map_t>::type
-        python_properties;
+    auto python_properties =
+        hana::tuple_t<eprop_map_t<python::object>>;
 
-    typedef mpl::joint_view<edge_numeric_properties_c,
-                            python_properties>
-        edge_numeric_properties;
+    auto edge_numeric_properties =
+        hana::concat(edge_numeric_properties_c,
+                     python_properties);
 
     python::object a, dev;
     size_t count;
-    run_action<graph_tool::detail::always_directed>(false)
+    run_action<decltype(graph_tool::always_directed)>(false)
         (gi, get_average<EdgeAverageTraverse>(a, dev, count),
-         edge_numeric_properties())(prop);
+         edge_numeric_properties)(prop);
     return python::make_tuple(a, dev, count);
 }
 

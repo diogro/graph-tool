@@ -80,17 +80,23 @@ struct copy_vertex_property_dispatch
 
 template <class PropertyMaps, class GraphSrc, class GraphTgt,
           class IndexMap, class SrcIndexMap, class TgtIndexMap>
-void copy_vertex_property(boost::any& prop_src, boost::any& prop_tgt,
+void copy_vertex_property(PropertyMaps pmaps, boost::any& prop_src, boost::any& prop_tgt,
                           const GraphSrc& src, const GraphTgt& tgt,
                           IndexMap& index_map, SrcIndexMap& src_vertex_index,
                           TgtIndexMap& tgt_vertex_index)
 {
     bool found = false;
-    boost::mpl::for_each<PropertyMaps>(copy_vertex_property_dispatch<GraphSrc, GraphTgt,
-                                                                     IndexMap, SrcIndexMap,
-                                                                     TgtIndexMap>
-            (src, tgt, prop_src, prop_tgt, index_map, src_vertex_index,
-             tgt_vertex_index, found));
+    copy_vertex_property_dispatch<GraphSrc, GraphTgt,
+                                  IndexMap, SrcIndexMap,
+                                  TgtIndexMap>
+        dispatch(src, tgt, prop_src, prop_tgt, index_map, src_vertex_index,
+                 tgt_vertex_index, found);
+
+    hana::for_each(pmaps,
+                   [&](auto t)
+                   {
+                       dispatch(typename decltype(+t)::type());
+                   });
     if (!found)
         throw ValueException("Cannot find property map type.");
 }
@@ -156,16 +162,22 @@ struct copy_edge_property_dispatch
 
 template <class PropertyMaps, class GraphSrc, class GraphTgt,
           class IndexMap, class SrcIndexMap>
-void copy_edge_property(boost::any& prop_src, boost::any& prop_tgt,
+void copy_edge_property(PropertyMaps pmaps, boost::any& prop_src, boost::any& prop_tgt,
                         const GraphSrc& src, const GraphTgt& tgt,
                         IndexMap& index_map, SrcIndexMap& src_vertex_index,
                         size_t max_src_edge_index)
 {
     bool found = false;
-    boost::mpl::for_each<PropertyMaps>(copy_edge_property_dispatch<GraphSrc, GraphTgt,
-                                                                   IndexMap, SrcIndexMap>
-            (src, tgt, prop_src, prop_tgt, index_map, src_vertex_index,
-             max_src_edge_index, found));
+    copy_edge_property_dispatch<GraphSrc, GraphTgt,
+                                IndexMap, SrcIndexMap>
+        dispatch (src, tgt, prop_src, prop_tgt, index_map, src_vertex_index,
+                  max_src_edge_index, found);
+
+    boost::hana::for_each(pmaps,
+                          [&](auto pmap)
+                          {
+                              dispatch(typename decltype(pmap)::type());
+                          });
     if (!found)
         throw ValueException("Cannot find property map type.");
 }
@@ -213,9 +225,9 @@ struct do_graph_copy
         }
 
         for (size_t i = 0; i < vprops.size(); ++i)
-            copy_vertex_property<writable_vertex_properties>
-                    (vprops[i].first.get(), vprops[i].second.get(),
-                     src, tgt, index_map, src_vertex_index, tgt_vertex_index);
+            copy_vertex_property(writable_vertex_properties,
+                                 vprops[i].first.get(), vprops[i].second.get(),
+                                 src, tgt, index_map, src_vertex_index, tgt_vertex_index);
 
 
         vector<typename graph_traits<GraphTgt>::edge_descriptor> edge_map(num_edges(src));
@@ -233,9 +245,9 @@ struct do_graph_copy
         }
 
         for (size_t i = 0; i < eprops.size(); ++i)
-            copy_edge_property<writable_edge_properties>
-                (eprops[i].first.get(), eprops[i].second.get(),
-                 src, tgt, edge_map, src_edge_index, max_src_edge_index);
+            copy_edge_property(writable_edge_properties,
+                               eprops[i].first.get(), eprops[i].second.get(),
+                               src, tgt, edge_map, src_edge_index, max_src_edge_index);
 
     }
 };
@@ -250,10 +262,8 @@ GraphInterface::GraphInterface(const GraphInterface& gi, bool keep_ref,
      _reversed(gi._reversed),
      _directed(gi._directed),
      _vertex_filter_map(_vertex_index),
-     _vertex_filter_invert(false),
      _vertex_filter_active(false),
      _edge_filter_map(_edge_index),
-     _edge_filter_invert(false),
      _edge_filter_active(false)
 {
     if (keep_ref)
@@ -289,6 +299,6 @@ GraphInterface::GraphInterface(const GraphInterface& gi, bool keep_ref,
                  _vertex_index, gi._edge_index, _edge_index,
                  std::forward<decltype(a2)>(a2), vprops, eprops);
          },
-         vertex_scalar_properties())(avorder);
+         vertex_scalar_properties)(avorder);
     // filters will be copied in python
 }

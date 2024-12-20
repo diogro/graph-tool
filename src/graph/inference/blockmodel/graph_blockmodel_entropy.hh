@@ -147,7 +147,7 @@ inline double eterm_dense(size_t r, size_t s, uint64_t ers, uint64_t wr_r,
 
     assert(wr_r + wr_s > 0);
 
-    if (r != s || graph_tool::is_directed(g))
+    if (r != s || is_directed(g))
     {
         nrns = wr_r * wr_s;
     }
@@ -171,7 +171,7 @@ inline double eterm_dense(size_t r, size_t s, uint64_t ers, uint64_t wr_r,
 template <class Graph>
 double get_edges_dl(size_t B, size_t E, Graph& g)
 {
-    size_t NB = (graph_tool::is_directed(g)) ? B * B : (B * (B + 1)) / 2;
+    size_t NB = (is_directed(g)) ? B * B : (B * (B + 1)) / 2;
     return lbinom_fast<false>(NB + E - 1, E);
 }
 

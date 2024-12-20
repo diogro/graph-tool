@@ -95,7 +95,7 @@ struct get_assortativity_coefficient
 
         // "jackknife" variance
         double err = 0;
-        size_t one = (graph_tool::is_directed(g)) ? 1 : 2;
+        size_t one = (is_directed(g)) ? 1 : 2;
         #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+:err)
         parallel_vertex_loop_no_spawn
@@ -119,7 +119,7 @@ struct get_assortativity_coefficient
                      err += (r - rl) * (r - rl);
                 }
              });
-        if (!graph_tool::is_directed(g))
+        if (!is_directed(g))
             err /= 2;
 #if (BOOST_VERSION >= 106000)
         if (boost::math::relative_difference(1., t2) > 1e-8)
@@ -202,7 +202,7 @@ struct get_scalar_assortativity_coefficient
         r_err = 0.0;
 
         double err = 0.0;
-        size_t one = (graph_tool::is_directed(g)) ? 1 : 2;
+        size_t one = (is_directed(g)) ? 1 : 2;
         #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
             reduction(+:err)
         parallel_vertex_loop_no_spawn
@@ -229,7 +229,7 @@ struct get_scalar_assortativity_coefficient
                      err += (r - rl) * (r - rl);
                  }
              });
-        if (!graph_tool::is_directed(g))
+        if (!is_directed(g))
             err /= 2;
         if (stda*stdb > 0)
             r_err = sqrt(err);

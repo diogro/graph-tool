@@ -30,10 +30,10 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<double>::type umap_t;
+typedef vprop_map_t<double> umap_t;
 
 #define RANKED_STATE_params                                                    \
-   ((__class__,&, mpl::vector<python::object>, 1))                             \
+   ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                 \
    ((u,, umap_t, 0))
 
 GEN_STATE_BASE(RankedStateBase, RANKED_STATE_params)

@@ -35,10 +35,10 @@ void maximum_bipartite_weighted_perfect_matching(Graph& g, Partition&& partition
     adj_list<> G;
     G.set_keep_epos(true);
 
-    typename vprop_map_t<vertex_t>::type::unchecked_t
+    typename vprop_map_t<vertex_t>::unchecked_t
         vmap(num_vertices(g)), rvmap(num_vertices(g));
 
-    typename vprop_map_t<weight_t>::type::unchecked_t y(num_vertices(g));
+    typename vprop_map_t<weight_t>::unchecked_t y(num_vertices(g));
 
     vertex_t null_vertex = graph_traits<Graph>::null_vertex();
 
@@ -80,9 +80,9 @@ void maximum_bipartite_weighted_perfect_matching(Graph& g, Partition&& partition
             add_edge(u, v, G); // S -> T
     }
 
-    typename vprop_map_t<boost::default_color_type>::type::unchecked_t
+    vprop_map_t<boost::default_color_type>::unchecked_t
         Z(num_vertices(G));
-    typename vprop_map_t<vertex_t>::type pred(num_vertices(G));
+    vprop_map_t<vertex_t> pred(num_vertices(G));
 
     size_t M = 0;
 
@@ -272,12 +272,12 @@ void maximum_bipartite_weighted_imperfect_matching(Graph& g,
     undirected_adaptor<adj_list<>> u(u_base);
 
     typedef typename property_traits<std::remove_reference_t<Partition>>::value_type pval_t;
-    typename vprop_map_t<pval_t>::type u_partition;
-    typename eprop_map_t<weight_t>::type u_weight;
-    typename vprop_map_t<vertex_t>::type u_mate;
-    typename vprop_map_t<bool>::type is_augmented;
+    vprop_map_t<pval_t> u_partition;
+    eprop_map_t<weight_t> u_weight;
+    vprop_map_t<vertex_t> u_mate;
+    vprop_map_t<bool> is_augmented;
 
-    typename vprop_map_t<vertex_t>::type vmap, vmap2, rvmap;
+    vprop_map_t<vertex_t> vmap, vmap2, rvmap;
 
     std::vector<vertex_t> S, T;
     pval_t S_val = partition[*vertices(g).first];
@@ -374,12 +374,12 @@ void maximum_bipartite_weighted_matching(Graph& g,
     undirected_adaptor<adj_list<>> u(u_base);
 
     typedef typename property_traits<std::remove_reference_t<Partition>>::value_type pval_t;
-    typename vprop_map_t<pval_t>::type u_partition;
-    typename eprop_map_t<weight_t>::type u_weight;
-    typename vprop_map_t<vertex_t>::type u_mate;
-    typename vprop_map_t<bool>::type is_augmented;
+    vprop_map_t<pval_t> u_partition;
+    eprop_map_t<weight_t> u_weight;
+    vprop_map_t<vertex_t> u_mate;
+    vprop_map_t<bool> is_augmented;
 
-    typename vprop_map_t<vertex_t>::type vmap, rvmap;
+    vprop_map_t<vertex_t> vmap, rvmap;
 
     std::vector<vertex_t> S, T;
     pval_t S_val = partition[*vertices(g).first];

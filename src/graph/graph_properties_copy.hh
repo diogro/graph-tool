@@ -197,7 +197,7 @@ struct copy_external_edge_property_dispatch
         {
             auto u = source(e, tgt);
             auto v = target(e, tgt);
-            if (!graph_tool::is_directed(tgt) && u > v)
+            if (!is_directed(tgt) && u > v)
                 std::swap(u, v);
             tgt_edges[std::make_tuple(u, v)].push_back(e);
         }
@@ -208,7 +208,7 @@ struct copy_external_edge_property_dispatch
             {
                 auto u = source(e, src);
                 auto v = target(e, src);
-                if (!graph_tool::is_directed(src) && u > v)
+                if (!is_directed(src) && u > v)
                     std::swap(u, v);
                 auto& es = tgt_edges[std::make_tuple(u, v)];
                 if (es.empty())

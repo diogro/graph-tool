@@ -20,7 +20,7 @@
 
 #include <boost/python.hpp>
 
-#define GRAPH_VIEWS never_filtered_never_reversed
+#define GRAPH_VIEWS decltype(never_filtered_never_reversed)
 #include "../../../blockmodel/graph_blockmodel.hh"
 
 #include "../dynamics.hh"
@@ -68,7 +68,7 @@ python::object MAKE_STATE(BASE_NAME)(GraphInterface& gi, python::object odynamic
                                state = python::object(std::make_shared<DState>(g, s, params));
                            }, false);
                   });
-         }, all_graph_views())
+         }, all_graph_views)
         (gi.get_graph_view());
 
     return state;
@@ -94,24 +94,25 @@ REGISTER_MOD
     using namespace boost::python;
     def("make_" STRINGIFY(BASE_NAME) "_state", &MAKE_STATE(BASE_NAME));
 
-    mpl::for_each<all_graph_views, add_ptr>
-        ([](auto g)
-         {
-             typedef typename std::remove_pointer<decltype(g)>::type g_t;
-             block_state::dispatch
-                 ([&](auto* bs)
-                  {
-                      typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
-                      dynamics_state<block_state_t>::dispatch
-                          ([&](auto* s)
-                           {
-                               typedef typename std::remove_reference<decltype(*s)>::type state_t;
-                               using DState = graph_tool::TestStateBase<g_t,state_t>;
+    hana::for_each
+        (all_graph_views,
+         ([](auto g)
+          {
+              typedef typename decltype(+g)::type g_t;
+              block_state::dispatch
+                  ([&](auto* bs)
+                   {
+                       typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
+                       dynamics_state<block_state_t>::dispatch
+                           ([&](auto* s)
+                            {
+                                typedef typename std::remove_reference<decltype(*s)>::type state_t;
+                                using DState = graph_tool::TestStateBase<g_t,state_t>;
 
-                               auto name = name_demangle(typeid(DState).name());
-                               class_<DState, bases<DStateBase>, std::shared_ptr<DState>,
-                                      boost::noncopyable>(name.c_str(), no_init);
-                           });
-                  });
-         });
+                                auto name = name_demangle(typeid(DState).name());
+                                class_<DState, bases<DStateBase>, std::shared_ptr<DState>,
+                                       boost::noncopyable>(name.c_str(), no_init);
+                            });
+                   });
+          }));
 }, 6);

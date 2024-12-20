@@ -33,16 +33,16 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t>::type vmap_t;
-typedef eprop_map_t<int32_t>::type emap_t;
+typedef vprop_map_t<int32_t> vmap_t;
+typedef eprop_map_t<int32_t> emap_t;
 
-typedef vprop_map_t<int64_t>::type vimap_t;
-typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
+typedef vprop_map_t<int64_t> vimap_t;
+typedef vprop_map_t<vector<int64_t>> vvmap_t;
 
-typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
+typedef decltype(hana::tuple_t<std::true_type, std::false_type>) use_hash_tr;
 
 #define OVERLAP_BLOCK_STATE_params                                             \
-    ((g, &, never_filtered_never_reversed, 1))                                 \
+    ((g, &, decltype(never_filtered_never_reversed), 1))                       \
     ((use_hash,, use_hash_tr, 1))                                              \
     ((_abg, &, boost::any&, 0))                                                \
     ((node_index,, vimap_t, 0))                                                \
@@ -54,15 +54,15 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((b,, vmap_t, 0))                                                          \
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
-    ((bfield,, vprop_map_t<std::vector<double>>::type, 0))                     \
+    ((bfield,, vprop_map_t<std::vector<double>>, 0))                           \
     ((Bfield, &, std::vector<double>&, 0))                                     \
     ((deg_corr,, bool, 0))                                                     \
     ((rec_types,, std::vector<int>, 0))                                        \
-    ((rec,, std::vector<eprop_map_t<double>::type>, 0))                        \
-    ((drec,, std::vector<eprop_map_t<double>::type>, 0))                       \
-    ((brec,, std::vector<eprop_map_t<double>::type>, 0))                       \
-    ((bdrec,, std::vector<eprop_map_t<double>::type>, 0))                      \
-    ((brecsum,, vprop_map_t<double>::type, 0))                                 \
+    ((rec,, std::vector<eprop_map_t<double>>, 0))                              \
+    ((drec,, std::vector<eprop_map_t<double>>, 0))                             \
+    ((brec,, std::vector<eprop_map_t<double>>, 0))                             \
+    ((bdrec,, std::vector<eprop_map_t<double>>, 0))                            \
+    ((brecsum,, vprop_map_t<double>, 0))                                       \
     ((wparams,, std::vector<std::vector<double>>, 0))                          \
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
@@ -85,7 +85,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     OverlapBlockState(ATs&&... args)
         : OverlapBlockStateVirtualBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
           _emat(_g, _bg),
           _egroups_update(true),
@@ -366,7 +366,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g);
         size_t kin = 0;
-        if (graph_tool::is_directed(_g))
+        if (is_directed(_g))
             kin = in_degreeS()(v, _g);
 
         double dS = entries_dS<exact>(m_entries, _mrs, _emat, _bg);
@@ -377,7 +377,7 @@ public:
         if (multigraph)
             dS += _overlap_stats.virtual_move_parallel_dS(v, r, nr, _b, _g);
 
-        if (!graph_tool::is_directed(_g))
+        if (!is_directed(_g))
             kin = kout;
 
         auto vt = [&](auto mrp, auto mrm, auto nr)
@@ -597,7 +597,7 @@ public:
             if (c > 0)
             {
                 size_t B = _candidate_groups.size();
-                if (graph_tool::is_directed(_g))
+                if (is_directed(_g))
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
                     p_rand = c * B / double(_mrp[t] + c * B);
@@ -690,7 +690,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g, _eweight);
         size_t kin = kout;
-        if (graph_tool::is_directed(_g))
+        if (is_directed(_g))
             kin = in_degreeS()(v, _g, _eweight);
 
         size_t vi = _overlap_stats.get_node(v);
@@ -701,7 +701,7 @@ public:
             for (auto e : all_edges_range(v, _g))
             {
                 vertex_t u = target(e, _g);
-                if (graph_tool::is_directed(_g) && u == v)
+                if (is_directed(_g) && u == v)
                     u = source(e, _g);
                 vertex_t t = _b[u];
                 if (u == v)
@@ -716,7 +716,7 @@ public:
                 int mst = mts;
                 int mtm = mtp;
 
-                if (graph_tool::is_directed(_g))
+                if (is_directed(_g))
                 {
                     mst = 0;
                     const auto& me = m_entries.get_me(s, t, _emat);
@@ -729,7 +729,7 @@ public:
                 {
                     int dts = m_entries.get_delta(t, s);
                     int dst = dts;
-                    if (graph_tool::is_directed(_g))
+                    if (is_directed(_g))
                         dst = m_entries.get_delta(s, t);
 
                     mts += dts;
@@ -748,7 +748,7 @@ public:
                     }
                 }
 
-                if (graph_tool::is_directed(_g))
+                if (is_directed(_g))
                 {
                     p += (mts + mst + c) / (mtp + mtm + c * B);
                 }
@@ -1046,14 +1046,14 @@ public:
             {
                 if (!be[e].empty() || target(e, g) != t)
                     continue;
-                if (graph_tool::is_directed(g) || s < target(e, g))
+                if (is_directed(g) || s < target(e, g))
                     be[e] = {_b[u], _b[v]};
                 else
                     be[e] = {_b[v], _b[u]};
                 break;
             }
 
-            if (graph_tool::is_directed(g))
+            if (is_directed(g))
             {
                 for (auto e : in_edges_range(t, g))
                 {
@@ -1188,17 +1188,17 @@ public:
     {
     }
 
-    vprop_map_t<int32_t>::type::unchecked_t& get_b()
+    vprop_map_t<int32_t>::unchecked_t& get_b()
     {
         return _b;
     }
 
-    vprop_map_t<int32_t>::type::unchecked_t& get_pclabel()
+    vprop_map_t<int32_t>::unchecked_t& get_pclabel()
     {
         return _pclabel;
     }
 
-    vprop_map_t<int32_t>::type::unchecked_t& get_bclabel()
+    vprop_map_t<int32_t>::unchecked_t& get_bclabel()
     {
         return _bclabel;
     }
@@ -1219,7 +1219,7 @@ public:
         {
             size_t r = _b[source(e, _g)];
             size_t s = _b[target(e, _g)];
-            if (!graph_tool::is_directed(_g) && s < r)
+            if (!is_directed(_g) && s < r)
                 std::swap(r, s);
             mrs[std::make_pair(r, s)] += _eweight[e];
         }
@@ -1361,7 +1361,7 @@ public:
         state->_mrs = state->_mrs.copy();
         state->_c_mrs = state->_mrs.get_checked();
         state->_mrp = state->_mrp.copy();
-        if (graph_tool::is_directed(_g))
+        if (is_directed(_g))
             state->_mrm = state->_mrm.copy();
         else
             state->_mrm = state->_mrp;

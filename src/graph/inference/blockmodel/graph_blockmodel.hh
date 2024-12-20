@@ -36,8 +36,8 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t>::type vmap_t;
-typedef eprop_map_t<int32_t>::type emap_t;
+typedef vprop_map_t<int32_t> vmap_t;
+typedef eprop_map_t<int32_t> emap_t;
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
@@ -58,27 +58,25 @@ inline simple_degs_t uncheck(boost::any& amap, simple_degs_t*)
     return any_cast<simple_degs_t>(amap);
 }
 
-typedef mpl::vector2<std::true_type, std::false_type> bool_tr;
-typedef mpl::vector2<vcmap_t, vmap_t> vweight_tr;
-typedef mpl::vector2<ecmap_t, emap_t> eweight_tr;
+typedef decltype(hana::tuple_t<std::true_type, std::false_type>) bool_tr;
 
 #ifdef GRAPH_BLOCKMODEL_RMAP_ENABLE
 #    ifdef GRAPH_BLOCKMODEL_RMAP_ALL_ENABLE
-typedef mpl::vector2<std::true_type, std::false_type> rmap_tr;
+typedef decltype(hana::tuple_t<std::true_type, std::false_type>) rmap_tr;
 #    else
-typedef mpl::vector1<std::true_type> rmap_tr;
+typedef decltype(hana::tuple_t<std::true_type>) rmap_tr;
 #    endif
 #else
-typedef mpl::vector1<std::false_type> rmap_tr;
+typedef decltype(hana::tuple_t<std::false_type>) rmap_tr;
 #endif
 
 #ifndef GRAPH_VIEWS
-#define GRAPH_VIEWS all_graph_views
+#define GRAPH_VIEWS decltype(all_graph_views)
 #endif
 
 #define BLOCK_STATE_params_gen(GVIEWS)                                         \
     ((g, &, GVIEWS, 1))                                                        \
-    ((is_weighted,, mpl::vector1<std::true_type>, 1))                          \
+    ((is_weighted,, decltype(hana::tuple_t<std::true_type>), 1))               \
     ((use_hash,, bool_tr, 1))                                                  \
     ((use_rmap,, rmap_tr, 1))                                                  \
     ((_abg,, boost::any, 0))                                                   \
@@ -91,15 +89,15 @@ typedef mpl::vector1<std::false_type> rmap_tr;
     ((b,, vmap_t, 0))                                                          \
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
-    ((bfield,, vprop_map_t<std::vector<double>>::type, 0))                     \
+    ((bfield,, vprop_map_t<std::vector<double>>, 0))                           \
     ((Bfield, &, std::vector<double>&, 0))                                     \
     ((deg_corr,, bool, 0))                                                     \
     ((rec_types,, std::vector<int32_t>, 0))                                    \
-    ((rec,, std::vector<eprop_map_t<double>::type>, 0))                        \
-    ((drec,, std::vector<eprop_map_t<double>::type>, 0))                       \
-    ((brec,, std::vector<eprop_map_t<double>::type>, 0))                       \
-    ((bdrec,, std::vector<eprop_map_t<double>::type>, 0))                      \
-    ((brecsum,, vprop_map_t<double>::type, 0))                                 \
+    ((rec,, std::vector<eprop_map_t<double>>, 0))                              \
+    ((drec,, std::vector<eprop_map_t<double>>, 0))                             \
+    ((brec,, std::vector<eprop_map_t<double>>, 0))                             \
+    ((bdrec,, std::vector<eprop_map_t<double>>, 0))                            \
+    ((brecsum,, vprop_map_t<double>, 0))                                       \
     ((wparams, &, std::vector<std::vector<double>>&, 0))                       \
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
@@ -131,7 +129,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     BlockState(ATs&&... args)
         : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
+          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
@@ -2447,17 +2445,17 @@ public:
         return _E;
     }
 
-    vprop_map_t<int32_t>::type::unchecked_t& get_b()
+    vprop_map_t<int32_t>::unchecked_t& get_b()
     {
         return _b;
     }
 
-    vprop_map_t<int32_t>::type::unchecked_t& get_bclabel()
+    vprop_map_t<int32_t>::unchecked_t& get_bclabel()
     {
         return _bclabel;
     }
 
-    vprop_map_t<int32_t>::type::unchecked_t& get_pclabel()
+    vprop_map_t<int32_t>::unchecked_t& get_pclabel()
     {
         return _pclabel;
     }
@@ -2652,7 +2650,7 @@ public:
         state->_mrs = state->_mrs.copy();
         state->_c_mrs = state->_mrs.get_checked();
         state->_mrp = state->_mrp.copy();
-        if (graph_tool::is_directed(_g))
+        if (is_directed(_g))
             state->_mrm = state->_mrm.copy();
         else
             state->_mrm = state->_mrp;

@@ -124,24 +124,14 @@ python::object make_state(GraphInterface& gi, boost::any as, boost::any as_temp,
     return state;
 }
 
-struct add_ptr
-{
-    template <class T>
-    struct apply
-    {
-        typedef typename std::add_pointer<T>::type type;
-    };
-};
-
 template <class State>
 static void export_state()
 {
-    mpl::for_each<all_graph_views, add_ptr>
-        ([](auto g)
-         {
-             typedef typename std::remove_pointer<decltype(g)>::type g_t;
-             WrappedState<g_t,State>::python_export();
-         });
+    hana::for_each(all_graph_views,
+                   [](auto g)
+                   {
+                       WrappedState<typename decltype(g)::type,State>::python_export();
+                   });
 }
 
 template <template <bool...> class Base, bool... As>

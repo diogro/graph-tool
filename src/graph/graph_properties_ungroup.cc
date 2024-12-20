@@ -26,22 +26,11 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-typedef boost::mpl::transform<value_types,make_vector>::type vector_types;
-typedef property_map_types::apply<vector_types,
-                                  GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    vertex_vector_properties;
-
-typedef property_map_types::apply<vector_types,
-                                  GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    edge_vector_properties;
-
 void ungroup_vector_property(GraphInterface& g, boost::any vector_prop,
                              boost::any prop, size_t pos, bool edge)
 {
     if (edge)
-        run_action<graph_tool::detail::always_directed_never_reversed>()
+        run_action<decltype(graph_tool::always_directed_never_reversed)>()
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {
@@ -51,10 +40,10 @@ void ungroup_vector_property(GraphInterface& g, boost::any vector_prop,
                      std::forward<decltype(a2)>(a2),
                      std::forward<decltype(a3)>(a3), pos);
              },
-             edge_vector_properties(),
-             writable_edge_properties())(vector_prop, prop);
+             edge_vector_properties,
+             writable_edge_properties)(vector_prop, prop);
     else
-        run_action<graph_tool::detail::always_directed_never_reversed>()
+        run_action<decltype(graph_tool::always_directed_never_reversed)>()
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {
@@ -64,6 +53,6 @@ void ungroup_vector_property(GraphInterface& g, boost::any vector_prop,
                      std::forward<decltype(a2)>(a2),
                      std::forward<decltype(a3)>(a3), pos);
              },
-             vertex_vector_properties(),
-             writable_vertex_properties())(vector_prop, prop);
+             vertex_vector_properties,
+             writable_vertex_properties)(vector_prop, prop);
 }

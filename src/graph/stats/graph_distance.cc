@@ -55,7 +55,7 @@ python::object distance_histogram(GraphInterface& gi, boost::any weight,
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       bins, ret);
              },
-             edge_scalar_properties())(weight);
+             edge_scalar_properties)(weight);
     }
     return ret;
 }

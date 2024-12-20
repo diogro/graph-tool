@@ -33,8 +33,8 @@ using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> no_vweight_map_t;
-typedef eprop_map_t<int32_t>::type ::unchecked_t ecount_map_t;
-typedef vprop_map_t<int32_t>::type ::unchecked_t vcount_map_t;
+typedef eprop_map_t<int32_t> ::unchecked_t ecount_map_t;
+typedef vprop_map_t<int32_t> ::unchecked_t vcount_map_t;
 
 struct get_community_network_vertices_dispatch
 {
@@ -91,8 +91,8 @@ void community_network(GraphInterface& gi, GraphInterface& cgi,
                        boost::any vweight, boost::any eweight, bool self_loops,
                        bool parallel_edges)
 {
-    typedef boost::mpl::push_back<writable_vertex_scalar_properties, no_vweight_map_t>::type
-        vweight_properties;
+    auto vweight_properties = hana::append(writable_vertex_scalar_properties,
+                                           hana::type<no_vweight_map_t>());
 
     if (vweight.empty())
         vweight = no_vweight_map_t();
@@ -106,8 +106,8 @@ void community_network(GraphInterface& gi, GraphInterface& cgi,
                   std::forward<decltype(a2)>(a2), condensed_community_property,
                   std::forward<decltype(a3)>(a3), vertex_count);
          },
-         writable_vertex_properties(),
-         vweight_properties())(community_property, vweight);
+         writable_vertex_properties,
+         vweight_properties)(community_property, vweight);
 
     community_network_edges(gi, cgi, community_property,
                             condensed_community_property, edge_count,

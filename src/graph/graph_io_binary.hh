@@ -255,8 +255,8 @@ enum class property_type : uint8_t
 
 using namespace boost;
 
-typedef mpl::joint_view<value_types,
-                        mpl::vector<size_t>>::type val_types;
+inline constexpr auto val_types =
+    hana::append(value_types, hana::type<size_t>());
 
 struct graph_range_traits
 {
@@ -315,10 +315,9 @@ struct write_property_dispatch
     {
         try
         {
-            typedef typename property_map_type::apply<T, typename RangeTraits::index_map_t>::type pmap_t;
+            typedef property_map_t<T, typename RangeTraits::index_map_t> pmap_t;
             pmap_t prop = any_cast<pmap_t>(aprop);
-            typedef typename mpl::find<val_types, T>::type pos;
-            uint8_t val = mpl::distance<typename mpl::begin<val_types>::type, pos>::type::value;
+            constexpr uint8_t val = hana::index_if(val_types, hana::equal.to(hana::type<T>())).value().value;
             write(s, val);
             for (auto x : RangeTraits::get_range(g))
                 write(s, prop[x]);
@@ -336,8 +335,7 @@ struct write_property_dispatch
         {
             typedef GraphInterface::vertex_index_map_t pmap_t;
             pmap_t prop = any_cast<pmap_t>(aprop);
-            typedef typename mpl::find<val_types, int64_t>::type pos;
-            uint8_t val = mpl::distance<typename mpl::begin<val_types>::type, pos>::type::value;
+            constexpr uint8_t val = hana::index_if(val_types, hana::equal.to(hana::type<int64_t>())).value().value;
             write(s, val);
             int64_t y;
             for (auto x : vertices_range(g))
@@ -353,8 +351,7 @@ struct write_property_dispatch
         {
             typedef GraphInterface::edge_index_map_t pmap_t;
             pmap_t prop = any_cast<pmap_t>(aprop);
-            typedef typename mpl::find<val_types, int64_t>::type pos;
-            uint8_t val = mpl::distance<typename mpl::begin<val_types>::type, pos>::type::value;
+            constexpr uint8_t val = hana::index_if(val_types, hana::equal.to(hana::type<int64_t>())).value().value;
             write(s, val);
             int64_t y;
             for (auto x : edges_range(g))
@@ -377,10 +374,12 @@ void write_property(Graph& g, std::string& name, boost::any& prop, std::ostream&
     write(s, pt);
     write(s, name);
     bool found = false;
-    mpl::for_each<val_types>([&](auto t)
-                             {
-                                 write_property_dispatch<RangeTraits>()(t, g, prop, found, s);
-                             });
+    hana::for_each(val_types,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(+t)::type val_t;
+                       write_property_dispatch<RangeTraits>()(val_t(), g, prop, found, s);
+                   });
     if (!found)
         throw GraphException("Error writing graph: unknown property map type (this is a bug)");
 }
@@ -393,10 +392,9 @@ struct read_property_dispatch
     void operator()(T, Graph& g, boost::any& aprop, uint8_t val, bool ignore,
                     bool& found, std::istream& s) const
     {
-        typedef typename mpl::find<val_types, T>::type pos;
-        if (mpl::distance<typename mpl::begin<val_types>::type, pos>::type::value == val)
+        if (hana::index_if(val_types, hana::equal.to(hana::type<T>())).value().value == val)
         {
-            typedef typename property_map_type::apply<T, typename RangeTraits::index_map_t>::type pmap_t;
+            typedef property_map_t<T, typename RangeTraits::index_map_t> pmap_t;
             pmap_t prop(RangeTraits::get_index_map(g));
             if (!ignore)
             {
@@ -407,11 +405,8 @@ struct read_property_dispatch
             else
             {
                 T y = T();
-                for (auto x : RangeTraits::get_range(g))
-                {
-                    (void)x;
+                for ([[maybe_unused]] auto x : RangeTraits::get_range(g))
                     skip<BE>(s, y);
-                }
             }
             found = true;
         }
@@ -430,11 +425,12 @@ read_property(Graph& g, const std::unordered_set<std::string>& ignore,
     bool skip = ignore.find(name) != ignore.end();
     uint8_t val = 0;
     read<BE>(s, val);
-    mpl::for_each<val_types>(
-        [&](auto t)
-        {
-            read_property_dispatch<BE, RangeTraits>()(t, g, prop, val, skip, found, s);
-        });
+    hana::for_each(val_types,
+                   [&](auto t)
+                   {
+                       typedef typename decltype(+t)::type val_t;
+                       read_property_dispatch<BE, RangeTraits>()(val_t(), g, prop, val, skip, found, s);
+                   });
 
     if (!found)
         throw IOException("Error reading graph: invalid property value type index "

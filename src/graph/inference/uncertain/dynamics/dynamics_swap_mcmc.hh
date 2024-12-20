@@ -39,7 +39,7 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((ecandidates,, elist_t, 0))                                               \
     ((beta,, double, 0))                                                       \
@@ -255,7 +255,7 @@ struct MCMC
                                                    {x_uv, x_sv},
                                                    {x_sv, x_uv},
                                                    _entropy_args);
-                    if (!graph_tool::is_directed(_state._u))
+                    if (!is_directed(_state._u))
                     {
                         dS += _state.dstate_edge_dS(v, u, x_uv, x_sv,
                                                     _entropy_args, false);
@@ -285,7 +285,7 @@ struct MCMC
                                                        {x_st, x_ut},
                                                        {x_ut, x_st},
                                                        _entropy_args);
-                    if (!graph_tool::is_directed(_state._u))
+                    if (!is_directed(_state._u))
                     {
                         if (x_uv != x_sv || x_ut != x_st)
                             dS += _state.dstate_edges_dS_a({v, t}, u,

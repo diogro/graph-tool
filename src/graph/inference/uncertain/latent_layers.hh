@@ -31,17 +31,17 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef eprop_map_t<int32_t>::type emap_t;
+typedef eprop_map_t<int32_t> emap_t;
 
 #define LATENT_LAYERS_STATE_params                                             \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((og,, python::object, 0))                                                 \
     ((eweight,, emap_t, 0))                                                    \
     ((self_loops,, bool, 0))                                                   \
     ((measured,, bool, 0))                                                     \
     ((ag_orig, &, boost::any, 0))                                              \
-    ((n,, eprop_map_t<int>::type, 0))                                          \
-    ((x,, eprop_map_t<int>::type, 0))                                          \
+    ((n,, eprop_map_t<int>, 0))                                          \
+    ((x,, eprop_map_t<int>, 0))                                          \
     ((n_default,, int, 0))                                                     \
     ((x_default,, int, 0))                                                     \
     ((alpha,, long double, 0))                                                 \
@@ -99,10 +99,10 @@ struct LatentLayers
                   typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
         LatentLayersState(std::vector<std::reference_wrapper<BlockState>> block_state, ATs&&... args)
             : LatentLayersStateBase<Ts...>(std::forward<ATs>(args)...),
-              _g(boost::any_cast<std::reference_wrapper<g_t>>(python::extract<boost::any&>(_og)()).get()),
+              _g(*boost::any_cast<std::shared_ptr<g_t>>(python::extract<boost::any&>(_og)())),
               _block_state(block_state),
               _eweight_c(_eweight.get_checked()),
-              _g_orig(boost::any_cast<std::reference_wrapper<g_t>>(_ag_orig).get())
+              _g_orig(*boost::any_cast<std::shared_ptr<g_t>>(_ag_orig))
         {
             GILRelease gil_release;
 
@@ -162,7 +162,7 @@ struct LatentLayers
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
         {
-            if (!graph_tool::is_directed(g) && u > v)
+            if (!is_directed(g) && u > v)
                 std::swap(u, v);
             auto& qe = edges[u];
             if constexpr (insert)

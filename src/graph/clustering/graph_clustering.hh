@@ -86,7 +86,7 @@ get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
             mark[u] = 0;
     }
 
-    if (graph_tool::is_directed(g))
+    if (is_directed(g))
         return {triangles, k * k - k2};
     else
         return {triangles / 2, (k * k - k2) / 2};
@@ -169,7 +169,7 @@ auto get_global_clustering_sampled(const Graph& g, size_t m, RNG& rng)
             us.insert(u);
         auto k = us.size();
         vs.push_back(v);
-        if (graph_tool::is_directed(g))
+        if (is_directed(g))
             probs.push_back(k * (k - 1));
         else
             probs.push_back((k * (k - 1))/2);

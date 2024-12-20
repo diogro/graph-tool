@@ -31,14 +31,13 @@ struct deg_check : public boost::static_visitor<>
 {
     void operator()(boost::any a) const
     {
-        if (!belongs<vertex_scalar_properties>()(a))
+        if (!belongs(vertex_scalar_properties, a))
             throw ValueException("Vertex property must be of scalar type.");
     }
 
     template<class T>
     void operator()(const T&) const {}
 };
-
 
 // this will return the vertex histogram of degrees or scalar properties
 python::object
@@ -50,9 +49,11 @@ get_vertex_histogram(GraphInterface& gi, GraphInterface::deg_t deg,
     python::object hist;
     python::object ret_bins;
 
-    run_action<>(false)(gi, get_histogram<VertexHistogramFiller>(hist, bins,
-                                                                 ret_bins),
-         scalar_selectors())(degree_selector(deg));
+    run_action<>(false)
+        (gi,
+         get_histogram<VertexHistogramFiller>(hist, bins, ret_bins),
+         all_selectors)(degree_selector(deg));
+
     return python::make_tuple(hist, ret_bins);
 }
 
@@ -61,7 +62,7 @@ python::object
 get_edge_histogram(GraphInterface& gi, boost::any prop,
                    const vector<long double>& bins)
 {
-    if (!belongs<edge_scalar_properties>()(prop))
+    if (!belongs(edge_scalar_properties, prop))
         throw ValueException("Edge property must be of scalar type.");
 
     python::object hist;
@@ -69,9 +70,9 @@ get_edge_histogram(GraphInterface& gi, boost::any prop,
 
     bool directed = gi.get_directed();
     gi.set_directed(true);
-    run_action<graph_tool::detail::always_directed>(false)
+    run_action<decltype(graph_tool::always_directed)>(false)
         (gi, get_histogram<EdgeHistogramFiller>(hist, bins, ret_bins),
-         edge_scalar_properties())(prop);
+         edge_scalar_properties)(prop);
     gi.set_directed(directed);
 
     return python::make_tuple(hist, ret_bins);

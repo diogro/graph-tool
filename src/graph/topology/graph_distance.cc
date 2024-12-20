@@ -442,8 +442,7 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                long double max_dist, bool bf, std::vector<size_t>& reached,
                bool dag, bool get_pred, bool get_reached)
 {
-    typedef property_map_type
-        ::apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_map_t;
+    typedef vprop_map_t<int64_t> pred_map_t;
 
     pred_map_t pmap = any_cast<pred_map_t>(pred_map);
 
@@ -462,7 +461,7 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                               pmap.get_unchecked(num_vertices(gi.get_graph())),
                               max_dist, reached);
                      },
-                     writable_vertex_scalar_properties())(dist_map);
+                     writable_vertex_scalar_properties)(dist_map);
             };
         if (get_pred && get_reached)
             dispatch(do_bfs_search<true, true>());
@@ -487,8 +486,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                           pmap.get_unchecked(num_vertices(gi.get_graph())),
                           std::forward<decltype(a3)>(a3));
                  },
-                 writable_vertex_scalar_properties(),
-                 edge_scalar_properties())(dist_map, weight);
+                 writable_vertex_scalar_properties,
+                 edge_scalar_properties)(dist_map, weight);
         }
         else
         {
@@ -506,8 +505,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                                   std::forward<decltype(a3)>(a3), max_dist, reached,
                                   dag);
                          },
-                         writable_vertex_scalar_properties(),
-                         edge_scalar_properties())(dist_map, weight);
+                         writable_vertex_scalar_properties,
+                         edge_scalar_properties)(dist_map, weight);
                 };
 
             if (get_reached)
@@ -556,17 +555,15 @@ void do_get_all_preds(GraphInterface& gi, boost::any adist, boost::any apred,
                       boost::any aweight, boost::any apreds,
                       long double epsilon)
 {
-    typedef property_map_type
-        ::apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_map_t;
-    typedef property_map_type
-        ::apply<vector<int64_t>, GraphInterface::vertex_index_map_t>::type preds_map_t;
+    typedef vprop_map_t<int64_t> pred_map_t;
+    typedef vprop_map_t<vector<int64_t>> preds_map_t;
 
     pred_map_t pred = any_cast<pred_map_t>(apred);
     preds_map_t preds = any_cast<preds_map_t>(apreds);
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
     if (aweight.empty())
         aweight = weight_map_t();
@@ -576,14 +573,17 @@ void do_get_all_preds(GraphInterface& gi, boost::any adist, boost::any apred,
              {get_all_preds(g, dist, pred.get_unchecked(num_vertices(g)),
                             weight, preds.get_unchecked(num_vertices(g)),
                             epsilon);},
-         vertex_scalar_properties(), weight_props_t())(adist, aweight);
+         vertex_scalar_properties, weight_props_t)(adist, aweight);
 }
 
 
-template <class Graph, class Pred, class Weight, class Yield>
-void get_all_shortest_paths(GraphInterface& gi, Graph& g, size_t s, size_t t,
+template <class GP, class Pred, class Weight, class Yield>
+void get_all_shortest_paths(GP& gp, size_t s, size_t t,
                             Pred pred, Weight weight, bool edges, Yield& yield)
 {
+    typedef std::remove_reference_t<decltype(*gp)> g_t;
+    auto& g = *gp;
+
     vector<size_t> path;
     vector<pair<size_t, size_t>> stack = {{t, 0}};
     while (!stack.empty())
@@ -601,17 +601,16 @@ void get_all_shortest_paths(GraphInterface& gi, Graph& g, size_t s, size_t t,
             }
             else
             {
-                auto gp = retrieve_graph_view<Graph>(gi, g);
                 boost::python::list opath;
-                auto s = graph_traits<Graph>::null_vertex();
+                auto s = graph_traits<g_t>::null_vertex();
                 for (auto iter = stack.rbegin(); iter != stack.rend(); ++iter)
                 {
                     auto t = iter->first;
-                    if (s != graph_traits<Graph>::null_vertex())
+                    if (s != graph_traits<g_t>::null_vertex())
                     {
                         typedef typename property_traits<Weight>::value_type val_t;
                         val_t best_w = numeric_limits<val_t>::max();
-                        typename graph_traits<Graph>::edge_descriptor best_e;
+                        typename graph_traits<g_t>::edge_descriptor best_e;
                         for (auto e : out_edges_range(s, g))
                         {
                             if (target(e, g) == t)
@@ -624,7 +623,7 @@ void get_all_shortest_paths(GraphInterface& gi, Graph& g, size_t s, size_t t,
                                 }
                             }
                         }
-                        opath.append(PythonEdge<Graph>(gp, best_e));
+                        opath.append(PythonEdge<g_t>(gp, best_e));
                     }
                     s = t;
                 }
@@ -644,26 +643,33 @@ void get_all_shortest_paths(GraphInterface& gi, Graph& g, size_t s, size_t t,
     }
 };
 
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
+
 python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
                                          boost::any apred, boost::any aweight,
                                          bool edges)
 {
 #ifdef HAVE_BOOST_COROUTINE
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
-        weight_props_t;
+    auto weight_props_t = hana::append(edge_scalar_properties,
+                                       hana::type<weight_map_t>());
 
     if (aweight.empty())
         aweight = weight_map_t();
 
     auto dispatch = [&](auto& yield)
         {
-            run_action<>(false)
-                (gi, [&](auto& g, auto pred, auto weight)
-                     {get_all_shortest_paths(gi, g, s, t, pred, weight, edges,
+            run_action<decltype(graph_view_ptrs)>(false)
+                (gi, [&](auto& gp, auto pred, auto weight)
+                     {get_all_shortest_paths(gp, s, t, pred, weight, edges,
                                              yield);},
-                    vertex_scalar_vector_properties(),
-                    weight_props_t())(apred, aweight);
+                    vertex_scalar_vector_properties,
+                    weight_props_t)(apred, aweight);
         };
     return python::object(CoroGenerator(dispatch));
 #else
@@ -674,9 +680,9 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 void get_weighted_succs(size_t t, boost::any apred, boost::any asucc,
                         boost::any acount, boost::any avisited)
 {
-    typedef vprop_map_t<vector<int64_t>>::type pred_map_t;
-    typedef vprop_map_t<int64_t>::type count_map_t;
-    typedef vprop_map_t<uint8_t>::type visited_map_t;
+    typedef vprop_map_t<vector<int64_t>> pred_map_t;
+    typedef vprop_map_t<int64_t> count_map_t;
+    typedef vprop_map_t<uint8_t> visited_map_t;
 
     pred_map_t pred = any_cast<pred_map_t>(apred);
     pred_map_t succ = any_cast<pred_map_t>(asucc);
@@ -709,8 +715,8 @@ void get_random_shortest_path(size_t s, size_t t, boost::any asucc,
                               boost::any acount, vector<size_t>& path,
                               rng_t& rng)
 {
-    typedef vprop_map_t<vector<int64_t>>::type pred_map_t;
-    typedef vprop_map_t<int64_t>::type count_map_t;
+    typedef vprop_map_t<vector<int64_t>> pred_map_t;
+    typedef vprop_map_t<int64_t> count_map_t;
 
     pred_map_t succ = any_cast<pred_map_t>(asucc);
     count_map_t count = any_cast<count_map_t>(acount);
@@ -741,11 +747,14 @@ void get_random_shortest_path(size_t s, size_t t, boost::any asucc,
     }
 };
 
-template <bool edges, class Graph, class Yield, class VMap>
+template <bool edges, class GP, class Yield, class VMap>
 void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
-                   Yield& yield, Graph& g, GraphInterface& gi)
+                   Yield& yield, GP& gp)
 {
-    typedef typename graph_traits<Graph>::out_edge_iterator eiter_t;
+    typedef std::remove_reference_t<decltype(*gp)> g_t;
+    auto& g = *gp;
+
+    typedef typename graph_traits<g_t>::out_edge_iterator eiter_t;
     typedef std::pair<eiter_t, eiter_t> item_t;
 
     visited[s] = true;
@@ -778,10 +787,9 @@ void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
             }
             else
             {
-                auto gp = retrieve_graph_view<Graph>(gi, g);
                 boost::python::list path;
                 for (auto& ei : stack)
-                    path.append(PythonEdge<Graph>(gp, *ei.first));
+                    path.append(PythonEdge<g_t>(gp, *ei.first));
                 yield(path);
             }
 
@@ -807,21 +815,21 @@ python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
                                 size_t cutoff, boost::any avisited, bool edges)
 {
 #ifdef HAVE_BOOST_COROUTINE
-    typedef vprop_map_t<uint8_t>::type vprop_t;
+    typedef vprop_map_t<uint8_t> vprop_t;
     vprop_t visited = boost::any_cast<vprop_t>(avisited);
     auto dispatch = [&](auto& yield)
         {
-            run_action<>(false)
-                (gi, [&](auto& g)
+            run_action<decltype(graph_view_ptrs)>(false)
+                (gi, [&](auto& gp)
                 {
                     if (edges)
                         get_all_paths<true>(s, t, cutoff,
                                             visited.get_unchecked(), yield,
-                                            g, gi);
+                                            gp);
                     else
                         get_all_paths<false>(s, t, cutoff,
                                              visited.get_unchecked(), yield,
-                                             g, gi);
+                                             gp);
                 })();
         };
     return python::object(CoroGenerator(dispatch));

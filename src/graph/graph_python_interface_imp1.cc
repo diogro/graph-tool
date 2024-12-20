@@ -67,7 +67,7 @@ struct add_edge_list
                 vector<DynamicPropertyMapWrap<Value, edge_t>> eprops;
                 python::stl_input_iterator<boost::any> iter(oeprops), end;
                 for (; iter != end; ++iter)
-                    eprops.emplace_back(*iter, writable_edge_properties());
+                    eprops.emplace_back(*iter, writable_edge_properties);
 
                 GILRelease gil_release;
 
@@ -137,7 +137,7 @@ struct add_edge_list_iter
         vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
         python::stl_input_iterator<boost::any> piter(oeprops), pend;
         for (; piter != pend; ++piter)
-            eprops.emplace_back(*piter, writable_edge_properties());
+            eprops.emplace_back(*piter, writable_edge_properties);
 
         python::stl_input_iterator<python::object> iter(edge_list), end;
         for (; iter != end; ++iter)
@@ -250,7 +250,7 @@ struct add_edge_list_hash
         vector<DynamicPropertyMapWrap<val_t, edge_t>> eprops;
         python::stl_input_iterator<boost::any> iter(oeprops), end;
         for (; iter != end; ++iter)
-            eprops.emplace_back(*iter, writable_edge_properties());
+            eprops.emplace_back(*iter, writable_edge_properties);
 
         GILRelease gil_release;
 
@@ -305,7 +305,7 @@ struct add_edge_list_hash
         vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
         python::stl_input_iterator<boost::any> piter(oeprops), pend;
         for (; piter != pend; ++piter)
-            eprops.emplace_back(*piter, writable_edge_properties());
+            eprops.emplace_back(*piter, writable_edge_properties);
 
         auto get_vertex = [&] (const val_t& r) -> size_t
             {
@@ -372,7 +372,7 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
                              boost::any& vertex_map,
                              python::object eprops)
 {
-    run_action<graph_tool::all_graph_views, boost::mpl::true_>(false)
+    run_action<decltype(all_graph_views), false>(false)
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -380,7 +380,7 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
                  (std::forward<decltype(graph)>(graph), aedge_list,
                   std::forward<decltype(a2)>(a2), eprops);
          },
-         writable_vertex_properties())(vertex_map);
+         writable_vertex_properties)(vertex_map);
 }
 
 } // namespace graph_tool

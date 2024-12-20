@@ -33,7 +33,7 @@ using namespace boost;
 using namespace std;
 
 #define BUNDLED_MCMC_OVERLAP_BLOCK_STATE_params(State)                         \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((vlist,, std::vector<size_t>, 0))                                         \
     ((beta,, double, 0))                                                       \

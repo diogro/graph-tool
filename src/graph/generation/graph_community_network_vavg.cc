@@ -33,7 +33,7 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> no_vweight_map_t;
-typedef vprop_map_t<int32_t>::type vcount_map_t;
+typedef vprop_map_t<int32_t> vcount_map_t;
 
 
 struct get_weighted_vertex_property_dispatch
@@ -69,8 +69,8 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                             boost::any vweight,
                             boost::python::list avprops)
 {
-    typedef boost::mpl::push_back<writable_vertex_scalar_properties, no_vweight_map_t>::type
-        vweight_properties;
+    auto weight_maps_t = hana::append(writable_vertex_scalar_properties,
+                                      hana::type<no_vweight_map_t>());
 
     bool no_weight = false;
     if (vweight.empty())
@@ -79,12 +79,9 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
         vweight = no_vweight_map_t();
     }
 
-    typedef boost::mpl::insert_range<writable_vertex_scalar_properties,
-                                     boost::mpl::end<writable_vertex_scalar_properties>::type,
-                                     vertex_scalar_vector_properties>::type vprops_temp;
-    typedef boost::mpl::push_back<vprops_temp,
-                                  vprop_map_t<boost::python::object>::type >::type
-        vprops_t;
+    auto vprops_t = hana::append(hana::concat(writable_vertex_scalar_properties,
+                                              vertex_scalar_vector_properties),
+                                 hana::type<vprop_map_t<boost::python::object>>());
 
     for(int i = 0; i < boost::python::len(avprops); ++i)
     {
@@ -104,7 +101,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                           std::forward<decltype(a2)>(a2),
                           std::forward<decltype(a3)>(a3), temp);
                  },
-                 vweight_properties(), vprops_t())(vweight, vprop);
+                 weight_maps_t, vprops_t)(vweight, vprop);
 
             // sum weighted values
             run_action<>()
@@ -117,8 +114,8 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                           condensed_community_property,
                           std::forward<decltype(a3)>(a3), cvprop);
                  },
-                 writable_vertex_properties(),
-                 vprops_t())(community_property, temp);
+                 writable_vertex_properties,
+                 vprops_t)(community_property, temp);
         }
         else
         {
@@ -133,8 +130,8 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                           condensed_community_property,
                           std::forward<decltype(a3)>(a3), cvprop);
                  },
-                 writable_vertex_properties(),
-                 vprops_t())(community_property, vprop);
+                 writable_vertex_properties,
+                 vprops_t)(community_property, vprop);
         }
     }
 }

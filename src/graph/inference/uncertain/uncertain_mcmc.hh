@@ -35,7 +35,7 @@ using namespace std;
 typedef std::vector<size_t> vlist_t;
 
 #define MCMC_UNCERTAIN_STATE_params(State)                                     \
-    ((__class__,&, mpl::vector<python::object>, 1))                            \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
     ((beta,, double, 0))                                                       \
     ((entropy_args,, uentropy_args_t, 0))                                      \

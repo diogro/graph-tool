@@ -23,9 +23,9 @@
 using namespace graph_tool;
 using namespace boost;
 
-typedef vprop_map_t<int64_t>::type vprop_t;
+typedef vprop_map_t<int64_t> vprop_t;
 
-typedef eprop_map_t<GraphInterface::edge_t>::type eprop_t;
+typedef eprop_map_t<GraphInterface::edge_t> eprop_t;
 
 void vertex_property_union(GraphInterface& ugi, GraphInterface& gi,
                            boost::any p_vprop, boost::any p_eprop,
@@ -43,7 +43,7 @@ void vertex_property_union(GraphInterface& ugi, GraphInterface& gi,
                      std::forward<decltype(a2)>(a2), vprop, eprop,
                      std::forward<decltype(a3)>(a3), prop);
             },
-            always_directed(), always_directed(), writable_vertex_properties())(
+            always_directed, always_directed, writable_vertex_properties)(
             ugi.get_graph_view(), gi.get_graph_view(), uprop);
 }
 

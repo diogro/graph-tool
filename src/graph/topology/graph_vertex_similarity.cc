@@ -27,8 +27,8 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int64_t, GraphInterface::edge_t> ecmap_t;
-typedef boost::mpl::push_back<edge_scalar_properties, ecmap_t>::type
-        weight_props_t;
+inline constexpr auto weight_props_t = hana::append(edge_scalar_properties,
+                                                    hana::type<ecmap_t>());
 
 
 void get_dice_similarity(GraphInterface& gi, boost::any as, boost::any weight)
@@ -37,7 +37,7 @@ void get_dice_similarity(GraphInterface& gi, boost::any as, boost::any weight)
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto& w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto& w)
@@ -45,8 +45,8 @@ void get_dice_similarity(GraphInterface& gi, boost::any as, boost::any weight)
                                       return dice(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -56,7 +56,7 @@ void get_salton_similarity(GraphInterface& gi, boost::any as, boost::any weight)
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto& w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto& w)
@@ -64,8 +64,8 @@ void get_salton_similarity(GraphInterface& gi, boost::any as, boost::any weight)
                                       return salton(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -75,7 +75,7 @@ void get_hub_promoted_similarity(GraphInterface& gi, boost::any as, boost::any w
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto& w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto& w)
@@ -83,8 +83,8 @@ void get_hub_promoted_similarity(GraphInterface& gi, boost::any as, boost::any w
                                       return hub_promoted(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -94,7 +94,7 @@ void get_hub_suppressed_similarity(GraphInterface& gi, boost::any as, boost::any
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto& w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto& w)
@@ -102,8 +102,8 @@ void get_hub_suppressed_similarity(GraphInterface& gi, boost::any as, boost::any
                                       return hub_suppressed(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -125,7 +125,7 @@ void get_dice_similarity_pairs(GraphInterface& gi, python::object opairs,
                                        return dice(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -147,7 +147,7 @@ void get_salton_similarity_pairs(GraphInterface& gi, python::object opairs,
                                        return salton(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -169,7 +169,7 @@ void get_hub_promoted_similarity_pairs(GraphInterface& gi, python::object opairs
                                        return hub_promoted(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -191,7 +191,7 @@ void get_hub_suppressed_similarity_pairs(GraphInterface& gi, python::object opai
                                        return hub_suppressed(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -201,7 +201,7 @@ void get_jaccard_similarity(GraphInterface& gi, boost::any as, boost::any weight
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto w)
@@ -209,8 +209,8 @@ void get_jaccard_similarity(GraphInterface& gi, boost::any as, boost::any weight
                                       return jaccard(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -232,7 +232,7 @@ void get_jaccard_similarity_pairs(GraphInterface& gi, python::object opairs,
                                        return jaccard(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -243,7 +243,7 @@ void get_inv_log_weight_similarity(GraphInterface& gi, boost::any as,
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto w)
@@ -251,8 +251,8 @@ void get_inv_log_weight_similarity(GraphInterface& gi, boost::any as,
                                       return inv_log_weighted(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -276,7 +276,7 @@ void get_inv_log_weight_similarity_pairs(GraphInterface& gi,
                                        return inv_log_weighted(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -287,7 +287,7 @@ void get_r_allocation_similarity(GraphInterface& gi, boost::any as,
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto w)
@@ -295,8 +295,8 @@ void get_r_allocation_similarity(GraphInterface& gi, boost::any as,
                                       return r_allocation(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -320,7 +320,7 @@ void get_r_allocation_similarity_pairs(GraphInterface& gi,
                                        return r_allocation(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 
@@ -331,7 +331,7 @@ void get_leicht_holme_newman_similarity(GraphInterface& gi, boost::any as,
         weight = ecmap_t();
 
     gt_dispatch<>()
-        ([&](auto& g, auto& s, auto w)
+        ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
                                   [&](auto u, auto v, auto& mask, auto w)
@@ -339,8 +339,8 @@ void get_leicht_holme_newman_similarity(GraphInterface& gi, boost::any as,
                                       return leicht_holme_newman(u, v, mask, w, g);
                                   }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties(),
-         weight_props_t())
+         all_graph_views, vertex_floating_vector_properties,
+         weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
 
@@ -364,7 +364,7 @@ void get_leicht_holme_newman_similarity_pairs(GraphInterface& gi,
                                        return leicht_holme_newman(u, v, mask, w, g);
                                    }, w);
          },
-         all_graph_views(), weight_props_t())
+         all_graph_views, weight_props_t)
         (gi.get_graph_view(), weight);
 }
 

@@ -225,7 +225,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
 
     std::bernoulli_distribution rsample(r);
 
-    undirected_adaptor g_u(g);
+    auto g_u = make_undirected_adaptor(g);
     UnityPropertyMap<size_t, typename graph_traits<Graph>::edge_descriptor> dummy;
 
     size_t iter = 1;
@@ -456,6 +456,8 @@ size_t gen_k_nearest_exact(Graph& g, Dist&& d, size_t k, bool directed,
     return n_tot;
 }
 
+namespace detail
+{
 template <class DescriptorProperty>
 class MaskFilter
 {
@@ -477,7 +479,7 @@ public:
 private:
     DescriptorProperty* _filtered_property;
 };
-
+} // namespace detail
 
 template <bool parallel, class Graph, class Dist, class Weight, class Hint, class RNG>
 std::tuple<size_t, size_t>
@@ -487,9 +489,9 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
 {
     size_t N = num_vertices(g);
     std::vector<bool> select(N, true);
-    typename eprop_map_t<bool>::type::unchecked_t eselect(get(edge_index_t(), g));
+    eprop_map_t<bool>::unchecked_t eselect(get(edge_index_t(), g));
 
-    auto u = make_filt_graph(g, MaskFilter<decltype(eselect)>(eselect),
+    auto u = make_filt_graph(g, detail::MaskFilter<decltype(eselect)>(eselect),
                              [&](auto v) { return select[v]; });
 
     auto uhint = make_filt_graph(hint, keep_all(),
@@ -546,7 +548,7 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         if (verbose)
             cout << "Selecting nodes..." << endl;
 
-        typename eprop_map_t<bool>::type ekeep(get(edge_index_t(), g));
+        eprop_map_t<bool> ekeep(get(edge_index_t(), g));
         for (auto e : edges_range(u))
             ekeep[e] = false;
 
@@ -597,7 +599,7 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
 
     if (!directed)
     {
-        undirected_adaptor g_u(g);
+        auto g_u = make_undirected_adaptor(g);
         contract_parallel_edges(g_u, dummy_property_map());
     }
     else

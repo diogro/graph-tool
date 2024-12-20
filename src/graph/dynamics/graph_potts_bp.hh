@@ -34,11 +34,11 @@ class PottsBPState
 {
 public:
 
-    typedef eprop_map_t<std::vector<double>>::type::unchecked_t emmap_t;
-    typedef vprop_map_t<std::vector<double>>::type::unchecked_t vmmap_t;
-    typedef eprop_map_t<double>::type::unchecked_t emap_t;
-    typedef vprop_map_t<std::vector<double>>::type::unchecked_t vmap_t;
-    typedef vprop_map_t<uint8_t>::type::unchecked_t vfmap_t;
+    typedef eprop_map_t<std::vector<double>>::unchecked_t emmap_t;
+    typedef vprop_map_t<std::vector<double>>::unchecked_t vmmap_t;
+    typedef eprop_map_t<double>::unchecked_t emap_t;
+    typedef vprop_map_t<std::vector<double>>::unchecked_t vmap_t;
+    typedef vprop_map_t<uint8_t>::unchecked_t vfmap_t;
 
     template <class Graph, class RNG>
     PottsBPState(Graph& g, boost::multi_array_ref<double, 2> f, emap_t x,

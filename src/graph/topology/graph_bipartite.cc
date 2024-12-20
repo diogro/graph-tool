@@ -77,14 +77,15 @@ bool is_bipartite_dispatch(GraphInterface& gi, boost::any part_map, bool find_cy
     if (part_map.empty())
         part_map = dummy_property_map();
 
-    typedef mpl::push_back<writable_vertex_scalar_properties,
-                           dummy_property_map>::type vertex_map_types;
+    auto vertex_map_types =
+        hana::append(writable_vertex_scalar_properties,
+                     hana::type<dummy_property_map>());
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi, std::bind(get_bipartite(), std::placeholders::_1,
                        gi.get_vertex_index(), std::placeholders::_2,
                        std::ref(is_bip), find_cycle, std::ref(vcycle)),
-         vertex_map_types())(part_map);
+         vertex_map_types)(part_map);
 
     for (auto v : vcycle)
         cycle.append(v);

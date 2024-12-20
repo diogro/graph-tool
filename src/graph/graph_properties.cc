@@ -34,14 +34,6 @@ using namespace graph_tool;
 namespace graph_tool
 {
 
-// global property types' names
-const char* type_names[] =
-    {"bool", "int16_t", "int32_t", "int64_t", "double", "long double",
-     "string", "vector<bool>", "vector<int16_t>", "vector<int32_t>",
-     "vector<int64_t>", "vector<double>", "vector<long double>",
-     "vector<string>", "python::object"};
-
-
 struct do_shift_vertex_property
 {
     template <class PropertyMap, class Vec>
@@ -69,13 +61,13 @@ void GraphInterface::shift_vertex_property(boost::any prop, python::object oinde
 {
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
     bool found = false;
-    mpl::for_each<writable_vertex_properties>(
-        [&](auto&& graph)
-        {
-            return do_shift_vertex_property()
-                (std::forward<decltype(graph)>(graph), *_mg, prop, index,
-                 found);
-        });
+    hana::for_each(writable_vertex_properties,
+                   [&](auto t)
+                   {
+                       return do_shift_vertex_property()
+                           (typename decltype(+t)::type(), *_mg, prop, index,
+                            found);
+                   });
     if (!found)
         throw GraphException("invalid writable property map");
 }
@@ -107,13 +99,13 @@ void GraphInterface::move_vertex_property(boost::any prop, python::object oindex
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
     size_t back = num_vertices(*_mg) - 1;
     bool found = false;
-    mpl::for_each<writable_vertex_properties>(
-        [&](auto&& graph)
-        {
-            return do_move_vertex_property()
-                (std::forward<decltype(graph)>(graph), *_mg, prop, index, back,
-                 found);
-        });
+    hana::for_each(writable_vertex_properties,
+                   [&](auto t)
+                   {
+                       return do_move_vertex_property()
+                           (typename decltype(+t)::type(), *_mg, prop, index, back,
+                            found);
+                   });
     if (!found)
         throw GraphException("invalid writable property map");
 }
@@ -144,17 +136,17 @@ struct reindex_vertex_property
 void GraphInterface::re_index_vertex_property(boost::any map,
                                               boost::any aold_index) const
 {
-    typedef vprop_map_t<int64_t>::type index_prop_t;
+    typedef vprop_map_t<int64_t> index_prop_t;
     index_prop_t old_index = any_cast<index_prop_t>(aold_index);
 
     bool found = false;
-    mpl::for_each<writable_vertex_properties>(
-        [&](auto&& graph)
-        {
-            return reindex_vertex_property()
-                (std::forward<decltype(graph)>(graph), *_mg, map, old_index,
-                 found);
-        });
+    hana::for_each(writable_vertex_properties,
+                   [&](auto t)
+                   {
+                       return reindex_vertex_property()
+                           (typename decltype(+t)::type(), *_mg, map, old_index,
+                            found);
+                   });
     if (!found)
         throw GraphException("invalid writable property map");
 
@@ -229,7 +221,7 @@ void infect_vertex_property(GraphInterface& gi, boost::any prop,
                  (std::forward<decltype(graph)>(graph), gi.get_vertex_index(),
                   std::forward<decltype(a2)>(a2), val);
          },
-         writable_vertex_properties())(prop);
+         writable_vertex_properties)(prop);
 }
 
 template <class Value>
@@ -266,5 +258,5 @@ void mark_edges(GraphInterface& gi, boost::any prop)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2));
          },
-         writable_edge_scalar_properties())(prop);
+         writable_edge_scalar_properties)(prop);
 }

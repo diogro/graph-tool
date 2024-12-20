@@ -36,19 +36,19 @@ struct export_vertex_property_map
         typedef PythonPropertyMap<PropertyMap> pmap_t;
 
         string type_name;
-        if (std::is_same<typename boost::mpl::find<value_types,
-                                                   typename pmap_t::value_type>::type,
-                         typename boost::mpl::end<value_types>::type>::value)
+        if constexpr (hana::find(value_types, hana::type<typename pmap_t::value_type>()) !=
+                      hana::just(hana::type<typename pmap_t::value_type>()))
             type_name =
                 name_demangle(typeid(typename pmap_t::value_type).name());
         else
             type_name =
-                type_names[boost::mpl::find<value_types,typename pmap_t::value_type>
-                           ::type::pos::value];
+                type_names[hana::index_if(value_types,
+                                          hana::equal.to(hana::type<typename pmap_t::value_type>())).value().value];
+
         string class_name = "VertexPropertyMap<" + type_name + ">";
 
         typedef typename boost::mpl::if_<
-            typename return_reference::apply<typename pmap_t::value_type>::type,
+            typename return_reference<typename pmap_t::value_type>::type,
             boost::python::return_internal_reference<>,
             boost::python::return_value_policy<boost::python::return_by_value> >
             ::type return_policy;
@@ -67,21 +67,25 @@ struct export_vertex_property_map
             .def("swap", &pmap_t::swap)
             .def("data_ptr", &pmap_t::data_ptr);
 
-        typedef boost::mpl::transform<graph_tool::all_graph_views,
-                                      boost::mpl::quote1<std::add_const> >::type const_graph_views;
-        typedef boost::mpl::transform<graph_tool::all_graph_views,
-                                      boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
-        typedef boost::mpl::transform<const_graph_views,
-                                      boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
-        typedef boost::mpl::joint_view<all_graph_views, all_const_graph_views>::type graph_views;
+        auto const_graph_views
+            = hana::transform(graph_tool::all_graph_views,
+                              [](auto t){ return hana::type<std::add_const_t<typename decltype(t)::type>>(); });
+        auto all_graph_views
+            = hana::transform(const_graph_views,
+                              [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+        auto all_const_graph_views
+            = hana::transform(const_graph_views,
+                              [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+        auto graph_views
+            = hana::concat(all_graph_views, all_const_graph_views);
 
-        boost::mpl::for_each<graph_views>(
-            [&](auto&& graph)
-            {
-                return dispatch_access<PropertyMap>()(
-                    std::forward<decltype(graph)>(graph), pclass,
-                    return_policy());
-            });
+        hana::for_each(graph_views,
+                       [&](auto graph)
+                       {
+                           return dispatch_access<PropertyMap>()
+                               (typename decltype(+graph)::type(), pclass,
+                                return_policy());
+                       });
     }
 
     template <class PropertyMap>
@@ -124,19 +128,19 @@ struct export_edge_property_map
         typedef PythonPropertyMap<PropertyMap> pmap_t;
 
         string type_name;
-        if (std::is_same<typename boost::mpl::find<value_types,
-                                                   typename pmap_t::value_type>::type,
-                         typename boost::mpl::end<value_types>::type>::value)
+        if constexpr (hana::find(value_types, hana::type<typename pmap_t::value_type>()) !=
+                      hana::just(hana::type<typename pmap_t::value_type>()))
             type_name =
                 name_demangle(typeid(typename pmap_t::value_type).name());
         else
             type_name =
-                type_names[boost::mpl::find<value_types,typename pmap_t::value_type>
-                           ::type::pos::value];
+                type_names[hana::index_if(value_types,
+                                          hana::equal.to(hana::type<typename pmap_t::value_type>())).value().value];
+
         string class_name = "EdgePropertyMap<" + type_name + ">";
 
         typedef typename boost::mpl::if_<
-            typename return_reference::apply<typename pmap_t::value_type>::type,
+            typename return_reference<typename pmap_t::value_type>::type,
             boost::python::return_internal_reference<>,
             boost::python::return_value_policy<boost::python::return_by_value> >
             ::type return_policy;
@@ -155,22 +159,25 @@ struct export_edge_property_map
             .def("swap", &pmap_t::swap)
             .def("data_ptr", &pmap_t::data_ptr);
 
+        auto const_graph_views
+            = hana::transform(graph_tool::all_graph_views,
+                              [](auto t){ return hana::type<std::add_const_t<typename decltype(t)::type>>(); });
+        auto all_graph_views
+            = hana::transform(graph_tool::all_graph_views,
+                              [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+        auto all_const_graph_views
+            = hana::transform(const_graph_views,
+                              [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+        auto graph_views
+            = hana::concat(all_graph_views, all_const_graph_views);
 
-        typedef boost::mpl::transform<graph_tool::all_graph_views,
-                                      boost::mpl::quote1<std::add_const> >::type const_graph_views;
-        typedef boost::mpl::transform<graph_tool::all_graph_views,
-                                      boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
-        typedef boost::mpl::transform<const_graph_views,
-                                      boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
-        typedef boost::mpl::joint_view<all_graph_views, all_const_graph_views>::type graph_views;
-
-        boost::mpl::for_each<graph_views>(
-            [&](auto&& graph)
-            {
-                return dispatch_access<PropertyMap>()(
-                    std::forward<decltype(graph)>(graph), pclass,
-                    return_policy());
-            });
+        hana::for_each(graph_views,
+                       [&](auto graph)
+                       {
+                           return dispatch_access<PropertyMap>()
+                               (typename decltype(+graph)::type(), pclass,
+                                return_policy());
+                       });
     }
 };
 
@@ -182,12 +189,13 @@ struct export_graph_property_map
         typedef PythonPropertyMap<PropertyMap> pmap_t;
 
         string type_name =
-            type_names[boost::mpl::find<value_types,
-                       typename pmap_t::value_type>::type::pos::value];
+            type_names[hana::index_if(value_types,
+                                      hana::equal.to(hana::type<typename pmap_t::value_type>())).value().value];
+
         string class_name = "GraphPropertyMap<" + type_name + ">";
 
-        typedef typename boost::mpl::if_<
-            typename return_reference::apply<typename pmap_t::value_type>::type,
+        typedef typename std::conditional<
+            return_reference<typename pmap_t::value_type>::type::value,
             boost::python::return_internal_reference<>,
             boost::python::return_value_policy<boost::python::return_by_value> >
             ::type return_policy;
@@ -211,23 +219,10 @@ struct export_graph_property_map
 
 void export_python_properties()
 {
-    typedef property_map_types::apply<
-            value_types,
-            GraphInterface::vertex_index_map_t,
-            boost::mpl::bool_<true>
-        >::type vertex_property_maps;
-    typedef property_map_types::apply<
-            value_types,
-            GraphInterface::edge_index_map_t,
-            boost::mpl::bool_<true>
-        >::type edge_property_maps;
-    typedef property_map_types::apply<
-            value_types,
-            ConstantPropertyMap<size_t,graph_property_tag>,
-            boost::mpl::bool_<false>
-        >::type graph_property_maps;
-
-    boost::mpl::for_each<vertex_property_maps>(export_vertex_property_map());
-    boost::mpl::for_each<edge_property_maps>(export_edge_property_map());
-    boost::mpl::for_each<graph_property_maps>(export_graph_property_map());
+    auto graph_properties =
+        hana::transform(value_types, [](auto t){return hana::type<property_map_t<typename decltype(t)::type,
+                                                                                 ConstantPropertyMap<size_t,graph_property_tag>>>(); });
+    hana::for_each(vertex_properties, [](auto t){export_vertex_property_map()(typename decltype(t)::type());});
+    hana::for_each(edge_properties, [](auto t){export_edge_property_map()(typename decltype(t)::type());});
+    hana::for_each(graph_properties, [](auto t){export_graph_property_map()(typename decltype(t)::type());});
 }

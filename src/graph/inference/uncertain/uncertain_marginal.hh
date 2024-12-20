@@ -58,7 +58,7 @@ void collect_marginal(Graph& g, UGraph& u, Eprop ecount, Xprop x, XSprop xsum,
              for (auto e : out_edges_range(v, g))
              {
                  auto w = target(e, g);
-                 if (!graph_tool::is_directed(g) && v > w)
+                 if (!is_directed(g) && v > w)
                      continue;
                  em[w] = e;
              }
@@ -75,7 +75,7 @@ void collect_marginal(Graph& g, UGraph& u, Eprop ecount, Xprop x, XSprop xsum,
              for (auto e : out_edges_range(v, u))
              {
                  auto w = target(e, u);
-                 if (!graph_tool::is_directed(u) && (v > w || (v == w && self)))
+                 if (!is_directed(u) && (v > w || (v == w && self)))
                      continue;
                  if (v == w)
                      self = !self;

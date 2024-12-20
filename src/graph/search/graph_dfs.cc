@@ -31,77 +31,76 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
+inline constexpr auto graph_view_ptrs =
+    hana::transform(all_graph_views,
+                    [](auto t)
+                    {
+                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                    });
 
+template <class GP>
 class DFSVisitorWrapper
 {
 public:
-    DFSVisitorWrapper(GraphInterface& gi, python::object vis)
-        : _gi(gi), _vis(vis) {}
+    DFSVisitorWrapper(GP& gp, python::object vis)
+        : _gp(gp), _vis(vis) {}
 
 
     template <class Vertex, class Graph>
     void initialize_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("initialize_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("initialize_vertex")(PythonVertex<Graph>(_gp, u));
     }
     template <class Vertex, class Graph>
     void start_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("start_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("start_vertex")(PythonVertex<Graph>(_gp, u));
     }
     template <class Vertex, class Graph>
     void discover_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("discover_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("discover_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Edge, class Graph>
     void examine_edge(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("examine_edge")(PythonEdge<Graph>(gp, e));
+        _vis.attr("examine_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void tree_edge(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("tree_edge")(PythonEdge<Graph>(gp, e));
+        _vis.attr("tree_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void back_edge(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("back_edge")(PythonEdge<Graph>(gp, e));
+        _vis.attr("back_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
     void forward_or_cross_edge(Edge e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("forward_or_cross_edge")(PythonEdge<Graph>(gp, e));
+        _vis.attr("forward_or_cross_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Vertex, class Graph>
     void finish_vertex(Vertex u, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _vis.attr("finish_vertex")(PythonVertex<Graph>(gp, u));
+        _vis.attr("finish_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
 private:
-    GraphInterface& _gi;
+    GP _gp;
     python::object _vis;
 };
 
 template <class Graph, class Visitor>
 void do_dfs(Graph& g, size_t s, Visitor&& vis)
 {
-    typename vprop_map_t<default_color_type>::type
+    vprop_map_t<default_color_type>
         color(get(vertex_index_t(), g));
     auto v = vertex(s, g);
     if (v == graph_traits<Graph>::null_vertex())
@@ -112,28 +111,27 @@ void do_dfs(Graph& g, size_t s, Visitor&& vis)
 
 void dfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
-    run_action<graph_tool::all_graph_views, mpl::true_>(false)
-        (gi, [&](auto &g) { do_dfs(g, s, DFSVisitorWrapper(gi, vis));})();
+    run_action<decltype(graph_view_ptrs), false>(false)
+        (gi, [&](auto& gp) { do_dfs(*gp, s, DFSVisitorWrapper<decltype(gp)>(gp, vis));})();
 }
 
 #ifdef HAVE_BOOST_COROUTINE
 
+template <class GP>
 class DFSGeneratorVisitor : public dfs_visitor<>
 {
 public:
-    DFSGeneratorVisitor(GraphInterface& gi,
-                        coro_t::push_type& yield)
-        : _gi(gi), _yield(yield) {}
+    DFSGeneratorVisitor(GP& gp, coro_t::push_type& yield)
+        : _gp(gp), _yield(yield) {}
 
     template <class Edge, class Graph>
     void tree_edge(const Edge& e, Graph& g)
     {
-        auto gp = retrieve_graph_view<Graph>(_gi, g);
-        _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
+        _yield(boost::python::object(PythonEdge<Graph>(_gp, e)));
     }
 
 private:
-    GraphInterface& _gi;
+    GP _gp;
     coro_t::push_type& _yield;
 };
 
@@ -145,9 +143,8 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
-            DFSGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::all_graph_views,mpl::true_>(false)
-                (g, [&](auto &g) { do_dfs(g, s, vis);})();
+            run_action<decltype(graph_view_ptrs), false>(false)
+                (g, [&](auto& gp) { do_dfs(*gp, s, DFSGeneratorVisitor<decltype(gp)>(gp, yield)); })();
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else
@@ -175,7 +172,7 @@ boost::python::object dfs_search_array(GraphInterface& g, size_t s)
 {
     std::vector<std::array<size_t, 2>> edges;
     DFSArrayVisitor vis(edges);
-    run_action<graph_tool::all_graph_views,mpl::true_>()
+    run_action<decltype(graph_tool::all_graph_views), false>()
         (g, [&](auto &g){ do_dfs(g, s, vis); })();
     return wrap_vector_owned<size_t,2>(edges);
 }

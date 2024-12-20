@@ -76,13 +76,13 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef mpl::vector2<multi_array_ref<double,2>,
-                     multi_array_ref<int64_t,2>> x_ts;
+typedef decltype(hana::tuple_t<multi_array_ref<double,2>,
+                               multi_array_ref<int64_t,2>>) x_ts;
 
-typedef mpl::vector1<multi_array_ref<uint64_t,1>> w_ts;
+typedef decltype(hana::tuple_t<multi_array_ref<uint64_t,1>>) w_ts;
 
 #define HIST_STATE_params                                                     \
-    ((__class__,&, mpl::vector<python::object>, 1))                           \
+    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))               \
     ((x_r,, x_ts, 1))                                                         \
     ((w_r,, w_ts, 1))                                                         \
     ((obins,, python::list, 0))                                               \

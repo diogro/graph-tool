@@ -27,9 +27,7 @@ using namespace graph_tool;
 void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
                     python::object edges, python::object max_size, bool second)
 {
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        tree_t;
+    typedef vprop_map_t<int64_t> tree_t;
     tree_t tree_map;
     try
     {
@@ -53,7 +51,7 @@ void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
     multi_array_ref<uint64_t, 2> es = get_array<uint64_t, 2>(edges);
     multi_array_ref<uint64_t, 1> ms = get_array<uint64_t, 1>(max_size);
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi, [&](auto& g){ edge_percolate(g, tree_map, size_map, ms, es, second); })();
 }
 
@@ -62,9 +60,7 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
                       boost::any visited, python::object vertices,
                       python::object max_size, bool second)
 {
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        tree_t;
+    typedef vprop_map_t<int64_t> tree_t;
     tree_t tree_map;
     try
     {
@@ -85,9 +81,7 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
         throw GraphException("size map must be a vertex property map of value type int64_t");
     }
 
-    typedef property_map_type::apply<uint8_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        visited_t;
+    typedef vprop_map_t<uint8_t> visited_t;
 
     visited_t visited_map;
     try
@@ -102,7 +96,7 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
     multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(vertices);
     multi_array_ref<uint64_t, 1> ms = get_array<uint64_t, 1>(max_size);
 
-    run_action<graph_tool::detail::never_directed>()
+    run_action<decltype(graph_tool::never_directed)>()
         (gi, [&](auto& g){ vertex_percolate(g, tree_map, size_map, visited_map,
                                             ms, vs, second); })();
 }

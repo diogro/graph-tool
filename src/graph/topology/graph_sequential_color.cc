@@ -34,14 +34,11 @@ struct get_coloring
     }
 };
 
-typedef property_map_types::apply<mpl::vector<int32_t, int64_t>,
-                                  GraphInterface::vertex_index_map_t,
-                                  mpl::bool_<false> >::type
-    int_properties;
-
 size_t sequential_coloring(GraphInterface& gi, boost::any order,
                            boost::any color)
 {
+    auto int_properties = hana::tuple_t<vprop_map_t<int32_t>,
+                                        vprop_map_t<int64_t>>;
     size_t nc = 0;
     run_action<>()
         (gi,
@@ -52,7 +49,7 @@ size_t sequential_coloring(GraphInterface& gi, boost::any order,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), nc);
          },
-         vertex_integer_properties(), int_properties())(order, color);
+         vertex_integer_properties, int_properties)(order, color);
     return nc;
 }
 

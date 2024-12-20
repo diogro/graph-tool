@@ -29,83 +29,25 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-template <class PropertySequence>
-struct prop_vector
+void extended_clustering(GraphInterface& g, boost::python::list aprops)
 {
-    boost::any operator()(const vector<boost::any>& props, size_t size) const
-    {
-        boost::any prop_vec;
-        boost::mpl::for_each<PropertySequence>(
-            [&](auto&& graph)
-            {
-                return get_prop_vector()
-                    (std::forward<decltype(graph)>(graph), props, prop_vec,
-                     size);
-            });
-        return prop_vec;
-    }
+    boost::any aprop = boost::python::extract<boost::any>(aprops[0])();
 
-    struct get_prop_vector
-    {
-        template <class Property>
-        void operator()(Property, const vector<boost::any>& props,
-                        boost::any& prop_vec, size_t size) const
-        {
-            if (typeid(Property) == props[0].type())
-            {
-                try
-                {
-                    vector<typename Property::unchecked_t> vec;
-                    vec.resize(props.size());
-                    for (size_t i = 0; i < props.size(); ++i)
-                        vec[i] =
-                            any_cast<Property>(props[i]).get_unchecked(size);
-                    prop_vec = vec;
-                }
-                catch (bad_any_cast&){}
-            }
-        }
-    };
-};
-
-
-struct get_property_vector_type
-{
-    template <class Property>
-    struct apply
-    {
-        typedef vector<typename Property::unchecked_t> type;
-    };
-};
-
-void extended_clustering(GraphInterface& g, boost::python::list props)
-{
-    vector<any> cmaps(boost::python::len(props));
-    for (size_t i = 0; i < cmaps.size(); ++i)
-        cmaps[i] = boost::python::extract<boost::any>(props[i])();
-
-    boost::any vprop =
-        prop_vector<writable_vertex_scalar_properties>()
-        (cmaps, num_vertices(g.get_graph()));
-    if (vprop.empty())
-        throw ValueException("all vertex properties must be of the same"
-                             " floating point type");
-
-    typedef boost::mpl::transform<writable_vertex_scalar_properties,
-                                  get_property_vector_type>::type
-        properties_vector;
-
-    run_action<>()
+    run_action<>(false)
         (g,
-         [&](auto&& graph, auto&& a2)
+         [&](auto&& graph, auto&& prop)
          {
+             typedef std::remove_reference_t<decltype(prop)> prop_t;
+             std::vector<prop_t> props({prop});
+
+             for (int i = 1; i < boost::python::len(aprops); ++i)
+                 props.push_back(any_cast<typename prop_t::checked_t>(boost::python::extract<boost::any>(aprops[i])()).get_unchecked());
+
+             GILRelease gil_release;
              return get_extended_clustering()
-                 (std::forward<decltype(graph)>(graph),
-                  any_cast<GraphInterface::vertex_index_map_t>(
-                      g.get_vertex_index()),
-                  std::forward<decltype(a2)>(a2));
+                 (graph, get(vertex_index_t(), graph), props);
          },
-         properties_vector())(vprop);
+         writable_vertex_scalar_properties)(aprop);
 }
 
 #define __MOD__ clustering

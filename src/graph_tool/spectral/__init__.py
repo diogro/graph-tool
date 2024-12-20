@@ -200,7 +200,7 @@ def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
         return AdjacencyOperator(g, weight=weight, vindex=vindex)
 
     if vindex is None:
-        if g.get_vertex_filter()[0] is not None:
+        if g.get_vertex_filter() is not None:
             vindex = g.new_vertex_property("int64_t")
             vindex.fa = numpy.arange(g.num_vertices())
         else:
@@ -233,7 +233,7 @@ class AdjacencyOperator(scipy.sparse.linalg.LinearOperator):
         self.weight = weight
 
         if vindex is None:
-            if g.get_vertex_filter()[0] is not None:
+            if g.get_vertex_filter() is not None:
                 self.vindex = g.new_vertex_property("int64_t")
                 self.vindex.fa = numpy.arange(g.num_vertices())
                 N = g.num_vertices()
@@ -433,7 +433,7 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
                                  vindex=vindex)
 
     if vindex is None:
-        if g.get_vertex_filter()[0] is not None:
+        if g.get_vertex_filter() is not None:
             vindex = g.new_vertex_property("int64_t")
             vindex.fa = numpy.arange(g.num_vertices())
         else:
@@ -478,7 +478,7 @@ class LaplacianOperator(scipy.sparse.linalg.LinearOperator):
         self.r = r
 
         if vindex is None:
-            if g.get_vertex_filter()[0] is not None:
+            if g.get_vertex_filter() is not None:
                 self.vindex = g.new_vertex_property("int64_t")
                 self.vindex.fa = numpy.arange(g.num_vertices())
                 N = g.num_vertices()
@@ -647,14 +647,14 @@ def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
         return IncidenceOperator(g, vindex=vindex, eindex=eindex)
 
     if vindex is None:
-        if g.get_edge_filter()[0] is not None:
+        if g.get_edge_filter() is not None:
             vindex = g.new_vertex_property("int64_t")
             vindex.fa = numpy.arange(g.num_vertices())
         else:
             vindex = g.vertex_index
 
     if eindex is None:
-        if g.get_edge_filter()[0] is not None:
+        if g.get_edge_filter() is not None:
             eindex = g.new_edge_property("int64_t")
             eindex.fa = numpy.arange(g.num_edges())
         else:
@@ -689,7 +689,7 @@ class IncidenceOperator(scipy.sparse.linalg.LinearOperator):
         self.dtype = numpy.dtype("float")
 
         if vindex is None:
-            if g.get_vertex_filter()[0] is not None:
+            if g.get_vertex_filter() is not None:
                 self.vindex = g.new_vertex_property("int64_t")
                 self.vindex.fa = numpy.arange(g.num_vertices())
                 N = g.num_vertices()
@@ -704,7 +704,7 @@ class IncidenceOperator(scipy.sparse.linalg.LinearOperator):
                 N = vindex.fa.max() + 1
 
         if eindex is None:
-            if g.get_edge_filter()[0] is not None:
+            if g.get_edge_filter() is not None:
                 self.eindex = g.new_edge_property("int64_t")
                 self.eindex.fa = numpy.arange(g.num_edges())
                 E = g.num_edges()
@@ -835,7 +835,7 @@ def transition(g, weight=None, vindex=None, operator=False, csr=True):
         return TransitionOperator(g, weight=weight, vindex=vindex)
 
     if vindex is None:
-        if g.get_vertex_filter()[0] is not None:
+        if g.get_vertex_filter() is not None:
             vindex = g.new_vertex_property("int64_t")
             vindex.fa = numpy.arange(g.num_vertices())
         else:
@@ -869,7 +869,7 @@ class TransitionOperator(scipy.sparse.linalg.LinearOperator):
         self.weight = weight
 
         if vindex is None:
-            if g.get_vertex_filter()[0] is not None:
+            if g.get_vertex_filter() is not None:
                 self.vindex = g.new_vertex_property("int64_t")
                 self.vindex.fa = numpy.arange(g.num_vertices())
                 N = g.num_vertices()
@@ -1151,7 +1151,7 @@ def hashimoto(g, index=None, compact=False, operator=False, csr=True):
             return HashimotoOperator(g, eindex=index)
 
         if index is None:
-            if g.get_edge_filter()[0] is not None:
+            if g.get_edge_filter() is not None:
                 index = g.new_edge_property("int64_t")
                 index.fa = numpy.arange(g.num_edges())
                 E = index.fa.max() + 1
@@ -1184,7 +1184,7 @@ class HashimotoOperator(scipy.sparse.linalg.LinearOperator):
 
         self.g = g
         if eindex is None:
-            if g.get_edge_filter()[0] is not None:
+            if g.get_edge_filter() is not None:
                 self.eindex = g.new_edge_property("int64_t")
                 self.eindex.fa = numpy.arange(g.num_edges())
                 E = g.num_edges()
@@ -1237,7 +1237,7 @@ class CompactHashimotoOperator(scipy.sparse.linalg.LinearOperator):
 
         self.g = g
         if vindex is None:
-            if g.get_vertex_filter()[0] is not None:
+            if g.get_vertex_filter() is not None:
                 self.vindex = g.new_vertex_property("int64_t")
                 self.vindex.fa = numpy.arange(g.num_vertices())
                 N = g.num_vertices()

@@ -52,9 +52,9 @@ public:
     typedef std::conditional_t<discrete, int32_t, double> value_t;
     typedef double m_t;
 
-    typedef vprop_map_t<std::vector<int32_t>>::type tmap_t;
-    typedef typename vprop_map_t<std::vector<value_t>>::type smap_t;
-    typedef vprop_map_t<std::vector<int32_t>>::type amap_t;
+    typedef vprop_map_t<std::vector<int32_t>> tmap_t;
+    typedef vprop_map_t<std::vector<value_t>> smap_t;
+    typedef vprop_map_t<std::vector<int32_t>> amap_t;
 
     template <class State>
     NSumStateBase(State& s, python::object ot, python::object os,
@@ -1082,7 +1082,7 @@ public:
             return (xy - ax * ay);
     }
 
-    typedef typename vprop_map_t<std::vector<std::tuple<size_t, m_t>>>::type::unchecked_t mmap_t;
+    typedef vprop_map_t<std::vector<std::tuple<size_t, m_t>>>::unchecked_t mmap_t;
 
 //protected:
     std::vector<tmap_t::unchecked_t> _t;
@@ -1091,15 +1091,15 @@ public:
     std::vector<size_t> _Tn;
     size_t _T;
 
-    std::vector<vprop_map_t<size_t>::type::unchecked_t> _pos;
-    typename vprop_map_t<double>::type::unchecked_t _k;
+    std::vector<vprop_map_t<size_t>::unchecked_t> _pos;
+    vprop_map_t<double>::unchecked_t _k;
 
     std::vector<mmap_t> _m;
     std::vector<std::vector<std::vector<std::tuple<size_t, m_t>>>> _m_temp;
 
     Spec& _spec;
 
-    typename vprop_map_t<double>::type::unchecked_t _theta;
+    vprop_map_t<double>::unchecked_t _theta;
 
     std::vector<int> _all_active;
 

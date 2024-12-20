@@ -32,10 +32,10 @@ void generate_maxent_sbm(GraphInterface& gi, boost::any ab,
     auto ss = get_array<int64_t, 1>(oss);
     auto mrs = get_array<double, 1>(omrs);
 
-    typedef vprop_map_t<int32_t>::type bmap_t;
+    typedef vprop_map_t<int32_t> bmap_t;
     auto b = any_cast<bmap_t>(ab).get_unchecked();
 
-    typedef vprop_map_t<double>::type dmap_t;
+    typedef vprop_map_t<double> dmap_t;
     auto in_theta = any_cast<dmap_t>(ain_theta).get_unchecked();
     auto out_theta = any_cast<dmap_t>(aout_theta).get_unchecked();
 

@@ -31,10 +31,9 @@ using namespace boost;
 // we need a min() function with arguments of different types
 
 template <class T1, class T2>
-static typename boost::mpl::if_<
-    typename boost::mpl::or_<typename std::is_floating_point<T1>::type,
-                             typename std::is_floating_point<T2>::type>::type,
-    double, int>::type
+static std::conditional_t<std::is_floating_point_v<T1> ||
+                          std::is_floating_point_v<T2>,
+                          double, int>
 min(const T1& v1, const T2& v2)
 {
     if (v1 <= T1(v2))
@@ -84,7 +83,7 @@ struct get_push_relabel_max_flow
 void push_relabel_max_flow_dispatch(GraphInterface& gi, size_t src, size_t sink,
                                     boost::any capacity, boost::any res)
 {
-    run_action<graph_tool::detail::always_directed, boost::mpl::true_>()
+    run_action<decltype(graph_tool::always_directed), false>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -94,8 +93,8 @@ void push_relabel_max_flow_dispatch(GraphInterface& gi, size_t src, size_t sink,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3));
          },
-         writable_edge_scalar_properties(),
-         writable_edge_scalar_properties())(capacity, res);
+         writable_edge_scalar_properties,
+         writable_edge_scalar_properties)(capacity, res);
 }
 
 #include <boost/python.hpp>

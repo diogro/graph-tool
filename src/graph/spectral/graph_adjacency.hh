@@ -42,7 +42,7 @@ struct get_adjacency
             j[pos] = get(index, source(e, g));
 
             ++pos;
-            if (!graph_tool::is_directed(g))
+            if (!is_directed(g))
             {
                 data[pos] = get(weight, e);
                 i[pos] = get(index, source(e, g));
