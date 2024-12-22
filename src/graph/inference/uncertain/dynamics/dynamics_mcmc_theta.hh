@@ -178,9 +178,16 @@ struct MCMCTheta
 
         void perform_move(size_t v, move_t move)
         {
-            _state.update_node(v, move);
             if (_parallel)
+                _tvals_mutex.lock();
+
+            _state.update_node(v, move);
+
+            if (_parallel)
+            {
+                _tvals_mutex.unlock();
                 unlock_move();
+            }
         }
 
         std::tuple<double, double>
