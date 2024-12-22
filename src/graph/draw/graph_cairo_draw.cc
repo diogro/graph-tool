@@ -1085,8 +1085,7 @@ public:
                     {
                         vector<double> f = v._attrs.template get<vector<double>>(VERTEX_PIE_FRACTIONS);
                         vector<color_t> fcolors = v._attrs.template get<vector<color_t>>(VERTEX_PIE_COLORS);
-                        assert(f.size() == fcolors.size());
-                        if (!f.empty())
+                        if (!f.empty() && !fcolors.empty())
                         {
                             auto iter = std::max_element(f.begin(), f.end());
                             size_t j = (iter - f.begin()) % fcolors.size();
