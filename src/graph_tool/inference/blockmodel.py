@@ -275,7 +275,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if self.drec is None:
             self.drec = []
             for rec in self.rec:
-                self.drec.append(self.g.new_ep("double", rec.fa ** 2))
+                self.drec.append(self.g.new_ep("double", vals=rec.fa ** 2))
         else:
             if (isinstance(self.drec, PropertyMap) and
                 self.drec.value_type() == "vector<double>"):
@@ -294,7 +294,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             rec_types.insert(0, libinference.rec_type.count)
             rec_params.insert(0, {})
             if isinstance(self.eweight, libinference.unity_eprop_t):
-                self.rec.insert(0, self.g.new_ep("double", 1))
+                self.rec.insert(0, self.g.new_ep("double", val=1))
             else:
                 self.rec.insert(0, self.eweight.copy("double"))
             self.drec.insert(0, self.g.new_ep("double"))
@@ -599,7 +599,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             eweight = self.mrs
             brec = self.brec
             bdrec = self.bdrec
-            # if self.g.get_vertex_filter()[0] is not None:
+            # if self.g.get_vertex_filter() is not None:
             #     bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
 
         copy_coupled = False

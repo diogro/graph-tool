@@ -358,6 +358,12 @@ public:
 
     void add_edge(const GraphInterface::edge_t& e)
     {
+        for (size_t i = 0; i < _rec_types.size(); ++i)
+        {
+            _c_rec[i][e] = 0;
+            _c_drec[i][e] = 0;
+        }
+
         size_t r = _b[source(e, _g)];
         size_t s = _b[target(e, _g)];
         auto me = _emat.get_me(r, s);
