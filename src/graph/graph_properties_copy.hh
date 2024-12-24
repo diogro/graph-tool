@@ -34,14 +34,14 @@ struct copy_property
 {
     template <class GraphTgt, class GraphSrc, class PropertyTgt>
     void operator()(const GraphTgt& tgt, const GraphSrc& src,
-                    PropertyTgt dst_map, boost::any prop_src) const
+                    PropertyTgt dst_map, std::any prop_src) const
     {
         try
         {
-            auto src_map = boost::any_cast<typename PropertyTgt::checked_t>(prop_src);
+            auto src_map = std::any_cast<typename PropertyTgt::checked_t>(prop_src);
             dispatch(tgt, src, dst_map, src_map);
         }
-        catch (boost::bad_any_cast&)
+        catch (std::bad_any_cast&)
         {
             typedef typename boost::property_traits<PropertyTgt>::value_type val_tgt;
             typedef typename IteratorSel::template get_descriptor<GraphSrc>::type src_d;
@@ -168,14 +168,14 @@ struct copy_external_edge_property_dispatch
 {
     template <class GraphTgt, class GraphSrc, class PropertyTgt>
     void operator()(const GraphTgt& tgt, const GraphSrc& src,
-                    PropertyTgt dst_map, boost::any prop_src) const
+                    PropertyTgt dst_map, std::any prop_src) const
     {
         try
         {
-            auto src_map = boost::any_cast<typename PropertyTgt::checked_t>(prop_src);
+            auto src_map = std::any_cast<typename PropertyTgt::checked_t>(prop_src);
             dispatch(tgt, src, dst_map, src_map);
         }
-        catch (boost::bad_any_cast&)
+        catch (std::bad_any_cast&)
         {
             typedef typename boost::property_traits<PropertyTgt>::value_type val_tgt;
             typedef typename boost::graph_traits<GraphSrc>::edge_descriptor edge_t;

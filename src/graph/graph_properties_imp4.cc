@@ -31,16 +31,16 @@ struct do_perfect_ehash
 {
     template <class Graph, class EdgePropertyMap, class HashProp>
     void operator()(Graph& g, EdgePropertyMap prop, HashProp hprop,
-                    boost::any& adict) const
+                    std::any& adict) const
     {
         typedef typename property_traits<EdgePropertyMap>::value_type val_t;
         typedef typename property_traits<HashProp>::value_type hash_t;
         typedef unordered_map<val_t, hash_t> dict_t;
 
-        if (adict.empty())
+        if (!adict.has_value())
             adict = dict_t();
 
-        dict_t& dict = any_cast<dict_t&>(adict);
+        dict_t& dict = std::any_cast<dict_t&>(adict);
 
         for (auto e : edges_range(g))
         {
@@ -61,8 +61,8 @@ struct do_perfect_ehash
     }
 };
 
-void perfect_ehash(GraphInterface& gi, boost::any prop, boost::any hprop,
-                   boost::any& dict)
+void perfect_ehash(GraphInterface& gi, std::any prop, std::any hprop,
+                   std::any& dict)
 {
     run_action<decltype(graph_tool::always_directed)>()
         (gi,

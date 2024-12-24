@@ -342,9 +342,9 @@ public:
         }
     }
 
-    void get_MAP_any(boost::any avmap)
+    void get_MAP_any(std::any avmap)
     {
-        vmap_t vmap = boost::any_cast<vmap_t>(avmap);
+        vmap_t vmap = std::any_cast<vmap_t>(avmap);
         get_MAP(vmap.get_unchecked());
     }
 

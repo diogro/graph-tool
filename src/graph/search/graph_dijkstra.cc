@@ -129,7 +129,7 @@ struct do_djk_search
 {
     template <class Graph, class DistanceMap, class PredMap, class Visitor>
     void operator()(const Graph& g, size_t s, DistanceMap dist,
-                    PredMap pred_map, boost::any aweight,
+                    PredMap pred_map, std::any aweight,
                     Visitor vis, const DJKCmp& cmp, const DJKCmb& cmb,
                     pair<python::object, python::object> range) const
     {
@@ -208,13 +208,13 @@ struct do_djk_search_fast
 };
 
 
-void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
-                     boost::any pred_map, boost::any weight, python::object vis,
+void dijkstra_search(GraphInterface& g, size_t source, std::any dist_map,
+                     std::any pred_map, std::any weight, python::object vis,
                      python::object cmp, python::object cmb,
                      python::object zero, python::object inf)
 {
     typedef vprop_map_t<int64_t> pred_t;
-    pred_t pred = any_cast<pred_t>(pred_map);
+    pred_t pred = std::any_cast<pred_t>(pred_map);
     run_action<decltype(graph_view_ptrs), false>(false)
         (g,
          [&](auto&& gp, auto&& a2)
@@ -252,8 +252,8 @@ private:
 
 boost::python::object dijkstra_search_generator(GraphInterface& g,
                                                 size_t source,
-                                                boost::any dist_map,
-                                                boost::any weight,
+                                                std::any dist_map,
+                                                std::any weight,
                                                 python::object cmp,
                                                 python::object cmb,
                                                 python::object zero,
@@ -284,8 +284,8 @@ boost::python::object dijkstra_search_generator(GraphInterface& g,
 
 boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
                                                      size_t source,
-                                                     boost::any dist_map,
-                                                     boost::any weight,
+                                                     std::any dist_map,
+                                                     std::any weight,
                                                      python::object zero, python::object inf)
 {
 #ifdef HAVE_BOOST_COROUTINE
@@ -330,8 +330,8 @@ private:
 
 boost::python::object dijkstra_search_array(GraphInterface& g,
                                             size_t source,
-                                            boost::any dist_map,
-                                            boost::any weight,
+                                            std::any dist_map,
+                                            std::any weight,
                                             python::object cmp,
                                             python::object cmb,
                                             python::object zero,
@@ -354,8 +354,8 @@ boost::python::object dijkstra_search_array(GraphInterface& g,
 
 boost::python::object dijkstra_search_array_fast(GraphInterface& g,
                                                  size_t source,
-                                                 boost::any dist_map,
-                                                 boost::any weight,
+                                                 std::any dist_map,
+                                                 std::any weight,
                                                  python::object zero,
                                                  python::object inf)
 {

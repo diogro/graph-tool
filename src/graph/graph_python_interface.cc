@@ -256,14 +256,14 @@ struct get_degree_map
     }
 };
 
-python::object GraphInterface::degree_map(string deg, boost::any weight) const
+python::object GraphInterface::degree_map(string deg, std::any weight) const
 {
 
     python::object deg_map;
 
     auto weight_t = hana::append(edge_scalar_properties,
                                  hana::type<detail::no_weightS>());;
-    if (weight.empty())
+    if (!weight.has_value())
         weight = detail::no_weightS();
 
     if (deg == "in")
@@ -300,7 +300,7 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
 }
 
 template <class PMaps>
-size_t value_type_promotion(std::vector<boost::any>& props)
+size_t value_type_promotion(std::vector<std::any>& props)
 {
     size_t type_pos =
         hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
@@ -326,10 +326,10 @@ template <int kind>
 python::object get_vertex_list(GraphInterface& gi, size_t v,
                                python::list ovprops)
 {
-    std::vector<boost::any> avprops;
+    std::vector<std::any> avprops;
     for (int i = 0; i < python::len(ovprops); ++i)
     {
-        avprops.push_back(python::extract<boost::any>(ovprops[i])());
+        avprops.push_back(python::extract<std::any>(ovprops[i])());
         if (!belongs(vertex_scalar_properties, avprops.back()))
             throw ValueException("vertex property map must be of scalar type");
     }
@@ -434,7 +434,7 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
 
                         std::vector<converted_map_t> vprops;
                         for (int i = 0; i < python::len(ovprops); ++i)
-                            vprops.emplace_back(python::extract<boost::any>(ovprops[i])(),
+                            vprops.emplace_back(python::extract<std::any>(ovprops[i])(),
                                                 vertex_properties);
                         run_action<>(false)
                             (gi,
@@ -475,10 +475,10 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
 template <int kind>
 python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
 {
-    std::vector<boost::any> aeprops;
+    std::vector<std::any> aeprops;
     for (int i = 0; i < python::len(oeprops); ++i)
     {
-        aeprops.push_back(python::extract<boost::any>(oeprops[i])());
+        aeprops.push_back(python::extract<std::any>(oeprops[i])());
         if (!belongs(edge_scalar_properties, aeprops.back()))
             throw ValueException("edge property map must be of scalar type");
     }
@@ -558,7 +558,7 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
 
                     std::vector<converted_map_t> eprops;
                     for (int i = 0; i < python::len(oeprops); ++i)
-                        eprops.emplace_back(python::extract<boost::any>(oeprops[i])(),
+                        eprops.emplace_back(python::extract<std::any>(oeprops[i])(),
                                             edge_properties);
                     run_action<>(false)
                         (gi,
@@ -600,7 +600,7 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
 }
 
 python::object get_degree_list(GraphInterface& gi, python::object ovlist,
-                               boost::any eprop, int kind)
+                               std::any eprop, int kind)
 {
     python::object ret;
     auto vlist = get_array<uint64_t,1>(ovlist);
@@ -608,15 +608,11 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
     typedef UnityPropertyMap<size_t,
                              graph_traits<GraphInterface::multigraph_t>::edge_descriptor>
         empty_t;
-    if (eprop.empty())
-    {
+
+    if (!eprop.has_value())
         eprop = empty_t();
-    }
-    else
-    {
-        if (!belongs(edge_scalar_properties, eprop))
-            throw ValueException("edge weight property map must be of scalar type");
-    }
+    else if (!belongs(edge_scalar_properties, eprop))
+        throw ValueException("edge weight property map must be of scalar type");
 
     auto eprops_t = hana::append(edge_scalar_properties,
                                  hana::type<empty_t>());
@@ -818,7 +814,7 @@ void do_add_edge_list(GraphInterface& gi, python::object aedge_list,
                       python::object eprops);
 
 void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
-                             boost::any& vertex_map,
+                             std::any& vertex_map,
                              python::object eprops);
 
 void do_add_edge_list_iter(GraphInterface& gi, python::object edge_list,

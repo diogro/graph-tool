@@ -34,20 +34,20 @@ using namespace boost;
 using namespace graph_tool;
 
 python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
-                                   boost::any ax, boost::any atheta, boost::any aem,
-                                   boost::any avm, bool marginal_init,
-                                   boost::any afrozen, rng_t& rng)
+                                   std::any ax, std::any atheta, std::any aem,
+                                   std::any avm, bool marginal_init,
+                                   std::any afrozen, rng_t& rng)
 {
     PottsBPState::emap_t x =
-        boost::any_cast<PottsBPState::emap_t::checked_t>(ax).get_unchecked();
+        std::any_cast<PottsBPState::emap_t::checked_t>(ax).get_unchecked();
     PottsBPState::vmap_t theta =
-        boost::any_cast<PottsBPState::vmap_t::checked_t>(atheta).get_unchecked();
+        std::any_cast<PottsBPState::vmap_t::checked_t>(atheta).get_unchecked();
     PottsBPState::emmap_t em =
-        boost::any_cast<PottsBPState::emmap_t::checked_t>(aem).get_unchecked();
+        std::any_cast<PottsBPState::emmap_t::checked_t>(aem).get_unchecked();
     PottsBPState::vmmap_t vm =
-        boost::any_cast<PottsBPState::vmmap_t::checked_t>(avm).get_unchecked();
+        std::any_cast<PottsBPState::vmmap_t::checked_t>(avm).get_unchecked();
     PottsBPState::vfmap_t frozen =
-        boost::any_cast<PottsBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
+        std::any_cast<PottsBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
 
     auto f = get_array<double, 2>(of);
 
@@ -117,7 +117,7 @@ REGISTER_MOD
                   return lZ;
               })
          .def("energy",
-              +[](PottsBPState& state, GraphInterface& gi, boost::any as)
+              +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
                   double H = 0;
                   run_action<>()
@@ -129,7 +129,7 @@ REGISTER_MOD
                   return H;
               })
          .def("energies",
-              +[](PottsBPState& state, GraphInterface& gi, boost::any as)
+              +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
                   double H = 0;
                   run_action<>()
@@ -141,7 +141,7 @@ REGISTER_MOD
                   return H;
               })
          .def("marginal_lprob",
-              +[](PottsBPState& state, GraphInterface& gi, boost::any as)
+              +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
                   double L = 0;
                   run_action<>()
@@ -153,7 +153,7 @@ REGISTER_MOD
                   return L;
               })
          .def("marginal_lprobs",
-              +[](PottsBPState& state, GraphInterface& gi, boost::any as)
+              +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
                   double L = 0;
                   run_action<>()
@@ -165,7 +165,7 @@ REGISTER_MOD
                   return L;
               })
          .def("sample",
-              +[](PottsBPState& state, GraphInterface& gi, boost::any as, rng_t& rng)
+              +[](PottsBPState& state, GraphInterface& gi, std::any as, rng_t& rng)
               {
                   run_action<>()
                       (gi,

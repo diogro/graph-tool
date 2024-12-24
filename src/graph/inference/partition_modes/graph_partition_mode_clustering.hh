@@ -39,7 +39,7 @@ typedef PartitionModeState::bv_t bv_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(always_directed_never_reversed), 1))                      \
-    ((_abg, &, boost::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                \
     ((obs,, boost::python::object, 0))                                         \
     ((relabel_init,, bool, 0))                                                 \
     ((b, &, b_t&, 0))
@@ -68,7 +68,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     ModeClusterState(ATs&&... args)
         : ModeClusterStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _M(python::len(_obs)),
           _pos(_M),
           _modes(_M),

@@ -24,9 +24,9 @@ using namespace graph_tool;
 using namespace boost;
 
 // retrieves the appropriate degree selector
-boost::any graph_tool::degree_selector(GraphInterface::deg_t deg)
+std::any graph_tool::degree_selector(GraphInterface::deg_t deg)
 {
-    boost::any sel;
+    std::any sel;
 
     GraphInterface::degree_t* d = boost::get<GraphInterface::degree_t>(&deg);
 
@@ -41,7 +41,7 @@ boost::any graph_tool::degree_selector(GraphInterface::deg_t deg)
     }
     else
     {
-        boost::any* d = boost::get<boost::any>(&deg);
+        std::any* d = boost::get<std::any>(&deg);
         bool found = false;
         hana::for_each(vertex_properties,
                        [&](auto s)

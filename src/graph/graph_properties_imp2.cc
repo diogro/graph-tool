@@ -141,7 +141,7 @@ struct MaxOp
 struct do_out_edges_op
 {
     template <class Graph, class EProp, class OP>
-    void operator()(Graph& g, EProp eprop, boost::any avprop, OP op) const
+    void operator()(Graph& g, EProp eprop, std::any avprop, OP op) const
     {
         typedef typename property_traits<EProp>::value_type eval_t;
         typedef property_map_t<
@@ -149,7 +149,7 @@ struct do_out_edges_op
                                int64_t, eval_t>,
             GraphInterface::vertex_index_map_t> VProp;
 
-        auto vprop = boost::any_cast<VProp>(avprop).get_unchecked(num_vertices(g));
+        auto vprop = std::any_cast<VProp>(avprop).get_unchecked(num_vertices(g));
 
         #ifdef _OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();
@@ -168,7 +168,7 @@ struct do_out_edges_op
     }
 };
 
-void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
+void out_edges_op(GraphInterface& gi, std::any eprop, std::any vprop,
                   std::string op)
 {
     if (op == "sum")

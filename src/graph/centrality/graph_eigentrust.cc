@@ -25,7 +25,7 @@
 using namespace std;
 using namespace graph_tool;
 
-size_t eigentrust(GraphInterface& g, boost::any c, boost::any t,
+size_t eigentrust(GraphInterface& g, std::any c, std::any t,
                   double epslon, size_t max_iter)
 {
     if (!belongs(writable_edge_scalar_properties, c))

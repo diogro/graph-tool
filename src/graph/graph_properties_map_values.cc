@@ -28,11 +28,11 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void edge_property_map_values(GraphInterface& g, boost::any src_prop,
-                              boost::any tgt_prop, boost::python::object mapper);
+void edge_property_map_values(GraphInterface& g, std::any src_prop,
+                              std::any tgt_prop, boost::python::object mapper);
 
-void property_map_values(GraphInterface& g, boost::any src_prop,
-                         boost::any tgt_prop, boost::python::object mapper,
+void property_map_values(GraphInterface& g, std::any src_prop,
+                         std::any tgt_prop, boost::python::object mapper,
                          bool edge)
 {
     if (!edge)

@@ -53,12 +53,12 @@ find_vertex_range(GraphInterface& gi, GraphInterface::deg_t adeg,
 
 // find edges which match a certain (inclusive) property range
 python::list
-find_edge_range(GraphInterface& gi, boost::any eprop, python::tuple range)
+find_edge_range(GraphInterface& gi, std::any eprop, python::tuple range)
 {
     python::list ret;
 
     GraphInterface::edge_index_map_t eindex =
-        any_cast<GraphInterface::edge_index_map_t>(gi.get_edge_index());
+        std::any_cast<GraphInterface::edge_index_map_t>(gi.get_edge_index());
     run_action<decltype(graph_view_ptrs)>(false)
         (gi,
          [&](auto&& gp, auto&& prop)

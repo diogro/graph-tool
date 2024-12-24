@@ -31,7 +31,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void adjacency(GraphInterface& g, boost::any index, boost::any weight,
+void adjacency(GraphInterface& g, std::any index, std::any weight,
                python::object odata, python::object oi,
                python::object oj)
 {
@@ -42,10 +42,10 @@ void adjacency(GraphInterface& g, boost::any index, boost::any weight,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     multi_array_ref<double,1> data = get_array<double,1>(odata);
@@ -63,7 +63,7 @@ void adjacency(GraphInterface& g, boost::any index, boost::any weight,
          vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
-void adjacency_matvec(GraphInterface& g, boost::any index, boost::any weight,
+void adjacency_matvec(GraphInterface& g, std::any index, std::any weight,
                       python::object ov, python::object oret)
 {
     if (!belongs(vertex_scalar_properties, index))
@@ -73,10 +73,10 @@ void adjacency_matvec(GraphInterface& g, boost::any index, boost::any weight,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     multi_array_ref<double,1> v = get_array<double,1>(ov);
@@ -91,7 +91,7 @@ void adjacency_matvec(GraphInterface& g, boost::any index, boost::any weight,
          vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
-void adjacency_matmat(GraphInterface& g, boost::any index, boost::any weight,
+void adjacency_matmat(GraphInterface& g, std::any index, std::any weight,
                       python::object ov, python::object oret)
 {
     if (!belongs(vertex_scalar_properties, index))
@@ -101,10 +101,10 @@ void adjacency_matmat(GraphInterface& g, boost::any index, boost::any weight,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     multi_array_ref<double,2> v = get_array<double,2>(ov);

@@ -153,8 +153,8 @@ struct get_layout
 };
 
 
-void fruchterman_reingold_layout(GraphInterface& g, boost::any pos,
-                                 boost::any weight, double a, double r,
+void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
+                                 std::any weight, double a, double r,
                                  bool square, double scale, bool grid,
                                  double ti, double tf, size_t max_iter)
 {
@@ -162,7 +162,7 @@ void fruchterman_reingold_layout(GraphInterface& g, boost::any pos,
     auto edge_props_t = hana::append(edge_scalar_properties,
                                      hana::type<weight_map_t>());
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
     if (square)
         run_action<decltype(graph_tool::never_directed)>()

@@ -310,31 +310,31 @@ template <class RangeTraits>
 struct write_property_dispatch
 {
     template <class T, class Graph>
-    void operator()(T, Graph& g, boost::any& aprop, bool& found,
+    void operator()(T, Graph& g, std::any& aprop, bool& found,
                     std::ostream& s) const
     {
         try
         {
             typedef property_map_t<T, typename RangeTraits::index_map_t> pmap_t;
-            pmap_t prop = any_cast<pmap_t>(aprop);
+            pmap_t prop = std::any_cast<pmap_t>(aprop);
             constexpr uint8_t val = hana::index_if(val_types, hana::equal.to(hana::type<T>())).value().value;
             write(s, val);
             for (auto x : RangeTraits::get_range(g))
                 write(s, prop[x]);
             found = true;
         }
-        catch (const boost::bad_any_cast&) {}
+        catch (const std::bad_any_cast&) {}
     }
 
 
     template <class Graph>
-    void operator()(size_t, Graph& g, boost::any& aprop, bool& found,
+    void operator()(size_t, Graph& g, std::any& aprop, bool& found,
                     std::ostream& s) const
     {
         try
         {
             typedef GraphInterface::vertex_index_map_t pmap_t;
-            pmap_t prop = any_cast<pmap_t>(aprop);
+            pmap_t prop = std::any_cast<pmap_t>(aprop);
             constexpr uint8_t val = hana::index_if(val_types, hana::equal.to(hana::type<int64_t>())).value().value;
             write(s, val);
             int64_t y;
@@ -345,12 +345,12 @@ struct write_property_dispatch
             }
             found = true;
         }
-        catch (const boost::bad_any_cast&) {}
+        catch (const std::bad_any_cast&) {}
 
         try
         {
             typedef GraphInterface::edge_index_map_t pmap_t;
-            pmap_t prop = any_cast<pmap_t>(aprop);
+            pmap_t prop = std::any_cast<pmap_t>(aprop);
             constexpr uint8_t val = hana::index_if(val_types, hana::equal.to(hana::type<int64_t>())).value().value;
             write(s, val);
             int64_t y;
@@ -361,14 +361,14 @@ struct write_property_dispatch
             }
             found = true;
         }
-        catch (const boost::bad_any_cast&) {}
+        catch (const std::bad_any_cast&) {}
     }
 
 };
 
 
 template <class RangeTraits, class Graph>
-void write_property(Graph& g, std::string& name, boost::any& prop, std::ostream& s)
+void write_property(Graph& g, std::string& name, std::any& prop, std::ostream& s)
 {
     property_type pt = RangeTraits::get_property_id();
     write(s, pt);
@@ -389,7 +389,7 @@ template <bool BE, class RangeTraits>
 struct read_property_dispatch
 {
     template <class T, class Graph>
-    void operator()(T, Graph& g, boost::any& aprop, uint8_t val, bool ignore,
+    void operator()(T, Graph& g, std::any& aprop, uint8_t val, bool ignore,
                     bool& found, std::istream& s) const
     {
         if (hana::index_if(val_types, hana::equal.to(hana::type<T>())).value().value == val)
@@ -414,11 +414,11 @@ struct read_property_dispatch
 };
 
 template <bool BE, class RangeTraits, class Graph>
-std::pair<std::string, boost::any>
+std::pair<std::string, std::any>
 read_property(Graph& g, const std::unordered_set<std::string>& ignore,
               std::istream& s)
 {
-    boost::any prop;
+    std::any prop;
     bool found = false;
     std::string name;
     read<BE>(s, name);
@@ -441,9 +441,9 @@ read_property(Graph& g, const std::unordered_set<std::string>& ignore,
 
 template <class Graph, class VProp>
 void write_graph(Graph& g, const VProp& vindex, size_t N, bool directed,
-                 std::vector<std::pair<std::string, boost::any>>& gprops,
-                 std::vector<std::pair<std::string, boost::any>>& vprops,
-                 std::vector<std::pair<std::string, boost::any>>& eprops, std::ostream& s)
+                 std::vector<std::pair<std::string, std::any>>& gprops,
+                 std::vector<std::pair<std::string, std::any>>& vprops,
+                 std::vector<std::pair<std::string, std::any>>& eprops, std::ostream& s)
 {
     s.write(_magic, _magic_length);
     write(s, _version);
@@ -472,9 +472,9 @@ void write_graph(Graph& g, const VProp& vindex, size_t N, bool directed,
 
 template <bool BE, class Graph>
 bool read_graph_dispatch(Graph& g,
-                         std::vector<std::pair<std::string, boost::any>>& gprops,
-                         std::vector<std::pair<std::string, boost::any>>& vprops,
-                         std::vector<std::pair<std::string, boost::any>>& eprops,
+                         std::vector<std::pair<std::string, std::any>>& gprops,
+                         std::vector<std::pair<std::string, std::any>>& vprops,
+                         std::vector<std::pair<std::string, std::any>>& eprops,
                          const std::unordered_set<std::string>& ignore_gp,
                          const std::unordered_set<std::string>& ignore_vp,
                          const std::unordered_set<std::string>& ignore_ep,
@@ -487,22 +487,22 @@ bool read_graph_dispatch(Graph& g,
     {
         property_type pt;
         read<BE>(s, pt);
-        std::pair<std::string, boost::any> p;
+        std::pair<std::string, std::any> p;
         switch (pt)
         {
         case property_type::Graph:
             p = read_property<BE, graph_range_traits>(g, ignore_gp, s);
-            if (!p.second.empty())
+            if (p.second.has_value())
                 gprops.push_back(p);
             break;
         case property_type::Vertex:
             p = read_property<BE, vertex_range_traits>(g, ignore_vp, s);
-            if (!p.second.empty())
+            if (p.second.has_value())
                 vprops.push_back(p);
             break;
         case property_type::Edge:
             p = read_property<BE, edge_range_traits>(g, ignore_ep, s);
-            if (!p.second.empty())
+            if (p.second.has_value())
                 eprops.push_back(p);
             break;
         default:
@@ -516,9 +516,9 @@ bool read_graph_dispatch(Graph& g,
 
 template <class Graph>
 bool read_graph(std::istream& s, Graph& g,
-                std::vector<std::pair<std::string, boost::any>>& gprops,
-                std::vector<std::pair<std::string, boost::any>>& vprops,
-                std::vector<std::pair<std::string, boost::any>>& eprops,
+                std::vector<std::pair<std::string, std::any>>& gprops,
+                std::vector<std::pair<std::string, std::any>>& vprops,
+                std::vector<std::pair<std::string, std::any>>& eprops,
                 const std::unordered_set<std::string>& ignore_gp = std::unordered_set<std::string>(),
                 const std::unordered_set<std::string>& ignore_vp = std::unordered_set<std::string>(),
                 const std::unordered_set<std::string>& ignore_ep = std::unordered_set<std::string>())

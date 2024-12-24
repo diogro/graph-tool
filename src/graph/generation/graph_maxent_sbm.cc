@@ -22,10 +22,10 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void generate_maxent_sbm(GraphInterface& gi, boost::any ab,
+void generate_maxent_sbm(GraphInterface& gi, std::any ab,
                          boost::python::object ors, boost::python::object oss,
-                         boost::python::object omrs, boost::any ain_theta,
-                         boost::any aout_theta, bool multi, bool self_loops,
+                         boost::python::object omrs, std::any ain_theta,
+                         std::any aout_theta, bool multi, bool self_loops,
                          rng_t& rng)
 {
     auto rs = get_array<int64_t, 1>(ors);
@@ -33,11 +33,11 @@ void generate_maxent_sbm(GraphInterface& gi, boost::any ab,
     auto mrs = get_array<double, 1>(omrs);
 
     typedef vprop_map_t<int32_t> bmap_t;
-    auto b = any_cast<bmap_t>(ab).get_unchecked();
+    auto b = std::any_cast<bmap_t>(ab).get_unchecked();
 
     typedef vprop_map_t<double> dmap_t;
-    auto in_theta = any_cast<dmap_t>(ain_theta).get_unchecked();
-    auto out_theta = any_cast<dmap_t>(aout_theta).get_unchecked();
+    auto in_theta = std::any_cast<dmap_t>(ain_theta).get_unchecked();
+    auto out_theta = std::any_cast<dmap_t>(aout_theta).get_unchecked();
 
     if (multi)
     {

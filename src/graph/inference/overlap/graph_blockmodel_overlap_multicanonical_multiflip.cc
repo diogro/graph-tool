@@ -59,7 +59,7 @@ python::object multicanonical_overlap_multiflip_sweep(python::object omulticanon
                      typedef typename std::remove_reference<decltype(mcmc_state)>::type
                          mcmc_state_t;
 
-                     omulticanonical_state.attr("state") = boost::any(mcmc_state);
+                     omulticanonical_state.attr("state") = std::any(mcmc_state);
 
                      multicanonical_block_state<mcmc_state_t>::make_dispatch
                          (omulticanonical_state,

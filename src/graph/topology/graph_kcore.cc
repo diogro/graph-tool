@@ -28,7 +28,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void do_kcore_decomposition(GraphInterface& gi, boost::any prop)
+void do_kcore_decomposition(GraphInterface& gi, std::any prop)
 {
     gt_dispatch<>()
         ([](auto& g, auto core)

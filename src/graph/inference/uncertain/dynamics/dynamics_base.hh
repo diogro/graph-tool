@@ -38,8 +38,8 @@ std::vector<typename Type::unchecked_t> from_list(python::object list)
     vector<typename Type::unchecked_t> v;
     for (int i = 0; i < python::len(list); ++i)
     {
-        boost::any& a = python::extract<boost::any&>(list[i])();
-        v.push_back(boost::any_cast<Type>(a).get_unchecked());
+        std::any& a = python::extract<std::any&>(list[i])();
+        v.push_back(std::any_cast<Type>(a).get_unchecked());
     }
     return v;
 };

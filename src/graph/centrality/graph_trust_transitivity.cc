@@ -28,7 +28,7 @@ using namespace boost;
 using namespace graph_tool;
 
 void trust_transitivity(GraphInterface& g, int64_t source, int64_t target,
-                    boost::any c, boost::any t)
+                    std::any c, std::any t)
 {
     if (!belongs(edge_floating_properties, c))
         throw ValueException("edge property must be of floating point value type");

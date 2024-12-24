@@ -31,7 +31,7 @@ using namespace graph_tool;
 
 void extended_clustering(GraphInterface& g, boost::python::list aprops)
 {
-    boost::any aprop = boost::python::extract<boost::any>(aprops[0])();
+    std::any aprop = boost::python::extract<std::any>(aprops[0])();
 
     run_action<>(false)
         (g,
@@ -41,7 +41,7 @@ void extended_clustering(GraphInterface& g, boost::python::list aprops)
              std::vector<prop_t> props({prop});
 
              for (int i = 1; i < boost::python::len(aprops); ++i)
-                 props.push_back(any_cast<typename prop_t::checked_t>(boost::python::extract<boost::any>(aprops[i])()).get_unchecked());
+                 props.push_back(std::any_cast<typename prop_t::checked_t>(boost::python::extract<std::any>(aprops[i])()).get_unchecked());
 
              GILRelease gil_release;
              return get_extended_clustering()

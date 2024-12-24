@@ -59,8 +59,8 @@ public:
     template <class Graph, class RNG>
     linear_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
         : continuous_state_base(s, s_diff),
-          _sigma(any_cast<vmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked())
+          _sigma(std::any_cast<vmap_t::checked_t>(python::extract<std::any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked())
     {}
 
 
@@ -99,10 +99,10 @@ public:
     template <class Graph, class RNG>
     LV_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
         : continuous_state_base(s, s_diff),
-          _sigma(any_cast<vmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
-          _mig(any_cast<vmap_t::checked_t>(python::extract<any>(params["mig"].attr("_get_any")())()).get_unchecked()),
-          _r(any_cast<vmap_t::checked_t>(python::extract<any>(params["r"].attr("_get_any")())()).get_unchecked()),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked())
+          _sigma(std::any_cast<vmap_t::checked_t>(python::extract<std::any>(params["sigma"].attr("_get_any")())()).get_unchecked()),
+          _mig(std::any_cast<vmap_t::checked_t>(python::extract<std::any>(params["mig"].attr("_get_any")())()).get_unchecked()),
+          _r(std::any_cast<vmap_t::checked_t>(python::extract<std::any>(params["r"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked())
     {}
 
     template <class Graph, class RNG>
@@ -145,9 +145,9 @@ public:
     template <class Graph, class RNG>
     kuramoto_state(Graph&, smap_t s, smap_t s_diff, python::dict params, RNG&)
         : continuous_state_base(s, s_diff),
-          _omega(any_cast<omap_t::checked_t>(python::extract<any>(params["omega"].attr("_get_any")())()).get_unchecked()),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _sigma(any_cast<omap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked())
+          _omega(std::any_cast<omap_t::checked_t>(python::extract<std::any>(params["omega"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _sigma(std::any_cast<omap_t::checked_t>(python::extract<std::any>(params["sigma"].attr("_get_any")())()).get_unchecked())
     {}
 
     template <class Graph, class RNG>

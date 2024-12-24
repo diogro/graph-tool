@@ -20,6 +20,7 @@
 
 #include <utility>
 #include <type_traits>
+#include <any>
 #include <boost/mpl/pair.hpp>
 #include <boost/mpl/map.hpp>
 #include <boost/mpl/at.hpp>
@@ -27,7 +28,6 @@
 #include <boost/mpl/transform.hpp>
 #include <boost/mpl/assert.hpp>
 #include <boost/mpl/back_inserter.hpp>
-#include <boost/any.hpp>
 #include <boost/graph/graph_traits.hpp>
 
 #include "graph_properties.hh"
@@ -277,7 +277,7 @@ struct get_degree_selector
         degree_selector_index;
 
     template <class Selector>
-    void operator()(Selector, int deg_index, boost::any& deg) const
+    void operator()(Selector, int deg_index, std::any& deg) const
     {
         if (boost::mpl::at<degree_selector_index, Selector>::type::value == deg_index)
             deg = Selector();
@@ -287,16 +287,16 @@ struct get_degree_selector
 struct get_scalar_selector
 {
     template <class PropertyMap>
-    void operator()(PropertyMap, boost::any prop, boost::any& sec, bool& found)
+    void operator()(PropertyMap, std::any prop, std::any& sec, bool& found)
         const
     {
         try
         {
-            PropertyMap map = boost::any_cast<PropertyMap>(prop);
+            PropertyMap map = std::any_cast<PropertyMap>(prop);
             sec = scalarS<PropertyMap>(map);
             found = true;
         }
-        catch (boost::bad_any_cast&) {}
+        catch (std::bad_any_cast&) {}
     }
 };
 
@@ -313,7 +313,7 @@ inline constexpr auto all_selectors =
 
 
 // retrieves the appropriate degree selector
-boost::any degree_selector(GraphInterface::deg_t deg);
+std::any degree_selector(GraphInterface::deg_t deg);
 
 // helper types for in_edge_iteratorS
 

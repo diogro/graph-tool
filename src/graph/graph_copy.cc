@@ -32,7 +32,7 @@ template <class GraphSrc, class GraphTgt, class IndexMap, class SrcIndexMap,
 struct copy_vertex_property_dispatch
 {
     copy_vertex_property_dispatch(const GraphSrc& src, const GraphTgt& tgt,
-                                  boost::any& prop_src, boost::any& prop_tgt,
+                                  std::any& prop_src, std::any& prop_tgt,
                                   IndexMap& index_map,
                                   SrcIndexMap& src_vertex_index,
                                   TgtIndexMap& tgt_vertex_index,
@@ -45,8 +45,8 @@ struct copy_vertex_property_dispatch
 
     const GraphSrc& src;
     const GraphTgt& tgt;
-    boost::any& prop_src;
-    boost::any& prop_tgt;
+    std::any& prop_src;
+    std::any& prop_tgt;
     IndexMap& index_map;
     SrcIndexMap& src_vertex_index;
     TgtIndexMap& tgt_vertex_index;
@@ -55,12 +55,12 @@ struct copy_vertex_property_dispatch
     template <class PropertyMap>
     void operator()(PropertyMap) const
     {
-        PropertyMap* psrc = any_cast<PropertyMap>(&prop_src);
+        PropertyMap* psrc = std::any_cast<PropertyMap>(&prop_src);
         if (psrc == NULL)
             return;
-        if (prop_tgt.empty())
+        if (!prop_tgt.has_value())
             prop_tgt = PropertyMap(tgt_vertex_index);
-        PropertyMap* ptgt = any_cast<PropertyMap>(&prop_tgt);
+        PropertyMap* ptgt = std::any_cast<PropertyMap>(&prop_tgt);
         if (ptgt == NULL)
             return;
         found = true;
@@ -80,7 +80,7 @@ struct copy_vertex_property_dispatch
 
 template <class PropertyMaps, class GraphSrc, class GraphTgt,
           class IndexMap, class SrcIndexMap, class TgtIndexMap>
-void copy_vertex_property(PropertyMaps pmaps, boost::any& prop_src, boost::any& prop_tgt,
+void copy_vertex_property(PropertyMaps pmaps, std::any& prop_src, std::any& prop_tgt,
                           const GraphSrc& src, const GraphTgt& tgt,
                           IndexMap& index_map, SrcIndexMap& src_vertex_index,
                           TgtIndexMap& tgt_vertex_index)
@@ -106,7 +106,7 @@ template <class GraphSrc, class GraphTgt, class IndexMap, class SrcIndexMap>
 struct copy_edge_property_dispatch
 {
     copy_edge_property_dispatch(const GraphSrc& src, const GraphTgt& tgt,
-                                boost::any& prop_src, boost::any& prop_tgt,
+                                std::any& prop_src, std::any& prop_tgt,
                                 IndexMap& index_map,
                                 SrcIndexMap& src_edge_index,
                                 size_t max_src_edge_index,
@@ -119,8 +119,8 @@ struct copy_edge_property_dispatch
 
     const GraphSrc& src;
     const GraphTgt& tgt;
-    boost::any& prop_src;
-    boost::any& prop_tgt;
+    std::any& prop_src;
+    std::any& prop_tgt;
     IndexMap& index_map;
     SrcIndexMap& src_edge_index;
     size_t max_src_edge_index;
@@ -129,12 +129,12 @@ struct copy_edge_property_dispatch
     template <class PropertyMap>
     void operator()(PropertyMap) const
     {
-        PropertyMap* psrc = any_cast<PropertyMap>(&prop_src);
+        PropertyMap* psrc = std::any_cast<PropertyMap>(&prop_src);
         if (psrc == NULL)
             return;
-        if (prop_tgt.empty())
+        if (!prop_tgt.has_value())
             prop_tgt = PropertyMap(get(edge_index_t(), tgt));
-        PropertyMap* ptgt = any_cast<PropertyMap>(&prop_tgt);
+        PropertyMap* ptgt = std::any_cast<PropertyMap>(&prop_tgt);
         if (ptgt == NULL)
             return;
         found = true;
@@ -162,7 +162,7 @@ struct copy_edge_property_dispatch
 
 template <class PropertyMaps, class GraphSrc, class GraphTgt,
           class IndexMap, class SrcIndexMap>
-void copy_edge_property(PropertyMaps pmaps, boost::any& prop_src, boost::any& prop_tgt,
+void copy_edge_property(PropertyMaps pmaps, std::any& prop_src, std::any& prop_tgt,
                         const GraphSrc& src, const GraphTgt& tgt,
                         IndexMap& index_map, SrcIndexMap& src_vertex_index,
                         size_t max_src_edge_index)
@@ -198,8 +198,8 @@ struct do_graph_copy
                     TgtEdgeIndexMap,
                     SrcEdgeIndexMap src_edge_index,
                     OrderMap vertex_order,
-                    vector<pair<std::reference_wrapper<boost::any>,std::reference_wrapper<boost::any>>>& vprops,
-                    vector<pair<std::reference_wrapper<boost::any>,std::reference_wrapper<boost::any>>>& eprops) const
+                    vector<pair<std::reference_wrapper<std::any>,std::reference_wrapper<std::any>>>& vprops,
+                    vector<pair<std::reference_wrapper<std::any>,std::reference_wrapper<std::any>>>& eprops) const
     {
         vector<size_t> vs;
         for (auto v : vertices_range(src))
@@ -276,20 +276,20 @@ GraphInterface::GraphInterface(const GraphInterface& gi, bool keep_ref,
         return;
     }
 
-    vector<pair<std::reference_wrapper<boost::any>,std::reference_wrapper<boost::any>>> vprops;
+    vector<pair<std::reference_wrapper<std::any>,std::reference_wrapper<std::any>>> vprops;
     for (int i = 0; i < python::len(ovprops); ++i)
     {
-        vprops.push_back(make_pair(std::ref(python::extract<boost::any&>(ovprops[i][0])()),
-                                   std::ref(python::extract<boost::any&>(ovprops[i][1])())));
+        vprops.push_back(make_pair(std::ref(python::extract<std::any&>(ovprops[i][0])()),
+                                   std::ref(python::extract<std::any&>(ovprops[i][1])())));
     }
-    vector<pair<std::reference_wrapper<boost::any>,std::reference_wrapper<boost::any>>> eprops;
+    vector<pair<std::reference_wrapper<std::any>,std::reference_wrapper<std::any>>> eprops;
     for (int i = 0; i < python::len(oeprops); ++i)
     {
-        eprops.push_back(make_pair(std::ref(python::extract<boost::any&>(oeprops[i][0])()),
-                                   std::ref(python::extract<boost::any&>(oeprops[i][1])())));
+        eprops.push_back(make_pair(std::ref(python::extract<std::any&>(oeprops[i][0])()),
+                                   std::ref(python::extract<std::any&>(oeprops[i][1])())));
     }
 
-    boost::any avorder = python::extract<boost::any>(vorder)();
+    std::any avorder = python::extract<std::any>(vorder)();
     run_action<>()
         (const_cast<GraphInterface&>(gi),
          [&](auto&& graph, auto&& a2)

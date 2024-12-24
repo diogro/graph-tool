@@ -44,7 +44,7 @@ typedef decltype(hana::tuple_t<eprop_map_t<int32_t>,
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(never_directed), 1))                                      \
     ((eweight,, emaps_t, 1))                                                   \
-    ((_abg, &, boost::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                \
     ((b,, vmap_t, 0))
 
 GEN_STATE_BASE(ModularityStateBase, BLOCK_STATE_params)
@@ -65,7 +65,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     ModularityState(ATs&&... args)
         : ModularityStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _N(hard_num_vertices(_g)),
           _E(0),
           _bclabel(_N),

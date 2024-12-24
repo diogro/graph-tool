@@ -31,7 +31,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void nonbacktracking(GraphInterface& gi, boost::any index,
+void nonbacktracking(GraphInterface& gi, std::any index,
                      std::vector<int64_t>& i, std::vector<int64_t>& j)
 {
     if (!belongs(edge_scalar_properties, index))
@@ -43,7 +43,7 @@ void nonbacktracking(GraphInterface& gi, boost::any index,
 
 }
 
-void nonbacktracking_matvec(GraphInterface& g, boost::any index,
+void nonbacktracking_matvec(GraphInterface& g, std::any index,
                             python::object ov, python::object oret,
                             bool transpose)
 {
@@ -65,7 +65,7 @@ void nonbacktracking_matvec(GraphInterface& g, boost::any index,
          edge_scalar_properties)(index);
 }
 
-void nonbacktracking_matmat(GraphInterface& g, boost::any index,
+void nonbacktracking_matmat(GraphInterface& g, std::any index,
                             python::object ov, python::object oret,
                             bool transpose)
 {
@@ -95,7 +95,7 @@ void compact_nonbacktracking(GraphInterface& gi, std::vector<int64_t>& i,
 
 }
 
-void compact_nonbacktracking_matvec(GraphInterface& g, boost::any index,
+void compact_nonbacktracking_matvec(GraphInterface& g, std::any index,
                                     python::object ov, python::object oret,
                                     bool transpose)
 {
@@ -117,7 +117,7 @@ void compact_nonbacktracking_matvec(GraphInterface& g, boost::any index,
          vertex_scalar_properties)(index);
 }
 
-void compact_nonbacktracking_matmat(GraphInterface& g, boost::any index,
+void compact_nonbacktracking_matmat(GraphInterface& g, std::any index,
                                     python::object ov, python::object oret,
                                     bool transpose)
 {

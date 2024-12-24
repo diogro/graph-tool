@@ -38,8 +38,8 @@ PMap extract_pmap(python::object o)
     if (!PyObject_HasAttrString(o.ptr(), "_get_any"))
         throw ValueException("invalid property map");
     auto oa = o.attr("_get_any")();
-    boost::any& a = python::extract<boost::any&>(oa)();
-    return boost::any_cast<PMap>(a);
+    std::any& a = python::extract<std::any&>(oa)();
+    return std::any_cast<PMap>(a);
 }
 
 template <class Graph, class State>

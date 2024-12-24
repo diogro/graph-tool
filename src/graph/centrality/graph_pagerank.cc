@@ -27,30 +27,30 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-size_t pagerank(GraphInterface& g, boost::any rank, boost::any pers,
-                boost::any weight, double d, double epsilon, size_t max_iter)
+size_t pagerank(GraphInterface& g, std::any rank, std::any pers,
+                std::any weight, double d, double epsilon, size_t max_iter)
 {
     if (!belongs(vertex_floating_properties, rank))
         throw ValueException("rank vertex property must have a floating-point value type");
 
-    if (!pers.empty() && !belongs(vertex_scalar_properties, pers))
+    if (pers.has_value() && !belongs(vertex_scalar_properties, pers))
         throw ValueException("personalization vertex property must have a scalar value type");
 
     typedef ConstantPropertyMap<double, GraphInterface::vertex_t> pers_map_t;
     auto pers_props = hana::append(vertex_scalar_properties,
                                    hana::type<pers_map_t>());
 
-    if (pers.empty())
+    if (!pers.has_value())
         pers = pers_map_t(1.0 / g.get_num_vertices());
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     auto weight_props = hana::append(writable_edge_scalar_properties,
                                     hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = weight_map_t();
 
     size_t iter;

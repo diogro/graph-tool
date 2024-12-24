@@ -61,7 +61,7 @@ REGISTER_MOD
              // double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
              //                                  double, bool) =
              //     &state_t::get_move_prob;
-             // void (state_t::*set_partition)(boost::any&) =
+             // void (state_t::*set_partition)(std::any&) =
              //     &state_t::set_partition;
 
              class_<state_t, bases<BlockStateVirtualBase>, std::shared_ptr<state_t>>
@@ -74,7 +74,7 @@ REGISTER_MOD
                  .def("get_any",
                       +[](state_t& state)
                       {
-                          return boost::any(&state);
+                          return std::any(&state);
                       });
              // c.def("remove_vertices", remove_vertices)
              //     .def("add_vertices", add_vertices)

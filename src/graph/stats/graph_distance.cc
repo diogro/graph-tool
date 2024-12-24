@@ -28,12 +28,12 @@ using namespace graph_tool;
 
 typedef Histogram<size_t, size_t, 1> hist_t;
 
-python::object distance_histogram(GraphInterface& gi, boost::any weight,
+python::object distance_histogram(GraphInterface& gi, std::any weight,
                                   const vector<long double>& bins)
 {
     python::object ret;
 
-    if (weight.empty())
+    if (!weight.has_value())
     {
         run_action<>(false)
             (gi,

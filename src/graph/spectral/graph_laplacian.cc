@@ -31,7 +31,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void laplacian(GraphInterface& g, boost::any index, boost::any weight,
+void laplacian(GraphInterface& g, std::any index, std::any weight,
                string sdeg, double r,
                python::object odata, python::object oi,
                python::object oj)
@@ -43,10 +43,10 @@ void laplacian(GraphInterface& g, boost::any index, boost::any weight,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     deg_t deg;
@@ -72,8 +72,8 @@ void laplacian(GraphInterface& g, boost::any index, boost::any weight,
          vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
-void laplacian_matvec(GraphInterface& g, boost::any index, boost::any weight,
-                      boost::any deg, double r, python::object ov,
+void laplacian_matvec(GraphInterface& g, std::any index, std::any weight,
+                      std::any deg, double r, python::object ov,
                       python::object oret)
 {
     if (!belongs(vertex_scalar_properties, index))
@@ -83,17 +83,17 @@ void laplacian_matvec(GraphInterface& g, boost::any index, boost::any weight,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     multi_array_ref<double,1> v = get_array<double,1>(ov);
     multi_array_ref<double,1> ret = get_array<double,1>(oret);
 
     typedef vprop_map_t<double> deg_t;
-    deg_t::unchecked_t d = any_cast<deg_t>(deg).get_unchecked();
+    deg_t::unchecked_t d = std::any_cast<deg_t>(deg).get_unchecked();
 
     run_action<>()
         (g,
@@ -104,8 +104,8 @@ void laplacian_matvec(GraphInterface& g, boost::any index, boost::any weight,
          vertex_scalar_properties, weight_props_t)(index, weight);
 }
 
-void laplacian_matmat(GraphInterface& g, boost::any index, boost::any weight,
-                      boost::any deg, double r, python::object ov,
+void laplacian_matmat(GraphInterface& g, std::any index, std::any weight,
+                      std::any deg, double r, python::object ov,
                       python::object oret)
 {
     if (!belongs(vertex_scalar_properties, index))
@@ -115,14 +115,14 @@ void laplacian_matmat(GraphInterface& g, boost::any index, boost::any weight,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     typedef vprop_map_t<double> deg_t;
-    deg_t::unchecked_t d = any_cast<deg_t>(deg).get_unchecked();
+    deg_t::unchecked_t d = std::any_cast<deg_t>(deg).get_unchecked();
 
     multi_array_ref<double,2> v = get_array<double,2>(ov);
     multi_array_ref<double,2> ret = get_array<double,2>(oret);

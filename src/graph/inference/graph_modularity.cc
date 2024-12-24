@@ -24,8 +24,8 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-double modularity(GraphInterface& gi, double gamma, boost::any weight,
-                  boost::any property)
+double modularity(GraphInterface& gi, double gamma, std::any weight,
+                  std::any property)
 {
     double Q = 0;
 
@@ -33,7 +33,7 @@ double modularity(GraphInterface& gi, double gamma, boost::any weight,
     auto edge_props_t = hana::append(edge_scalar_properties,
                                      hana::type<weight_map_t>());
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     run_action<>()

@@ -102,7 +102,7 @@ struct get_weighted_betweenness
                     VertexIndexMap vertex_index,
                     EdgeBetweenness edge_betweenness,
                     VertexBetweenness vertex_betweenness,
-                    boost::any weight_map,
+                    std::any weight_map,
                     size_t max_eindex) const
     {
         vector<vector<typename graph_traits<Graph>::edge_descriptor> >
@@ -114,7 +114,7 @@ struct get_weighted_betweenness
         vector<size_t> path_count_map(num_vertices(g));
 
         typename EdgeBetweenness::checked_t weight =
-            any_cast<typename EdgeBetweenness::checked_t>(weight_map);
+            std::any_cast<typename EdgeBetweenness::checked_t>(weight_map);
 
         brandes_betweenness_centrality
             (g, pivots, vertex_betweenness, edge_betweenness,
@@ -127,9 +127,9 @@ struct get_weighted_betweenness
 };
 
 void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
-                 boost::any weight,
-                 boost::any edge_betweenness,
-                 boost::any vertex_betweenness)
+                 std::any weight,
+                 std::any edge_betweenness,
+                 std::any vertex_betweenness)
 {
     if (!belongs(edge_floating_properties, edge_betweenness))
         throw ValueException("edge property must be of floating point value"
@@ -139,7 +139,7 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
         throw ValueException("vertex property must be of floating point value"
                              " type");
 
-    if (!weight.empty())
+    if (weight.has_value())
     {
         run_action<>()
             (g,
@@ -171,8 +171,8 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
 }
 
 void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
-                      boost::any edge_betweenness,
-                      boost::any vertex_betweenness)
+                      std::any edge_betweenness,
+                      std::any vertex_betweenness)
 {
     if (!belongs(edge_floating_properties, edge_betweenness))
         throw ValueException("edge property must be of floating point value"
@@ -205,7 +205,7 @@ struct get_central_point_dominance
 };
 
 double central_point(GraphInterface& g,
-                     boost::any vertex_betweenness)
+                     std::any vertex_betweenness)
 {
     double c = 0.0;
     run_action<decltype(graph_tool::never_reversed)>()

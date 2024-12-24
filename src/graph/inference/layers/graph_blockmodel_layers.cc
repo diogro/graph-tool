@@ -82,14 +82,14 @@ vector<std::reference_wrapper<Type>> from_any_list(boost::python::object list)
 {
     vector<std::reference_wrapper<Type>> v;
     for (int i = 0; i < boost::python::len(list); ++i)
-        v.emplace_back(any_cast<Type&>(boost::python::extract<boost::any&>(list[i])()));
+        v.emplace_back(std::any_cast<Type&>(boost::python::extract<std::any&>(list[i])()));
     return v;
 };
 
-void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
+void split_layers(GraphInterface& gi, std::any& aec, std::any& ab,
                   boost::python::object& arec, boost::python::object& adrec,
-                  boost::any& aeweight, boost::any& avweight, boost::any& avc,
-                  boost::any& avmap, boost::any& alweight,
+                  std::any& aeweight, std::any& avweight, std::any& avc,
+                  std::any& avmap, std::any& alweight,
                   boost::python::object& ous, boost::python::object& oub,
                   boost::python::object& ourec, boost::python::object& oudrec,
                   boost::python::object& oueweight,
@@ -101,15 +101,15 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
     typedef eprop_map_t<int32_t> emap_t;
     typedef eprop_map_t<double> remap_t;
 
-    emap_t& ec = any_cast<emap_t&>(aec);
-    vmap_t& b = any_cast<vmap_t&>(ab);
+    emap_t& ec = std::any_cast<emap_t&>(aec);
+    vmap_t& b = std::any_cast<vmap_t&>(ab);
     auto rec = from_any_list<remap_t>(arec);
     auto drec = from_any_list<remap_t>(adrec);
-    vmap_t& vweight = any_cast<vmap_t&>(avweight);
-    emap_t& eweight = any_cast<emap_t&>(aeweight);
-    vvmap_t& vc = any_cast<vvmap_t&>(avc);
-    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
-    vvmap_t& lweight = any_cast<vvmap_t&>(alweight);
+    vmap_t& vweight = std::any_cast<vmap_t&>(avweight);
+    emap_t& eweight = std::any_cast<emap_t&>(aeweight);
+    vvmap_t& vc = std::any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = std::any_cast<vvmap_t&>(avmap);
+    vvmap_t& lweight = std::any_cast<vvmap_t&>(alweight);
 
     auto us = from_rlist<GraphInterface>(ous);
     auto ub = from_any_list<vmap_t>(oub);
@@ -212,7 +212,7 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
                    })();
 }
 
-void split_groups(boost::any& ab, boost::any& avc, boost::any& avmap,
+void split_groups(std::any& ab, std::any& avc, std::any& avmap,
                   boost::python::object& ous, boost::python::object& oub,
                   boost::python::object& ouvweight,
                   vbmap_t& block_map, boost::python::object& obrmap,
@@ -221,9 +221,9 @@ void split_groups(boost::any& ab, boost::any& avc, boost::any& avmap,
     typedef vprop_map_t<int32_t> vmap_t;
     typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-    vmap_t& b = any_cast<vmap_t&>(ab);
-    vvmap_t& vc = any_cast<vvmap_t&>(avc);
-    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
+    vmap_t& b = std::any_cast<vmap_t&>(ab);
+    vvmap_t& vc = std::any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = std::any_cast<vvmap_t&>(avmap);
 
     auto us = from_rlist<GraphInterface>(ous);
     auto ub = from_any_list<vmap_t>(oub);
@@ -273,14 +273,14 @@ void split_groups(boost::any& ab, boost::any& avc, boost::any& avmap,
     }
 }
 
-void get_rvmap(GraphInterface& gi, boost::any& avc, boost::any& avmap,
+void get_rvmap(GraphInterface& gi, std::any& avc, std::any& avmap,
                boost::python::object& ouvmap)
 {
     typedef vprop_map_t<int32_t> vmap_t;
     typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-    vvmap_t& vc = any_cast<vvmap_t&>(avc);
-    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
+    vvmap_t& vc = std::any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = std::any_cast<vvmap_t&>(avmap);
 
     auto uvmap = from_any_list<vmap_t>(ouvmap);
 
@@ -302,15 +302,15 @@ void get_rvmap(GraphInterface& gi, boost::any& avc, boost::any& avmap,
 }
 
 
-void get_lweights(GraphInterface& gi, boost::any& avc, boost::any& avmap,
-                  boost::any& alweight, boost::python::object& ouvweight)
+void get_lweights(GraphInterface& gi, std::any& avc, std::any& avmap,
+                  std::any& alweight, boost::python::object& ouvweight)
 {
     typedef vprop_map_t<int32_t> vmap_t;
     typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-    vvmap_t& vc = any_cast<vvmap_t&>(avc);
-    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
-    vvmap_t& lweight = any_cast<vvmap_t&>(alweight);
+    vvmap_t& vc = std::any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = std::any_cast<vvmap_t&>(avmap);
+    vvmap_t& lweight = std::any_cast<vvmap_t&>(alweight);
 
     auto uvweight = from_any_list<vmap_t>(ouvweight);
 
@@ -330,17 +330,17 @@ void get_lweights(GraphInterface& gi, boost::any& avc, boost::any& avmap,
                    })();
 }
 
-void get_blweights(GraphInterface& gi, boost::any& ab, boost::any& avc,
-                   boost::any& avmap, boost::any& alweight,
+void get_blweights(GraphInterface& gi, std::any& ab, std::any& avc,
+                   std::any& avmap, std::any& alweight,
                    boost::python::object& ouvweight)
 {
     typedef vprop_map_t<int32_t> vmap_t;
     typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-    vmap_t& b = any_cast<vmap_t&>(ab);
-    vvmap_t& vc = any_cast<vvmap_t&>(avc);
-    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
-    vvmap_t& lweight = any_cast<vvmap_t&>(alweight);
+    vmap_t& b = std::any_cast<vmap_t&>(ab);
+    vvmap_t& vc = std::any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = std::any_cast<vvmap_t&>(avmap);
+    vvmap_t& lweight = std::any_cast<vvmap_t&>(alweight);
 
     auto uvweight = from_any_list<vmap_t>(ouvweight);
 
@@ -421,13 +421,13 @@ size_t bmap_size(const vbmap_t& bmap)
 typedef gt_hash_map<std::tuple<int, int>,
                     gt_hash_map<std::tuple<size_t, size_t>, size_t>> ldegs_map_t;
 
-ldegs_map_t get_ldegs(GraphInterface& gi, boost::any& avc, boost::any& avmap,
+ldegs_map_t get_ldegs(GraphInterface& gi, std::any& avc, std::any& avmap,
                       boost::python::object& oudegs)
 {
     typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-    vvmap_t& vc = any_cast<vvmap_t&>(avc);
-    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
+    vvmap_t& vc = std::any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = std::any_cast<vvmap_t&>(avmap);
 
     auto udegs = from_rlist<degs_map_t>(oudegs);
 

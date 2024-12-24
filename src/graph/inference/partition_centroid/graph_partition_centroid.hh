@@ -38,7 +38,7 @@ typedef multi_array_ref<int32_t,1> b_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(always_directed_never_reversed), 1))                      \
-    ((_abg, &, boost::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                \
     ((bs,, bs_t, 0))                                                           \
     ((b,, b_t, 0))
 
@@ -58,7 +58,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     VICenterState(ATs&&... args)
         : VICenterStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _mrs(_bs.shape()[0]),
           _nr(_bs.shape()[0]),
           _N(_bs.shape()[1]),

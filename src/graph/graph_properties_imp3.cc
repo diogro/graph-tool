@@ -33,16 +33,16 @@ struct do_perfect_vhash
 {
     template <class Graph, class VertexPropertyMap, class HashProp>
     void operator()(Graph& g, VertexPropertyMap prop, HashProp hprop,
-                    boost::any& adict) const
+                    std::any& adict) const
     {
         typedef typename property_traits<VertexPropertyMap>::value_type val_t;
         typedef typename property_traits<HashProp>::value_type hash_t;
         typedef std::unordered_map<val_t, hash_t> dict_t;
 
-        if (adict.empty())
+        if (!adict.has_value())
             adict = dict_t();
 
-        dict_t& dict = any_cast<dict_t&>(adict);
+        dict_t& dict = std::any_cast<dict_t&>(adict);
 
         for (auto v : vertices_range(g))
         {
@@ -63,8 +63,8 @@ struct do_perfect_vhash
     }
 };
 
-void perfect_vhash(GraphInterface& gi, boost::any prop, boost::any hprop,
-                   boost::any& dict)
+void perfect_vhash(GraphInterface& gi, std::any prop, std::any hprop,
+                   std::any& dict)
 {
     run_action<decltype(graph_tool::always_directed)>()
         (gi,
@@ -92,7 +92,7 @@ struct do_set_vertex_property
     }
 };
 
-void set_vertex_property(GraphInterface& gi, boost::any prop,
+void set_vertex_property(GraphInterface& gi, std::any prop,
                          boost::python::object val)
 {
     run_action<>(false)
@@ -120,7 +120,7 @@ struct do_set_edge_property
     }
 };
 
-void set_edge_property(GraphInterface& gi, boost::any prop,
+void set_edge_property(GraphInterface& gi, std::any prop,
                        boost::python::object val)
 {
     run_action<>(false)

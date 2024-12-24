@@ -21,13 +21,14 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <any>
+
 #include <boost/functional/hash.hpp>
 #include <boost/python/object.hpp>
 #include <boost/python/extract.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/any.hpp>
-
 #include <boost/property_map/property_map.hpp>
+
 #include "fast_vector_property_map.hh"
 #include "graph_exceptions.hh"
 #include "graph_adjacency.hh"
@@ -232,17 +233,17 @@ inline constexpr auto edge_floating_vector_properties =
 // Functions which deal with several aspects of property map manipulation
 
 
-// this functor tests whether or not a given boost::any object holds a type
+// this functor tests whether or not a given std::any object holds a type
 // contained in a given type Sequence
 template <class Sequence>
-bool belongs(Sequence seq, const boost::any& prop)
+bool belongs(Sequence seq, const std::any& prop)
 {
     bool found = false;
     hana::for_each(seq,
                    [&](auto t)
                    {
                        typedef typename decltype(t)::type T;
-                       const T* ptr = boost::any_cast<T>(&prop);
+                       const T* ptr = std::any_cast<T>(&prop);
                        if (ptr != 0)
                            found = true;
                    });
@@ -372,7 +373,7 @@ public:
     typedef boost::read_write_property_map_tag category;
 
     template <class PropertyTypes>
-    DynamicPropertyMapWrap(boost::any pmap, PropertyTypes pts)
+    DynamicPropertyMapWrap(std::any pmap, PropertyTypes pts)
     {
         ValueConverter* converter = 0;
         hana::for_each(pts, [&](auto t){ choose_converter()(typename decltype(t)::type(),
@@ -467,12 +468,12 @@ private:
     {
         typedef void return_type;
         template <class PropertyMap>
-        void operator()(PropertyMap, boost::any& dmap,
+        void operator()(PropertyMap, std::any& dmap,
                         ValueConverter*& converter) const
         {
             if (typeid(PropertyMap) == dmap.type())
                 converter = new ValueConverterImp<PropertyMap>
-                    (boost::any_cast<PropertyMap>(dmap));
+                    (std::any_cast<PropertyMap>(dmap));
         }
     };
 

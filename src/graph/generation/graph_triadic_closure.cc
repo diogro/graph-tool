@@ -23,16 +23,16 @@ using namespace boost;
 using namespace graph_tool;
 
 void generate_triadic_closure(GraphInterface& gi,
-                              boost::any acurr,
-                              boost::any aego,
-                              boost::any aEs,
+                              std::any acurr,
+                              std::any aego,
+                              std::any aEs,
                               bool probs, rng_t& rng)
 {
     typedef eprop_map_t<uint8_t> emap_t;
-    auto curr = any_cast<emap_t>(acurr).get_unchecked();
+    auto curr = std::any_cast<emap_t>(acurr).get_unchecked();
 
     typedef eprop_map_t<int64_t> eemap_t;
-    auto ego = any_cast<eemap_t>(aego);
+    auto ego = std::any_cast<eemap_t>(aego);
 
     run_action<>()(gi,
                    [&](auto& g, auto Es) { gen_triadic_closure(g, curr, ego, Es,

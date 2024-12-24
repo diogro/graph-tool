@@ -39,30 +39,30 @@ struct get_weighted_edge_property_dispatch
 {
     template <class Graph, class EdgeWeightMap, class Eprop>
     void operator()(const Graph& g, EdgeWeightMap eweight, Eprop eprop,
-                    boost::any atemp) const
+                    std::any atemp) const
     {
-        typename Eprop::checked_t temp = boost::any_cast<typename Eprop::checked_t>(atemp);
+        typename Eprop::checked_t temp = std::any_cast<typename Eprop::checked_t>(atemp);
         get_weighted_edge_property()(g, eweight, eprop,
                                      temp.get_unchecked(eprop.get_storage().size()));
     }
 };
 
 void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
-                boost::any community_property,
-                boost::any condensed_community_property, boost::any ceprop,
-                boost::any eprop, bool self_loops, bool parallel_edges);
+                std::any community_property,
+                std::any condensed_community_property, std::any ceprop,
+                std::any eprop, bool self_loops, bool parallel_edges);
 
 void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
-                            boost::any community_property,
-                            boost::any condensed_community_property,
-                            boost::any eweight, boost::python::list aeprops,
+                            std::any community_property,
+                            std::any condensed_community_property,
+                            std::any eweight, boost::python::list aeprops,
                             bool self_loops, bool parallel_edges)
 {
     auto weight_maps_t = hana::append(writable_edge_scalar_properties,
                                       hana::type<no_eweight_map_t>());
 
     bool no_weight = false;
-    if (eweight.empty())
+    if (!eweight.has_value())
     {
         no_weight = true;
         eweight = no_eweight_map_t();
@@ -74,9 +74,9 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
 
     for(int i = 0; i < boost::python::len(aeprops); ++i)
     {
-        boost::any eprop = boost::python::extract<any>(aeprops[i][0])();
-        boost::any temp = boost::python::extract<any>(aeprops[i][1])();
-        boost::any ceprop = boost::python::extract<any>(aeprops[i][2])();
+        std::any eprop = boost::python::extract<std::any>(aeprops[i][0])();
+        std::any temp = boost::python::extract<std::any>(aeprops[i][1])();
+        std::any ceprop = boost::python::extract<std::any>(aeprops[i][2])();
 
         if (!no_weight)
         {

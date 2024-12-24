@@ -102,12 +102,12 @@ private:
 };
 
 template <class State>
-python::object make_state(GraphInterface& gi, boost::any as, boost::any as_temp,
+python::object make_state(GraphInterface& gi, std::any as, std::any as_temp,
                           python::dict params, rng_t& rng)
 {
     typedef typename State::smap_t::checked_t smap_t;
-    smap_t s = boost::any_cast<smap_t>(as);
-    smap_t s_temp = boost::any_cast<smap_t>(as_temp);
+    smap_t s = std::any_cast<smap_t>(as);
+    smap_t s_temp = std::any_cast<smap_t>(as_temp);
 
     python::object state;
     run_action<>(false)
@@ -143,8 +143,8 @@ static void export_SI_state()
 }
 
 template <template <bool...> class Base, bool... As>
-python::object make_SI_state(GraphInterface& gi, boost::any as,
-                             boost::any as_temp, python::dict params,
+python::object make_SI_state(GraphInterface& gi, std::any as,
+                             std::any as_temp, python::dict params,
                              rng_t& rng, bool weighted, bool constant_beta)
 {
     if (weighted)

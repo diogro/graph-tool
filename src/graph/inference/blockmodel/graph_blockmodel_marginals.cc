@@ -27,11 +27,11 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
-                              boost::any op, size_t update)
+void collect_vertex_marginals(GraphInterface& gi, std::any ob,
+                              std::any op, size_t update)
 {
     typedef vprop_map_t<int32_t> vmap_t;
-    auto b = any_cast<vmap_t>(ob).get_unchecked();
+    auto b = std::any_cast<vmap_t>(ob).get_unchecked();
 
     run_action<>()
         (gi, [&](auto& g, auto p)
@@ -101,15 +101,15 @@ public:
 
 };
 
-void collect_edge_marginals(GraphInterface& gi, boost::any ob,
-                            boost::any op, size_t update)
+void collect_edge_marginals(GraphInterface& gi, std::any ob,
+                            std::any op, size_t update)
 {
     typedef vprop_map_t<int32_t> vmap_t;
-    auto b = any_cast<vmap_t>(ob).get_unchecked();
+    auto b = std::any_cast<vmap_t>(ob).get_unchecked();
 
     typedef eprop_map_t<python::object>
         emap_t;
-    auto pe = any_cast<emap_t>(op).get_unchecked(gi.get_edge_index_range());
+    auto pe = std::any_cast<emap_t>(op).get_unchecked(gi.get_edge_index_range());
 
     run_action<>(false)
         (gi,
@@ -133,7 +133,7 @@ void collect_edge_marginals(GraphInterface& gi, boost::any ob,
          })();
 }
 
-double mf_entropy(GraphInterface& gi, boost::any opv)
+double mf_entropy(GraphInterface& gi, std::any opv)
 {
     double H=0;
     run_action<>()
@@ -159,14 +159,14 @@ double mf_entropy(GraphInterface& gi, boost::any opv)
     return H;
 }
 
-boost::python::tuple bethe_entropy(GraphInterface& gi, boost::any op,
-                                   boost::any opv)
+boost::python::tuple bethe_entropy(GraphInterface& gi, std::any op,
+                                   std::any opv)
 {
     typedef vprop_map_t<vector<double>> vmap_t;
-    vmap_t pv = any_cast<vmap_t>(opv);
+    vmap_t pv = std::any_cast<vmap_t>(opv);
 
     typedef eprop_map_t<boost::python::object> emap_t;
-    auto pe = any_cast<emap_t>(op).get_unchecked();
+    auto pe = std::any_cast<emap_t>(op).get_unchecked();
 
     double H=0, Hmf=0;
     run_action<>(false)
@@ -293,11 +293,11 @@ static vector<int32_t> unlabel_partition(vector<int32_t> b)
     return b;
 }
 
-void collect_partitions(boost::any& ob, PartitionHist& h, double update,
+void collect_partitions(std::any& ob, PartitionHist& h, double update,
                         bool unlabel)
 {
     typedef vprop_map_t<int32_t> vmap_t;
-    auto& b = any_cast<vmap_t&>(ob);
+    auto& b = std::any_cast<vmap_t&>(ob);
     auto& v = b.get_storage();
     if (unlabel)
     {
@@ -317,8 +317,8 @@ void collect_hierarchical_partitions(python::object ovb, PartitionHist& h,
     vector<int32_t> v;
     for (int i = 0; i < len(ovb); ++i)
     {
-        boost::any& ob = python::extract<boost::any&>(ovb[i])();
-        auto& b = any_cast<vmap_t&>(ob);
+        std::any& ob = python::extract<std::any&>(ovb[i])();
+        auto& b = std::any_cast<vmap_t&>(ob);
         auto& vi = b.get_storage();
         v.reserve(v.size() + vi.size());
         if (unlabel)

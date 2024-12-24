@@ -100,13 +100,13 @@ struct get_planar_embedding
     }
 };
 
-bool is_planar(GraphInterface& gi, boost::any embed_map, boost::any kur_map)
+bool is_planar(GraphInterface& gi, std::any embed_map, std::any kur_map)
 {
     bool is_planar;
 
-    if (embed_map.empty())
+    if (!embed_map.has_value())
         embed_map = dummy_property_map();
-    if (kur_map.empty())
+    if (!kur_map.has_value())
         kur_map = dummy_property_map();
 
     auto edge_map_types = hana::append(writable_edge_scalar_properties,

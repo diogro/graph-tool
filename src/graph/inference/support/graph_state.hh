@@ -280,27 +280,27 @@ struct StateWrap
                         aobj = obj.attr("_get_any")();
                     else
                         aobj = obj;
-                    python::extract<boost::any&> extract(aobj);
+                    python::extract<std::any&> extract(aobj);
                     try
                     {
                         if (!extract.check())
-                            throw boost::bad_any_cast();
-                        boost::any& aval = extract();
-                        T val = any_cast<T>(aval);
+                            throw std::bad_any_cast();
+                        std::any& aval = extract();
+                        T val = std::any_cast<T>(aval);
                         return val;
                     }
-                    catch (boost::bad_any_cast&)
+                    catch (std::bad_any_cast&)
                     {
                         try
                         {
                             typedef std::reference_wrapper
                                 <typename std::remove_reference<T>::type>
                                 ref_wrap_t;
-                            boost::any& aval = extract();
-                            auto val = any_cast<ref_wrap_t>(aval);
+                            std::any& aval = extract();
+                            auto val = std::any_cast<ref_wrap_t>(aval);
                             return val.get();
                         }
-                        catch (boost::bad_any_cast&)
+                        catch (std::bad_any_cast&)
                         {
                             throw ValueException("Cannot extract parameter '" + name +
                                                  "' of desired type: " +
@@ -352,15 +352,15 @@ struct StateWrap
                             aobj = o.attr("_get_any")();
                         else
                             aobj = o;
-                        python::extract<boost::any&> extract(aobj);
+                        python::extract<std::any&> extract(aobj);
                         if (!extract.check())
-                            throw boost::bad_any_cast();
-                        boost::any& aval = extract();
-                        pmap_t val = any_cast<pmap_t>(aval);
+                            throw std::bad_any_cast();
+                        std::any& aval = extract();
+                        pmap_t val = std::any_cast<pmap_t>(aval);
                         ret.push_back(val);
                     }
                 }
-                catch (boost::bad_any_cast& e)
+                catch (std::bad_any_cast& e)
                 {
                     throw ValueException("Cannot extract parameter '" + name +
                                          "' of desired type: " +
@@ -373,16 +373,16 @@ struct StateWrap
 
 
     template <class TR>
-    static boost::any get_any(python::object mobj, std::string name, TR tr)
+    static std::any get_any(python::object mobj, std::string name, TR tr)
     {
         python::object obj = mobj.attr(name.c_str());
         if (PyObject_HasAttrString(obj.ptr(), "_get_any"))
         {
-            return python::extract<boost::any&>(obj.attr("_get_any")())();
+            return python::extract<std::any&>(obj.attr("_get_any")())();
         }
         else
         {
-            boost::any ret;
+            std::any ret;
             bool found = false;
             hana::for_each
                 (tr,

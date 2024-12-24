@@ -172,7 +172,7 @@ struct do_maximal_vertex_set
     }
 };
 
-void maximal_vertex_set(GraphInterface& gi, boost::any mvs, bool high_deg,
+void maximal_vertex_set(GraphInterface& gi, std::any mvs, bool high_deg,
                         rng_t& rng)
 {
     run_action<>()

@@ -82,7 +82,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
         total *= plist[i];
     }
 
-    boost::any sampler;
+    std::any sampler;
     if (total == 1.0)
         sampler = sample_all();
     else

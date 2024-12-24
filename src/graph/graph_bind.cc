@@ -150,11 +150,11 @@ void set_vector_state(std::vector<T>& v, python::object state)
     v.insert(v.end(), a.begin(), a.end());
 }
 
-namespace boost
+namespace std
 {
-bool operator==(const boost::any&, const boost::any&)
+bool operator==(const std::any&, const std::any&)
 {
-    throw ValueException("boost::any comparison not implemented.");
+    throw ValueException("std::any comparison not implemented.");
 }
 }
 
@@ -432,41 +432,41 @@ size_t get_ptr(std::shared_ptr<GraphInterface::multigraph_t>& p)
     return size_t(p.get());
 };
 
-void ungroup_vector_property(GraphInterface& g, boost::any vector_prop,
-                             boost::any prop, size_t pos, bool edge);
-void group_vector_property(GraphInterface& g, boost::any vector_prop,
-                           boost::any prop, size_t pos, bool edge);
-void property_map_values(GraphInterface& g, boost::any src_prop,
-                         boost::any tgt_prop, boost::python::object mapper,
+void ungroup_vector_property(GraphInterface& g, std::any vector_prop,
+                             std::any prop, size_t pos, bool edge);
+void group_vector_property(GraphInterface& g, std::any vector_prop,
+                           std::any prop, size_t pos, bool edge);
+void property_map_values(GraphInterface& g, std::any src_prop,
+                         std::any tgt_prop, boost::python::object mapper,
                          bool edge);
-void infect_vertex_property(GraphInterface& gi, boost::any prop,
+void infect_vertex_property(GraphInterface& gi, std::any prop,
                             boost::python::object val);
-void edge_endpoint(GraphInterface& gi, boost::any prop,
-                   boost::any eprop, std::string endpoint);
-void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
+void edge_endpoint(GraphInterface& gi, std::any prop,
+                   std::any eprop, std::string endpoint);
+void out_edges_op(GraphInterface& gi, std::any eprop, std::any vprop,
                   std::string op);
-void mark_edges(GraphInterface& gi, boost::any prop);
+void mark_edges(GraphInterface& gi, std::any prop);
 
-void perfect_ehash(GraphInterface& gi, boost::any prop, boost::any hprop,
-                   boost::any& dict);
-void perfect_vhash(GraphInterface& gi, boost::any prop, boost::any hprop,
-                   boost::any& dict);
-void set_vertex_property(GraphInterface& gi, boost::any prop,
+void perfect_ehash(GraphInterface& gi, std::any prop, std::any hprop,
+                   std::any& dict);
+void perfect_vhash(GraphInterface& gi, std::any prop, std::any hprop,
+                   std::any& dict);
+void set_vertex_property(GraphInterface& gi, std::any prop,
                          boost::python::object val);
-void set_edge_property(GraphInterface& gi, boost::any prop,
+void set_edge_property(GraphInterface& gi, std::any prop,
                        boost::python::object val);
 
 void copy_external_edge_property(const GraphInterface& src,
                                  const GraphInterface& tgt,
-                                 boost::any prop_src,
-                                 boost::any prop_tgt);
+                                 std::any prop_src,
+                                 std::any prop_tgt);
 
 bool compare_vertex_properties(const GraphInterface& gi,
-                               boost::any prop1,
-                               boost::any prop2);
+                               std::any prop1,
+                               std::any prop2);
 bool compare_edge_properties(const GraphInterface& gi,
-                             boost::any prop1,
-                             boost::any prop2);
+                             std::any prop1,
+                             std::any prop2);
 
 void export_python_interface();
 
@@ -494,9 +494,9 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
 
     def("raise_error", &raise_error);
     def("get_property_types", &get_property_types);
-    class_<boost::any>("any")
-        .def("empty", &boost::any::empty)
-        .def("type",  &boost::any::type,
+    class_<std::any>("any")
+        .def("has_value", &std::any::has_value)
+        .def("type",  &std::any::type,
              return_value_policy<reference_existing_object>());
     class_<std::type_info, boost::noncopyable>("type_info", no_init)
         .def("name", &std::type_info::name)
@@ -509,7 +509,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
                           [](auto t){export_vector_types<>()(typename decltype(+t)::type());});
     export_vector_types<>()(size_t(), "size_t");
     export_vector_types<>()(std::vector<double>(), "Vector_double");
-    export_vector_types<false,false>()(boost::any(), "any");
+    export_vector_types<false,false>()(std::any(), "any");
     export_vector_types<>()(std::complex<double>(), "cdouble");
 
     class_<GraphInterface>("GraphInterface", init<>())
@@ -559,7 +559,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .value("Out", GraphInterface::OUT_DEGREE)
         .value("Total", GraphInterface::TOTAL_DEGREE);
 
-    variant_from_python<boost::any>();
+    variant_from_python<std::any>();
     variant_from_python<GraphInterface::degree_t>();
     to_python_converter<pair<string,bool>, pair_to_tuple<string,bool> >();
     to_python_converter<pair<size_t,size_t>, pair_to_tuple<size_t,size_t> >();

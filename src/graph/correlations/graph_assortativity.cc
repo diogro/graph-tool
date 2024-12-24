@@ -81,16 +81,16 @@ struct deleted_key<std::string>
 
 pair<double,double>
 assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
-                          boost::any weight)
+                          std::any weight)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
     auto weight_props = hana::append(edge_scalar_properties,
                                      hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     double a = 0, a_err = 0;
@@ -109,16 +109,16 @@ assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
 
 pair<double,double>
 scalar_assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
-                                 boost::any weight)
+                                 std::any weight)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
     auto weight_props = hana::append(edge_scalar_properties,
                                      hana::type<weight_map_t>());
 
-    if (!weight.empty() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     double a = 0, a_err = 0;

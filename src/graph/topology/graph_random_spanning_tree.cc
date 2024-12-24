@@ -72,12 +72,12 @@ struct get_random_span_tree
 };
 
 void get_random_spanning_tree(GraphInterface& gi, size_t root,
-                              boost::any weight_map, boost::any tree_map,
+                              std::any weight_map, std::any tree_map,
                               rng_t& rng)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
-    if (weight_map.empty())
+    if (!weight_map.has_value())
         weight_map = cweight_t();
 
     auto weight_maps = hana::append(writable_edge_scalar_properties,

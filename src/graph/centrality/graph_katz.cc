@@ -27,15 +27,15 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void katz(GraphInterface& g, boost::any w, boost::any c, boost::any beta,
+void katz(GraphInterface& g, std::any w, std::any c, std::any beta,
           long double alpha, double epsilon, size_t max_iter)
 {
-    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge property must be writable");
     if (!belongs(vertex_floating_properties, c))
         throw ValueException("centrality vertex property must be of floating point"
                              " value type");
-    if (!beta.empty() && !belongs(vertex_floating_properties, beta))
+    if (beta.has_value() && !belongs(vertex_floating_properties, beta))
         throw ValueException("personalization vertex property must be of floating point"
                              " value type");
 
@@ -43,14 +43,14 @@ void katz(GraphInterface& g, boost::any w, boost::any c, boost::any beta,
     auto weight_props = hana::append(writable_edge_scalar_properties,
                                     hana::type<weight_map_t>());
 
-    if(w.empty())
+    if (!w.has_value())
         w = weight_map_t();
 
     typedef UnityPropertyMap<int,GraphInterface::vertex_t> beta_map_t;
     auto beta_props = hana::append(vertex_floating_properties,
                                      hana::type<beta_map_t>());
 
-    if(beta.empty())
+    if (!beta.has_value())
         beta = beta_map_t();
 
     run_action<>()

@@ -59,7 +59,7 @@ get_vertex_average(GraphInterface& gi, GraphInterface::deg_t deg)
 
 // this will return the edge average of scalar properties
 python::object
-get_edge_average(GraphInterface& gi, boost::any prop)
+get_edge_average(GraphInterface& gi, std::any prop)
 {
     auto edge_numeric_properties_c =
         hana::concat(edge_scalar_properties,

@@ -312,8 +312,8 @@ REGISTER_MOD
                           .def("get_candidate_edges",
                                +[](state_t& state, GraphInterface& gi, size_t k,
                                    double r, size_t max_rk, double epsilon,
-                                   bool c_stop, size_t max_iter, boost::any aw,
-                                   boost::any aei, bool keep_iter,
+                                   bool c_stop, size_t max_iter, std::any aw,
+                                   std::any aei, bool keep_iter,
                                    dentropy_args_t ea, bool exact,
                                    bool knn, bool keep_all, bool gradient, double h,
                                    const bisect_args_t& ba, bool allow_edges,
@@ -321,9 +321,9 @@ REGISTER_MOD
                                    bool verbose, rng_t& rng)
                                 {
                                     typedef eprop_map_t<double> wmap_t;
-                                    wmap_t w = boost::any_cast<wmap_t>(aw);
+                                    wmap_t w = std::any_cast<wmap_t>(aw);
                                     typedef eprop_map_t<int32_t> eimap_t;
-                                    eimap_t ei = boost::any_cast<eimap_t>(aei);
+                                    eimap_t ei = std::any_cast<eimap_t>(aei);
                                     std::tuple<size_t, size_t, size_t> ret;
                                     run_action<decltype(always_directed_never_filtered_never_reversed)>()
                                         (gi,

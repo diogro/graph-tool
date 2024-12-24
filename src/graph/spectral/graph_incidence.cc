@@ -31,7 +31,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void incidence(GraphInterface& g, boost::any vindex, boost::any eindex,
+void incidence(GraphInterface& g, std::any vindex, std::any eindex,
                python::object odata, python::object oi,
                python::object oj)
 {
@@ -55,7 +55,7 @@ void incidence(GraphInterface& g, boost::any vindex, boost::any eindex,
          vertex_scalar_properties, edge_scalar_properties)(vindex, eindex);
 }
 
-void incidence_matvec(GraphInterface& g, boost::any vindex, boost::any eindex,
+void incidence_matvec(GraphInterface& g, std::any vindex, std::any eindex,
                       python::object ov, python::object oret, bool transpose)
 {
     if (!belongs(vertex_scalar_properties, vindex))
@@ -73,7 +73,7 @@ void incidence_matvec(GraphInterface& g, boost::any vindex, boost::any eindex,
          vertex_scalar_properties, edge_scalar_properties)(vindex, eindex);
 }
 
-void incidence_matmat(GraphInterface& g, boost::any vindex, boost::any eindex,
+void incidence_matmat(GraphInterface& g, std::any vindex, std::any eindex,
                       python::object ov, python::object oret, bool transpose)
 {
     if (!belongs(vertex_scalar_properties, vindex))

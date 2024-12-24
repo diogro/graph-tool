@@ -50,7 +50,7 @@ struct do_astar_search
 {
     template <class GP, class DistanceMap, class PredMap, class Visitor>
     void operator()(GP& gp, size_t s, DistanceMap dist, PredMap pred,
-                    boost::any aweight, Visitor vis, pair<AStarCmp, AStarCmb> cmp,
+                    std::any aweight, Visitor vis, pair<AStarCmp, AStarCmb> cmp,
                     pair<python::object, python::object> range,
                     python::object h) const
     {
@@ -94,13 +94,13 @@ struct do_astar_search_fast
 };
 
 
-void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
-                   boost::any pred_map, boost::any weight, python::object vis,
+void a_star_search(GraphInterface& g, size_t source, std::any dist_map,
+                   std::any pred_map, std::any weight, python::object vis,
                    python::object cmp, python::object cmb, python::object zero,
                    python::object inf, python::object h)
 {
     typedef vprop_map_t<int64_t> pred_t;
-    pred_t pred = any_cast<pred_t>(pred_map);
+    pred_t pred = std::any_cast<pred_t>(pred_map);
     run_action<decltype(graph_view_ptrs), false>(false)
         (g,
          [&](auto&& gp, auto&& a2)
@@ -139,8 +139,8 @@ private:
 
 boost::python::object astar_search_generator(GraphInterface& g,
                                              size_t source,
-                                             boost::any dist_map,
-                                             boost::any weight,
+                                             std::any dist_map,
+                                             std::any weight,
                                              python::object cmp,
                                              python::object cmb,
                                              python::object zero,
@@ -171,8 +171,8 @@ boost::python::object astar_search_generator(GraphInterface& g,
 
 boost::python::object astar_search_generator_fast(GraphInterface& g,
                                                   size_t source,
-                                                  boost::any dist_map,
-                                                  boost::any weight,
+                                                  std::any dist_map,
+                                                  std::any weight,
                                                   python::object zero,
                                                   python::object inf,
                                                   python::object h)
@@ -218,8 +218,8 @@ private:
 
 boost::python::object astar_search_array(GraphInterface& g,
                                          size_t source,
-                                         boost::any dist_map,
-                                         boost::any weight,
+                                         std::any dist_map,
+                                         std::any weight,
                                          python::object cmp,
                                          python::object cmb,
                                          python::object zero,
@@ -244,8 +244,8 @@ boost::python::object astar_search_array(GraphInterface& g,
 
 boost::python::object astar_search_array_fast(GraphInterface& g,
                                               size_t source,
-                                              boost::any dist_map,
-                                              boost::any weight,
+                                              std::any dist_map,
+                                              std::any weight,
                                               python::object zero,
                                               python::object inf,
                                               python::object h)

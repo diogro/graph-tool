@@ -89,7 +89,7 @@ struct LatentClosure
         {
             std::vector<g_t*> vs;
             for (int i = 0; i < python::len(oa); ++i)
-                vs.push_back(boost::any_cast<std::shared_ptr<g_t>>(python::extract<boost::any&>(oa[i])()).get());
+                vs.push_back(std::any_cast<std::shared_ptr<g_t>>(python::extract<std::any&>(oa[i])()).get());
             return vs;
         }
 
@@ -97,7 +97,7 @@ struct LatentClosure
         {
             std::vector<emap_t::unchecked_t> vs;
             for (int i = 0; i < python::len(oa); ++i)
-                vs.push_back(boost::any_cast<emap_t>(python::extract<boost::any>(oa[i])()).get_unchecked());
+                vs.push_back(std::any_cast<emap_t>(python::extract<std::any>(oa[i])()).get_unchecked());
             return vs;
         }
 
@@ -110,15 +110,15 @@ struct LatentClosure
               _aw(get_ws(_oaw)),
               _gc(*_a[_l]),
               _gw(_aw[_l]),
-              _m(boost::any_cast<evmap_t>(python::extract<boost::any>(_om[_l])()).get_unchecked()),
-              _x(boost::any_cast<evmap_t>(python::extract<boost::any>(_ox[_l])()).get_unchecked()),
+              _m(std::any_cast<evmap_t>(python::extract<std::any>(_om[_l])()).get_unchecked()),
+              _x(std::any_cast<evmap_t>(python::extract<std::any>(_ox[_l])()).get_unchecked()),
               _ebstate(ebstate),
               _pbstate(pbstate),
               _g(_gc),
               _eweight(_gw),
               _mark(num_vertices(_g)),
-              _M(boost::any_cast<vmap_t>(python::extract<boost::any>(_oM[_l])()).get_unchecked()),
-              _E(boost::any_cast<vmap_t>(python::extract<boost::any>(_oE[_l])()).get_unchecked())
+              _M(std::any_cast<vmap_t>(python::extract<std::any>(_oM[_l])()).get_unchecked()),
+              _E(std::any_cast<vmap_t>(python::extract<std::any>(_oE[_l])()).get_unchecked())
         {
             GILRelease gil_release;
 

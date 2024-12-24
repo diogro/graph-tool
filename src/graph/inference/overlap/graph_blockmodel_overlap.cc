@@ -57,10 +57,10 @@ get_target(const Edge& e, const Graph &g)
     return std::max(source(e, g), target(e, g));
 }
 
-void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
-                    boost::any ob, boost::any onode_index,
-                    boost::any ohalf_edges, boost::any oeindex, boost::any orec,
-                    boost::any oerec)
+void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, std::any obe,
+                    std::any ob, std::any onode_index,
+                    std::any ohalf_edges, std::any oeindex, std::any orec,
+                    std::any oerec)
 {
     typedef vprop_map_t<int32_t> vmap_t;
     typedef vprop_map_t<int64_t> vimap_t;
@@ -69,13 +69,13 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
     typedef eprop_map_t<int64_t> emap_t;
     typedef eprop_map_t<vector<double>> ermap_t;
 
-    vmap_t b = any_cast<vmap_t>(ob);
-    evmap_t be = any_cast<evmap_t>(obe);
-    vimap_t node_index = any_cast<vimap_t>(onode_index);
-    vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
-    emap_t egindex = any_cast<emap_t>(oeindex);
-    ermap_t rec = any_cast<ermap_t>(orec);
-    ermap_t erec = any_cast<ermap_t>(oerec);
+    vmap_t b = std::any_cast<vmap_t>(ob);
+    evmap_t be = std::any_cast<evmap_t>(obe);
+    vimap_t node_index = std::any_cast<vimap_t>(onode_index);
+    vvmap_t half_edges = std::any_cast<vvmap_t>(ohalf_edges);
+    emap_t egindex = std::any_cast<emap_t>(oeindex);
+    ermap_t rec = std::any_cast<ermap_t>(orec);
+    ermap_t erec = std::any_cast<ermap_t>(oerec);
 
     run_action<>()(gi,
                    [&](auto& g)
@@ -103,13 +103,13 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
                    })();
 }
 
-void get_be_from_b_overlap(GraphInterface& gi, boost::any obe, boost::any ob)
+void get_be_from_b_overlap(GraphInterface& gi, std::any obe, std::any ob)
 {
     typedef vprop_map_t<int32_t>    vmap_t;
     typedef eprop_map_t<vector<int32_t>> evmap_t;
 
-    vmap_t b = any_cast<vmap_t>(ob);
-    evmap_t be = any_cast<evmap_t>(obe);
+    vmap_t b = std::any_cast<vmap_t>(ob);
+    evmap_t be = std::any_cast<evmap_t>(obe);
 
     run_action<>()(gi,
                    [&](auto& g)
@@ -140,14 +140,14 @@ struct get_nodeset_overlap
     }
 };
 
-void get_nodeset_overlap(GraphInterface& gi, boost::any onode_index,
-                         boost::any ohalf_edges)
+void get_nodeset_overlap(GraphInterface& gi, std::any onode_index,
+                         std::any ohalf_edges)
 {
     typedef vprop_map_t<int64_t> vmap_t;
     typedef vprop_map_t<vector<int64_t>> vvmap_t;
 
-    vmap_t node_index = any_cast<vmap_t>(onode_index);
-    vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
+    vmap_t node_index = std::any_cast<vmap_t>(onode_index);
+    vvmap_t half_edges = std::any_cast<vvmap_t>(ohalf_edges);
 
     run_action<>()(gi, [&](auto& g)
                    {
@@ -181,7 +181,7 @@ REGISTER_MOD
              double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
                                               double, bool)
                  = &state_t::get_move_prob;
-             void (state_t::*set_partition)(boost::any&)
+             void (state_t::*set_partition)(std::any&)
                  = &state_t::set_partition;
              void (state_t::*move_vertices)(python::object, python::object) =
                  &state_t::move_vertices;
@@ -221,10 +221,10 @@ REGISTER_MOD
                       &state_t::sync_emat)
                  .def("get_be_overlap",
                       +[](state_t& state, GraphInterface& gi,
-                          boost::any obe)
+                          std::any obe)
                       {
                           typedef eprop_map_t<vector<int32_t>> evmap_t;
-                          evmap_t be = any_cast<evmap_t>(obe);
+                          evmap_t be = std::any_cast<evmap_t>(obe);
                           run_action<>()(gi,
                                          [&](auto& g)
                                          {
@@ -232,15 +232,15 @@ REGISTER_MOD
                                          })();
                       })
                  .def("get_bv_overlap",
-                      +[](state_t& state, GraphInterface& gi, boost::any obv,
-                          boost::any obc_in, boost::any obc_out,
-                          boost::any obc_total)
+                      +[](state_t& state, GraphInterface& gi, std::any obv,
+                          std::any obc_in, std::any obc_out,
+                          std::any obc_total)
                       {
                           typedef vprop_map_t<vector<int32_t>> vvmap_t;
-                          vvmap_t bv = any_cast<vvmap_t>(obv);
-                          vvmap_t bc_in = any_cast<vvmap_t>(obc_in);
-                          vvmap_t bc_out = any_cast<vvmap_t>(obc_out);
-                          vvmap_t bc_total = any_cast<vvmap_t>(obc_total);
+                          vvmap_t bv = std::any_cast<vvmap_t>(obv);
+                          vvmap_t bc_in = std::any_cast<vvmap_t>(obc_in);
+                          vvmap_t bc_out = std::any_cast<vvmap_t>(obc_out);
+                          vvmap_t bc_total = std::any_cast<vvmap_t>(obc_total);
                           run_action<>()(gi,
                                          [&](auto& g)
                                          {
@@ -250,14 +250,14 @@ REGISTER_MOD
                                          })();
                       })
                  .def("get_overlap_split",
-                      +[](state_t& state, GraphInterface& gi, boost::any obv,
-                          boost::any ob)
+                      +[](state_t& state, GraphInterface& gi, std::any obv,
+                          std::any ob)
                       {
                           typedef vprop_map_t<int32_t> vmap_t;
                           typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-                          vvmap_t bv = any_cast<vvmap_t>(obv);
-                          vmap_t b = any_cast<vmap_t>(ob);
+                          vvmap_t bv = std::any_cast<vvmap_t>(obv);
+                          vmap_t b = std::any_cast<vmap_t>(ob);
                           run_action<>()(gi,
                                          [&](auto& g)
                                          {
@@ -265,15 +265,15 @@ REGISTER_MOD
                                          })();
                       })
                  .def("get_maj_overlap",
-                      +[](state_t&, GraphInterface& gi, boost::any obv,
-                          boost::any obc_total, boost::any ob)
+                      +[](state_t&, GraphInterface& gi, std::any obv,
+                          std::any obc_total, std::any ob)
                       {
                           typedef vprop_map_t<int32_t> vmap_t;
                           typedef vprop_map_t<vector<int32_t>> vvmap_t;
 
-                          vmap_t b = any_cast<vmap_t>(ob);
-                          vvmap_t bv = any_cast<vvmap_t>(obv);
-                          vvmap_t bc_total = any_cast<vvmap_t>(obc_total);
+                          vmap_t b = std::any_cast<vmap_t>(ob);
+                          vvmap_t bv = std::any_cast<vvmap_t>(obv);
+                          vvmap_t bc_total = std::any_cast<vvmap_t>(obc_total);
                           run_action<>()(gi,
                                          [&](auto& g)
                                          {
@@ -294,7 +294,7 @@ REGISTER_MOD
                  .def("get_any",
                       +[](state_t& state)
                       {
-                          return boost::any(&state);
+                          return std::any(&state);
                       });
 
          });

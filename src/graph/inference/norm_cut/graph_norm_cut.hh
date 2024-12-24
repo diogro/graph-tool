@@ -41,7 +41,7 @@ typedef vprop_map_t<int32_t> vmap_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(never_directed), 1))                                      \
-    ((_abg, &, boost::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                \
     ((b,, vmap_t, 0))                                                          \
     ((er, &, vector<size_t>&, 0))                                              \
     ((err, &, vector<size_t>&, 0))
@@ -64,7 +64,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     NormCutState(ATs&&... args)
         : NormCutStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _N(hard_num_vertices(_g)),
           _E(hard_num_edges(_g)),
           _bclabel(_N),

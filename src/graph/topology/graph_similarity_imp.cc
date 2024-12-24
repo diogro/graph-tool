@@ -30,29 +30,29 @@ using namespace boost;
 using namespace graph_tool;
 
 template <class Type, class Index>
-auto uncheck(boost::unchecked_vector_property_map<Type,Index>, boost::any p)
+auto uncheck(boost::unchecked_vector_property_map<Type,Index>, std::any p)
 {
-    return boost::any_cast<boost::checked_vector_property_map<Type,Index>>(p).get_unchecked();
+    return std::any_cast<boost::checked_vector_property_map<Type,Index>>(p).get_unchecked();
 }
 
 template <class T>
-auto&& uncheck(T&&, boost::any p)
+auto&& uncheck(T&&, std::any p)
 {
-    return boost::any_cast<T>(p);
+    return std::any_cast<T>(p);
 }
 
 python::object similarity_fast(GraphInterface& gi1, GraphInterface& gi2,
-                               boost::any weight1, boost::any weight2,
-                               boost::any label1, boost::any label2,
+                               std::any weight1, std::any weight2,
+                               std::any label1, std::any label2,
                                double norm, bool asym)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> ecmap_t;
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<ecmap_t>());
 
-    if (weight1.empty())
+    if (!weight1.has_value())
         weight1 = ecmap_t();
-    if (weight2.empty())
+    if (!weight2.has_value())
         weight2 = ecmap_t();
     python::object s;
     gt_dispatch<>(false)

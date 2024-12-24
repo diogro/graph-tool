@@ -59,7 +59,7 @@ namespace graph_tool
 // The specific specialization can be called at run time (and generated at
 // compile time) with the gt_dispatch() function, which takes as arguments the
 // function to be called, the type ranges of each argument (as hana::tuple), and
-// the actual parameters as boost::any values.
+// the actual parameters as std::any values.
 //
 // Example:
 //
@@ -76,7 +76,7 @@ namespace graph_tool
 // double foo = 42.0;
 // gt_dispatch<>()([](auto& g, auto val){ my _algorithm(g, val); },
 //                 all_graph_views, value_tyoes)
-//                 (g.get_graph_views(), boost::any(foo));
+//                 (g.get_graph_views(), std::any(foo));
 //
 // The above line will run my_algorithm with Graph being the appropriate graph
 // view type and ValueType being 'double' and val = 42.0.
@@ -140,13 +140,13 @@ struct gt_dispatch
                                          {
                                              using T = typename decltype(+tv[0_c])::type;
                                              auto& x = tv[1_c].get();
-                                             T* val = boost::any_cast<T>(&x);
+                                             T* val = std::any_cast<T>(&x);
                                              if (val == nullptr)
                                              {
-                                                 auto rval = boost::any_cast<std::reference_wrapper<T>>(&x);
+                                                 auto rval = std::any_cast<std::reference_wrapper<T>>(&x);
                                                  if (rval == nullptr)
                                                  {
-                                                     auto sval = boost::any_cast<std::shared_ptr<T>>(&x);
+                                                     auto sval = std::any_cast<std::shared_ptr<T>>(&x);
                                                      if (sval == nullptr)
                                                          throw stop_transform();
                                                      else

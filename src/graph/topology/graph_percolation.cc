@@ -24,16 +24,16 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
+void percolate_edge(GraphInterface& gi, std::any tree, std::any size,
                     python::object edges, python::object max_size, bool second)
 {
     typedef vprop_map_t<int64_t> tree_t;
     tree_t tree_map;
     try
     {
-        tree_map = any_cast<tree_t>(tree);
+        tree_map = std::any_cast<tree_t>(tree);
     }
-    catch (bad_any_cast&)
+    catch (std::bad_any_cast&)
     {
         throw GraphException("tree map must be a vertex property map of value type int64_t");
     }
@@ -41,9 +41,9 @@ void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
     tree_t size_map;
     try
     {
-        size_map = any_cast<tree_t>(size);
+        size_map = std::any_cast<tree_t>(size);
     }
-    catch (bad_any_cast&)
+    catch (std::bad_any_cast&)
     {
         throw GraphException("size map must be a vertex property map of value type int64_t");
     }
@@ -56,17 +56,17 @@ void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
 }
 
 
-void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
-                      boost::any visited, python::object vertices,
+void percolate_vertex(GraphInterface& gi, std::any tree, std::any size,
+                      std::any visited, python::object vertices,
                       python::object max_size, bool second)
 {
     typedef vprop_map_t<int64_t> tree_t;
     tree_t tree_map;
     try
     {
-        tree_map = any_cast<tree_t>(tree);
+        tree_map = std::any_cast<tree_t>(tree);
     }
-    catch (bad_any_cast&)
+    catch (std::bad_any_cast&)
     {
         throw GraphException("tree map must be a vertex property map of value type int64_t");
     }
@@ -74,9 +74,9 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
     tree_t size_map;
     try
     {
-        size_map = any_cast<tree_t>(size);
+        size_map = std::any_cast<tree_t>(size);
     }
-    catch (bad_any_cast&)
+    catch (std::bad_any_cast&)
     {
         throw GraphException("size map must be a vertex property map of value type int64_t");
     }
@@ -86,9 +86,9 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
     visited_t visited_map;
     try
     {
-        visited_map = any_cast<visited_t>(visited);
+        visited_map = std::any_cast<visited_t>(visited);
     }
-    catch (bad_any_cast&)
+    catch (std::bad_any_cast&)
     {
         throw GraphException("visited map must be a vertex property map of value type uint8_t");
     }

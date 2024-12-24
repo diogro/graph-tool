@@ -454,7 +454,7 @@ private:
     std::map<std::string, std::string> m_key_type;
     std::map<std::string, std::string> m_key_default;
     std::map<std::string, any> m_vertex;
-    std::vector<any> m_canonical_vertex;
+    std::vector<std::any> m_canonical_vertex;
 
     any m_active_descriptor;
     desc_kind m_descriptor_kind;

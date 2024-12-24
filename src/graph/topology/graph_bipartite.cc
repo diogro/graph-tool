@@ -68,13 +68,13 @@ struct get_bipartite
     }
 };
 
-bool is_bipartite_dispatch(GraphInterface& gi, boost::any part_map, bool find_cycle,
+bool is_bipartite_dispatch(GraphInterface& gi, std::any part_map, bool find_cycle,
                            boost::python::list cycle)
 {
     bool is_bip;
     vector<size_t> vcycle;
 
-    if (part_map.empty())
+    if (!part_map.has_value())
         part_map = dummy_property_map();
 
     auto vertex_map_types =

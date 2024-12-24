@@ -31,7 +31,7 @@ struct point_t
     size_t x, y;
 };
 
-void planar_layout(GraphInterface& gi, boost::any aembed_map, boost::any apos)
+void planar_layout(GraphInterface& gi, std::any aembed_map, std::any apos)
 {
     run_action<decltype(graph_tool::never_directed), false>()
         (gi,

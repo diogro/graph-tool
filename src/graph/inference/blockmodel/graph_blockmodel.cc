@@ -36,9 +36,9 @@ degs_map_t get_empty_degs(GraphInterface& gi)
 }
 
 template <class Prop>
-boost::any get_any(Prop& p)
+std::any get_any(Prop& p)
 {
-    return boost::any(p);
+    return std::any(p);
 }
 
 degs_map_t copy_degs(degs_map_t& degs)

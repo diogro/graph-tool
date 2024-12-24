@@ -33,11 +33,11 @@ typedef vprop_map_t<int64_t> vprop_t;
 typedef eprop_map_t<GraphInterface::edge_t> eprop_t;
 
 void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
-                         boost::any p_vprop, boost::any p_eprop,
-                         boost::any uprop, boost::any prop)
+                         std::any p_vprop, std::any p_eprop,
+                         std::any uprop, std::any prop)
 {
-    vprop_t vprop = any_cast<vprop_t>(p_vprop);
-    eprop_t eprop = any_cast<eprop_t>(p_eprop);
+    vprop_t vprop = std::any_cast<vprop_t>(p_vprop);
+    eprop_t eprop = std::any_cast<eprop_t>(p_eprop);
 
     run_action<decltype(graph_tool::always_directed)>()
         (ugi,

@@ -29,11 +29,11 @@ using namespace graph_tool;
 
 
 void get_max_matching(GraphInterface& gi, std::string initial_matching,
-                      boost::any omatching)
+                      std::any omatching)
 {
     typedef vprop_map_t<int64_t> vprop_t;
 
-    vprop_t::unchecked_t matching = any_cast<vprop_t>(omatching).get_unchecked();
+    vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
 
     run_action<decltype(graph_tool::never_directed)>()
         (gi,
@@ -71,12 +71,12 @@ void get_max_matching(GraphInterface& gi, std::string initial_matching,
          })();
 }
 
-void get_max_weighted_matching(GraphInterface& gi, boost::any oweight,
-                               boost::any omatching, bool brute_force)
+void get_max_weighted_matching(GraphInterface& gi, std::any oweight,
+                               std::any omatching, bool brute_force)
 {
     typedef vprop_map_t<int64_t> vprop_t;
 
-    vprop_t::unchecked_t matching = any_cast<vprop_t>(omatching).get_unchecked();
+    vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
 
     run_action<decltype(graph_tool::never_directed)>()
         (gi,
@@ -103,18 +103,18 @@ void get_max_weighted_matching(GraphInterface& gi, boost::any oweight,
          edge_scalar_properties)(oweight);
 }
 
-void get_max_bip_weighted_matching(GraphInterface& gi, boost::any opartition,
-                                   boost::any oweight, boost::any omatching)
+void get_max_bip_weighted_matching(GraphInterface& gi, std::any opartition,
+                                   std::any oweight, std::any omatching)
 {
     typedef vprop_map_t<int64_t> vprop_t;
 
-    vprop_t::unchecked_t matching = any_cast<vprop_t>(omatching).get_unchecked();
+    vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
 
     typedef UnityPropertyMap<int, GraphInterface::edge_t> ecmap_t;
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<ecmap_t>());
 
-    if (oweight.empty())
+    if (!oweight.has_value())
         oweight = ecmap_t();
 
     run_action<decltype(graph_tool::never_directed)>()
@@ -139,14 +139,14 @@ void get_max_bip_weighted_matching(GraphInterface& gi, boost::any opartition,
          vertex_properties, weight_props_t)(opartition, oweight);
 }
 
-void match_edges(GraphInterface& gi, boost::any omatching,
-                 boost::any oematching)
+void match_edges(GraphInterface& gi, std::any omatching,
+                 std::any oematching)
 {
     typedef vprop_map_t<int64_t> vprop_t;
     typedef eprop_map_t<uint8_t> eprop_t;
 
-    vprop_t::unchecked_t matching = any_cast<vprop_t>(omatching).get_unchecked();
-    eprop_t::unchecked_t ematching = any_cast<eprop_t>(oematching).get_unchecked();
+    vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
+    eprop_t::unchecked_t ematching = std::any_cast<eprop_t>(oematching).get_unchecked();
 
     run_action<decltype(graph_tool::never_directed)>()
         (gi,

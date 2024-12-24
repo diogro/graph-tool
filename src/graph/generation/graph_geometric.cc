@@ -27,7 +27,7 @@ using namespace boost;
 using namespace graph_tool;
 
 void geometric(GraphInterface& gi, python::object opoints, double r,
-               python::object orange, bool periodic, boost::any pos)
+               python::object orange, bool periodic, std::any pos)
 {
     python::object shape = opoints.attr("shape");
     size_t size = python::extract<size_t>(shape[0]);

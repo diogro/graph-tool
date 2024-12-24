@@ -40,9 +40,9 @@ struct get_weighted_vertex_property_dispatch
 {
     template <class Graph, class VertexWeightMap, class Vprop>
     void operator()(const Graph& g, VertexWeightMap vweight, Vprop vprop,
-                    boost::any atemp) const
+                    std::any atemp) const
     {
-        typename Vprop::checked_t temp = boost::any_cast<typename Vprop::checked_t>(atemp);
+        typename Vprop::checked_t temp = std::any_cast<typename Vprop::checked_t>(atemp);
         get_weighted_vertex_property()(g, vweight, vprop, temp.get_unchecked(num_vertices(g)));
     }
 };
@@ -52,10 +52,10 @@ struct get_vertex_sum_dispatch
 {
     template <class Graph, class CommunityGraph, class CommunityMap, class Vprop>
     void operator()(const Graph& g, CommunityGraph& cg, CommunityMap s_map,
-                    boost::any acs_map, Vprop vprop, boost::any acvprop) const
+                    std::any acs_map, Vprop vprop, std::any acvprop) const
     {
-        typename CommunityMap::checked_t cs_map = boost::any_cast<typename CommunityMap::checked_t>(acs_map);
-        typename Vprop::checked_t cvprop = boost::any_cast<typename Vprop::checked_t>(acvprop);
+        typename CommunityMap::checked_t cs_map = std::any_cast<typename CommunityMap::checked_t>(acs_map);
+        typename Vprop::checked_t cvprop = std::any_cast<typename Vprop::checked_t>(acvprop);
         get_vertex_community_property_sum()(g, cg, s_map,
                                             cs_map.get_unchecked(num_vertices(cg)), vprop,
                                             cvprop.get_unchecked(num_vertices(cg)));
@@ -64,16 +64,16 @@ struct get_vertex_sum_dispatch
 
 
 void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
-                            boost::any community_property,
-                            boost::any condensed_community_property,
-                            boost::any vweight,
+                            std::any community_property,
+                            std::any condensed_community_property,
+                            std::any vweight,
                             boost::python::list avprops)
 {
     auto weight_maps_t = hana::append(writable_vertex_scalar_properties,
                                       hana::type<no_vweight_map_t>());
 
     bool no_weight = false;
-    if (vweight.empty())
+    if (!vweight.has_value())
     {
         no_weight = true;
         vweight = no_vweight_map_t();
@@ -85,9 +85,9 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
 
     for(int i = 0; i < boost::python::len(avprops); ++i)
     {
-        boost::any vprop = boost::python::extract<any>(avprops[i][0])();
-        boost::any temp = boost::python::extract<any>(avprops[i][1])();
-        boost::any cvprop = boost::python::extract<any>(avprops[i][2])();
+        std::any vprop = boost::python::extract<std::any>(avprops[i][0])();
+        std::any temp = boost::python::extract<std::any>(avprops[i][1])();
+        std::any cvprop = boost::python::extract<std::any>(avprops[i][2])();
 
         if (!no_weight)
         {

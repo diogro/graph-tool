@@ -155,7 +155,7 @@ boost::python::object find_property_map(dynamic_property_map& map, IndexMap)
 }
 
 template <class IndexMap>
-boost::python::object find_property_map(boost::any& map, IndexMap)
+boost::python::object find_property_map(std::any& map, IndexMap)
 {
     boost::python::object pmap;
     hana::for_each(value_types,
@@ -165,10 +165,10 @@ boost::python::object find_property_map(boost::any& map, IndexMap)
                        typedef property_map_t<val_t, IndexMap> map_t;
                        try
                        {
-                           PythonPropertyMap<map_t> opmap(any_cast<map_t>(map));
+                           PythonPropertyMap<map_t> opmap(std::any_cast<map_t>(map));
                            pmap = boost::python::object(opmap);
                        }
-                       catch (bad_any_cast&) {}
+                       catch (std::bad_any_cast&) {}
                    });
     return pmap;
 }
@@ -181,7 +181,7 @@ struct check_value_type
 {
     typedef typename IndexMap::key_type key_t;
     check_value_type(IndexMap index_map, const key_t& key,
-                     const boost::any& value, dynamic_property_map*& map)
+                     const std::any& value, dynamic_property_map*& map)
         :_index_map(index_map), _key(key), _value(value), _map(map) {}
 
     template <class ValueType>
@@ -191,15 +191,15 @@ struct check_value_type
         {
             typedef property_map_t<ValueType, IndexMap> map_t;
             map_t vector_map(_index_map);
-            vector_map[_key] = any_cast<ValueType>(_value);
+            vector_map[_key] = std::any_cast<ValueType>(_value);
             _map = new boost::detail::dynamic_property_map_adaptor<map_t>
                 (vector_map);
         }
-        catch (bad_any_cast&) {}
+        catch (std::bad_any_cast&) {}
     }
     IndexMap _index_map;
     const key_t& _key;
-    const boost::any& _value;
+    const std::any& _value;
     dynamic_property_map*& _map;
 };
 
@@ -215,8 +215,8 @@ struct create_dynamic_map
     create_dynamic_map(VertexIndexMap vertex_map, EdgeIndexMap edge_map)
         :_vertex_map(vertex_map), _edge_map(edge_map) {}
     DP_SMART_PTR<dynamic_property_map> operator()(const string&,
-                                                  const boost::any& key,
-                                                  const boost::any& value)
+                                                  const std::any& key,
+                                                  const std::any& value)
     {
         dynamic_property_map* map;
         try
@@ -226,11 +226,11 @@ struct create_dynamic_map
                            {
                                typedef typename decltype(+t)::type val_t;
                                check_value_type<VertexIndexMap>(_vertex_map,
-                                                                any_cast<vertex_t>(key),
+                                                                std::any_cast<vertex_t>(key),
                                                                 value, map)(val_t());
                            });
         }
-        catch (bad_any_cast&)
+        catch (std::bad_any_cast&)
         {
             try
             {
@@ -239,11 +239,11 @@ struct create_dynamic_map
                                {
                                    typedef typename decltype(+t)::type val_t;
                                    check_value_type<EdgeIndexMap>(_edge_map,
-                                                                  any_cast<edge_t>(key),
+                                                                  std::any_cast<edge_t>(key),
                                                                   value, map)(val_t());
                                });
             }
-            catch (bad_any_cast&)
+            catch (std::bad_any_cast&)
             {
                 ConstantPropertyMap<size_t,graph_property_tag> graph_index(0);
                 hana::for_each(value_types,
@@ -252,7 +252,7 @@ struct create_dynamic_map
                                    typedef typename decltype(+t)::type val_t;
                                    check_value_type<ConstantPropertyMap<size_t,
                                                                         graph_property_tag> >
-                                       (graph_index, any_cast<graph_property_tag>(key),
+                                       (graph_index, std::any_cast<graph_property_tag>(key),
                                         value, map)(val_t());
                                });
             }
@@ -341,7 +341,7 @@ boost::python::tuple GraphInterface::read_from_file(string file,
         boost::python::dict vprops, eprops, gprops;
         if (format == "gt")
         {
-            vector<pair<string, boost::any>> agprops, avprops, aeprops;
+            vector<pair<string, std::any>> agprops, avprops, aeprops;
             stream.exceptions(ios_base::badbit | ios_base::failbit | ios_base::eofbit);
             _directed = read_graph(stream, *_mg, agprops, avprops, aeprops, igp,
                                    ivp, iep);
@@ -429,9 +429,9 @@ struct do_write_to_binary_file
 {
     template <class Graph, class IndexMap>
     void operator()(ostream& stream, Graph& g, IndexMap index_map, size_t N,
-                    bool directed, vector<pair<string, boost::any >> & gprops,
-                    vector<pair<string, boost::any >> & vprops,
-                    vector<pair<string, boost::any >> & eprops) const
+                    bool directed, vector<pair<string, std::any >> & gprops,
+                    vector<pair<string, std::any >> & vprops,
+                    vector<pair<string, std::any >> & eprops) const
     {
         write_graph(g, index_map, N, directed, gprops, vprops, eprops, stream);
     }
@@ -487,11 +487,11 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
             auto graph_properties =
                 get_prop_types<GraphInterface::graph_index_map_t>(value_types);
 
-            vector<pair<string, boost::any>> agprops, avprops, aeprops;
+            vector<pair<string, std::any>> agprops, avprops, aeprops;
             for (int i = 0; i < python::len(props); ++i)
             {
                 string name = python::extract<string>(props[i][0])();
-                boost::any p = python::extract<boost::any>(props[i][1].attr("get_map")())();
+                std::any p = python::extract<std::any>(props[i][1].attr("get_map")())();
                 if (belongs(graph_properties, p))
                     agprops.push_back(make_pair(name, p));
                 if (belongs(vertex_properties, p))
@@ -545,8 +545,8 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
             for (int i = 0; i < len(props); ++i)
             {
                 dynamic_property_map* pmap =
-                    any_cast<dynamic_property_map*>
-                    (boost::python::extract<boost::any>
+                    std::any_cast<dynamic_property_map*>
+                    (boost::python::extract<std::any>
                      (props[i][1].attr("get_dynamic_map")())());
                 dp.insert(boost::python::extract<string>(props[i][0]),
                           DP_SMART_PTR<dynamic_property_map>(pmap));

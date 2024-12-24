@@ -30,7 +30,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-python::object do_label_components(GraphInterface& gi, boost::any prop)
+python::object do_label_components(GraphInterface& gi, std::any prop)
 {
     vector<size_t> hist;
     run_action<decltype(graph_tool::all_graph_views), false>()
@@ -46,8 +46,8 @@ python::object do_label_components(GraphInterface& gi, boost::any prop)
 }
 
 python::object
-do_label_biconnected_components(GraphInterface& gi, boost::any comp,
-                                boost::any art)
+do_label_biconnected_components(GraphInterface& gi, std::any comp,
+                                std::any art)
 {
     vector<size_t> hist;
     run_action<decltype(graph_tool::never_directed)>()
@@ -64,7 +64,7 @@ do_label_biconnected_components(GraphInterface& gi, boost::any comp,
     return wrap_vector_owned(hist);
 }
 
-void do_label_out_component(GraphInterface& gi, size_t root, boost::any prop)
+void do_label_out_component(GraphInterface& gi, size_t root, std::any prop)
 {
     run_action<decltype(graph_tool::all_graph_views), false>()
         (gi,
@@ -77,7 +77,7 @@ void do_label_out_component(GraphInterface& gi, size_t root, boost::any prop)
          writable_vertex_scalar_properties)(prop);
 }
 
-void do_label_attractors(GraphInterface& gi, boost::any cprop, python::object oavec)
+void do_label_attractors(GraphInterface& gi, std::any cprop, python::object oavec)
 {
 
     multi_array_ref<bool,1> avec = get_array<bool,1>(oavec);

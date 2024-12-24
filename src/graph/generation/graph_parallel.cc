@@ -27,7 +27,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void do_label_parallel_edges(GraphInterface& gi, boost::any property,
+void do_label_parallel_edges(GraphInterface& gi, std::any property,
                              bool mark_only)
 {
     run_action<>()
@@ -41,7 +41,7 @@ void do_label_parallel_edges(GraphInterface& gi, boost::any property,
          writable_edge_scalar_properties)(property);
 }
 
-void do_label_self_loops(GraphInterface& gi, boost::any property,
+void do_label_self_loops(GraphInterface& gi, std::any property,
                          bool mark_only)
 {
     run_action<>()
@@ -55,7 +55,7 @@ void do_label_self_loops(GraphInterface& gi, boost::any property,
          writable_edge_scalar_properties)(property);
 }
 
-void do_remove_labeled_edges(GraphInterface& gi, boost::any property)
+void do_remove_labeled_edges(GraphInterface& gi, std::any property)
 {
     run_action<decltype(graph_tool::always_directed_never_reversed), false>()
         (gi,

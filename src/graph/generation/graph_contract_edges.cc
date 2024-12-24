@@ -23,16 +23,16 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void _contract_parallel_edges(GraphInterface& gi, boost::any w)
+void _contract_parallel_edges(GraphInterface& gi, std::any w)
 {
-    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge weight property must be scalar and writable");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     auto weight_maps_t = hana::append(writable_edge_scalar_properties,
                                       hana::type<weight_map_t>());
 
-    if(w.empty())
+    if (!w.has_value())
         w = weight_map_t();
 
     run_action<>()
@@ -41,16 +41,16 @@ void _contract_parallel_edges(GraphInterface& gi, boost::any w)
          weight_maps_t)(w);
 }
 
-void _expand_parallel_edges(GraphInterface& gi, boost::any w)
+void _expand_parallel_edges(GraphInterface& gi, std::any w)
 {
-    if (!w.empty() && !belongs(edge_scalar_properties, w))
+    if (w.has_value() && !belongs(edge_scalar_properties, w))
         throw ValueException("edge weight property must be scalar");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     auto weight_maps_t = hana::append(writable_edge_scalar_properties,
                                       hana::type<weight_map_t>());
 
-    if(w.empty())
+    if (!w.has_value())
         w = weight_map_t();
 
     run_action<>()

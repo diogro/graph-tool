@@ -43,13 +43,13 @@ struct get_min_cut
 
 };
 
-double min_cut(GraphInterface& gi, boost::any weight, boost::any part_map)
+double min_cut(GraphInterface& gi, std::any weight, std::any part_map)
 {
     double mc = 0;
 
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = cweight_t();
 
     auto weight_maps = hana::append(writable_edge_scalar_properties,
@@ -79,12 +79,12 @@ struct do_get_residual_graph
     }
 };
 
-void get_residual_graph(GraphInterface& gi, boost::any capacity,
-                        boost::any res, boost::any oaugment)
+void get_residual_graph(GraphInterface& gi, std::any capacity,
+                        std::any res, std::any oaugment)
 {
     typedef eprop_map_t<uint8_t>
         emap_t;
-    emap_t augment = boost::any_cast<emap_t>(oaugment);
+    emap_t augment = std::any_cast<emap_t>(oaugment);
     run_action<>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)

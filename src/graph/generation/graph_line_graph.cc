@@ -85,7 +85,7 @@ struct get_line_graph
 };
 
 void line_graph(GraphInterface& gi, GraphInterface& lgi,
-                boost::any edge_index)
+                std::any edge_index)
 {
     auto vertex_properties = hana::tuple_t<vprop_map_t<int64_t>>;
 

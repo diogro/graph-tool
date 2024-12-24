@@ -33,29 +33,29 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-python::object make_normal_bp_state(GraphInterface& gi, boost::any ax,
-                                    boost::any amu, boost::any atheta,
-                                    boost::any aem_m, boost::any aem_s,
-                                    boost::any avm_m, boost::any avm_s,
+python::object make_normal_bp_state(GraphInterface& gi, std::any ax,
+                                    std::any amu, std::any atheta,
+                                    std::any aem_m, std::any aem_s,
+                                    std::any avm_m, std::any avm_s,
                                     bool marginal_init,
-                                    boost::any afrozen, rng_t& rng)
+                                    std::any afrozen, rng_t& rng)
 {
     NormalBPState::emap_t x =
-        boost::any_cast<NormalBPState::emap_t::checked_t>(ax).get_unchecked();
+        std::any_cast<NormalBPState::emap_t::checked_t>(ax).get_unchecked();
     NormalBPState::vmap_t mu =
-        boost::any_cast<NormalBPState::vmap_t::checked_t>(amu).get_unchecked();
+        std::any_cast<NormalBPState::vmap_t::checked_t>(amu).get_unchecked();
     NormalBPState::vmap_t theta =
-        boost::any_cast<NormalBPState::vmap_t::checked_t>(atheta).get_unchecked();
+        std::any_cast<NormalBPState::vmap_t::checked_t>(atheta).get_unchecked();
     NormalBPState::emmap_t em_m =
-        boost::any_cast<NormalBPState::emmap_t::checked_t>(aem_m).get_unchecked();
+        std::any_cast<NormalBPState::emmap_t::checked_t>(aem_m).get_unchecked();
     NormalBPState::emmap_t em_s =
-        boost::any_cast<NormalBPState::emmap_t::checked_t>(aem_s).get_unchecked();
+        std::any_cast<NormalBPState::emmap_t::checked_t>(aem_s).get_unchecked();
     NormalBPState::vmap_t vm_m =
-        boost::any_cast<NormalBPState::vmap_t::checked_t>(avm_m).get_unchecked();
+        std::any_cast<NormalBPState::vmap_t::checked_t>(avm_m).get_unchecked();
     NormalBPState::vmap_t vm_s =
-        boost::any_cast<NormalBPState::vmap_t::checked_t>(avm_s).get_unchecked();
+        std::any_cast<NormalBPState::vmap_t::checked_t>(avm_s).get_unchecked();
     NormalBPState::vfmap_t frozen =
-        boost::any_cast<NormalBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
+        std::any_cast<NormalBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
 
     python::object state;
     run_action<>(false)
@@ -124,7 +124,7 @@ REGISTER_MOD
                   return lZ;
               })
          .def("energy",
-              +[](NormalBPState& state, GraphInterface& gi, boost::any as)
+              +[](NormalBPState& state, GraphInterface& gi, std::any as)
               {
                   double H = 0;
                   run_action<>()
@@ -136,7 +136,7 @@ REGISTER_MOD
                   return H;
               })
          .def("energies",
-              +[](NormalBPState& state, GraphInterface& gi, boost::any as)
+              +[](NormalBPState& state, GraphInterface& gi, std::any as)
               {
                   double H = 0;
                   run_action<>()
@@ -148,7 +148,7 @@ REGISTER_MOD
                   return H;
               })
          .def("marginal_lprob",
-              +[](NormalBPState& state, GraphInterface& gi, boost::any as)
+              +[](NormalBPState& state, GraphInterface& gi, std::any as)
               {
                   double L = 0;
                   run_action<>()
@@ -160,7 +160,7 @@ REGISTER_MOD
                   return L;
               })
          .def("marginal_lprobs",
-              +[](NormalBPState& state, GraphInterface& gi, boost::any as)
+              +[](NormalBPState& state, GraphInterface& gi, std::any as)
               {
                   double L = 0;
                   run_action<>()
@@ -172,7 +172,7 @@ REGISTER_MOD
                   return L;
               })
          .def("sample",
-              +[](NormalBPState& state, GraphInterface& gi, boost::any as, rng_t& rng)
+              +[](NormalBPState& state, GraphInterface& gi, std::any as, rng_t& rng)
               {
                   run_action<>()
                       (gi,

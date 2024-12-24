@@ -94,14 +94,14 @@ struct do_random_matching
     }
 };
 
-void random_matching(GraphInterface& gi, boost::any weight, boost::any match,
+void random_matching(GraphInterface& gi, std::any weight, std::any match,
                      bool minimize, rng_t& rng)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     auto edge_props_t = hana::append(edge_scalar_properties,
                                      hana::type<weight_map_t>());
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     run_action<>()

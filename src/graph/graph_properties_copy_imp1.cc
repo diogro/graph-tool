@@ -26,8 +26,8 @@ using namespace boost;
 using namespace graph_tool;
 
 void GraphInterface::copy_edge_property(const GraphInterface& src,
-                                        boost::any prop_src,
-                                        boost::any prop_tgt)
+                                        std::any prop_src,
+                                        std::any prop_tgt)
 {
     gt_dispatch<>()
         (
@@ -44,8 +44,8 @@ void GraphInterface::copy_edge_property(const GraphInterface& src,
 
 void copy_external_edge_property(const GraphInterface& src,
                                  const GraphInterface& tgt,
-                                 boost::any prop_src,
-                                 boost::any prop_tgt)
+                                 std::any prop_src,
+                                 std::any prop_tgt)
 {
     gt_dispatch<>()
         (

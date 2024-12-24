@@ -184,7 +184,7 @@ public:
         return in_deg;
     }
 
-    boost::python::object get_weighted_in_degree(boost::any pmap) const
+    boost::python::object get_weighted_in_degree(std::any pmap) const
     {
         check_valid();
         std::shared_ptr<Graph> gp = _g.lock();
@@ -211,7 +211,7 @@ public:
     }
 
 
-    boost::python::object get_weighted_out_degree(boost::any pmap) const
+    boost::python::object get_weighted_out_degree(std::any pmap) const
     {
         check_valid();
         std::shared_ptr<Graph> gp = _g.lock();
@@ -501,12 +501,12 @@ public:
             return type_names[hana::index_if(value_types, hana::equal.to(hana::type<value_type>())).value().value];
     }
 
-    boost::any get_map() const
+    std::any get_map() const
     {
         return _pmap;
     }
 
-    boost::any get_dynamic_map() const
+    std::any get_dynamic_map() const
     {
         return (boost::dynamic_property_map*)
             (new boost::detail::dynamic_property_map_adaptor<PropertyMap>
@@ -645,7 +645,7 @@ struct new_property_map
 {
     template <class ValueType, class IndexMap>
     void operator()(ValueType, IndexMap index, const std::string& type_name,
-                    boost::any pmap, boost::python::object& new_prop, bool& found) const
+                    std::any pmap, boost::python::object& new_prop, bool& found) const
     {
         constexpr size_t i =
             hana::index_if(value_types,
@@ -654,10 +654,10 @@ struct new_property_map
         {
             typedef property_map_t<ValueType, IndexMap> map_t;
             map_t prop;
-            if (pmap.empty())
+            if (!pmap.has_value())
                 prop = map_t(index);
             else
-                prop = boost::any_cast<map_t>(pmap);
+                prop = std::any_cast<map_t>(pmap);
 
             new_prop = boost::python::object(PythonPropertyMap<map_t>(prop));
             found = true;
@@ -667,7 +667,7 @@ struct new_property_map
 
 template <class IndexMap>
 boost::python::object new_property(const std::string& type, IndexMap index_map,
-                                   boost::any pmap)
+                                   std::any pmap)
 {
     boost::python::object prop;
     bool found = false;

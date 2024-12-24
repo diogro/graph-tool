@@ -42,8 +42,8 @@ typedef std::vector<bmap_t> vbmap_t;
 
 #define LAYERED_BLOCK_STATE_params                                             \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((alayer_states,, std::vector<boost::any>, 0))                             \
-    ((ablock_rmaps,, std::vector<boost::any>, 0))                              \
+    ((alayer_states,, std::vector<std::any>, 0))                             \
+    ((ablock_rmaps,, std::vector<std::any>, 0))                              \
     ((ec,, emap_t, 0))                                                         \
     ((vc,, vcvmap_t, 0))                                                       \
     ((vmap,, vcvmap_t, 0))                                                     \
@@ -221,8 +221,8 @@ struct Layers
             _layers.reserve(_alayer_states.size());
             for (size_t l = 0; l < _alayer_states.size(); ++l)
             {
-                BaseState* lstate = boost::any_cast<BaseState*>(_alayer_states[l]);
-                block_rmap_t block_rmap = boost::any_cast<block_rmap_t>(_ablock_rmaps[l]);
+                BaseState* lstate = std::any_cast<BaseState*>(_alayer_states[l]);
+                block_rmap_t block_rmap = std::any_cast<block_rmap_t>(_ablock_rmaps[l]);
                 bmap_t& block_map = _block_map[l];
                 _layers.emplace_back(*lstate, *this, block_map, block_rmap, l);
                 if (lstate->_bgp)
@@ -241,8 +241,8 @@ struct Layers
         template <size_t... Is>
         LayeredBlockState* deep_copy(index_sequence<Is...>)
         {
-            std::vector<boost::any> lstates;
-            std::vector<boost::any> rmaps;
+            std::vector<std::any> lstates;
+            std::vector<std::any> rmaps;
             for (auto& lstate : _layers)
             {
                 BaseState* nlstate = lstate.deep_copy();
@@ -302,7 +302,7 @@ struct Layers
             return state;
         }
 
-        virtual LayeredBlockState* deep_copy(boost::any)
+        virtual LayeredBlockState* deep_copy(std::any)
         {
             auto* state = deep_copy(make_index_sequence<sizeof...(Ts)>{});
             return state;
@@ -310,7 +310,7 @@ struct Layers
 
         virtual LayeredBlockState* deep_copy()
         {
-            return deep_copy(boost::any());
+            return deep_copy(std::any());
         }
 
         virtual void deep_assign(const BlockStateVirtualBase& state_)
@@ -578,10 +578,10 @@ struct Layers
                 LayeredBlockState::move_vertex(v, b[v]);
         }
 
-        void set_partition(boost::any& ab)
+        void set_partition(std::any& ab)
         {
             typename BaseState::b_t::checked_t& b
-                = boost::any_cast<typename BaseState::b_t::checked_t&>(ab);
+                = std::any_cast<typename BaseState::b_t::checked_t&>(ab);
             set_partition(b.get_unchecked());
         }
 

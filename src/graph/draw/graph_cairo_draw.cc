@@ -145,7 +145,7 @@ enum edge_marker_t {
 
 typedef pair<double, double> pos_t;
 typedef std::tuple<double, double, double, double> color_t;
-typedef gt_hash_map<int, boost::any> attrs_t;
+typedef gt_hash_map<int, std::any> attrs_t;
 
 inline constexpr auto attr_types =
     hana::make_map(
@@ -448,14 +448,14 @@ public:
         if (iter != _attrs.end())
         {
             typedef DynamicPropertyMapWrap<Value, Descriptor, Converter> pmap_t;
-            pmap_t pmap(any_cast<pmap_t>(iter->second));
+            pmap_t pmap(std::any_cast<pmap_t>(iter->second));
             return pmap.get(_descriptor);
         }
         try
         {
-            return any_cast<Value>(_defaults[k]);
+            return std::any_cast<Value>(_defaults[k]);
         }
-        catch (bad_any_cast&)
+        catch (std::bad_any_cast&)
         {
             throw ValueException("Error getting attribute " + lexical_cast<string>(k) +
                                  ", wanted: " + name_demangle(typeid(Value).name()) +
@@ -1724,8 +1724,8 @@ void populate_attrs(PropMaps ps, boost::python::dict vattrs, attrs_t& attrs)
     boost::python::list items = vattrs.items();
     for (int i = 0; i < boost::python::len(items); ++i)
     {
-        boost::any oattr = boost::python::extract<boost::any>(items[i][1])();
-        boost::any pmap;
+        std::any oattr = boost::python::extract<std::any>(items[i][1])();
+        std::any pmap;
         int type = boost::python::extract<int>(items[i][0])();
         hana::for_each(attr_types,
                        [&](auto t)
@@ -1745,7 +1745,7 @@ void populate_defaults(boost::python::dict odefaults, attrs_t& defaults)
     for (int i = 0; i < boost::python::len(items); ++i)
     {
         boost::python::object odval = items[i][1];
-        boost::any dval;
+        std::any dval;
         int type = boost::python::extract<int>(items[i][0])();
         hana::for_each(attr_types,
                        [&](auto t)
@@ -1754,7 +1754,7 @@ void populate_defaults(boost::python::dict odefaults, attrs_t& defaults)
                            if (type == hana::first(t).value)
                                dval = boost::python::extract<val_t>(odval)();
                        });
-        if (dval.empty())
+        if (!dval.has_value())
             throw ValueException("Invalid attribute type.");
         defaults[type] = dval;
     }
@@ -1807,9 +1807,9 @@ struct do_cairo_draw_vertices
 };
 
 boost::python::object cairo_draw(GraphInterface& gi,
-                                 boost::any pos,
-                                 boost::any vorder,
-                                 boost::any eorder,
+                                 std::any pos,
+                                 std::any vorder,
+                                 std::any eorder,
                                  bool nodesfirst,
                                  boost::python::dict ovattrs,
                                  boost::python::dict oeattrs,
@@ -1842,9 +1842,9 @@ boost::python::object cairo_draw(GraphInterface& gi,
             auto eorder_t = hana::append(edge_scalar_properties,
                                          hana::type<no_order>());
 
-            if (vorder.empty())
+            if (!vorder.has_value())
                 vorder = no_order();
-            if (eorder.empty())
+            if (!eorder.has_value())
                 eorder = no_order();
 
             size_t count = 0;
@@ -1926,7 +1926,7 @@ struct do_apply_transforms
     }
 };
 
-void apply_transforms(GraphInterface& gi, boost::any pos, double xx, double yx,
+void apply_transforms(GraphInterface& gi, std::any pos, double xx, double yx,
                       double xy, double yy, double x0, double y0)
 {
     Cairo::Matrix m(xx, yx, xy, yy, x0, y0);
@@ -2070,9 +2070,9 @@ struct do_put_parallel_splines
     }
 };
 
-void put_parallel_splines(GraphInterface& gi, boost::any opos,
-                          boost::any ol, boost::any splines,
-                          boost::any loop_angle,
+void put_parallel_splines(GraphInterface& gi, std::any opos,
+                          std::any ol, std::any splines,
+                          std::any loop_angle,
                           double parallel_distance)
 {
     DynamicPropertyMapWrap<vector<double>, GraphInterface::vertex_t>
@@ -2212,8 +2212,8 @@ struct enum_from_int
     }
 };
 
-void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
-             boost::any obeta, boost::any octs, bool, size_t);
+void get_cts(GraphInterface& gi, GraphInterface& tgi, std::any otpos,
+             std::any obeta, std::any octs, bool, size_t);
 
 BOOST_PYTHON_MODULE(libgraph_tool_draw)
 {

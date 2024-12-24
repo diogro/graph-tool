@@ -52,7 +52,7 @@ get_vertex_combined_correlation_histogram(GraphInterface& gi,
          all_selectors, all_selectors,
          boost::hana::tuple_t<dummy_weight>)
         (any(degree_selector(deg1)), any(degree_selector(deg2)),
-         boost::any(dummy_weight()));
+         std::any(dummy_weight()));
 
     return boost::python::make_tuple(hist, ret_bins);
 }

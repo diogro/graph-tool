@@ -65,7 +65,7 @@ struct add_edge_list
 
                 typedef typename graph_traits<Graph>::edge_descriptor edge_t;
                 vector<DynamicPropertyMapWrap<Value, edge_t>> eprops;
-                python::stl_input_iterator<boost::any> iter(oeprops), end;
+                python::stl_input_iterator<std::any> iter(oeprops), end;
                 for (; iter != end; ++iter)
                     eprops.emplace_back(*iter, writable_edge_properties);
 
@@ -135,7 +135,7 @@ struct add_edge_list_iter
     {
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
-        python::stl_input_iterator<boost::any> piter(oeprops), pend;
+        python::stl_input_iterator<std::any> piter(oeprops), pend;
         for (; piter != pend; ++piter)
             eprops.emplace_back(*piter, writable_edge_properties);
 
@@ -248,7 +248,7 @@ struct add_edge_list_hash
 
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         vector<DynamicPropertyMapWrap<val_t, edge_t>> eprops;
-        python::stl_input_iterator<boost::any> iter(oeprops), end;
+        python::stl_input_iterator<std::any> iter(oeprops), end;
         for (; iter != end; ++iter)
             eprops.emplace_back(*iter, writable_edge_properties);
 
@@ -303,7 +303,7 @@ struct add_edge_list_hash
 
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
-        python::stl_input_iterator<boost::any> piter(oeprops), pend;
+        python::stl_input_iterator<std::any> piter(oeprops), pend;
         for (; piter != pend; ++piter)
             eprops.emplace_back(*piter, writable_edge_properties);
 
@@ -369,7 +369,7 @@ struct add_edge_list_hash
 };
 
 void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
-                             boost::any& vertex_map,
+                             std::any& vertex_map,
                              python::object eprops)
 {
     run_action<decltype(all_graph_views), false>(false)

@@ -44,15 +44,15 @@ struct get_community_network_edges_dispatch
     template <class Graph, class CommunityGraph, class CommunityMap,
               class EdgeWeightMap, class EdgeIndex>
     void operator()(const Graph& g, CommunityGraph& cg, EdgeIndex cedge_index,
-                    CommunityMap s_map, boost::any acs_map,
-                    EdgeWeightMap eweight, boost::any ecount) const
+                    CommunityMap s_map, std::any acs_map,
+                    EdgeWeightMap eweight, std::any ecount) const
     {
-        typename CommunityMap::checked_t cs_map = boost::any_cast<typename CommunityMap::checked_t>(acs_map);
+        typename CommunityMap::checked_t cs_map = std::any_cast<typename CommunityMap::checked_t>(acs_map);
 
         typedef typename boost::mpl::if_<std::is_same<no_eweight_map_t, EdgeWeightMap>,
                                          ecount_map_t, EdgeWeightMap>::type eweight_t;
 
-        typename eweight_t::checked_t edge_count = boost::any_cast<typename eweight_t::checked_t>(ecount);
+        typename eweight_t::checked_t edge_count = std::any_cast<typename eweight_t::checked_t>(ecount);
         get_community_network_edges()(g, cg, cedge_index, s_map,
                                       cs_map, eweight, edge_count,
                                       _self_loops, _parallel_edges);
@@ -61,15 +61,15 @@ struct get_community_network_edges_dispatch
 
 
 void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
-                             boost::any community_property,
-                             boost::any condensed_community_property,
-                             boost::any edge_count, boost::any eweight,
+                             std::any community_property,
+                             std::any condensed_community_property,
+                             std::any edge_count, std::any eweight,
                              bool self_loops, bool parallel_edges)
 {
     auto eweight_properties = hana::append(writable_edge_scalar_properties,
                                            hana::type<no_eweight_map_t>());
 
-    if (eweight.empty())
+    if (!eweight.has_value())
         eweight = no_eweight_map_t();
 
     run_action<>()

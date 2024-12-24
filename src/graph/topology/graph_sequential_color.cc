@@ -34,8 +34,8 @@ struct get_coloring
     }
 };
 
-size_t sequential_coloring(GraphInterface& gi, boost::any order,
-                           boost::any color)
+size_t sequential_coloring(GraphInterface& gi, std::any order,
+                           std::any color)
 {
     auto int_properties = hana::tuple_t<vprop_map_t<int32_t>,
                                         vprop_map_t<int64_t>>;

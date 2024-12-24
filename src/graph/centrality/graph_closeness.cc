@@ -27,10 +27,10 @@
 using namespace std;
 using namespace graph_tool;
 
-void do_get_closeness(GraphInterface& gi, boost::any weight,
-                      boost::any closeness, bool harmonic, bool norm)
+void do_get_closeness(GraphInterface& gi, std::any weight,
+                      std::any closeness, bool harmonic, bool norm)
 {
-    if (weight.empty())
+    if (!weight.has_value())
     {
         run_action<>()
             (gi,

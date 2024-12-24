@@ -67,8 +67,8 @@ template <class Map>
 Map get_pmap(python::object o)
 {
     o = o.attr("_get_any")();
-    boost::any& a = python::extract<boost::any&>(o);
-    Map m = boost::any_cast<typename Map::checked_t>(a).get_unchecked();
+    std::any& a = python::extract<std::any&>(o);
+    Map m = std::any_cast<typename Map::checked_t>(a).get_unchecked();
     return m;
 }
 
@@ -95,8 +95,8 @@ public:
         if constexpr (weighted)
         {
             obeta = obeta.attr("_get_any")();
-            boost::any& abeta = python::extract<boost::any&>(obeta);
-            _beta = boost::any_cast<typename beta_t::checked_t>(abeta).get_unchecked();
+            std::any& abeta = python::extract<std::any&>(obeta);
+            _beta = std::any_cast<typename beta_t::checked_t>(abeta).get_unchecked();
         }
         else
         {
@@ -541,8 +541,8 @@ public:
     template <class Graph, class RNG>
     binary_threshold_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
           _r(python::extract<double>(params["r"])) {};
 
     template <bool sync, class Graph, class RNG>
@@ -587,8 +587,8 @@ public:
     template <class Graph, class RNG>
     ising_glauber_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
           _beta(python::extract<double>(params["beta"])) {};
 
     template <bool sync, class Graph, class RNG>
@@ -625,8 +625,8 @@ public:
     template <class Graph, class RNG>
     cising_glauber_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
           _beta(python::extract<double>(params["beta"])) {};
 
     template <bool sync, class Graph, class RNG>
@@ -676,8 +676,8 @@ public:
     template <class Graph, class RNG>
     ising_metropolis_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
           _beta(python::extract<double>(params["beta"])) {};
 
     template <bool sync, class Graph, class RNG>
@@ -831,8 +831,8 @@ public:
     template <class Graph, class RNG>
     potts_glauber_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
           _f(get_array<double, 2>(params["f"])), _q(_f.shape()[0]), _m(_q) {};
 
     template <bool sync, class Graph, class RNG>
@@ -895,8 +895,8 @@ public:
     potts_metropolis_state(Graph&, smap_t s, smap_t s_temp, python::dict params,
                            RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _h(any_cast<hmap_t::checked_t>(python::extract<any>(params["h"].attr("_get_any")())()).get_unchecked()),
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
           _f(get_array<double, 2>(params["f"])), _q(_f.shape()[0]), _m(_q) {};
 
     template <bool sync, class Graph, class RNG>
@@ -1030,7 +1030,7 @@ public:
     template <class Graph, class RNG>
     boolean_state(Graph& g, smap_t s, smap_t s_temp, python::dict params, RNG& rng)
         : discrete_state_base(s, s_temp),
-          _f(any_cast<fmap_t::checked_t>(python::extract<any>(params["f"].attr("_get_any")())()).get_unchecked()),
+          _f(std::any_cast<fmap_t::checked_t>(python::extract<std::any>(params["f"].attr("_get_any")())()).get_unchecked()),
           _r(python::extract<double>(params["r"]))
     {
         double p = python::extract<double>(params["p"]);
@@ -1087,8 +1087,8 @@ public:
     template <class Graph, class RNG>
     normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _sigma(any_cast<hmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()) {}
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _sigma(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["sigma"].attr("_get_any")())()).get_unchecked()) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -1125,8 +1125,8 @@ public:
     template <class Graph, class RNG>
     linear_normal_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
-          _w(any_cast<wmap_t::checked_t>(python::extract<any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _sigma(any_cast<hmap_t::checked_t>(python::extract<any>(params["sigma"].attr("_get_any")())()).get_unchecked()) {}
+          _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
+          _sigma(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["sigma"].attr("_get_any")())()).get_unchecked()) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)

@@ -43,11 +43,11 @@ graph_tool::DispatchNotFound::DispatchNotFound(const type_info& dispatch,
 
 
 // gets the correct graph view at run time
-boost::any GraphInterface::get_graph_view() const
+std::any GraphInterface::get_graph_view() const
 {
     size_t pos = 0;
 
-    auto check_filt = [&](auto& u) -> boost::any
+    auto check_filt = [&](auto& u) -> std::any
         {
             typedef std::remove_const_t<std::remove_reference_t<decltype(*u)>>
                 g_t;
@@ -70,7 +70,7 @@ boost::any GraphInterface::get_graph_view() const
                 if (pos >= gviews.size())
                     gviews.resize(pos + 1);
                 auto& a = gviews[pos];
-                if (a.empty())
+                if (!a.has_value())
                     a = std::make_shared<fg_t>(*u, e_filter, v_filter);
                 return a;
             }
@@ -80,7 +80,7 @@ boost::any GraphInterface::get_graph_view() const
             }
         };
 
-    auto check_reverse = [&](auto& u) -> boost::any
+    auto check_reverse = [&](auto& u) -> std::any
         {
             if (_reversed)
             {
@@ -94,7 +94,7 @@ boost::any GraphInterface::get_graph_view() const
             return check_filt(u);
         };
 
-    auto check_directed = [&](auto& u) -> boost::any
+    auto check_directed = [&](auto& u) -> std::any
         {
             if (_directed)
                 return check_reverse(u);
@@ -147,13 +147,13 @@ void GraphInterface::purge_edges()
 
 // this will definitively remove all the vertices from the graph, which are
 // being currently filtered out. This will also disable the vertex filter
-void GraphInterface::purge_vertices(boost::any aold_index)
+void GraphInterface::purge_vertices(std::any aold_index)
 {
     if (!is_vertex_filter_active())
         return;
 
     typedef vprop_map_t<int64_t> index_prop_t;
-    index_prop_t old_index = any_cast<index_prop_t>(aold_index);
+    index_prop_t old_index = std::any_cast<index_prop_t>(aold_index);
 
     MaskFilter<vertex_filter_t> filter(_vertex_filter_map);
     size_t N = num_vertices(*_mg);
@@ -176,33 +176,33 @@ void GraphInterface::purge_vertices(boost::any aold_index)
         old_index[vertex((N - 1) - i, *_mg)] = old_indices[i];
 }
 
-void GraphInterface::set_vertex_filter_property(boost::any property)
+void GraphInterface::set_vertex_filter_property(std::any property)
 {
     try
     {
         _vertex_filter_map =
-            any_cast<vertex_filter_t::checked_t>(property).get_unchecked();
+            std::any_cast<vertex_filter_t::checked_t>(property).get_unchecked();
         _vertex_filter_active = true;
     }
-    catch(bad_any_cast&)
+    catch (std::bad_any_cast&)
     {
-        if (!property.empty())
+        if (property.has_value())
             throw GraphException("Invalid vertex filter property!");
         _vertex_filter_active = false;
     }
 }
 
-void GraphInterface::set_edge_filter_property(boost::any property)
+void GraphInterface::set_edge_filter_property(std::any property)
 {
     try
     {
         _edge_filter_map =
-            any_cast<edge_filter_t::checked_t>(property).get_unchecked();
+            std::any_cast<edge_filter_t::checked_t>(property).get_unchecked();
         _edge_filter_active = true;
     }
     catch(bad_any_cast&)
     {
-        if (!property.empty())
+        if (property.has_value())
             throw GraphException("Invalid edge filter property!");
         _edge_filter_active = false;
     }

@@ -38,7 +38,7 @@ boost::python::object
 get_vertex_correlation_histogram(GraphInterface& gi,
                                  GraphInterface::deg_t deg1,
                                  GraphInterface::deg_t deg2,
-                                 boost::any weight,
+                                 std::any weight,
                                  const vector<long double>& xbin,
                                  const vector<long double>& ybin)
 {
@@ -53,7 +53,7 @@ get_vertex_correlation_histogram(GraphInterface& gi,
     typedef DynamicPropertyMapWrap<long double, GraphInterface::edge_t>
         wrapped_weight_t;
 
-    if (!weight.empty())
+    if (weight.has_value())
         weight_prop = wrapped_weight_t(weight, edge_scalar_properties);
     else
         weight_prop = cweight_map_t();

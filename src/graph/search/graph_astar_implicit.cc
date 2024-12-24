@@ -34,8 +34,8 @@ using namespace graph_tool;
 struct do_astar_search
 {
     template <class GP, class DistanceMap, class Visitor>
-    void operator()(GP& gp, size_t s, DistanceMap dist, pair<boost::any,
-                    boost::any> pc, boost::any aweight, Visitor vis,
+    void operator()(GP& gp, size_t s, DistanceMap dist, pair<std::any,
+                    std::any> pc, std::any aweight, Visitor vis,
                     pair<AStarCmp, AStarCmb> cmp, pair<python::object,
                     python::object> range, python::object h) const
     {
@@ -55,8 +55,8 @@ struct do_astar_search
                                                        edge_properties);
         astar_search_no_init(g, vertex(s, g),
                              AStarH<GP, dtype_t>(gp, h), vis,
-                             any_cast<pred_t>(pc.first),
-                             any_cast<DistanceMap>(pc.second), dist, weight,
+                             std::any_cast<pred_t>(pc.first),
+                             std::any_cast<DistanceMap>(pc.second), dist, weight,
                              color, get(vertex_index, g), cmp.first,
                              cmp.second, i, z);
     }
@@ -70,8 +70,8 @@ inline constexpr auto graph_view_ptrs =
                     });
 
 void a_star_search_implicit(GraphInterface& g, size_t source,
-                            boost::any dist_map, boost::any pred,
-                            boost::any cost, boost::any weight,
+                            std::any dist_map, std::any pred,
+                            std::any cost, std::any weight,
                             python::object vis, python::object cmp,
                             python::object cmb, python::object zero,
                             python::object inf, python::object h)

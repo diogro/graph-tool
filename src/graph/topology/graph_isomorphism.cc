@@ -68,17 +68,17 @@ struct check_iso
 };
 
 bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
-                       boost::any ainv_map1, boost::any ainv_map2,
-                       int64_t max_inv, boost::any aiso_map)
+                       std::any ainv_map1, std::any ainv_map2,
+                       int64_t max_inv, std::any aiso_map)
 {
     bool result;
 
     typedef vprop_map_t<int32_t> iso_map_t;
-    auto iso_map = any_cast<iso_map_t>(aiso_map);
+    auto iso_map = std::any_cast<iso_map_t>(aiso_map);
 
     typedef vprop_map_t<int64_t> inv_map_t;
-    auto inv_map1 = any_cast<inv_map_t>(ainv_map1);
-    auto inv_map2 = any_cast<inv_map_t>(ainv_map2);
+    auto inv_map1 = std::any_cast<inv_map_t>(ainv_map1);
+    auto inv_map2 = std::any_cast<inv_map_t>(ainv_map2);
 
     if (gi1.get_directed() != gi2.get_directed())
         return false;

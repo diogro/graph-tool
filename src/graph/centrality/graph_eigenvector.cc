@@ -23,10 +23,10 @@
 using namespace std;
 using namespace graph_tool;
 
-long double eigenvector(GraphInterface& g, boost::any w, boost::any c,
+long double eigenvector(GraphInterface& g, std::any w, std::any c,
                         double epsilon, size_t max_iter)
 {
-    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge property must be writable");
     if (!belongs(vertex_floating_properties, c))
         throw ValueException("vertex property must be of floating point"
@@ -36,7 +36,7 @@ long double eigenvector(GraphInterface& g, boost::any w, boost::any c,
     auto weight_props = hana::append(writable_edge_scalar_properties,
                                     hana::type<weight_map_t>());
 
-    if(w.empty())
+    if (!w.has_value())
         w = weight_map_t();
 
     long double eig = 0;

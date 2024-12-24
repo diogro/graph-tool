@@ -31,9 +31,9 @@ inline constexpr auto weight_props_t = hana::append(edge_scalar_properties,
                                                     hana::type<ecmap_t>());
 
 
-void get_dice_similarity(GraphInterface& gi, boost::any as, boost::any weight)
+void get_dice_similarity(GraphInterface& gi, std::any as, std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -50,9 +50,9 @@ void get_dice_similarity(GraphInterface& gi, boost::any as, boost::any weight)
         (gi.get_graph_view(), as, weight);
 }
 
-void get_salton_similarity(GraphInterface& gi, boost::any as, boost::any weight)
+void get_salton_similarity(GraphInterface& gi, std::any as, std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -69,9 +69,9 @@ void get_salton_similarity(GraphInterface& gi, boost::any as, boost::any weight)
         (gi.get_graph_view(), as, weight);
 }
 
-void get_hub_promoted_similarity(GraphInterface& gi, boost::any as, boost::any weight)
+void get_hub_promoted_similarity(GraphInterface& gi, std::any as, std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -88,9 +88,9 @@ void get_hub_promoted_similarity(GraphInterface& gi, boost::any as, boost::any w
         (gi.get_graph_view(), as, weight);
 }
 
-void get_hub_suppressed_similarity(GraphInterface& gi, boost::any as, boost::any weight)
+void get_hub_suppressed_similarity(GraphInterface& gi, std::any as, std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -108,12 +108,12 @@ void get_hub_suppressed_similarity(GraphInterface& gi, boost::any as, boost::any
 }
 
 void get_dice_similarity_pairs(GraphInterface& gi, python::object opairs,
-                               python::object osim, boost::any weight)
+                               python::object osim, std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -130,12 +130,12 @@ void get_dice_similarity_pairs(GraphInterface& gi, python::object opairs,
 }
 
 void get_salton_similarity_pairs(GraphInterface& gi, python::object opairs,
-                                 python::object osim, boost::any weight)
+                                 python::object osim, std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -152,12 +152,12 @@ void get_salton_similarity_pairs(GraphInterface& gi, python::object opairs,
 }
 
 void get_hub_promoted_similarity_pairs(GraphInterface& gi, python::object opairs,
-                                       python::object osim, boost::any weight)
+                                       python::object osim, std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -174,12 +174,12 @@ void get_hub_promoted_similarity_pairs(GraphInterface& gi, python::object opairs
 }
 
 void get_hub_suppressed_similarity_pairs(GraphInterface& gi, python::object opairs,
-                                       python::object osim, boost::any weight)
+                                       python::object osim, std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -195,9 +195,9 @@ void get_hub_suppressed_similarity_pairs(GraphInterface& gi, python::object opai
         (gi.get_graph_view(), weight);
 }
 
-void get_jaccard_similarity(GraphInterface& gi, boost::any as, boost::any weight)
+void get_jaccard_similarity(GraphInterface& gi, std::any as, std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -215,12 +215,12 @@ void get_jaccard_similarity(GraphInterface& gi, boost::any as, boost::any weight
 }
 
 void get_jaccard_similarity_pairs(GraphInterface& gi, python::object opairs,
-                                  python::object osim, boost::any weight)
+                                  python::object osim, std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -236,10 +236,10 @@ void get_jaccard_similarity_pairs(GraphInterface& gi, python::object opairs,
         (gi.get_graph_view(), weight);
 }
 
-void get_inv_log_weight_similarity(GraphInterface& gi, boost::any as,
-                                   boost::any weight)
+void get_inv_log_weight_similarity(GraphInterface& gi, std::any as,
+                                   std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -259,12 +259,12 @@ void get_inv_log_weight_similarity(GraphInterface& gi, boost::any as,
 void get_inv_log_weight_similarity_pairs(GraphInterface& gi,
                                          python::object opairs,
                                          python::object osim,
-                                         boost::any weight)
+                                         std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -280,10 +280,10 @@ void get_inv_log_weight_similarity_pairs(GraphInterface& gi,
         (gi.get_graph_view(), weight);
 }
 
-void get_r_allocation_similarity(GraphInterface& gi, boost::any as,
-                                 boost::any weight)
+void get_r_allocation_similarity(GraphInterface& gi, std::any as,
+                                 std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -303,12 +303,12 @@ void get_r_allocation_similarity(GraphInterface& gi, boost::any as,
 void get_r_allocation_similarity_pairs(GraphInterface& gi,
                                        python::object opairs,
                                        python::object osim,
-                                       boost::any weight)
+                                       std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -324,10 +324,10 @@ void get_r_allocation_similarity_pairs(GraphInterface& gi,
         (gi.get_graph_view(), weight);
 }
 
-void get_leicht_holme_newman_similarity(GraphInterface& gi, boost::any as,
-                                 boost::any weight)
+void get_leicht_holme_newman_similarity(GraphInterface& gi, std::any as,
+                                 std::any weight)
 {
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()
@@ -347,12 +347,12 @@ void get_leicht_holme_newman_similarity(GraphInterface& gi, boost::any as,
 void get_leicht_holme_newman_similarity_pairs(GraphInterface& gi,
                                               python::object opairs,
                                               python::object osim,
-                                              boost::any weight)
+                                              std::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
-    if (weight.empty())
+    if (!weight.has_value())
         weight = ecmap_t();
 
     gt_dispatch<>()

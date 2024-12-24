@@ -24,7 +24,7 @@ using namespace graph_tool;
 using namespace boost;
 
 void predecessor_graph(GraphInterface& gi, GraphInterface& gpi,
-                       boost::any pred_map)
+                       std::any pred_map)
 {
     run_action<>()
         (gi,

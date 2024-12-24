@@ -34,7 +34,7 @@ struct get_dominator_tree
     }
 };
 
-void dominator_tree(GraphInterface& gi, size_t entry, boost::any pred_map)
+void dominator_tree(GraphInterface& gi, size_t entry, std::any pred_map)
 {
     auto pred_properties = hana::tuple_t<vprop_map_t<int32_t>>;
 

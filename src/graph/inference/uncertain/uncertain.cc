@@ -89,10 +89,10 @@ REGISTER_MOD
                           .def("add_edge", &state_t::add_edge)
                           .def("set_state",
                                +[](state_t& state, GraphInterface& gi,
-                                   boost::any aw)
+                                   std::any aw)
                                 {
                                     typedef eprop_map_t<int32_t> emap_t;
-                                    auto w = any_cast<emap_t>(aw).get_unchecked();
+                                    auto w = std::any_cast<emap_t>(aw).get_unchecked();
                                     gt_dispatch<>()
                                         ([&](auto& g)
                                          { set_state(state, g, w); },

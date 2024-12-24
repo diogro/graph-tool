@@ -65,12 +65,12 @@ private:
 };
 
 template <class State>
-python::object make_state(GraphInterface& gi, boost::any as, boost::any as_diff,
+python::object make_state(GraphInterface& gi, std::any as, std::any as_diff,
                           python::dict params, rng_t& rng)
 {
     typedef typename State::smap_t::checked_t smap_t;
-    smap_t s = boost::any_cast<smap_t>(as);
-    smap_t s_diff = boost::any_cast<smap_t>(as_diff);
+    smap_t s = std::any_cast<smap_t>(as);
+    smap_t s_diff = std::any_cast<smap_t>(as_diff);
 
     python::object state;
     run_action<>(false)

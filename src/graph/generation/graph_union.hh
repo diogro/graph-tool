@@ -61,9 +61,9 @@ struct property_union
     template <class UnionGraph, class Graph, class VertexMap, class EdgeMap,
               class UnionProp>
     void operator()(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
-                    UnionProp uprop, boost::any aprop) const
+                    UnionProp uprop, std::any aprop) const
     {
-        auto prop = any_cast<typename UnionProp::checked_t>(aprop);
+        auto prop = std::any_cast<typename UnionProp::checked_t>(aprop);
         dispatch(ug, g, vmap, emap, uprop, prop,
                  std::is_same<typename property_traits<UnionProp>::key_type,
                               typename graph_traits<Graph>::vertex_descriptor>());

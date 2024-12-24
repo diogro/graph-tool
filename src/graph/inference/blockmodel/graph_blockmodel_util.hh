@@ -79,7 +79,7 @@ public:
     virtual bool allow_move(size_t r, size_t nr) = 0;
     virtual void relax_update(bool relax) = 0;
     virtual BlockStateVirtualBase* deep_copy() = 0;
-    virtual BlockStateVirtualBase* deep_copy(boost::any) { return deep_copy(); } ;
+    virtual BlockStateVirtualBase* deep_copy(std::any) { return deep_copy(); } ;
     virtual void deep_assign(const BlockStateVirtualBase&) = 0;
 };
 

@@ -44,7 +44,7 @@ typedef decltype(hana::tuple_t<std::true_type, std::false_type>) use_hash_tr;
 #define OVERLAP_BLOCK_STATE_params                                             \
     ((g, &, decltype(never_filtered_never_reversed), 1))                       \
     ((use_hash,, use_hash_tr, 1))                                              \
-    ((_abg, &, boost::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                \
     ((node_index,, vimap_t, 0))                                                \
     ((half_edges,, vvmap_t, 0))                                                \
     ((mrs,, emap_t, 0))                                                        \
@@ -85,7 +85,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     OverlapBlockState(ATs&&... args)
         : OverlapBlockStateVirtualBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
           _emat(_g, _bg),
           _egroups_update(true),
@@ -319,9 +319,9 @@ public:
             move_vertex(v, b[v]);
     }
 
-    void set_partition(boost::any& ab)
+    void set_partition(std::any& ab)
     {
-        vmap_t& b = boost::any_cast<vmap_t&>(ab);
+        vmap_t& b = std::any_cast<vmap_t&>(ab);
         set_partition<typename vmap_t::unchecked_t>(b.get_unchecked());
     }
 
@@ -1295,7 +1295,7 @@ public:
             bg = new bg_t(_bg);
         else
             bg = new bg_t(*(new GraphInterface::multigraph_t(_bg.original_graph())));
-        auto abg = boost::any(std::ref(*bg));
+        auto abg = std::any(std::ref(*bg));
 
         auto args =
             dispatch_args(_args,
@@ -1315,7 +1315,7 @@ public:
                                   if (name == "_abg")
                                   {
                                       auto& abg_ = abg; // workaround clang bug
-                                      if constexpr (std::is_same_v<a_t, boost::any>)
+                                      if constexpr (std::is_same_v<a_t, std::any>)
                                           return abg_;
                                       return a;
                                   }
@@ -1355,7 +1355,7 @@ public:
         return state;
     }
 
-    OverlapBlockState* deep_copy(boost::any)
+    OverlapBlockState* deep_copy(std::any)
     {
         auto* state = deep_copy(make_index_sequence<sizeof...(Ts)>{});
         state->_mrs = state->_mrs.copy();
@@ -1386,7 +1386,7 @@ public:
         {
             state->_coupled_state =
                 _coupled_state->
-                    deep_copy(boost::any(std::make_tuple(boost::any(std::ref(state->_bg)),
+                    deep_copy(std::any(std::make_tuple(std::any(std::ref(state->_bg)),
                                                          state->_mrs,
                                                          state->_brec,
                                                          state->_bdrec)));
@@ -1399,7 +1399,7 @@ public:
 
     OverlapBlockState* deep_copy()
     {
-        return deep_copy(boost::any());
+        return deep_copy(std::any());
     }
 
     virtual void deep_assign(const BlockStateVirtualBase& state_)

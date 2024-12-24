@@ -35,13 +35,13 @@ struct do_edge_endpoint
 {
     template <class Graph, class EdgeIndexMap, class VertexPropertyMap>
     void operator()(Graph& g, EdgeIndexMap, VertexPropertyMap prop,
-                    boost::any aeprop, size_t edge_index_range) const
+                    std::any aeprop, size_t edge_index_range) const
     {
         typedef typename property_traits<VertexPropertyMap>::value_type vval_t;
         typedef std::conditional_t<std::is_same_v<vval_t, size_t>, int64_t, vval_t>
             val_t;
         typedef property_map_t<val_t, EdgeIndexMap> eprop_t;
-        eprop_t eprop = any_cast<eprop_t>(aeprop);
+        eprop_t eprop = std::any_cast<eprop_t>(aeprop);
         eprop.reserve(edge_index_range);
 
         bool is_object = std::is_same_v<val_t,python::object>;
@@ -66,8 +66,8 @@ struct do_edge_endpoint
     }
 };
 
-void edge_endpoint(GraphInterface& gi, boost::any prop,
-                   boost::any eprop, std::string endpoint)
+void edge_endpoint(GraphInterface& gi, std::any prop,
+                   std::any eprop, std::string endpoint)
 {
     size_t edge_index_range = gi.get_edge_index_range();
     if (endpoint == "source")

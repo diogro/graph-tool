@@ -23,10 +23,10 @@ using namespace boost;
 using namespace graph_tool;
 
 void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
-                               boost::any aecount)
+                               std::any aecount)
 {
     typedef eprop_map_t<int32_t> emap_t;
-    auto ecount = any_cast<emap_t>(aecount);
+    auto ecount = std::any_cast<emap_t>(aecount);
 
     gt_dispatch<>()
         ([&](auto& g, auto& u) { collect_marginal(g, u, ecount,
@@ -40,15 +40,15 @@ void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
 }
 
 void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
-                                boost::any ax, boost::any aecount,
-                                boost::any axsum, boost::any ax2sum)
+                                std::any ax, std::any aecount,
+                                std::any axsum, std::any ax2sum)
 {
     typedef eprop_map_t<int32_t> emap_t;
-    auto ecount = any_cast<emap_t>(aecount);
+    auto ecount = std::any_cast<emap_t>(aecount);
 
     typedef eprop_map_t<double> xmap_t;
-    auto xsum = any_cast<xmap_t>(axsum);
-    auto x2sum = any_cast<xmap_t>(ax2sum);
+    auto xsum = std::any_cast<xmap_t>(axsum);
+    auto x2sum = std::any_cast<xmap_t>(ax2sum);
 
     gt_dispatch<>()
         ([&](auto& g, auto& u, auto x) { collect_marginal(g, u, ecount,
@@ -60,15 +60,15 @@ void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
 }
 
 void collect_marginal_count_dispatch(GraphInterface& gi, GraphInterface& ui,
-                                     boost::any aex, boost::any aexs,
-                                     boost::any aexc)
+                                     std::any aex, std::any aexs,
+                                     std::any aexc)
 {
     typedef eprop_map_t<int32_t> ecmap_t;
-    auto ex = any_cast<ecmap_t>(aex);
+    auto ex = std::any_cast<ecmap_t>(aex);
 
     typedef eprop_map_t<std::vector<int32_t>> emap_t;
-    auto exs = any_cast<emap_t>(aexs);
-    auto exc = any_cast<emap_t>(aexc);
+    auto exs = std::any_cast<emap_t>(aexs);
+    auto exc = std::any_cast<emap_t>(aexc);
 
     gt_dispatch<>()
         ([&](auto& g, auto& u) { collect_marginal(g, u,
@@ -81,10 +81,10 @@ void collect_marginal_count_dispatch(GraphInterface& gi, GraphInterface& ui,
                                                ui.get_graph_view());
 }
 
-double marginal_count_entropy(GraphInterface& gi, boost::any aexc, boost::any aeh)
+double marginal_count_entropy(GraphInterface& gi, std::any aexc, std::any aeh)
 {
     typedef eprop_map_t<double> ehmap_t;
-    auto eh = any_cast<ehmap_t>(aeh);
+    auto eh = std::any_cast<ehmap_t>(aeh);
 
     double S_tot = 0;
     gt_dispatch<>()
@@ -116,8 +116,8 @@ double marginal_count_entropy(GraphInterface& gi, boost::any aexc, boost::any ae
     return S_tot;
 }
 
-void marginal_multigraph_sample(GraphInterface& gi, boost::any axs, boost::any axc,
-                                boost::any ax, rng_t& rng_)
+void marginal_multigraph_sample(GraphInterface& gi, std::any axs, std::any axc,
+                                std::any ax, rng_t& rng_)
 {
     gt_dispatch<>()
         ([&](auto& g, auto xs, auto xc, auto x)
@@ -140,8 +140,8 @@ void marginal_multigraph_sample(GraphInterface& gi, boost::any axs, boost::any a
         (gi.get_graph_view(), axs, axc, ax);
 }
 
-double marginal_multigraph_lprob(GraphInterface& gi, boost::any axs, boost::any axc,
-                                 boost::any ax)
+double marginal_multigraph_lprob(GraphInterface& gi, std::any axs, std::any axc,
+                                 std::any ax)
 {
     double L = 0;
     gt_dispatch<>()
@@ -172,8 +172,8 @@ double marginal_multigraph_lprob(GraphInterface& gi, boost::any axs, boost::any 
     return L;
 }
 
-void marginal_graph_sample(GraphInterface& gi, boost::any ap,
-                           boost::any ax, rng_t& rng_)
+void marginal_graph_sample(GraphInterface& gi, std::any ap,
+                           std::any ax, rng_t& rng_)
 {
     gt_dispatch<>()
         ([&](auto& g, auto p, auto x)
@@ -193,8 +193,8 @@ void marginal_graph_sample(GraphInterface& gi, boost::any ap,
         (gi.get_graph_view(), ap, ax);
 }
 
-double marginal_graph_lprob(GraphInterface& gi, boost::any ap,
-                            boost::any ax)
+double marginal_graph_lprob(GraphInterface& gi, std::any ap,
+                            std::any ax)
 {
     double L = 0;
     gt_dispatch<>()

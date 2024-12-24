@@ -37,13 +37,13 @@ struct get_tsp_approx
     }
 };
 
-vector<int32_t> get_tsp(GraphInterface& gi, size_t src, boost::any weight_map)
+vector<int32_t> get_tsp(GraphInterface& gi, size_t src, std::any weight_map)
 {
     vector<int32_t> tour;
 
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
-    if (weight_map.empty())
+    if (!weight_map.has_value())
         weight_map = cweight_t();
 
     auto weight_maps = hana::append(edge_scalar_properties,

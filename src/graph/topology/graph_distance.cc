@@ -438,15 +438,15 @@ struct do_bf_search
 };
 
 void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
-               boost::any dist_map, boost::any weight, boost::any pred_map,
+               std::any dist_map, std::any weight, std::any pred_map,
                long double max_dist, bool bf, std::vector<size_t>& reached,
                bool dag, bool get_pred, bool get_reached)
 {
     typedef vprop_map_t<int64_t> pred_map_t;
 
-    pred_map_t pmap = any_cast<pred_map_t>(pred_map);
+    pred_map_t pmap = std::any_cast<pred_map_t>(pred_map);
 
-    if (weight.empty())
+    if (!weight.has_value())
     {
         auto dispatch =
             [&](auto&& bfs_dispatch)
@@ -551,21 +551,21 @@ void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds,
          });
 };
 
-void do_get_all_preds(GraphInterface& gi, boost::any adist, boost::any apred,
-                      boost::any aweight, boost::any apreds,
+void do_get_all_preds(GraphInterface& gi, std::any adist, std::any apred,
+                      std::any aweight, std::any apreds,
                       long double epsilon)
 {
     typedef vprop_map_t<int64_t> pred_map_t;
     typedef vprop_map_t<vector<int64_t>> preds_map_t;
 
-    pred_map_t pred = any_cast<pred_map_t>(apred);
-    preds_map_t preds = any_cast<preds_map_t>(apreds);
+    pred_map_t pred = std::any_cast<pred_map_t>(apred);
+    preds_map_t preds = std::any_cast<preds_map_t>(apreds);
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (aweight.empty())
+    if (!aweight.has_value())
         aweight = weight_map_t();
 
     run_action<>()
@@ -651,7 +651,7 @@ inline constexpr auto graph_view_ptrs =
                     });
 
 python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
-                                         boost::any apred, boost::any aweight,
+                                         std::any apred, std::any aweight,
                                          bool edges)
 {
 #ifdef HAVE_BOOST_COROUTINE
@@ -659,7 +659,7 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
     auto weight_props_t = hana::append(edge_scalar_properties,
                                        hana::type<weight_map_t>());
 
-    if (aweight.empty())
+    if (!aweight.has_value())
         aweight = weight_map_t();
 
     auto dispatch = [&](auto& yield)
@@ -677,17 +677,17 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 #endif // HAVE_BOOST_COROUTINE
 }
 
-void get_weighted_succs(size_t t, boost::any apred, boost::any asucc,
-                        boost::any acount, boost::any avisited)
+void get_weighted_succs(size_t t, std::any apred, std::any asucc,
+                        std::any acount, std::any avisited)
 {
     typedef vprop_map_t<vector<int64_t>> pred_map_t;
     typedef vprop_map_t<int64_t> count_map_t;
     typedef vprop_map_t<uint8_t> visited_map_t;
 
-    pred_map_t pred = any_cast<pred_map_t>(apred);
-    pred_map_t succ = any_cast<pred_map_t>(asucc);
-    count_map_t count = any_cast<count_map_t>(acount);
-    visited_map_t visited = any_cast<visited_map_t>(avisited);
+    pred_map_t pred = std::any_cast<pred_map_t>(apred);
+    pred_map_t succ = std::any_cast<pred_map_t>(asucc);
+    count_map_t count = std::any_cast<count_map_t>(acount);
+    visited_map_t visited = std::any_cast<visited_map_t>(avisited);
 
     count[t] = 1;
     visited[t] = true;
@@ -711,15 +711,15 @@ void get_weighted_succs(size_t t, boost::any apred, boost::any asucc,
     }
 };
 
-void get_random_shortest_path(size_t s, size_t t, boost::any asucc,
-                              boost::any acount, vector<size_t>& path,
+void get_random_shortest_path(size_t s, size_t t, std::any asucc,
+                              std::any acount, vector<size_t>& path,
                               rng_t& rng)
 {
     typedef vprop_map_t<vector<int64_t>> pred_map_t;
     typedef vprop_map_t<int64_t> count_map_t;
 
-    pred_map_t succ = any_cast<pred_map_t>(asucc);
-    count_map_t count = any_cast<count_map_t>(acount);
+    pred_map_t succ = std::any_cast<pred_map_t>(asucc);
+    count_map_t count = std::any_cast<count_map_t>(acount);
 
     vector<double> probs;
     path.clear();
@@ -812,11 +812,11 @@ void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
 };
 
 python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
-                                size_t cutoff, boost::any avisited, bool edges)
+                                size_t cutoff, std::any avisited, bool edges)
 {
 #ifdef HAVE_BOOST_COROUTINE
     typedef vprop_map_t<uint8_t> vprop_t;
-    vprop_t visited = boost::any_cast<vprop_t>(avisited);
+    vprop_t visited = std::any_cast<vprop_t>(avisited);
     auto dispatch = [&](auto& yield)
         {
             run_action<decltype(graph_view_ptrs)>(false)

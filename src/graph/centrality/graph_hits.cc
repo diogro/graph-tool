@@ -31,17 +31,17 @@ struct get_hits_dispatch
     template <class Graph, class VertexIndex, class WeightMap,
               class CentralityMap>
     void operator()(Graph& g, VertexIndex vertex_index, WeightMap w,
-                    CentralityMap x, boost::any ay, double epsilon,
+                    CentralityMap x, std::any ay, double epsilon,
                     size_t max_iter, long double& eig) const
     {
         try
         {
-            typename CentralityMap::checked_t y = any_cast<typename CentralityMap::checked_t>(ay);
+            typename CentralityMap::checked_t y = std::any_cast<typename CentralityMap::checked_t>(ay);
             get_hits()(g, vertex_index, w, x,
                        y.get_unchecked(num_vertices(g)), epsilon, max_iter,
                        eig);
         }
-        catch (bad_any_cast&)
+        catch (std::bad_any_cast&)
         {
             throw GraphException("x and y vertex properties must be of the same type.");
         }
@@ -49,10 +49,10 @@ struct get_hits_dispatch
 };
 
 
-long double hits(GraphInterface& g, boost::any w, boost::any x, boost::any y,
+long double hits(GraphInterface& g, std::any w, std::any x, std::any y,
                  double epsilon, size_t max_iter)
 {
-    if (!w.empty() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
         throw ValueException("edge property must be writable");
     if (!belongs(vertex_floating_properties, x))
         throw ValueException("vertex property must be of floating point"
@@ -62,7 +62,7 @@ long double hits(GraphInterface& g, boost::any w, boost::any x, boost::any y,
     auto weight_props = hana::append(writable_edge_scalar_properties,
                                     hana::type<weight_map_t>());
 
-    if(w.empty())
+    if (!w.has_value())
         w = weight_map_t();
 
     long double eig = 0;

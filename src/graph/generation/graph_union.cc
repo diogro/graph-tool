@@ -29,9 +29,9 @@ typedef vprop_map_t<int64_t> vprop_t;
 typedef eprop_map_t<GraphInterface::edge_t> eprop_t;
 
 boost::python::tuple graph_union_dispatch(GraphInterface& ugi, GraphInterface& gi,
-                                          boost::any avprop)
+                                          std::any avprop)
 {
-    vprop_t vprop = boost::any_cast<vprop_t>(avprop);
+    vprop_t vprop = std::any_cast<vprop_t>(avprop);
     eprop_t eprop(gi.get_edge_index());
     gt_dispatch<false>()
         (
@@ -43,7 +43,7 @@ boost::python::tuple graph_union_dispatch(GraphInterface& ugi, GraphInterface& g
             },
             always_directed,
             always_directed)(ugi.get_graph_view(), gi.get_graph_view());
-    return boost::python::make_tuple(avprop, boost::any(eprop));
+    return boost::python::make_tuple(avprop, std::any(eprop));
 }
 
 #include <boost/python.hpp>

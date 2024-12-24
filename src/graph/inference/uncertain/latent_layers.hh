@@ -39,7 +39,7 @@ typedef eprop_map_t<int32_t> emap_t;
     ((eweight,, emap_t, 0))                                                    \
     ((self_loops,, bool, 0))                                                   \
     ((measured,, bool, 0))                                                     \
-    ((ag_orig, &, boost::any, 0))                                              \
+    ((ag_orig, &, std::any, 0))                                              \
     ((n,, eprop_map_t<int>, 0))                                          \
     ((x,, eprop_map_t<int>, 0))                                          \
     ((n_default,, int, 0))                                                     \
@@ -99,10 +99,10 @@ struct LatentLayers
                   typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
         LatentLayersState(std::vector<std::reference_wrapper<BlockState>> block_state, ATs&&... args)
             : LatentLayersStateBase<Ts...>(std::forward<ATs>(args)...),
-              _g(*boost::any_cast<std::shared_ptr<g_t>>(python::extract<boost::any&>(_og)())),
+              _g(*std::any_cast<std::shared_ptr<g_t>>(python::extract<std::any&>(_og)())),
               _block_state(block_state),
               _eweight_c(_eweight.get_checked()),
-              _g_orig(*boost::any_cast<std::shared_ptr<g_t>>(_ag_orig))
+              _g_orig(*std::any_cast<std::shared_ptr<g_t>>(_ag_orig))
         {
             GILRelease gil_release;
 

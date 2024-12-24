@@ -102,13 +102,13 @@ struct get_prim_min_span_tree
     }
 };
 
-void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
-                               boost::any tree_map)
+void get_kruskal_spanning_tree(GraphInterface& gi, std::any weight_map,
+                               std::any tree_map)
 {
 
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
-    if (weight_map.empty())
+    if (!weight_map.has_value())
         weight_map = cweight_t();
 
     auto weight_maps = hana::append(writable_edge_scalar_properties,
@@ -128,11 +128,11 @@ void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
 }
 
 void get_prim_spanning_tree(GraphInterface& gi, size_t root,
-                            boost::any weight_map, boost::any tree_map)
+                            std::any weight_map, std::any tree_map)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
-    if (weight_map.empty())
+    if (!weight_map.has_value())
         weight_map = cweight_t();
 
     auto weight_maps = hana::append(writable_edge_scalar_properties,

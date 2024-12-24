@@ -126,10 +126,10 @@ struct do_all_pairs_search_unweighted
 };
 
 
-void get_all_dists(GraphInterface& gi, boost::any dist_map, boost::any weight,
+void get_all_dists(GraphInterface& gi, std::any dist_map, std::any weight,
                    bool dense)
 {
-    if (weight.empty())
+    if (!weight.has_value())
     {
         run_action<>()
             (gi,

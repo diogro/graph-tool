@@ -12,9 +12,10 @@
 #ifndef BOOST_GRAPH_GRAPHML_HPP
 #define BOOST_GRAPH_GRAPHML_HPP
 
+#include <any>
+
 #include <boost/config.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/any.hpp>
 #include <boost/type_traits/is_convertible.hpp>
 #include <boost/graph/graphviz.hpp> // for exceptions
 #include <typeinfo>
@@ -70,9 +71,9 @@ public:
     virtual void flip_directed(bool) = 0;
     virtual bool get_directed() const = 0;
 
-    virtual boost::any do_add_vertex() = 0;
-    virtual std::pair<boost::any,bool> do_add_edge(boost::any source,
-                                                   boost::any target) = 0;
+    virtual std::any do_add_vertex() = 0;
+    virtual std::pair<std::any,bool> do_add_edge(std::any source,
+                                                 std::any target) = 0;
 
     virtual size_t n_vertices() const = 0;
 
@@ -81,12 +82,12 @@ public:
                        const std::string& value_type) = 0;
 
     virtual void
-    set_vertex_property(const std::string& name, boost::any vertex,
+    set_vertex_property(const std::string& name, std::any vertex,
                         const std::string& value,
                         const std::string& value_type) = 0;
 
     virtual void
-    set_edge_property(const std::string& name, boost::any edge,
+    set_edge_property(const std::string& name, std::any edge,
                       const std::string& value,
                       const std::string& value_type) = 0;
 };
@@ -129,17 +130,18 @@ public:
         return m_is_directed;
     }
 
-    virtual any do_add_vertex()
+    virtual std::any do_add_vertex()
     {
-        return any(add_vertex(m_g));
+        return std::any(add_vertex(m_g));
     }
 
-    virtual std::pair<any,bool> do_add_edge(any source, any target)
+    virtual std::pair<std::any, bool>
+    do_add_edge(std::any source, std::any target)
     {
         std::pair<edge_descriptor,bool> retval =
-            add_edge(any_cast<vertex_descriptor>(source),
-                     any_cast<vertex_descriptor>(target), m_g);
-        return std::make_pair(any(retval.first), retval.second);
+            add_edge(std::any_cast<vertex_descriptor>(source),
+                     std::any_cast<vertex_descriptor>(target), m_g);
+        return std::make_pair(std::any(retval.first), retval.second);
     }
 
     virtual size_t n_vertices() const
@@ -148,8 +150,8 @@ public:
     }
 
     virtual void
-    set_graph_property(const std::string& name,
-                       const std::string& value, const std::string& value_type)
+    set_graph_property(const std::string& name, const std::string& value,
+                       const std::string& value_type)
     {
         if (m_ignore_gp.find(name) != m_ignore_gp.end())
             return;
@@ -174,7 +176,7 @@ public:
     }
 
     virtual void
-    set_vertex_property(const std::string& name, any vertex,
+    set_vertex_property(const std::string& name, std::any vertex,
                         const std::string& value, const std::string& value_type)
     {
         if (m_ignore_vp.find(name) != m_ignore_vp.end())
@@ -185,7 +187,7 @@ public:
         {
             mpl::for_each<prop_value_types>
                 (put_property<vertex_descriptor,prop_value_types>
-                 (name, m_dp, any_cast<vertex_descriptor>(vertex),
+                 (name, m_dp, std::any_cast<vertex_descriptor>(vertex),
                   value, value_type, type_found));
         }
         catch (bad_lexical_cast&)
@@ -200,7 +202,7 @@ public:
     }
 
     virtual void
-    set_edge_property(const std::string& name, any edge,
+    set_edge_property(const std::string& name, std::any edge,
                       const std::string& value, const std::string& value_type)
     {
         if (m_ignore_ep.find(name) != m_ignore_ep.end())
@@ -211,7 +213,7 @@ public:
         {
             mpl::for_each<prop_value_types>
                 (put_property<edge_descriptor,prop_value_types>
-                 (name, m_dp, any_cast<edge_descriptor>(edge),
+                 (name, m_dp, std::any_cast<edge_descriptor>(edge),
                   value, value_type, type_found));
         }
         catch (bad_lexical_cast&)
@@ -324,9 +326,9 @@ private:
 struct get_string
 {
     template <typename ValueType>
-    void operator()(const boost::any& val, std::string& sval, ValueType) const
+    void operator()(const std::any& val, std::string& sval, ValueType) const
     {
-        const ValueType* v = any_cast<ValueType>(&val);
+        const ValueType* v = std::any_cast<ValueType>(&val);
         if (v != 0)
         {
             sval = lexical_cast<std::string>(*v);
@@ -340,7 +342,7 @@ template <typename ValueTypes, typename Descriptor>
 std::string print_value(dynamic_property_map& pmap, Descriptor v)
 {
     std::string val;
-    boost::any oval = pmap.get(v);
+    std::any oval = pmap.get(v);
     mpl::for_each<ValueTypes>(boost::bind<void>(get_string(), boost::ref(oval),
                                                 boost::ref(val), _1));
     return val;

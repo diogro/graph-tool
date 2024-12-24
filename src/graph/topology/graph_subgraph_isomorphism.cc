@@ -131,13 +131,13 @@ struct get_subgraphs
     template <class Graph1, class Graph2, class VertexLabel,
               class EdgeLabel, class VertexMap, class Matcher>
     void operator()(const Graph1& sub, const Graph2& g,
-                    VertexLabel vertex_label1, boost::any avertex_label2,
-                    EdgeLabel edge_label1, boost::any aedge_label2,
+                    VertexLabel vertex_label1, std::any avertex_label2,
+                    EdgeLabel edge_label1, std::any aedge_label2,
                     vector<VertexMap>& vmaps, size_t max_n, bool induced,
                     bool iso, Matcher m) const
     {
-        VertexLabel vertex_label2 = any_cast<VertexLabel>(avertex_label2);
-        EdgeLabel edge_label2 = any_cast<EdgeLabel>(aedge_label2);
+        VertexLabel vertex_label2 = std::any_cast<VertexLabel>(avertex_label2);
+        EdgeLabel edge_label2 = std::any_cast<EdgeLabel>(aedge_label2);
 
         auto matcher = m.get_match(sub, g, vmaps,max_n);
 
@@ -176,8 +176,8 @@ struct get_subgraphs
 
 boost::python::object
 subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
-                     boost::any vertex_label1, boost::any vertex_label2,
-                     boost::any edge_label1, boost::any edge_label2,
+                     std::any vertex_label1, std::any vertex_label2,
+                     std::any edge_label1, std::any edge_label2,
                      size_t max_n, bool induced, bool iso, bool generator)
 {
     typedef vprop_map_t<int64_t> vlabel_t;
@@ -194,26 +194,26 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     if (gi1.get_directed() != gi2.get_directed())
         return boost::python::object();
 
-    if (vertex_label1.empty() || vertex_label2.empty())
+    if (!vertex_label1.has_value() || !vertex_label2.has_value())
     {
         vertex_label1 = vertex_label2 =
             UnityPropertyMap<bool,GraphInterface::vertex_t>();
     }
     else
     {
-        vertex_label1 = any_cast<vlabel_t>(vertex_label1).get_unchecked(num_vertices(gi1.get_graph()));
-        vertex_label2 = any_cast<vlabel_t>(vertex_label2).get_unchecked(num_vertices(gi2.get_graph()));
+        vertex_label1 = std::any_cast<vlabel_t>(vertex_label1).get_unchecked(num_vertices(gi1.get_graph()));
+        vertex_label2 = std::any_cast<vlabel_t>(vertex_label2).get_unchecked(num_vertices(gi2.get_graph()));
     }
 
-    if (edge_label1.empty() || edge_label2.empty())
+    if (!edge_label1.has_value() || !edge_label2.has_value())
     {
         edge_label1 = edge_label2 =
             UnityPropertyMap<bool,GraphInterface::edge_t>();
     }
     else
     {
-        edge_label1 = any_cast<elabel_t>(edge_label1).get_unchecked(gi1.get_edge_index_range());
-        edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_edge_index_range());
+        edge_label1 = std::any_cast<elabel_t>(edge_label1).get_unchecked(gi1.get_edge_index_range());
+        edge_label2 = std::any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_edge_index_range());
     }
 
     vector<vlabel_t> vmaps;

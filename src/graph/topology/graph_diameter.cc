@@ -142,11 +142,11 @@ struct do_djk_search
     }
 };
 
-python::object get_diam(GraphInterface& gi, size_t source, boost::any weight)
+python::object get_diam(GraphInterface& gi, size_t source, std::any weight)
 {
     size_t target;
     long double max_dist;
-    if (weight.empty())
+    if (!weight.has_value())
     {
         run_action<>()
             (gi,

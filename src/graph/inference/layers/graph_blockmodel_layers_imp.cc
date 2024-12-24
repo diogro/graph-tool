@@ -67,7 +67,7 @@ REGISTER_MOD
                       double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
                                                        double, bool)
                           = &state_t::get_move_prob;
-                      void (state_t::*set_partition)(boost::any&)
+                      void (state_t::*set_partition)(std::any&)
                           = &state_t::set_partition;
                       void (state_t::*move_vertices)(python::object, python::object) =
                           &state_t::move_vertices;

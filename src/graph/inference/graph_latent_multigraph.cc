@@ -23,15 +23,15 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void latent_multigraph(GraphInterface& gi, boost::any aw, boost::any atheta_out,
-                       boost::any atheta_in, double epsilon, size_t max_niter,
+void latent_multigraph(GraphInterface& gi, std::any aw, std::any atheta_out,
+                       std::any atheta_in, double epsilon, size_t max_niter,
                        bool verbose)
 {
     typedef eprop_map_t<double> emap_t;
     typedef vprop_map_t<double> vmap_t;
-    auto w = any_cast<emap_t>(aw).get_unchecked();
-    auto theta_out = any_cast<vmap_t>(atheta_out).get_unchecked();
-    auto theta_in = any_cast<vmap_t>(atheta_in).get_unchecked();
+    auto w = std::any_cast<emap_t>(aw).get_unchecked();
+    auto theta_out = std::any_cast<vmap_t>(atheta_out).get_unchecked();
+    auto theta_in = std::any_cast<vmap_t>(atheta_in).get_unchecked();
 
     run_action<>()
         (gi, [&](auto& g){ get_latent_multigraph(g, w, theta_out, theta_in,

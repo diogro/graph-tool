@@ -42,20 +42,20 @@ typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
 template <class PMap>
-auto uncheck(boost::any& amap, PMap*)
+auto uncheck(std::any& amap, PMap*)
 {
-    return any_cast<typename PMap::checked_t&>(amap).get_unchecked();
+    return std::any_cast<typename PMap::checked_t&>(amap).get_unchecked();
 }
 
 template <class T, class V>
-auto& uncheck(boost::any& amap, UnityPropertyMap<T,V>*)
+auto& uncheck(std::any& amap, UnityPropertyMap<T,V>*)
 {
-    return any_cast<UnityPropertyMap<T,V>&>(amap);
+    return std::any_cast<UnityPropertyMap<T,V>&>(amap);
 }
 
-inline simple_degs_t uncheck(boost::any& amap, simple_degs_t*)
+inline simple_degs_t uncheck(std::any& amap, simple_degs_t*)
 {
-    return any_cast<simple_degs_t>(amap);
+    return std::any_cast<simple_degs_t>(amap);
 }
 
 typedef decltype(hana::tuple_t<std::true_type, std::false_type>) bool_tr;
@@ -79,9 +79,9 @@ typedef decltype(hana::tuple_t<std::false_type>) rmap_tr;
     ((is_weighted,, decltype(hana::tuple_t<std::true_type>), 1))               \
     ((use_hash,, bool_tr, 1))                                                  \
     ((use_rmap,, rmap_tr, 1))                                                  \
-    ((_abg,, boost::any, 0))                                                   \
-    ((_aeweight,, boost::any, 0))                                              \
-    ((_avweight,, boost::any, 0))                                              \
+    ((_abg,, std::any, 0))                                                   \
+    ((_aeweight,, std::any, 0))                                              \
+    ((_avweight,, std::any, 0))                                              \
     ((mrs,, emap_t, 0))                                                        \
     ((mrp,, vmap_t, 0))                                                        \
     ((mrm,, vmap_t, 0))                                                        \
@@ -129,7 +129,7 @@ public:
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     BlockState(ATs&&... args)
         : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bg(*boost::any_cast<std::shared_ptr<bg_t>>(__abg)),
+          _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
@@ -890,9 +890,9 @@ public:
         }
     }
 
-    void set_partition(boost::any& ab)
+    void set_partition(std::any& ab)
     {
-        vmap_t& b = boost::any_cast<vmap_t&>(ab);
+        vmap_t& b = std::any_cast<vmap_t&>(ab);
         set_partition<typename vmap_t::unchecked_t>(b.get_unchecked());
     }
 
@@ -2566,7 +2566,7 @@ public:
             bg = new bg_t(_bg);
         else
             bg = new bg_t(*(new GraphInterface::multigraph_t(_bg.original_graph())));
-        auto abg = boost::any(std::ref(*bg));
+        auto abg = std::any(std::ref(*bg));
 
         auto args =
             dispatch_args(_args,
@@ -2576,7 +2576,7 @@ public:
                               if (name == "_abg")
                               {
                                   auto& abg_ = abg; // workaround clang bug
-                                  if constexpr (std::is_same_v<a_t, boost::any>)
+                                  if constexpr (std::is_same_v<a_t, std::any>)
                                       return abg_;
                                   return a;
                               }
@@ -2623,26 +2623,26 @@ public:
         return state;
     }
 
-    BlockState* deep_copy(boost::any args, bool global)
+    BlockState* deep_copy(std::any args, bool global)
     {
         auto& [ag, eweight, rec, drec, Lrecdx] =
-            boost::any_cast<std::tuple<boost::any, eweight_t, rec_t,
+            std::any_cast<std::tuple<std::any, eweight_t, rec_t,
                                        drec_t, Lrecdx_t>&>(args);
 
         BlockState* state = nullptr;
         try
         {
-            g_t& g = boost::any_cast<std::reference_wrapper<g_t>>(ag);
+            g_t& g = std::any_cast<std::reference_wrapper<g_t>>(ag);
             state = deep_copy(g, eweight, rec, drec, Lrecdx,
                               global, make_index_sequence<sizeof...(Ts)-1>{});
         }
-        catch (boost::bad_any_cast& e)
+        catch (std::bad_any_cast& e)
         {
             typedef undirected_adaptor<GraphInterface::multigraph_t> ug_t;
             if constexpr (std::is_same_v<g_t, ug_t>)
             {
                 GraphInterface::multigraph_t& g =
-                    boost::any_cast<std::reference_wrapper<GraphInterface::multigraph_t>>(ag);
+                    std::any_cast<std::reference_wrapper<GraphInterface::multigraph_t>>(ag);
                 auto& ug = get_undirected_adaptor(g);
                 state = deep_copy(ug, eweight, rec, drec, Lrecdx, global,
                                   make_index_sequence<sizeof...(Ts)-1>{});
@@ -2686,7 +2686,7 @@ public:
         {
             state->_coupled_state =
                 _coupled_state->
-                    deep_copy(boost::any(std::make_tuple(boost::any(std::ref(state->_bg)),
+                    deep_copy(std::any(std::make_tuple(std::any(std::ref(state->_bg)),
                                                          state->_mrs,
                                                          state->_brec,
                                                          state->_bdrec,
@@ -2699,14 +2699,14 @@ public:
         return state;
     }
 
-    virtual BlockState* deep_copy(boost::any args)
+    virtual BlockState* deep_copy(std::any args)
     {
         return deep_copy(args, false);
     }
 
     BlockState* deep_copy()
     {
-        return deep_copy(boost::any(std::make_tuple(boost::any(std::ref(_g)),
+        return deep_copy(std::any(std::make_tuple(std::any(std::ref(_g)),
                                                     _eweight,
                                                     _rec,
                                                     _drec,

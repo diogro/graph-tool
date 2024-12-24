@@ -26,8 +26,8 @@ using namespace boost;
 using namespace graph_tool;
 
 void GraphInterface::copy_vertex_property(const GraphInterface& src,
-                                          boost::any prop_src,
-                                          boost::any prop_tgt)
+                                          std::any prop_src,
+                                          std::any prop_tgt)
 {
     gt_dispatch<>()
         ([&](auto& graph, auto src, auto ptgt)
@@ -40,8 +40,8 @@ void GraphInterface::copy_vertex_property(const GraphInterface& src,
 }
 
 bool compare_vertex_properties(const GraphInterface& gi,
-                               boost::any prop1,
-                               boost::any prop2)
+                               std::any prop1,
+                               std::any prop2)
 {
     bool ret = false;
     gt_dispatch<>()
@@ -55,8 +55,8 @@ bool compare_vertex_properties(const GraphInterface& gi,
 }
 
 bool compare_edge_properties(const GraphInterface& gi,
-                             boost::any prop1,
-                             boost::any prop2)
+                             std::any prop1,
+                             std::any prop2)
 {
     bool ret = false;
     gt_dispatch<>()

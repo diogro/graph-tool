@@ -26,11 +26,11 @@ namespace boost::detail
 using std::iterator_traits;
 }
 
+#include <any>
+
 #include <boost/python/object.hpp>
 #include <boost/python/list.hpp>
 #include <boost/python/tuple.hpp>
-
-#include <boost/any.hpp>
 
 #include "graph_adjacency.hh"
 
@@ -71,7 +71,7 @@ public:
 
     // general "degree" type, i.e., either a degree_t above or a string
     // representing a scalar vertex property
-    typedef boost::variant<degree_t, boost::any> deg_t;
+    typedef boost::variant<degree_t, std::any> deg_t;
 
     //
     // Basic manipulation
@@ -88,30 +88,30 @@ public:
 
 
     // graph filtering
-    void set_vertex_filter_property(boost::any prop);
+    void set_vertex_filter_property(std::any prop);
     bool is_vertex_filter_active() const;
-    void set_edge_filter_property(boost::any prop);
+    void set_edge_filter_property(std::any prop);
     bool is_edge_filter_active() const;
 
     // graph modification
     void re_index_edges();
-    void purge_vertices(boost::any old_index); // removes filtered vertices
+    void purge_vertices(std::any old_index); // removes filtered vertices
     void purge_edges();    // removes filtered edges
     void clear();
     void clear_edges();
-    void shift_vertex_property(boost::any map, boost::python::object oindex) const;
-    void move_vertex_property(boost::any map, boost::python::object oindex) const;
-    void re_index_vertex_property(boost::any map, boost::any old_index) const;
-    void copy_vertex_property(const GraphInterface& src, boost::any prop_src,
-                              boost::any prop_tgt);
-    void copy_edge_property(const GraphInterface& src, boost::any prop_src,
-                            boost::any prop_tgt);
+    void shift_vertex_property(std::any map, boost::python::object oindex) const;
+    void move_vertex_property(std::any map, boost::python::object oindex) const;
+    void re_index_vertex_property(std::any map, std::any old_index) const;
+    void copy_vertex_property(const GraphInterface& src, std::any prop_src,
+                              std::any prop_tgt);
+    void copy_edge_property(const GraphInterface& src, std::any prop_src,
+                            std::any prop_tgt);
     void shrink_to_fit() { _mg->shrink_to_fit(); }
 
     //
     // python interface
     //
-    boost::python::object degree_map(std::string deg, boost::any weight) const;
+    boost::python::object degree_map(std::string deg, std::any weight) const;
 
     // used for graph properties
     boost::graph_property_tag get_descriptor() const { return boost::graph_property_tag(); }
@@ -149,7 +149,7 @@ public:
     graph_index_map_t  get_graph_index()  {return graph_index_map_t(0);}
 
     // Gets the encapsulated graph view. See graph_filtering.cc for details
-    boost::any get_graph_view() const;
+    std::any get_graph_view() const;
 
 private:
 
@@ -157,7 +157,7 @@ private:
     std::shared_ptr<multigraph_t> _mg;
 
     // holds filtered graph views pointers
-    std::vector<boost::any> _gviews;
+    std::vector<std::any> _gviews;
 
     // vertex index map
     vertex_index_map_t _vertex_index;

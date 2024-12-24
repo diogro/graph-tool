@@ -31,8 +31,8 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
-                 boost::any eweight, boost::any pin, python::object spring_parms,
+void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
+                 std::any eweight, std::any pin, python::object spring_parms,
                  double theta, double init_step, double step_schedule,
                  size_t max_level, double epsilon, size_t max_iter,
                  bool adaptive, bool verbose, rng_t& rng)
@@ -59,19 +59,19 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
     double r = python::extract<double>(spring_parms[5]);
     size_t kc = python::extract<double>(spring_parms[6]);
     typedef vprop_map_t<int32_t> c_map_t;
-    c_map_t c_map = boost::any_cast<c_map_t>(python::extract<any&>(spring_parms[7])());
+    c_map_t c_map = std::any_cast<c_map_t>(python::extract<any&>(spring_parms[7])());
 
     double R = python::extract<double>(spring_parms[8]);
     typedef vprop_map_t<double> o_map_t;
-    o_map_t o_map = boost::any_cast<o_map_t>(python::extract<any&>(spring_parms[9])());
+    o_map_t o_map = std::any_cast<o_map_t>(python::extract<any&>(spring_parms[9])());
 
-    if(vweight.empty())
+    if (!vweight.has_value())
         vweight = vweight_map_t();
-    if(eweight.empty())
+    if (!eweight.has_value())
         eweight = eweight_map_t();
 
     typedef vprop_map_t<uint8_t> pin_map_t;
-    pin_map_t pin_map = boost::any_cast<pin_map_t>(pin);
+    pin_map_t pin_map = std::any_cast<pin_map_t>(pin);
 
     run_action<decltype(graph_tool::never_directed)>()
         (g,
@@ -95,13 +95,13 @@ struct do_propagate_pos
     template <class Graph, class CoarseGraph, class VertexMap, class PosMap,
               class RNG>
     void operator()(Graph& g, CoarseGraph& cg, VertexMap vmap,
-                    boost::any acvmap, PosMap pos, boost::any acpos,
+                    std::any acvmap, PosMap pos, std::any acpos,
                     double delta, RNG& rng) const
     {
         typename PosMap::checked_t cpos =
-            boost::any_cast<typename PosMap::checked_t>(acpos);
+            std::any_cast<typename PosMap::checked_t>(acpos);
         typename VertexMap::checked_t cvmap =
-            boost::any_cast<typename VertexMap::checked_t>(acvmap);
+            std::any_cast<typename VertexMap::checked_t>(acvmap);
         typedef typename property_traits<VertexMap>::value_type c_t;
         typedef typename property_traits<PosMap>::value_type pos_t;
         typedef typename pos_t::value_type val_t;
@@ -125,8 +125,8 @@ struct do_propagate_pos
     }
 };
 
-void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
-                   boost::any cvmap, boost::any pos, boost::any cpos,
+void propagate_pos(GraphInterface& gi, GraphInterface& cgi, std::any vmap,
+                   std::any cvmap, std::any pos, std::any cpos,
                    double delta, rng_t& rng)
 {
     auto vmaps_t = hana::tuple_t<vprop_map_t<int32_t>>;
@@ -194,7 +194,7 @@ struct do_propagate_pos_mivs
 };
 
 
-void propagate_pos_mivs(GraphInterface& gi, boost::any mivs, boost::any pos,
+void propagate_pos_mivs(GraphInterface& gi, std::any mivs, std::any pos,
                         double delta, rng_t& rng)
 {
     run_action<>()
@@ -237,7 +237,7 @@ struct do_avg_dist
 };
 
 
-double avg_dist(GraphInterface& gi, boost::any pos)
+double avg_dist(GraphInterface& gi, std::any pos)
 {
     double d;
     run_action<>()
@@ -252,7 +252,7 @@ double avg_dist(GraphInterface& gi, boost::any pos)
     return d;
 }
 
-void sanitize_pos(GraphInterface& gi, boost::any apos)
+void sanitize_pos(GraphInterface& gi, std::any apos)
 {
     run_action<>()
         (gi,

@@ -91,7 +91,7 @@ REGISTER_MOD
         .def("get_M", &PartitionModeState::get_M)
         .def("get_marginal",
              +[](PartitionModeState& state,
-                 GraphInterface& gi, boost::any obm)
+                 GraphInterface& gi, std::any obm)
               {
                   run_action<>()
                       (gi, [&](auto& g, auto bm)
@@ -101,7 +101,7 @@ REGISTER_MOD
               })
         .def("get_map",
              +[](PartitionModeState& state,
-                 GraphInterface& gi, boost::any ob)
+                 GraphInterface& gi, std::any ob)
               {
                   run_action<>()
                       (gi, [&](auto& g, auto b)
@@ -387,14 +387,14 @@ REGISTER_MOD
          });
 
     def("get_contingency_graph",
-        +[](GraphInterface& gi, boost::any alabel,
-            boost::any amrs, boost::any apartition, object ox, object oy)
+        +[](GraphInterface& gi, std::any alabel,
+            std::any amrs, std::any apartition, object ox, object oy)
          {
              auto x = get_array<int32_t, 1>(ox);
              auto y = get_array<int32_t, 1>(oy);
-             auto label = any_cast<vprop_map_t<int32_t>>(alabel);
-             auto partition = any_cast<vprop_map_t<uint8_t>>(apartition);
-             auto mrs = any_cast<eprop_map_t<int32_t>>(amrs);
+             auto label = std::any_cast<vprop_map_t<int32_t>>(alabel);
+             auto partition = std::any_cast<vprop_map_t<uint8_t>>(apartition);
+             auto mrs = std::any_cast<eprop_map_t<int32_t>>(amrs);
              run_action<>()
                  (gi, [&](auto& g)
                   {

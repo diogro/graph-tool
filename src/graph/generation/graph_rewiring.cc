@@ -134,7 +134,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,
                      bool configuration, bool traditional, bool micro,
                      bool persist, boost::python::object corr_prob,
-                     boost::any apin, boost::any block, bool cache, rng_t& rng,
+                     std::any apin, std::any block, bool cache, rng_t& rng,
                      bool verbose)
 {
     PythonFuncWrap corr(corr_prob);
@@ -143,7 +143,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     typedef eprop_map_t<uint8_t> emap_t;
 
     emap_t::unchecked_t pin =
-        any_cast<emap_t>(apin).get_unchecked(gi.get_edge_index_range());
+        std::any_cast<emap_t>(apin).get_unchecked(gi.get_edge_index_range());
 
     if (strat == "erdos")
     {
@@ -173,7 +173,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "constrained-configuration")
     {
-        if (block.empty())
+        if (!block.has_value())
         {
             run_action<decltype(never_reversed)>(false)
                 (gi,

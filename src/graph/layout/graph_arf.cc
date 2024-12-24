@@ -25,7 +25,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void arf_layout(GraphInterface& g, boost::any pos, boost::any weight, double d,
+void arf_layout(GraphInterface& g, std::any pos, std::any weight, double d,
                 double a, double dt, size_t max_iter, double epsilon,
                 size_t dim)
 {
@@ -33,7 +33,7 @@ void arf_layout(GraphInterface& g, boost::any pos, boost::any weight, double d,
     auto edge_props_t = hana::append(edge_scalar_properties,
                                      hana::type<weight_map_t>());
 
-    if(weight.empty())
+    if(!weight.has_value())
         weight = weight_map_t();
 
     run_action<decltype(graph_tool::never_directed), false>()

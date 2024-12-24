@@ -38,11 +38,11 @@ struct do_shift_vertex_property
 {
     template <class PropertyMap, class Vec>
     void operator()(PropertyMap, const GraphInterface::multigraph_t& g,
-                    boost::any map, const Vec& vi, bool& found) const
+                    std::any map, const Vec& vi, bool& found) const
     {
         try
         {
-            PropertyMap pmap = any_cast<PropertyMap>(map);
+            PropertyMap pmap = std::any_cast<PropertyMap>(map);
             size_t back = num_vertices(g) - 1;
             for (auto v : vi)
             {
@@ -52,12 +52,12 @@ struct do_shift_vertex_property
             }
             found = true;
         }
-        catch (bad_any_cast&) {}
+        catch (std::bad_any_cast&) {}
     }
 };
 
 // this function will shift all the properties when a vertex is to be deleted
-void GraphInterface::shift_vertex_property(boost::any prop, python::object oindex) const
+void GraphInterface::shift_vertex_property(std::any prop, python::object oindex) const
 {
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
     bool found = false;
@@ -76,12 +76,12 @@ struct do_move_vertex_property
 {
     template <class PropertyMap, class Vec>
     void operator()(PropertyMap, const GraphInterface::multigraph_t& g,
-                    boost::any map, const Vec& vi, size_t back,
+                    std::any map, const Vec& vi, size_t back,
                     bool& found) const
     {
         try
         {
-            PropertyMap pmap = any_cast<PropertyMap>(map);
+            PropertyMap pmap = std::any_cast<PropertyMap>(map);
             for (auto v : vi)
             {
                 pmap[vertex(v, g)] = pmap[vertex(back, g)];
@@ -89,12 +89,12 @@ struct do_move_vertex_property
             }
             found = true;
         }
-        catch (bad_any_cast&) {}
+        catch (std::bad_any_cast&) {}
     }
 };
 
 // this function will move the back of the property map when a vertex in the middle is to be deleted
-void GraphInterface::move_vertex_property(boost::any prop, python::object oindex) const
+void GraphInterface::move_vertex_property(std::any prop, python::object oindex) const
 {
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
     size_t back = num_vertices(*_mg) - 1;
@@ -115,11 +115,11 @@ struct reindex_vertex_property
 {
     template <class PropertyMap, class IndexMap>
     void operator()(PropertyMap, const GraphInterface::multigraph_t& g,
-                    boost::any map, IndexMap old_index, bool& found) const
+                    std::any map, IndexMap old_index, bool& found) const
     {
         try
         {
-            PropertyMap pmap = any_cast<PropertyMap>(map);
+            PropertyMap pmap = std::any_cast<PropertyMap>(map);
             for (size_t i = 0; i < num_vertices(g); ++i)
             {
                 GraphInterface::vertex_t v = vertex(i, g);
@@ -128,16 +128,16 @@ struct reindex_vertex_property
             }
             found = true;
         }
-        catch (bad_any_cast&) {}
+        catch (std::bad_any_cast&) {}
     }
 };
 
 
-void GraphInterface::re_index_vertex_property(boost::any map,
-                                              boost::any aold_index) const
+void GraphInterface::re_index_vertex_property(std::any map,
+                                              std::any aold_index) const
 {
     typedef vprop_map_t<int64_t> index_prop_t;
-    index_prop_t old_index = any_cast<index_prop_t>(aold_index);
+    index_prop_t old_index = std::any_cast<index_prop_t>(aold_index);
 
     bool found = false;
     hana::for_each(writable_vertex_properties,
@@ -210,7 +210,7 @@ struct do_infect_vertex_property
     }
 };
 
-void infect_vertex_property(GraphInterface& gi, boost::any prop,
+void infect_vertex_property(GraphInterface& gi, std::any prop,
                             boost::python::object val)
 {
     run_action<>(false)
@@ -248,7 +248,7 @@ struct do_mark_edges
     }
 };
 
-void mark_edges(GraphInterface& gi, boost::any prop)
+void mark_edges(GraphInterface& gi, std::any prop)
 {
     run_action<>()
         (gi,

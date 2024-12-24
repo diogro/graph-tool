@@ -30,11 +30,11 @@ constexpr inline auto gviews = get_graph_views(hana::tuple_t<std::true_type>,
 
 void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                   double r, size_t max_rk, double epsilon, bool c_stop,
-                  size_t max_iter, boost::any aw, bool verbose,  rng_t& rng)
+                  size_t max_iter, std::any aw, bool verbose,  rng_t& rng)
 
 {
     typedef eprop_map_t<double> emap_t;
-    auto w = any_cast<emap_t>(aw);
+    auto w = std::any_cast<emap_t>(aw);
     adj_list<> h(gi.get_num_vertices());
 
     try
@@ -99,10 +99,10 @@ double euclidean(T u, T v, const M& m)
 }
 
 void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
-                        boost::any aw)
+                        std::any aw)
 {
     typedef eprop_map_t<double> emap_t;
-    auto w = any_cast<emap_t>(aw);
+    auto w = std::any_cast<emap_t>(aw);
 
     try
     {
@@ -129,12 +129,12 @@ void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
 
 void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                         double r, size_t max_rk, double epsilon, bool c_stop,
-                        size_t max_iter, boost::any aw,  bool directed,
+                        size_t max_iter, std::any aw,  bool directed,
                         bool verbose, rng_t& rng)
 
 {
     typedef eprop_map_t<double> emap_t;
-    auto w = any_cast<emap_t>(aw);
+    auto w = std::any_cast<emap_t>(aw);
     adj_list<> h(gi.get_num_vertices());
 
     try
@@ -180,10 +180,10 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
 }
 
 void generate_k_nearest_exact(GraphInterface& gi, boost::python::object om, size_t k,
-                              boost::any aw, bool directed)
+                              std::any aw, bool directed)
 {
     typedef eprop_map_t<double> emap_t;
-    auto w = any_cast<emap_t>(aw);
+    auto w = std::any_cast<emap_t>(aw);
 
     try
     {

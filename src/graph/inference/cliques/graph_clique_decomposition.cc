@@ -26,18 +26,18 @@
 using namespace graph_tool;
 
 boost::python::object
-clique_iter_mh(GraphInterface& gi, boost::any ac, boost::any ax,
-               boost::any ais_fac, boost::any ais_max, boost::python::object oEd,
+clique_iter_mh(GraphInterface& gi, std::any ac, std::any ax,
+               std::any ais_fac, std::any ais_max, boost::python::object oEd,
                int N, int E, double beta, size_t niter, rng_t& rng)
 {
     typedef vprop_map_t<int32_t> vprop_t;
     typedef vprop_map_t<uint8_t> vbprop_t;
     typedef vprop_map_t<std::vector<int32_t>> vvprop_t;
 
-    vprop_t x = boost::any_cast<vprop_t>(ax);
-    vvprop_t c = boost::any_cast<vvprop_t>(ac);
-    vbprop_t is_fac = boost::any_cast<vbprop_t>(ais_fac);
-    vbprop_t is_max = boost::any_cast<vbprop_t>(ais_max);
+    vprop_t x = std::any_cast<vprop_t>(ax);
+    vvprop_t c = std::any_cast<vvprop_t>(ac);
+    vbprop_t is_fac = std::any_cast<vbprop_t>(ais_fac);
+    vbprop_t is_max = std::any_cast<vbprop_t>(ais_max);
 
     multi_array_ref<int32_t, 1> Ed = get_array<int32_t, 1>(oEd);
 

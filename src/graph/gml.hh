@@ -377,9 +377,9 @@ bool read_gml(istream& in, Graph& g, dynamic_properties& dp,
 struct get_str
 {
     template <typename ValueType>
-    void operator()(const boost::any& val, std::string& sval, ValueType) const
+    void operator()(const std::any& val, std::string& sval, ValueType) const
     {
-        const ValueType* v = any_cast<ValueType>(&val);
+        const ValueType* v = std::any_cast<ValueType>(&val);
         if (v == nullptr)
             return;
 
@@ -408,7 +408,7 @@ template <typename ValueTypes, typename Descriptor>
 std::string print_val(dynamic_property_map& pmap, const Descriptor& v)
 {
     std::string val;
-    boost::any oval = pmap.get(v);
+    std::any oval = pmap.get(v);
     mpl::for_each<ValueTypes>([&oval, &val](const auto& t){ get_str()(oval, val, t); });
     return val;
 }

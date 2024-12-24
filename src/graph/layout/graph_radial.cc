@@ -190,17 +190,17 @@ struct do_get_radial
     }
 };
 
-void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
-                boost::any oorder, boost::any oweight, size_t root,
+void get_radial(GraphInterface& gi, std::any otpos, std::any olevels,
+                std::any oorder, std::any oweight, size_t root,
                 bool weighted, double r, bool order_propagate)
 {
     typedef vprop_map_t<int32_t> vmap_t;
 
-    vmap_t levels = boost::any_cast<vmap_t>(olevels);
+    vmap_t levels = std::any_cast<vmap_t>(olevels);
 
     typedef vprop_map_t<double> wmap_t;
 
-    wmap_t weight = boost::any_cast<wmap_t>(oweight);
+    wmap_t weight = std::any_cast<wmap_t>(oweight);
 
     run_action<decltype(graph_tool::always_directed)>()
         (gi,

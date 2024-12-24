@@ -29,7 +29,7 @@ using namespace graph_tool;
 
 struct deg_check : public boost::static_visitor<>
 {
-    void operator()(boost::any a) const
+    void operator()(std::any a) const
     {
         if (!belongs(vertex_scalar_properties, a))
             throw ValueException("Vertex property must be of scalar type.");
@@ -59,7 +59,7 @@ get_vertex_histogram(GraphInterface& gi, GraphInterface::deg_t deg,
 
 // this will return the vertex histogram of degrees or scalar properties
 python::object
-get_edge_histogram(GraphInterface& gi, boost::any prop,
+get_edge_histogram(GraphInterface& gi, std::any prop,
                    const vector<long double>& bins)
 {
     if (!belongs(edge_scalar_properties, prop))

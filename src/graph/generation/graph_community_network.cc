@@ -41,14 +41,14 @@ struct get_community_network_vertices_dispatch
     template <class Graph, class CommunityGraph, class CommunityMap,
               class VertexWeightMap>
     void operator()(const Graph& g, CommunityGraph& cg,
-                    CommunityMap s_map, boost::any acs_map,
-                    VertexWeightMap vweight, boost::any vcount) const
+                    CommunityMap s_map, std::any acs_map,
+                    VertexWeightMap vweight, std::any vcount) const
     {
-        typename CommunityMap::checked_t cs_map = boost::any_cast<typename CommunityMap::checked_t>(acs_map);
+        typename CommunityMap::checked_t cs_map = std::any_cast<typename CommunityMap::checked_t>(acs_map);
 
         typedef typename boost::mpl::if_<std::is_same<no_vweight_map_t, VertexWeightMap>,
                                          vcount_map_t, VertexWeightMap>::type vweight_t;
-        typename vweight_t::checked_t vertex_count = boost::any_cast<typename vweight_t::checked_t>(vcount);
+        typename vweight_t::checked_t vertex_count = std::any_cast<typename vweight_t::checked_t>(vcount);
 
         get_community_network_vertices()(g, cg, s_map, cs_map, vweight, vertex_count);
     }
@@ -63,15 +63,15 @@ struct get_community_network_edges_dispatch
     template <class Graph, class CommunityGraph, class CommunityMap,
               class EdgeWeightMap, class EdgeIndex>
     void operator()(const Graph& g, CommunityGraph& cg, EdgeIndex cedge_index,
-                    CommunityMap s_map, boost::any acs_map,
-                    EdgeWeightMap eweight, boost::any ecount) const
+                    CommunityMap s_map, std::any acs_map,
+                    EdgeWeightMap eweight, std::any ecount) const
     {
-        typename CommunityMap::checked_t cs_map = boost::any_cast<typename CommunityMap::checked_t>(acs_map);
+        typename CommunityMap::checked_t cs_map = std::any_cast<typename CommunityMap::checked_t>(acs_map);
 
         typedef typename boost::mpl::if_<std::is_same<no_eweight_map_t, EdgeWeightMap>,
                                          ecount_map_t, EdgeWeightMap>::type eweight_t;
 
-        typename eweight_t::checked_t edge_count = boost::any_cast<typename eweight_t::checked_t>(ecount);
+        typename eweight_t::checked_t edge_count = std::any_cast<typename eweight_t::checked_t>(ecount);
         get_community_network_edges()(g, cg, cedge_index, s_map,
                                       cs_map, eweight, edge_count,
                                       _self_loops);
@@ -79,22 +79,22 @@ struct get_community_network_edges_dispatch
 };
 
 void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
-                             boost::any community_property,
-                             boost::any condensed_community_property,
-                             boost::any edge_count, boost::any eweight,
+                             std::any community_property,
+                             std::any condensed_community_property,
+                             std::any edge_count, std::any eweight,
                              bool self_loops, bool parallel_edges);
 
 void community_network(GraphInterface& gi, GraphInterface& cgi,
-                       boost::any community_property,
-                       boost::any condensed_community_property,
-                       boost::any vertex_count, boost::any edge_count,
-                       boost::any vweight, boost::any eweight, bool self_loops,
+                       std::any community_property,
+                       std::any condensed_community_property,
+                       std::any vertex_count, std::any edge_count,
+                       std::any vweight, std::any eweight, bool self_loops,
                        bool parallel_edges)
 {
     auto vweight_properties = hana::append(writable_vertex_scalar_properties,
                                            hana::type<no_vweight_map_t>());
 
-    if (vweight.empty())
+    if (!vweight.has_value())
         vweight = no_vweight_map_t();
 
     run_action<>()

@@ -26,8 +26,8 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void ungroup_vector_property(GraphInterface& g, boost::any vector_prop,
-                             boost::any prop, size_t pos, bool edge)
+void ungroup_vector_property(GraphInterface& g, std::any vector_prop,
+                             std::any prop, size_t pos, bool edge)
 {
     if (edge)
         run_action<decltype(graph_tool::always_directed_never_reversed)>()
