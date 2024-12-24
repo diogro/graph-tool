@@ -44,7 +44,7 @@ typedef decltype(hana::tuple_t<std::true_type, std::false_type>) use_hash_tr;
 #define OVERLAP_BLOCK_STATE_params                                             \
     ((g, &, decltype(never_filtered_never_reversed), 1))                       \
     ((use_hash,, use_hash_tr, 1))                                              \
-    ((_abg, &, std::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                  \
     ((node_index,, vimap_t, 0))                                                \
     ((half_edges,, vvmap_t, 0))                                                \
     ((mrs,, emap_t, 0))                                                        \
@@ -86,7 +86,6 @@ public:
     OverlapBlockState(ATs&&... args)
         : OverlapBlockStateVirtualBase<Ts...>(std::forward<ATs>(args)...),
           _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
-          _c_mrs(_mrs.get_checked()),
           _emat(_g, _bg),
           _egroups_update(true),
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg)),
@@ -106,14 +105,11 @@ public:
 
         for (auto& p : _brec)
         {
-            _c_brec.push_back(p.get_checked());
             double x = 0;
             for (auto me : edges_range(_bg))
                 x += p[me];
             _recsum.push_back(x);
         }
-        for (auto& p : _bdrec)
-            _c_bdrec.push_back(p.get_checked());
         if (!_rec_types.empty())
         {
             _recx2.resize(this->_rec_types.size());
@@ -158,9 +154,6 @@ public:
           _bg(other._bg),
           _candidate_groups(other._candidate_groups),
           _empty_groups(other._empty_groups),
-          _c_mrs(other._c_mrs),
-          _c_brec(other._c_brec),
-          _c_bdrec(other._c_bdrec),
           _recsum(other._recsum),
           _recx2(other._recx2),
           _dBdx(other._dBdx),
@@ -313,7 +306,7 @@ public:
     }
 
     template <class VMap>
-    void set_partition(VMap&& b)
+    void set_partition(VMap& b)
     {
         for (auto v : vertices_range(_g))
             move_vertex(v, b[v]);
@@ -1359,7 +1352,6 @@ public:
     {
         auto* state = deep_copy(make_index_sequence<sizeof...(Ts)>{});
         state->_mrs = state->_mrs.copy();
-        state->_c_mrs = state->_mrs.get_checked();
         state->_mrp = state->_mrp.copy();
         if (is_directed(_g))
             state->_mrm = state->_mrm.copy();
@@ -1368,18 +1360,10 @@ public:
         state->_wr = state->_wr.copy();
         state->_b = state->_b.copy();
         state->_egroups = _egroups;
-        state->_c_brec.clear();
         for (auto& p : state->_brec)
-        {
             p = p.copy();
-            state->_c_brec.push_back(p.get_checked());
-        }
-        state->_c_bdrec.clear();
         for (auto& p : state->_bdrec)
-        {
             p = p.copy();
-            state->_c_bdrec.push_back(p.get_checked());
-        }
         state->_recsum = _recsum;
         state->_brecsum = _brecsum.copy();
         if (_coupled_state != nullptr)
@@ -1455,9 +1439,6 @@ public:
     idx_set<size_t> _candidate_groups;
     idx_set<size_t> _empty_groups;
 
-    typename mrs_t::checked_t _c_mrs;
-    std::vector<typename brec_t::value_type::checked_t> _c_brec;
-    std::vector<typename brec_t::value_type::checked_t> _c_bdrec;
     std::vector<double> _recsum;
     std::vector<double> _recx2;
     std::vector<double> _dBdx;

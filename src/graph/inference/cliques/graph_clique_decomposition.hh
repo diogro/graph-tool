@@ -64,10 +64,10 @@ iter_mh(Graph& g, Vxprop x, Cprop c, Vprop is_fac, Vprop is_max, Vec& Ed, int N,
     }
 
     vector<int> nc;
-    auto c_c = c.get_checked();
-    auto is_fac_c = is_fac.get_checked();
-    auto x_c = x.get_checked();
-    auto is_max_c = is_max.get_checked();
+    auto& c_c = c.get_checked();
+    auto& is_fac_c = is_fac.get_checked();
+    auto& x_c = x.get_checked();
+    auto& is_max_c = is_max.get_checked();
 
     auto get_v =
         [&](auto& nc)

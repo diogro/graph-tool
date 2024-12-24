@@ -327,7 +327,7 @@ add_vertex(boost::filt_graph<Graph,
 {
     auto v = add_vertex(const_cast<Graph&>(g._g));
     auto& filt = g._vertex_pred.get_filter();
-    auto cfilt = filt.get_checked();
+    auto& cfilt = filt.get_checked();
     cfilt[v] = true;
     return v;
 }
@@ -340,7 +340,7 @@ add_edge(Vertex s, Vertex t, filt_graph<Graph,
 {
     auto e = add_edge(s, t, const_cast<Graph&>(g._g));
     auto& filt = g._edge_pred.get_filter();
-    auto cfilt = filt.get_checked();
+    auto& cfilt = filt.get_checked();
     cfilt[e.first] = true;
     return e;
 }

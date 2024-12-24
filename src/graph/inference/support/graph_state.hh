@@ -123,7 +123,7 @@ auto uncheck(boost::checked_vector_property_map<Type,Index>*)
 }
 
 template <class Type, class Index>
-auto uncheck(boost::checked_vector_property_map<Type,Index> p)
+auto& uncheck(boost::checked_vector_property_map<Type,Index> p)
 {
     return p.get_unchecked();
 }
@@ -149,7 +149,6 @@ auto&& uncheck(T&& a)
 {
     return std::forward<T>(a);
 }
-
 
 template <class Factory, class... TRS>
 struct StateWrap

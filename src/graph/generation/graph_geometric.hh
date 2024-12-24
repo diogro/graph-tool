@@ -105,7 +105,7 @@ struct get_geometric
                     double r, bool periodic_boundary) const
     {
         int N = points.size();
-        typename Pos::checked_t pos = upos.get_checked();
+        auto& pos = upos.get_checked();
         vector<int> box;
         vector<pair<int, int> > box_ranges;
 

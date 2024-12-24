@@ -573,9 +573,9 @@ struct LatentClosure
             auto e = edge(u, v, _gc);
             if (!e.second)
             {
-                auto gw = _gw.get_checked();
-                auto m = _m.get_checked();
-                auto x = _x.get_checked();
+                auto& gw = _gw.get_checked();
+                auto& m = _m.get_checked();
+                auto& x = _x.get_checked();
                 e = add_edge(u, v, _gc);
                 gw[e.first] = 0;
                 m[e.first] = get_m(u, v);

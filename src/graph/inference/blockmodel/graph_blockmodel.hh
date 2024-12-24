@@ -42,7 +42,7 @@ typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
 template <class PMap>
-auto uncheck(std::any& amap, PMap*)
+auto& uncheck(std::any& amap, PMap*)
 {
     return std::any_cast<typename PMap::checked_t&>(amap).get_unchecked();
 }
@@ -79,9 +79,9 @@ typedef decltype(hana::tuple_t<std::false_type>) rmap_tr;
     ((is_weighted,, decltype(hana::tuple_t<std::true_type>), 1))               \
     ((use_hash,, bool_tr, 1))                                                  \
     ((use_rmap,, rmap_tr, 1))                                                  \
-    ((_abg,, std::any, 0))                                                   \
-    ((_aeweight,, std::any, 0))                                              \
-    ((_avweight,, std::any, 0))                                              \
+    ((_abg,, std::any, 0))                                                     \
+    ((_aeweight,, std::any, 0))                                                \
+    ((_avweight,, std::any, 0))                                                \
     ((mrs,, emap_t, 0))                                                        \
     ((mrp,, vmap_t, 0))                                                        \
     ((mrm,, vmap_t, 0))                                                        \
@@ -130,7 +130,6 @@ public:
     BlockState(ATs&&... args)
         : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
           _bg(*std::any_cast<std::shared_ptr<bg_t>>(__abg)),
-          _c_mrs(_mrs.get_checked()),
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(_g, _bg),
@@ -147,20 +146,13 @@ public:
                 _candidate_groups.insert(r);
         }
 
-        for (auto& p : _rec)
-            _c_rec.push_back(p.get_checked());
-        for (auto& p : _drec)
-            _c_drec.push_back(p.get_checked());
         for (auto& p : _brec)
         {
-            _c_brec.push_back(p.get_checked());
             double x = 0;
             for (auto me : edges_range(_bg))
                 x += p[me];
             _recsum.push_back(x);
         }
-        for (auto& p : _bdrec)
-            _c_bdrec.push_back(p.get_checked());
 
         if (!_rec_types.empty())
         {
@@ -360,8 +352,8 @@ public:
     {
         for (size_t i = 0; i < _rec_types.size(); ++i)
         {
-            _c_rec[i][e] = 0;
-            _c_drec[i][e] = 0;
+            _rec[i].get_checked()[e] = 0;
+            _drec[i].get_checked()[e] = 0;
         }
 
         size_t r = _b[source(e, _g)];
@@ -371,11 +363,11 @@ public:
         {
             me = boost::add_edge(r, s, _bg).first;
             _emat.put_me(r, s, me);
-            _c_mrs[me] = 0;
+            _mrs.get_checked()[me] = 0;
             for (size_t i = 0; i < _rec_types.size(); ++i)
             {
-                _c_brec[i][me] = 0;
-                _c_bdrec[i][me] = 0;
+                _brec[i].get_checked()[me] = 0;
+                _bdrec[i].get_checked()[me] = 0;
             }
             if (_coupled_state != nullptr)
                 _coupled_state->add_edge(me);
@@ -403,11 +395,11 @@ public:
     {
         if (_rec_types.empty())
             return;
-        auto crec = _rec[0].get_checked();
+        auto& crec = _rec[0].get_checked();
         crec[e] = 1;
         for (size_t i = 1; i < _rec_types.size(); ++i)
         {
-            auto drec = _drec[i].get_checked();
+            auto& drec = _drec[i].get_checked();
             drec[e] = 0;
         }
     }
@@ -430,10 +422,10 @@ public:
             if (_rec_types[i] != weight_type::REAL_NORMAL)
                 continue;
 
-            auto rec = _c_rec[i][e];
+            auto rec = _rec[i].get_checked()[e];
             auto d = (std::pow(rec, 2) -
                       std::pow(rec - delta[i], 2));
-            _c_drec[i][e] += d;
+            _drec[i].get_checked()[e] += d;
         }
     }
 
@@ -624,11 +616,11 @@ public:
             {
                 me = boost::add_edge(r, s, _bg).first;
                 _emat.put_me(r, s, me);
-                _c_mrs[me] = 0;
+                _mrs.get_checked()[me] = 0;
                 for (size_t i = 0; i < _rec_types.size(); ++i)
                 {
-                    _c_brec[i][me] = 0;
-                    _c_bdrec[i][me] = 0;
+                    _brec[i].get_checked()[me] = 0;
+                    _bdrec[i].get_checked()[me] = 0;
                 }
 
                 if (_coupled_state != nullptr)
@@ -688,11 +680,11 @@ public:
             {
                 me = boost::add_edge(r, s, _bg).first;
                 _emat.put_me(r, s, me);
-                _c_mrs[me] = 0;
+                _mrs.get_checked()[me] = 0;
                 for (size_t i = 0; i < _rec_types.size(); ++i)
                 {
-                    _c_brec[i][me] = 0;
-                    _c_bdrec[i][me] = 0;
+                    _brec[i].get_checked()[me] = 0;
+                    _bdrec[i].get_checked()[me] = 0;
                 }
             }
 
@@ -773,7 +765,7 @@ public:
             if (e == GraphInterface::edge_t())
             {
                 e = boost::add_edge(u, v, _g).first;
-                auto c_eweight = _eweight.get_checked();
+                auto& c_eweight = _eweight.get_checked();
                 c_eweight[e] = dm;
             }
             else
@@ -869,7 +861,7 @@ public:
     }
 
     template <class VMap>
-    void set_partition(VMap&& b)
+    void set_partition(VMap& b)
     {
         vmap_t::unchecked_t hb;
         if (_coupled_state != nullptr)
@@ -2653,7 +2645,6 @@ public:
             }
         }
         state->_mrs = state->_mrs.copy();
-        state->_c_mrs = state->_mrs.get_checked();
         state->_mrp = state->_mrp.copy();
         if (is_directed(_g))
             state->_mrm = state->_mrm.copy();
@@ -2662,24 +2653,10 @@ public:
         state->_wr = state->_wr.copy();
         state->_b = state->_b.copy();
         state->_egroups = _egroups;
-        state->_c_rec.clear();
-        for (auto& p : state->_rec)
-            state->_c_rec.push_back(p.get_checked());
-        state->_c_drec.clear();
-        for (auto& p : state->_drec)
-            state->_c_drec.push_back(p.get_checked());
-        state->_c_brec.clear();
         for (auto& p : state->_brec)
-        {
             p = p.copy();
-            state->_c_brec.push_back(p.get_checked());
-        }
-        state->_c_bdrec.clear();
         for (auto& p : state->_bdrec)
-        {
             p = p.copy();
-            state->_c_bdrec.push_back(p.get_checked());
-        }
         state->_recsum = _recsum;
         state->_brecsum = _brecsum.copy();
         if (_coupled_state != nullptr)
@@ -2765,11 +2742,6 @@ public:
     idx_set<size_t> _candidate_groups;
     idx_set<size_t> _empty_groups;
 
-    typename mrs_t::checked_t _c_mrs;
-    std::vector<typename rec_t::value_type::checked_t> _c_rec;
-    std::vector<typename drec_t::value_type::checked_t> _c_drec;
-    std::vector<typename brec_t::value_type::checked_t> _c_brec;
-    std::vector<typename bdrec_t::value_type::checked_t> _c_bdrec;
     std::vector<double> _recsum;
     std::vector<double> _recx2;
     std::vector<double> _dBdx;

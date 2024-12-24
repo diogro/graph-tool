@@ -178,7 +178,7 @@ public:
                      m[v].clear();
              });
 
-        auto xc = s._x.get_checked();
+        auto& xc = s._x.get_checked();
 
         #pragma omp parallel
         parallel_vertex_loop_no_spawn

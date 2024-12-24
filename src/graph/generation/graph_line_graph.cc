@@ -38,7 +38,7 @@ struct get_line_graph
             edge_to_vertex_map_t;
         edge_to_vertex_map_t edge_to_vertex_map(edge_index);
 
-        typename LGVertexIndex::checked_t vertex_map = vmap.get_checked();
+        auto& vertex_map = vmap.get_checked();
 
         for (auto e : edges_range(g))
         {

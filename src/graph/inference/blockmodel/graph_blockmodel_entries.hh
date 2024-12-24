@@ -541,11 +541,11 @@ void apply_delta(State& state, MEntries& m_entries)
                         {
                             me = boost::add_edge(r, s, state._bg).first;
                             state._emat.put_me(r, s, me);
-                            state._c_mrs[me] = 0;
+                            state._mrs.get_checked()[me] = 0;
                             for (size_t i = 0; i < state._rec_types.size(); ++i)
                             {
-                                state._c_brec[i][me] = 0;
-                                state._c_bdrec[i][me] = 0;
+                                state._brec[i].get_checked()[me] = 0;
+                                state._bdrec[i].get_checked()[me] = 0;
                             }
                             if (state._coupled_state != nullptr)
                                 state._coupled_state->add_edge(me);
