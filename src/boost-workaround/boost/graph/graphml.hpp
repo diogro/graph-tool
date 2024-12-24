@@ -12,8 +12,6 @@
 #ifndef BOOST_GRAPH_GRAPHML_HPP
 #define BOOST_GRAPH_GRAPHML_HPP
 
-#include <any>
-
 #include <boost/config.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_convertible.hpp>
@@ -233,9 +231,11 @@ public:
         put_property(const std::string& name, dynamic_properties& dp,
                      const Key& key, const std::string& value,
                      const std::string& value_type,
-                     bool& type_found) : m_name(name), m_dp(dp), m_key(key),
-            m_value(value), m_value_type(value_type),
-            m_type_found(type_found) {}
+                     bool& type_found)
+            : m_name(name), m_dp(dp), m_key(key),
+              m_value(value), m_value_type(value_type),
+              m_type_found(type_found) {}
+
         template <class Value>
         void operator()(Value)
         {
@@ -326,9 +326,9 @@ private:
 struct get_string
 {
     template <typename ValueType>
-    void operator()(const std::any& val, std::string& sval, ValueType) const
+    void operator()(const boost::any& val, std::string& sval, ValueType) const
     {
-        const ValueType* v = std::any_cast<ValueType>(&val);
+        const ValueType* v = boost::any_cast<ValueType>(&val);
         if (v != 0)
         {
             sval = lexical_cast<std::string>(*v);
@@ -342,7 +342,7 @@ template <typename ValueTypes, typename Descriptor>
 std::string print_value(dynamic_property_map& pmap, Descriptor v)
 {
     std::string val;
-    std::any oval = pmap.get(v);
+    boost::any oval = pmap.get(v);
     mpl::for_each<ValueTypes>(boost::bind<void>(get_string(), boost::ref(oval),
                                                 boost::ref(val), _1));
     return val;

@@ -181,7 +181,7 @@ struct check_value_type
 {
     typedef typename IndexMap::key_type key_t;
     check_value_type(IndexMap index_map, const key_t& key,
-                     const std::any& value, dynamic_property_map*& map)
+                     const boost::any& value, dynamic_property_map*& map)
         :_index_map(index_map), _key(key), _value(value), _map(map) {}
 
     template <class ValueType>
@@ -191,15 +191,15 @@ struct check_value_type
         {
             typedef property_map_t<ValueType, IndexMap> map_t;
             map_t vector_map(_index_map);
-            vector_map[_key] = std::any_cast<ValueType>(_value);
+            vector_map[_key] = boost::any_cast<ValueType>(_value);
             _map = new boost::detail::dynamic_property_map_adaptor<map_t>
                 (vector_map);
         }
-        catch (std::bad_any_cast&) {}
+        catch (boost::bad_any_cast&) {}
     }
     IndexMap _index_map;
     const key_t& _key;
-    const std::any& _value;
+    const boost::any& _value;
     dynamic_property_map*& _map;
 };
 
@@ -215,10 +215,10 @@ struct create_dynamic_map
     create_dynamic_map(VertexIndexMap vertex_map, EdgeIndexMap edge_map)
         :_vertex_map(vertex_map), _edge_map(edge_map) {}
     DP_SMART_PTR<dynamic_property_map> operator()(const string&,
-                                                  const std::any& key,
-                                                  const std::any& value)
+                                                  const boost::any& key,
+                                                  const boost::any& value)
     {
-        dynamic_property_map* map;
+        dynamic_property_map* map = nullptr;
         try
         {
             hana::for_each(value_types,
@@ -226,11 +226,11 @@ struct create_dynamic_map
                            {
                                typedef typename decltype(+t)::type val_t;
                                check_value_type<VertexIndexMap>(_vertex_map,
-                                                                std::any_cast<vertex_t>(key),
+                                                                boost::any_cast<vertex_t>(key),
                                                                 value, map)(val_t());
                            });
         }
-        catch (std::bad_any_cast&)
+        catch (boost::bad_any_cast&)
         {
             try
             {
@@ -239,11 +239,11 @@ struct create_dynamic_map
                                {
                                    typedef typename decltype(+t)::type val_t;
                                    check_value_type<EdgeIndexMap>(_edge_map,
-                                                                  std::any_cast<edge_t>(key),
+                                                                  boost::any_cast<edge_t>(key),
                                                                   value, map)(val_t());
                                });
             }
-            catch (std::bad_any_cast&)
+            catch (boost::bad_any_cast&)
             {
                 ConstantPropertyMap<size_t,graph_property_tag> graph_index(0);
                 hana::for_each(value_types,
@@ -252,7 +252,7 @@ struct create_dynamic_map
                                    typedef typename decltype(+t)::type val_t;
                                    check_value_type<ConstantPropertyMap<size_t,
                                                                         graph_property_tag> >
-                                       (graph_index, std::any_cast<graph_property_tag>(key),
+                                       (graph_index, boost::any_cast<graph_property_tag>(key),
                                         value, map)(val_t());
                                });
             }
@@ -274,7 +274,9 @@ void build_stream(boost::iostreams::filtering_stream<boost::iostreams::input>& s
 {
     stream.reset();
     if (file == "-")
+    {
         stream.push(std::cin);
+    }
     else
     {
         if (pfile == boost::python::object())

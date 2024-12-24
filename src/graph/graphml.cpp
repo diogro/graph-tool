@@ -234,7 +234,7 @@ private:
                     self->m_canonical_edges = (value == "canonical");
                 }
             }
-            self->m_active_descriptor = any();
+            self->m_active_descriptor = std::any();
             self->m_descriptor_kind = M_GRAPH_DESCRIPTOR;
         }
 
@@ -280,7 +280,7 @@ private:
         self->m_character_data.append(s, len);
     }
 
-    any
+    std::any
     handle_vertex(const std::string& v)
     {
         bool is_new = false;
@@ -327,7 +327,7 @@ private:
             }
         }
 
-        any vd = get_vertex_descriptor(v);
+        std::any vd = get_vertex_descriptor(v);
         if (is_new)
         {
             std::map<std::string, std::string>::iterator iter;
@@ -344,7 +344,7 @@ private:
         return vd;
     }
 
-    any
+    std::any
     get_vertex_descriptor(const std::string& v)
     {
         if (m_canonical_vertices)
@@ -361,18 +361,18 @@ private:
         }
     }
 
-    any
+    std::any
     handle_edge(const std::string& id, const std::string& u,
                 const std::string& v)
     {
         handle_vertex(u);
         handle_vertex(v);
 
-        any source, target;
+        std::any source, target;
         source = get_vertex_descriptor(u);
         target = get_vertex_descriptor(v);
 
-        any edge;
+        std::any edge;
         bool added;
         tie(edge, added) = m_g.do_add_edge(source, target);
         if (!added)
@@ -392,13 +392,13 @@ private:
     }
 
     void handle_edge_property(const std::string& key_id,
-                              const any& descriptor,
+                              const std::any& descriptor,
                               const std::string& value)
     {
         try
         {
             m_g.set_edge_property(m_key_name[key_id], descriptor,
-                              value, m_key_type[key_id]);
+                                  value, m_key_type[key_id]);
         }
         catch (parse_error &e)
         {
@@ -411,7 +411,7 @@ private:
     }
 
     void handle_vertex_property(const std::string& key_id,
-                                const any& descriptor,
+                                const std::any& descriptor,
                                 const std::string& value)
     {
         try
@@ -430,7 +430,7 @@ private:
     }
 
     void handle_graph_property(const std::string& key_id,
-                               const any&,
+                               const std::any&,
                                const std::string& value)
     {
         try
@@ -453,10 +453,10 @@ private:
     std::map<std::string, std::string> m_key_name;
     std::map<std::string, std::string> m_key_type;
     std::map<std::string, std::string> m_key_default;
-    std::map<std::string, any> m_vertex;
+    std::map<std::string, std::any> m_vertex;
     std::vector<std::any> m_canonical_vertex;
 
-    any m_active_descriptor;
+    std::any m_active_descriptor;
     desc_kind m_descriptor_kind;
 
     std::string m_active_key;
