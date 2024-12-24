@@ -1349,7 +1349,7 @@ struct Dynamics
 
             if (k > 0)
             {
-                auto& g_r = make_reversed_graph(g);
+                auto& g_r = get_reversed_graph(g);
                 if (!knn)
                 {
                     if (exact)

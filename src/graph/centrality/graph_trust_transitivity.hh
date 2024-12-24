@@ -181,11 +181,7 @@ struct get_trust_transitivity
             }
             else
             {
-                typedef typename
-                    mpl::if_<typename is_directed_::apply<Graph>::type,
-                             reversed_graph<fg_t>,
-                             fg_t>::type rg_t;
-                rg_t rg(fg);
+                auto& rg = get_reversed_graph(fg);
                 dist_map_t sum_w(vertex_index, num_vertices(g));
                 for (auto e : in_edges_range(tgt, g))
                 {

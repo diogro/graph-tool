@@ -34,6 +34,8 @@
 
 #include "transform_iterator.hh"
 
+#include "graph_adaptor.hh"
+
 #include "openmp.hh"
 
 namespace boost
@@ -634,6 +636,13 @@ private:
 
     friend void remove_edge<>(const edge_descriptor& e, adj_list<Vertex>& g);
 };
+
+//========================================================================
+// Undirected version
+//========================================================================
+
+template <class Vertex = size_t>
+using uadj_list = undirected_adaptor<adj_list<Vertex>>;
 
 //========================================================================
 // Graph traits and BGL scaffolding

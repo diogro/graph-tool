@@ -52,6 +52,26 @@ public:
 };
 
 template <class Graph>
+auto& get_reversed_graph(Graph& g)
+{
+    if constexpr (std::is_convertible_v<typename boost::graph_traits<Graph>::directed_category,
+                                        boost::directed_tag>)
+        return reinterpret_cast<reversed_graph<Graph>&>(g);
+    else
+        return g;
+}
+
+template <class Graph>
+auto& get_reversed_graph(const Graph& g)
+{
+    if constexpr (std::is_convertible_v<typename boost::graph_traits<Graph>::directed_category,
+                                        boost::directed_tag>)
+        return reinterpret_cast<const reversed_graph<Graph>&>(g);
+    else
+        return g;
+}
+
+template <class Graph>
 struct graph_traits<reversed_graph<Graph>>
     : public graph_traits<Graph>
 {
@@ -72,18 +92,6 @@ struct graph_traits<const reversed_graph<Graph>>
     typedef typename Graph::in_adjacency_iterator adjacency_iterator;
     typedef typename graph_traits<Graph>::adjacency_iterator in_adjacency_iterator;
 };
-
-template <class Graph>
-reversed_graph<Graph>& make_reversed_graph(Graph& g)
-{
-    return reinterpret_cast<reversed_graph<Graph>&>(g);
-}
-
-template <class Graph>
-const reversed_graph<Graph>& make_reversed_graph(const Graph& g)
-{
-    return reinterpret_cast<const reversed_graph<Graph>&>(g);
-}
 
 // These are separate so they are not instantiated unless used (see bug 1021)
 template <class Graph>

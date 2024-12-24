@@ -252,29 +252,14 @@ bool graph_cmp(Graph& g1, Graph& g2)
 // short hand for subgraph types
 typedef boost::adj_list<size_t> d_graph_t;
 
-// we need this wrap to use the undirected_adaptor only on directed graphs
-struct wrap_undirected
+template <class Graph, class Sub>
+auto& wrap_directed(Graph&, Sub& sub)
 {
-    template <class Graph>
-    struct apply
-    {
-        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
-                                  boost::undirected_adaptor<Graph>,
-                                  Graph&>::type type;
-    };
-};
-
-struct wrap_directed
-{
-    template <class Graph, class Sub>
-    struct apply
-    {
-        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
-                                  Sub&,
-                                  boost::undirected_adaptor<Sub>>::type type;
-    };
-};
-
+    if constexpr (is_directed_v<Graph>)
+        return sub;
+    else
+        return get_undirected_adaptor(sub);
+}
 
 // get the signature of the graph: sorted degree sequence
 template <class Graph>
@@ -321,8 +306,7 @@ struct get_all_motifs
         for (size_t i = 0; i < subgraph_list.size(); ++i)
         {
             auto& sub = subgraph_list[i];
-            typename wrap_directed::apply<Graph,d_graph_t>::type
-                usub(sub);
+            auto& usub = wrap_directed(g, sub);
             get_sig(usub, sig);
             sub_list[sig].emplace_back(i, sub);
         }
@@ -331,7 +315,7 @@ struct get_all_motifs
         hist.resize(subgraph_list.size());
 
         typedef std::uniform_real_distribution<double> rdist_t;
-        auto random = [this] { return rdist_t()(rng); };
+        auto random = [&] { return rdist_t()(rng); };
         // the set of vertices V to be sampled (filled only if p < 1)
         std::vector<size_t> V;
         if (p < 1)
@@ -367,14 +351,13 @@ struct get_all_motifs
             if (!is_valid_vertex(v, g))
                 continue;
 
-            typename wrap_undirected::apply<Graph>::type ug(g);
+            auto& ug = get_undirected_adaptor(g);
             get_subgraphs(ug, v, k, subgraphs, sampler);
 
             for (size_t j = 0; j < subgraphs.size(); ++j)
             {
                 d_graph_t sub;
-                typename wrap_directed::apply<Graph,d_graph_t>::type
-                    usub(sub);
+                auto& usub = wrap_directed(g, sub);
                 make_subgraph(subgraphs[j], g, usub);
                 get_sig(usub, sig);
 
@@ -406,8 +389,7 @@ struct get_all_motifs
                             for (auto& mpos : sl->second)
                             {
                                 motif = &mpos.second;
-                                typename wrap_directed::apply<Graph,d_graph_t>::type
-                                    umotif(*motif);
+                                auto& umotif = wrap_directed(g, *motif);
 
                                 if (comp_iso)
                                 {

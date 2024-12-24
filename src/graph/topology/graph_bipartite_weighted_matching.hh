@@ -268,8 +268,7 @@ void maximum_bipartite_weighted_imperfect_matching(Graph& g,
                                                           oweight_t, int>>,
                                       oweight_t>::type weight_t;
 
-    adj_list<> u_base;
-    undirected_adaptor<adj_list<>> u(u_base);
+    uadj_list<> u;
 
     typedef typename property_traits<std::remove_reference_t<Partition>>::value_type pval_t;
     vprop_map_t<pval_t> u_partition;
@@ -370,8 +369,7 @@ void maximum_bipartite_weighted_matching(Graph& g,
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     typedef typename property_traits<std::remove_reference_t<Weight>>::value_type weight_t;
 
-    adj_list<> u_base;
-    undirected_adaptor<adj_list<>> u(u_base);
+    uadj_list<> u;
 
     typedef typename property_traits<std::remove_reference_t<Partition>>::value_type pval_t;
     vprop_map_t<pval_t> u_partition;

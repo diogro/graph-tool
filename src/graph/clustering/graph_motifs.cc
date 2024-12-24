@@ -48,8 +48,7 @@ struct retrieve_from_list
             done = true;
             return;
         }
-        typename wrap_directed::apply<Graph,d_graph_t>::type
-            uback(glist.back());
+        auto& uback = wrap_directed(g, glist.back());
         graph_copy(uback, g);
         glist.pop_back();
     }

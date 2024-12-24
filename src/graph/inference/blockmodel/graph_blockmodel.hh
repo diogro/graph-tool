@@ -2643,10 +2643,9 @@ public:
             {
                 GraphInterface::multigraph_t& g =
                     boost::any_cast<std::reference_wrapper<GraphInterface::multigraph_t>>(ag);
-                ug_t* ug = new ug_t(g);
-                state = deep_copy(*ug, eweight, rec, drec, Lrecdx, global,
+                auto& ug = get_undirected_adaptor(g);
+                state = deep_copy(ug, eweight, rec, drec, Lrecdx, global,
                                   make_index_sequence<sizeof...(Ts)-1>{});
-                state->_ugp = std::shared_ptr<ug_t>(ug);
             }
             else
             {
@@ -2813,7 +2812,6 @@ public:
     args_t _args;
 
     // owned by deep copies
-    std::shared_ptr<undirected_adaptor<GraphInterface::multigraph_t>> _ugp;
     std::shared_ptr<bg_t> _bgp;
     std::shared_ptr<GraphInterface::multigraph_t> __bgp;
     std::shared_ptr<BlockStateVirtualBase> _coupled_statep;

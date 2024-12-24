@@ -44,7 +44,7 @@ size_t partition_overlap(BV& x, BV& y)
     typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
     vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
-    auto u = undirected_adaptor<adj_list<>>(g);
+    auto& u = get_undirected_adaptor(g);
     //maximum_weighted_matching(u, mrs, match);
     maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
@@ -74,7 +74,7 @@ void partition_align_labels(BX&& x, BY&& y)
     typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
     vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
-    auto u = undirected_adaptor<adj_list<>>(g);
+    auto& u = get_undirected_adaptor(g);
     maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
     idx_set<int> used;
@@ -635,7 +635,7 @@ public:
         typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
         vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
-        auto u = undirected_adaptor<adj_list<>>(g);
+        auto& u = get_undirected_adaptor(g);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
         idx_map<int32_t, size_t> b_vertices;
@@ -693,7 +693,7 @@ public:
         typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
         vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
-        auto u = undirected_adaptor<adj_list<>>(g);
+        auto& u = get_undirected_adaptor(g);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
         idx_map<int32_t, size_t> vertices;

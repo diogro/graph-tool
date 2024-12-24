@@ -33,29 +33,39 @@ namespace boost {
 //==============================================================================
 template <class Graph>
 class undirected_adaptor
-    : public Graph
+    : private Graph
 {
 public:
     template <class... Ts>
     undirected_adaptor(Ts&&... args) : Graph(args...) {}
 
+    operator Graph() const = delete;
+
     typedef Graph original_graph_t;
     typedef typename graph_traits<Graph>::out_edge_iterator all_edge_iterator;
 
-    Graph& original_graph() { return static_cast<Graph&>(*this); }
-    const Graph& original_graph() const { return static_cast<const Graph&>(*this); }
+    Graph& original_graph() { return reinterpret_cast<Graph&>(*this); }
+    const Graph& original_graph() const { return reinterpret_cast<const Graph&>(*this); }
 };
 
 template <class Graph>
-undirected_adaptor<Graph>& make_undirected_adaptor(Graph& g)
+auto& get_undirected_adaptor(Graph& g)
 {
-    return static_cast<undirected_adaptor<Graph>&>(g);
+    if constexpr (std::is_convertible_v<typename boost::graph_traits<Graph>::directed_category,
+                                        boost::directed_tag>)
+        return reinterpret_cast<undirected_adaptor<Graph>&>(g);
+    else
+        return g;
 }
 
 template <class Graph>
-const undirected_adaptor<Graph>& make_undirected_adaptor(const Graph& g)
+auto& get_undirected_adaptor(const Graph& g)
 {
-    return static_cast<const undirected_adaptor<Graph>&>(g);
+    if constexpr (std::is_convertible_v<typename boost::graph_traits<Graph>::directed_category,
+                                        boost::directed_tag>)
+        return reinterpret_cast<const undirected_adaptor<Graph>&>(g);
+    else
+        return g;
 }
 
 //==============================================================================
@@ -66,34 +76,7 @@ template <class Graph>
 struct graph_traits<undirected_adaptor<Graph> >
     : public graph_traits<Graph>
 {
-    // typedef typename graph_traits<Graph>::vertex_descriptor vertex_descriptor;
-    // typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
-
-    // typedef typename graph_traits<Graph>::adjacency_iterator adjacency_iterator;
-    // typedef typename graph_traits<Graph>::out_edge_iterator out_edge_iterator;
-    // typedef typename graph_traits<Graph>::in_edge_iterator in_edge_iterator;
-    // typedef typename graph_traits<Graph>::vertex_iterator vertex_iterator;
-    // typedef typename graph_traits<Graph>::edge_iterator edge_iterator;
-
-
     typedef undirected_tag directed_category;
-//    typedef allow_parallel_edge_tag edge_parallel_category;
-//     typedef typename graph_traits<Graph>::traversal_category traversal_category;
-//     typedef typename graph_traits<Graph>::vertices_size_type vertices_size_type;
-//     typedef typename graph_traits<Graph>::edges_size_type edges_size_type;
-//     typedef typename graph_traits<Graph>::degree_size_type degree_size_type;
-
-//     static vertex_descriptor null_vertex()
-//     {
-//         return graph_traits<Graph>::null_vertex();
-//     }
-
-// private:
-//     typedef is_convertible<typename std::iterator_traits<typename graph_traits<Graph>::out_edge_iterator>::iterator_category,
-//                            std::random_access_iterator_tag> is_orig_ra;
-//     typedef is_convertible<typename std::iterator_traits<out_edge_iterator>::iterator_category,
-//                            std::random_access_iterator_tag> is_ra;
-//     BOOST_STATIC_ASSERT((!is_orig_ra::value || is_ra::value));
 };
 
 template <class Graph>

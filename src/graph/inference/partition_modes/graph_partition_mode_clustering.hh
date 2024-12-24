@@ -454,7 +454,7 @@ public:
         typedef typename graph_traits<adj_list<>>::vertex_descriptor vertex_t;
         vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
-        auto u = undirected_adaptor<adj_list<>>(g);
+        auto& u = get_undirected_adaptor(g);
         //maximum_weighted_matching(u, mrs, match);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
 

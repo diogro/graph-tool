@@ -225,7 +225,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
 
     std::bernoulli_distribution rsample(r);
 
-    auto g_u = make_undirected_adaptor(g);
+    auto& g_u = get_undirected_adaptor(g);
     UnityPropertyMap<size_t, typename graph_traits<Graph>::edge_descriptor> dummy;
 
     size_t iter = 1;
@@ -599,7 +599,7 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
 
     if (!directed)
     {
-        auto g_u = make_undirected_adaptor(g);
+        auto& g_u = get_undirected_adaptor(g);
         contract_parallel_edges(g_u, dummy_property_map());
     }
     else
