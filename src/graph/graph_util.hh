@@ -396,10 +396,15 @@ istream& operator>>(istream& in, std::vector<std::string>& vec);
 // swapping the values of the sequence as it iterates
 template <class RandomAccessIterator, class RNG,
           class RandomDist = std::uniform_int_distribution<size_t>>
-class random_permutation_iterator : public
-    std::iterator<std::input_iterator_tag, typename RandomAccessIterator::value_type>
+class random_permutation_iterator
 {
 public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = typename RandomAccessIterator::value_type;
+    using difference_type = typename RandomAccessIterator::difference_type;
+    using pointer = typename RandomAccessIterator::pointer;
+    using reference = typename RandomAccessIterator::reference;
+
     random_permutation_iterator(RandomAccessIterator begin,
                                 RandomAccessIterator end, RNG& rng)
         : _i(begin), _end(end), _rng(&rng)
@@ -464,10 +469,15 @@ auto random_permutation_range(V&& v, RNG& rng)
 // This will iterate over a forward sequence of size N and select a subset of
 // size M <= N uniformly at random
 template <class Iterator, class RNG>
-class random_subset_iterator : public
-    std::iterator<std::input_iterator_tag, typename Iterator::value_type>
+class random_subset_iterator
 {
 public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = typename Iterator::value_type;
+    using difference_type = typename Iterator::difference_type;
+    using pointer = typename Iterator::pointer;
+    using reference = typename Iterator::reference;
+
     random_subset_iterator(Iterator begin, Iterator end, size_t N, size_t M, RNG& rng)
         : _i(begin), _end(end), _N(N), _M(M), _m(0), _t(0), _rng(&rng)
     {
