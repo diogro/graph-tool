@@ -72,7 +72,7 @@ auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
     {
         for (auto e : out_edges_range(v1, g1))
         {
-            auto w = ew1[e];
+            auto w = get(ew1, e);
             auto k = get(l1, target(e, g1));
             adj1[k] += w;
             keys.insert(k);
@@ -83,7 +83,7 @@ auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
     {
         for (auto e : out_edges_range(v2, g2))
         {
-            auto w = ew2[e];
+            auto w = get(ew2, e);
             auto k = get(l2, target(e, g2));
             adj2[k] += w;
             keys.insert(k);

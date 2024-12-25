@@ -412,6 +412,16 @@ private:
     const std::type_info* _value_type;
 };
 
+template <class Value>
+using vdprop_map_t =
+    DynamicPropertyMapWrap<Value,
+                           typename boost::property_traits<vertex_index_map_t>::key_type>;
+
+template <class Value>
+using edprop_map_t =
+    DynamicPropertyMapWrap<Value,
+                           typename boost::property_traits<edge_index_map_t>::key_type>;
+
 template <class Value, class Key, class ConvKey>
 Value get(const graph_tool::DynamicPropertyMapWrap<Value,Key>& pmap,
           ConvKey k)
@@ -420,11 +430,11 @@ Value get(const graph_tool::DynamicPropertyMapWrap<Value,Key>& pmap,
     return pmap.get(key);
 }
 
-template <class Value, class Key>
+template <class Value, class Key, class T>
 void put(graph_tool::DynamicPropertyMapWrap<Value,Key>& pmap,
-         Key k, const Value& val)
+         Key k, const T& val)
 {
-    pmap.put(k, val);
+    pmap.put(k, Value(val));
 }
 
 template <class Value, class Key>

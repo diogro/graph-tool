@@ -72,7 +72,7 @@ void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
     if (!eweight.has_value())
         eweight = no_eweight_map_t();
 
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

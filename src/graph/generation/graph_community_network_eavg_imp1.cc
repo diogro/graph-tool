@@ -35,21 +35,6 @@ using namespace graph_tool;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
 typedef eprop_map_t<int32_t> ecount_map_t;
 
-struct get_edge_sum_dispatch
-{
-    template <class Graph, class CommunityGraph, class CommunityMap,
-              class Eprop>
-    void operator()(const Graph& g, CommunityGraph& cg, CommunityMap s_map,
-                    std::any acs_map, Eprop eprop, std::any aceprop,
-                    bool self_loops, bool parallel_edges) const
-    {
-        typename CommunityMap::checked_t cs_map = std::any_cast<typename CommunityMap::checked_t>(acs_map);
-        typename Eprop::checked_t ceprop = std::any_cast<typename Eprop::checked_t>(aceprop);
-        get_edge_community_property_sum()(g, cg, s_map, cs_map, eprop, ceprop,
-                                          self_loops, parallel_edges);
-    }
-};
-
 void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                 std::any community_property,
                 std::any condensed_community_property, std::any ceprop,
@@ -59,15 +44,16 @@ void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                                               edge_scalar_vector_properties),
                                  hana::type<eprop_map_t<boost::python::object>>());
 
-    run_action<>()
+    run_action<>(false)
         (gi,
-         [&](auto&& graph, auto&& a2, auto&& a3)
+         [&](auto& g, auto s_map, auto cs_map, auto eprop, auto ceprop)
          {
-             return get_edge_sum_dispatch()
-                 (std::forward<decltype(graph)>(graph), cgi.get_graph(),
-                  std::forward<decltype(a2)>(a2), condensed_community_property,
-                  std::forward<decltype(a3)>(a3), ceprop, self_loops,
-                  parallel_edges);
+             get_edge_community_property_sum()(g, cgi.get_graph(), s_map, cs_map.get_checked(),
+                                               eprop, ceprop.get_checked(),
+                                               self_loops, parallel_edges);
          },
-         writable_vertex_properties, eprops_t)(community_property, eprop);
+         writable_vertex_properties, same_arg_type, eprops_t,
+         same_arg_type)
+        (community_property, condensed_community_property,
+         eprop, ceprop);
 }

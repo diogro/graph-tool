@@ -92,7 +92,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
         if (!no_weight)
         {
             // compute weighted values to temp
-            run_action<>()
+            run_action<>(false)
                 (gi,
                  [&](auto&& graph, auto&& a2, auto&& a3)
                  {
@@ -104,7 +104,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                  weight_maps_t, vprops_t)(vweight, vprop);
 
             // sum weighted values
-            run_action<>()
+            run_action<>(false)
                 (gi,
                  [&](auto&& graph, auto&& a2, auto&& a3)
                  {
@@ -120,7 +120,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
         else
         {
             // sum unweighted values
-            run_action<>()
+            run_action<>(false)
                 (gi,
                  [&](auto&& graph, auto&& a2, auto&& a3)
                  {

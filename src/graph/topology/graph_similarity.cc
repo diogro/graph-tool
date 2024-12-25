@@ -28,37 +28,31 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-template <class Type, class Index>
-auto uncheck(boost::unchecked_vector_property_map<Type,Index>, std::any p)
-{
-    return std::any_cast<boost::checked_vector_property_map<Type,Index>>(p).get_unchecked();
-}
-
-template <class T>
-auto&& uncheck(T&&, std::any p)
-{
-    return std::any_cast<T>(p);
-}
-
 python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
                           std::any weight1, std::any weight2,
                           std::any label1, std::any label2, double norm,
                           bool asym)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> ecmap_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
-                                       hana::type<ecmap_t>());
+    auto weight_props_t = hana::tuple_t<ecmap_t, eprop_map_t<long double>,
+                                        edprop_map_t<long double>>;
+
     if (!weight1.has_value())
         weight1 = ecmap_t();
+    else
+        weight1 = eprop_map_as_dynamic(weight1, eprop_map_t<long double>());
+
     if (!weight2.has_value())
         weight2 = ecmap_t();
+    else
+        weight2 = eprop_map_as_dynamic(weight2, eprop_map_t<long double>());
+
     python::object s;
+
     gt_dispatch<>(false)
-        ([&](const auto& g1, const auto& g2, auto ew1, auto l1)
+        ([&](const auto& g1, const auto& g2, auto ew1, auto ew2, auto l1, auto l2)
          {
              GILRelease gil_release;
-             auto l2 = uncheck(l1, label2);
-             auto ew2 = uncheck(ew1, weight2);
              auto ret = get_similarity(g1, g2, ew1, ew2, l1, l2, norm, asym);
              gil_release.restore();
              s = python::object(ret);
@@ -66,8 +60,11 @@ python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
          all_graph_views,
          all_graph_views,
          weight_props_t,
-         vertex_scalar_properties)
-        (gi1.get_graph_view(), gi2.get_graph_view(), weight1, label1);
+         same_arg_type,
+         vertex_scalar_properties,
+         same_arg_type)
+        (gi1.get_graph_view(), gi2.get_graph_view(), weight1, weight2,
+         label1, label2);
     return s;
 }
 

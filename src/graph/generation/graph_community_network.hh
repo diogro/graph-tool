@@ -46,6 +46,8 @@ struct get_community_network_vertices
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
+        GILRelease gil(!std::is_same_v<s_type, boost::python::object>);
+
         unordered_map<s_type, vertex_t> comms;
 
         // create vertices
@@ -106,6 +108,8 @@ struct get_community_network_edges
             cedge_t;
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
+
+        GILRelease gil(!std::is_same_v<s_type, boost::python::object>);
 
         typedef unordered_map<s_type, vertex_t> comms_t;
         comms_t comms;
@@ -233,6 +237,8 @@ struct get_vertex_community_property_sum
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
+        GILRelease gil(!std::is_same_v<s_type, boost::python::object>);
+
         unordered_map<s_type, vertex_t> comms;
 
         for (auto v : vertices_range(cg))
@@ -272,6 +278,8 @@ struct get_edge_community_property_sum
             cedge_t;
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
+
+        GILRelease gil(!std::is_same_v<s_type, boost::python::object>);
 
         unordered_map<s_type, vertex_t> comms;
 

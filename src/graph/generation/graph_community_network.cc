@@ -97,7 +97,7 @@ void community_network(GraphInterface& gi, GraphInterface& cgi,
     if (!vweight.has_value())
         vweight = no_vweight_map_t();
 
-    run_action<>()
+    run_action<>(false)
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

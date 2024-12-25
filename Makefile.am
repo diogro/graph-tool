@@ -472,6 +472,7 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/uncertain/measured_mcmc.cc \
 	src/graph/inference/uncertain/uncertain.cc \
 	src/graph/inference/uncertain/uncertain_marginal.cc \
+	src/graph/inference/uncertain/uncertain_marginal_imp1.cc \
 	src/graph/inference/uncertain/uncertain_mcmc.cc \
 	src/graph/inference/support/cache.cc \
 	src/graph/inference/support/int_part.cc \

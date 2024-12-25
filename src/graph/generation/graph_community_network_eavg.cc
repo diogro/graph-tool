@@ -81,16 +81,14 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
         if (!no_weight)
         {
             // compute weighted values to temp
-            run_action<>()
+            run_action<>(false)
                 (gi,
-                 [&](auto&& graph, auto&& a2, auto&& a3)
+                 [&](auto& g, auto w, auto p, auto temp)
                  {
-                     return get_weighted_edge_property_dispatch()
-                         (std::forward<decltype(graph)>(graph),
-                          std::forward<decltype(a2)>(a2),
-                          std::forward<decltype(a3)>(a3), temp);
+                     temp.reserve(p.get_storage().size());
+                     get_weighted_edge_property()(g, w, p, temp);
                  },
-                 weight_maps_t, eprops_t)(eweight, eprop);
+                 weight_maps_t, eprops_t, same_arg_type)(eweight, eprop, temp);
 
             // sum weighted values
             sum_eprops(gi, cgi, community_property,
