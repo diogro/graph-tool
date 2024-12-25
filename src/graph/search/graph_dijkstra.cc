@@ -46,43 +46,43 @@ public:
         : _gp(gp), _vis(vis) {}
 
     template <class Vertex, class Graph>
-    void initialize_vertex(Vertex u, Graph& g)
+    void initialize_vertex(Vertex u, Graph&)
     {
         _vis.attr("initialize_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Vertex, class Graph>
-    void discover_vertex(Vertex u, Graph& g)
+    void discover_vertex(Vertex u, Graph&)
     {
         _vis.attr("discover_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Vertex, class Graph>
-    void examine_vertex(Vertex u, Graph& g)
+    void examine_vertex(Vertex u, Graph&)
     {
         _vis.attr("examine_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Edge, class Graph>
-    void examine_edge(Edge e, Graph& g)
+    void examine_edge(Edge e, Graph&)
     {
         _vis.attr("examine_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_relaxed(Edge e, Graph& g)
+    void edge_relaxed(Edge e, Graph&)
     {
         _vis.attr("edge_relaxed")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_not_relaxed(Edge e, Graph& g)
+    void edge_not_relaxed(Edge e, Graph&)
     {
         _vis.attr("edge_not_relaxed")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Vertex, class Graph>
-    void finish_vertex(Vertex u, Graph& g)
+    void finish_vertex(Vertex u, Graph&)
     {
         _vis.attr("finish_vertex")(PythonVertex<Graph>(_gp, u));
     }

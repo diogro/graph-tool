@@ -46,55 +46,55 @@ public:
         : _gp(gp), _vis(vis) {}
 
     template <class Vertex, class Graph>
-    void initialize_vertex(Vertex u, Graph& g)
+    void initialize_vertex(Vertex u, Graph&)
     {
         _vis.attr("initialize_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Vertex, class Graph>
-    void discover_vertex(Vertex u, Graph& g)
+    void discover_vertex(Vertex u, Graph&)
     {
         _vis.attr("discover_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Vertex, class Graph>
-    void examine_vertex(Vertex u, Graph& g)
+    void examine_vertex(Vertex u, Graph&)
     {
         _vis.attr("examine_vertex")(PythonVertex<Graph>(_gp, u));
     }
 
     template <class Edge, class Graph>
-    void examine_edge(Edge e, Graph& g)
+    void examine_edge(Edge e, Graph&)
     {
         _vis.attr("examine_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
-    void tree_edge(Edge e, Graph& g)
+    void tree_edge(Edge e, Graph&)
     {
         _vis.attr("tree_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
-    void non_tree_edge(Edge e, Graph& g)
+    void non_tree_edge(Edge e, Graph&)
     {
         _vis.attr("non_tree_edge")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
-    void gray_target(Edge e, Graph& g)
+    void gray_target(Edge e, Graph&)
     {
         _vis.attr("gray_target")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Edge, class Graph>
-    void black_target(Edge e, Graph& g)
+    void black_target(Edge e, Graph&)
     {
         _vis.attr("black_target")(PythonEdge<Graph>(_gp, e));
     }
 
     template <class Vertex, class Graph>
-    void finish_vertex(Vertex u, Graph& g)
+    void finish_vertex(Vertex u, Graph&)
     {
         _vis.attr("finish_vertex")(PythonVertex<Graph>(_gp, u));
     }
