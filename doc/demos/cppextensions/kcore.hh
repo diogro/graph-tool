@@ -11,16 +11,11 @@ using namespace std;
 template <typename Graph, typename CoreMap>
 void kcore_decomposition(Graph& g, CoreMap core_map)
 {
-    // The vertex index is an internal property map that every graph possesses
-    typedef typename property_map<Graph, vertex_index_t>::type
-        vertex_index_map_t;
-    vertex_index_map_t vertex_index = get(vertex_index_t(), g);
-
     // Create some auxiliary property maps
-    typedef typename vprop_map_t<size_t>::type::unchecked_t vmap_t;
+    typedef typename vprop_map_t<size_t>::unchecked_t vmap_t;
 
-    vmap_t deg(vertex_index, num_vertices(g));  // Remaining degree
-    vmap_t pos(vertex_index, num_vertices(g));  // Position in bin (core)
+    vmap_t deg(num_vertices(g));  // Remaining degree
+    vmap_t pos(num_vertices(g));  // Position in bin (core)
 
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
