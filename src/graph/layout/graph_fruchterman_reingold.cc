@@ -41,7 +41,7 @@ namespace graph_tool
 {
 // convert point types
 template <class Val>
-struct convert<vector<Val>, typename convex_topology<2>::point>
+struct convert_dispatch<vector<Val>, typename convex_topology<2>::point>
 {
     vector<Val> operator()(const typename convex_topology<2>::point& p) const
     {
@@ -53,7 +53,7 @@ struct convert<vector<Val>, typename convex_topology<2>::point>
 };
 
 template <class Val>
-struct convert<typename convex_topology<2>::point, vector<Val> >
+struct convert_dispatch<typename convex_topology<2>::point, vector<Val> >
 {
     typename convex_topology<2>::point operator()(const vector<Val>& v) const
     {
@@ -65,13 +65,24 @@ struct convert<typename convex_topology<2>::point, vector<Val> >
 };
 } // graph_tool namespace
 
+namespace boost
+{
+template <>
+std::string lexical_cast(const typename convex_topology<2>::point& p)
+{
+    std::string out = "(" + boost::lexical_cast<std::string>(p[0]) + ", " +
+        boost::lexical_cast<std::string>(p[1]) + ")";
+    return out;
+}
+}
+
 template<class T>
 struct anneal_cooling
 {
     typedef T result_type;
 
     anneal_cooling(T ti, T tf, std::size_t iterations)
-        : _ti(ti), _tf(tf), _iter(0), _n_iter(iterations) 
+        : _ti(ti), _tf(tf), _iter(0), _n_iter(iterations)
     {
         _beta = (log(_tf) - log(_ti)) / _n_iter;
     }

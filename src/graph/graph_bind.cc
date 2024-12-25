@@ -222,12 +222,14 @@ template <class Exception>
 void graph_exception_translator(const Exception& e)
 {
     PyObject* error;
-    if (std::is_same<Exception, GraphException>::value)
+    if constexpr (std::is_same_v<Exception, GraphException>)
         error = PyExc_RuntimeError;
-    if (std::is_same<Exception, IOException>::value)
+    else if constexpr (std::is_same_v<Exception, IOException>)
         error = PyExc_IOError;
-    if (std::is_same<Exception, ValueException>::value)
+    else if constexpr (std::is_same_v<Exception, ValueException>)
         error = PyExc_ValueError;
+    else
+        static_assert(false);
     PyErr_SetString(error, e.what());
 }
 

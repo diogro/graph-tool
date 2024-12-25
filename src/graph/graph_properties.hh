@@ -32,8 +32,8 @@
 #include "fast_vector_property_map.hh"
 #include "graph_exceptions.hh"
 #include "graph_adjacency.hh"
+#include "value_convert.hh"
 #include "demangle.hh"
-
 
 #include <boost/hana.hpp>
 namespace hana = boost::hana;
@@ -269,101 +269,23 @@ std::string get_type_name()
 }
 
 //
+// Convert property maps
+// =====================
+
+std::any prop_map_as(std::any amap, std::any atgt, bool copy=false);
+std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
+std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
+
+//
 // Extra Property Map Types
 // ========================
-
-
-// handle type convertions
-
-// generic types
-template <class Type1, class Type2>
-struct convert
-{
-    Type1 operator()(const Type2& v) const
-    {
-        if constexpr (std::is_same<Type1, boost::python::object>::value)
-        {
-            return boost::python::object(v);
-        }
-        else if constexpr (std::is_convertible<Type2,Type1>::value)
-        {
-            return Type1(v);
-        }
-        else if constexpr (std::is_same<Type2, boost::python::object>::value)
-        {
-            boost::python::extract<Type1> x(v);
-            if (x.check())
-                return x();
-            else
-                throw boost::bad_lexical_cast();
-        }
-        else if constexpr (std::is_same<Type2, std::string>::value)
-        {
-            //uint8_t is not char, it is bool!
-            if (std::is_same<Type1, uint8_t>::value)
-                return convert<Type1,int>()(boost::lexical_cast<int>(v));
-            else
-                return boost::lexical_cast<Type1>(v);
-        }
-        else if constexpr (std::is_same<Type1, std::string>::value)
-        {
-            //uint8_t is not char, it is bool!
-            if (std::is_same<Type2, uint8_t>::value)
-                return boost::lexical_cast<std::string>(convert<int,Type2>()(v));
-            else
-                return boost::lexical_cast<std::string>(v);
-        }
-        else
-        {
-            return specific_convert<Type1, Type2>()(v);
-        }
-    }
-
-    // default action
-    template <class T1, class T2>
-    struct specific_convert
-    {
-        T1 operator()(const T2&) const
-        {
-            throw boost::bad_lexical_cast();
-        }
-    };
-
-    // specific specializations
-
-    // vectors
-    template <class T1, class T2>
-    struct specific_convert<std::vector<T1>, std::vector<T2>>
-    {
-        std::vector<T1> operator()(const std::vector<T2>& v) const
-        {
-            std::vector<T1> v2(v.size());
-            convert<T1,T2> c;
-            for (size_t i = 0; i < v.size(); ++i)
-                v2[i] = c(v[i]);
-            return v2;
-        }
-    };
-
-};
-
-// No op
-template <class Type1>
-struct convert<Type1, Type1>
-{
-    const Type1& operator()(const Type1& v) const
-    {
-        return v;
-    }
-};
 
 // the following class wraps a generic property map, so it can be used as a
 // property with a given Key and Value type. The keys and values are converted
 // to the desired Key and Value type, which may cause a performance impact,
 // since virtual functions are used. Should be used only when property map
 // access time is not crucial
-template <class Value, class Key,
-          template <class T1, class T2> class Converter = convert>
+template <class Value, class Key>
 class DynamicPropertyMapWrap
 {
 public:
@@ -375,13 +297,15 @@ public:
     template <class PropertyTypes>
     DynamicPropertyMapWrap(std::any pmap, PropertyTypes pts)
     {
-        ValueConverter* converter = 0;
-        hana::for_each(pts, [&](auto t){ choose_converter()(typename decltype(t)::type(),
-                                                            pmap, converter); });
-        if (converter == 0)
+        hana::for_each(pts,
+                       [&](auto t)
+                       {
+                           choose_converter()((typename decltype(t)::type*)(nullptr),
+                                              pmap, _converter, _value_type);
+                       });
+
+        if (_converter.get() == nullptr)
             throw boost::bad_lexical_cast();
-        else
-            _converter = std::shared_ptr<ValueConverter>(converter);
     }
 
     DynamicPropertyMapWrap() {}
@@ -394,6 +318,11 @@ public:
     void put(const Key& k, const Value& val)
     {
         (*_converter).put(k, val);
+    }
+
+    const std::type_info& get_underlying_value_type() const
+    {
+        return *_value_type;
     }
 
 private:
@@ -423,7 +352,7 @@ private:
 
         virtual void put(const Key& k, const Value& val)
         {
-            put_dispatch(_pmap, k, _c_put(val),
+            put_dispatch(_pmap, k, convert<val_t>(val),
                          std::is_convertible<typename boost::property_traits<PropertyMap>::category,
                                              boost::writable_property_map_tag>());
         }
@@ -432,7 +361,7 @@ private:
         Value get_dispatch(PMap&& pmap, const typename boost::property_traits<std::remove_reference_t<PMap>>::key_type& k,
                            std::true_type)
         {
-            return _c_get(boost::get(pmap, k));
+            return convert<Value>(boost::get(pmap, k));
         }
 
         template <class PMap>
@@ -460,24 +389,27 @@ private:
 
     private:
         PropertyMap _pmap;
-        Converter<Value, val_t> _c_get;
-        Converter<val_t, Value> _c_put;
     };
 
     struct choose_converter
     {
         typedef void return_type;
         template <class PropertyMap>
-        void operator()(PropertyMap, std::any& dmap,
-                        ValueConverter*& converter) const
+        void operator()(PropertyMap*, std::any& dmap,
+                        std::shared_ptr<ValueConverter>& converter,
+                        std::type_info const*& value_type) const
         {
-            if (typeid(PropertyMap) == dmap.type())
-                converter = new ValueConverterImp<PropertyMap>
-                    (std::any_cast<PropertyMap>(dmap));
+            PropertyMap* pmap = std::any_cast<PropertyMap>(&dmap);
+            if (pmap != nullptr)
+            {
+                converter = std::make_shared<ValueConverterImp<PropertyMap>>(*pmap);
+                value_type = &typeid(typename boost::property_traits<PropertyMap>::value_type);
+            }
         }
     };
 
     std::shared_ptr<ValueConverter> _converter;
+    const std::type_info* _value_type;
 };
 
 template <class Value, class Key, class ConvKey>
@@ -493,6 +425,30 @@ void put(graph_tool::DynamicPropertyMapWrap<Value,Key>& pmap,
          Key k, const Value& val)
 {
     pmap.put(k, val);
+}
+
+template <class Value, class Key>
+constexpr bool is_dynamic_map(const DynamicPropertyMapWrap<Value, Key>&)
+{
+    return true;
+}
+
+template <class T>
+constexpr bool is_dynamic_map(const T&)
+{
+    return false;
+}
+
+template <class Value, class Key>
+const std::type_info& get_underlying_value_type(const DynamicPropertyMapWrap<Value, Key>& m)
+{
+    return m.get_underlying_value_type();
+}
+
+template <class T>
+const std::type_info& get_underlying_value_type(const T&)
+{
+    return typeid(typename boost::property_traits<T>::value_type);
 }
 
 // the following is hash functor which, will hash a vertex or edge descriptor
@@ -645,8 +601,7 @@ struct is_constant_property
 
 // this wraps an existing property map, but always converts its values to a
 // given type
-template <class PropertyMap, class Type,
-          template <class T1, class T2> class Converter = convert>
+template <class PropertyMap, class Type>
 class ConvertedPropertyMap
 {
 public:
@@ -662,17 +617,15 @@ public:
 
     value_type do_get(const key_type& k) const
     {
-        return _convert_to(get(_base_map, k));
+        return convert<value_type>(get(_base_map, k));
     }
 
     void do_put(const key_type& k, const value_type& v)
     {
-        put(_base_map, k, _convert_from(v));
+        put(_base_map, k, convert<orig_type>(v));
     }
 private:
     PropertyMap _base_map;
-    Converter<value_type, orig_type> _convert_to;
-    Converter<orig_type, value_type> _convert_from;
 };
 
 template <class PropertyMap, class Type>

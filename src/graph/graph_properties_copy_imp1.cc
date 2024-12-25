@@ -25,37 +25,20 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void GraphInterface::copy_edge_property(const GraphInterface& src,
-                                        std::any prop_src,
-                                        std::any prop_tgt)
-{
-    gt_dispatch<>()
-        (
-            [&](auto&& graph, auto&& a2, auto&& a3)
-            {
-                return copy_property<edge_selector, decltype(edge_properties)>()(
-                    std::forward<decltype(graph)>(graph),
-                    std::forward<decltype(a2)>(a2),
-                    std::forward<decltype(a3)>(a3), prop_src);
-            },
-            all_graph_views, all_graph_views, writable_edge_properties)(
-            this->get_graph_view(), src.get_graph_view(), prop_tgt);
-}
-
 void copy_external_edge_property(const GraphInterface& src,
                                  const GraphInterface& tgt,
                                  std::any prop_src,
                                  std::any prop_tgt)
 {
-    gt_dispatch<>()
-        (
-            [&](auto&& graph, auto&& a2, auto&& a3)
-            {
-                return copy_external_edge_property_dispatch<decltype(edge_properties)>()(
-                    std::forward<decltype(graph)>(graph),
-                    std::forward<decltype(a2)>(a2),
-                    std::forward<decltype(a3)>(a3), prop_src);
-            },
-            all_graph_views, all_graph_views, writable_edge_properties)(
-            tgt.get_graph_view(), src.get_graph_view(), prop_tgt);
+    gt_dispatch<>(false)
+        ([&](auto& tgt, auto& src, auto tgt_map, auto src_map)
+         {
+             copy_external_edge_property_dispatch(tgt, src,tgt_map, src_map);
+         },
+         all_graph_views,
+         all_graph_views,
+         writable_edge_properties,
+         hana::concat(eprop_same_type, dynamic_prop_type))
+         (src.get_graph_view(), tgt.get_graph_view(), prop_tgt,
+          eprop_map_as_dynamic(prop_src, prop_tgt));
 }

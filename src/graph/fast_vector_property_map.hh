@@ -36,6 +36,8 @@
 #include <memory>
 #include <vector>
 
+#include "value_convert.hh"
+
 namespace boost {
 
 template <typename T, typename IndexMap>
@@ -123,10 +125,14 @@ public:
     }
 
     // deep copy
-    checked_vector_property_map copy() const
+    template <class T2 = T>
+    checked_vector_property_map<T2, IndexMap> copy() const
     {
-        checked_vector_property_map pmap(_index);
-        *(pmap._store) = *_store;
+        checked_vector_property_map<T2, IndexMap> pmap(_index);
+        if constexpr (std::is_same_v<T, T2>)
+            *(pmap._store) = *_store;
+        else
+            *(pmap._store) = graph_tool::convert<std::vector<T2>>(*_store);
         return pmap;
     }
 
@@ -141,6 +147,9 @@ public:
     }
 
 protected:
+    template <class T2, class Idx>
+    friend class checked_vector_property_map;
+
     std::shared_ptr<std::vector<T>> _store;
     IndexMap _index;
 };
@@ -244,9 +253,10 @@ public:
     }
 
     // deep copy
-    unchecked_vector_property_map copy() const
+    template <class T2 = T>
+    unchecked_vector_property_map<T2, IndexMap> copy() const
     {
-        return checked_t::copy().get_unchecked();
+        return checked_t::template copy<T2>().get_unchecked();
     }
 };
 

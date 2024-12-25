@@ -150,26 +150,62 @@ void graph_copy(const GraphOrig& g, GraphTarget& gt)
 // Parallel loops
 // ==============
 
-template <class Graph, class F>
-void parallel_vertex_loop_no_spawn(const Graph& g, F&& f)
+template <class Graph, class F, class Except = void>
+auto parallel_vertex_loop_no_spawn(const Graph& g, F&& f,
+                                   [[maybe_unused]] Except* ex=(void*)(nullptr))
 {
+    std::string err;
+    bool skip = false;
+
     size_t N = num_vertices(g);
     #pragma omp for schedule(runtime)
     for (size_t i = 0; i < N; ++i)
     {
+        if constexpr (!std::is_same_v<Except, void>)
+        {
+            if (skip)
+                continue;
+        }
+
         auto v = vertex(i, g);
         if (!is_valid_vertex(v, g))
             continue;
-        f(v);
+
+        if constexpr (std::is_same_v<Except, void>)
+        {
+            f(v);
+        }
+        else
+        {
+            try
+            {
+                f(v);
+            }
+            catch (const Except& ex)
+            {
+                skip = true;
+                #pragma omp critical
+                err = ex.what();
+            }
+        }
     }
+
+    return std::make_tuple(skip, err);
 }
 
-template <class Graph, class F>
-void parallel_vertex_loop(const Graph& g, F&& f, size_t thres = get_openmp_min_thresh())
+template <class Graph, class F, class Except = void>
+void parallel_vertex_loop(const Graph& g, F&& f,
+                          size_t thres = get_openmp_min_thresh(),
+                          [[maybe_unused]] Except* ex=(void*)(nullptr))
 {
+    std::tuple<bool, std::string> ret;
     #pragma omp parallel if (num_vertices(g) > thres)
+    ret = parallel_vertex_loop_no_spawn<Graph, F>(g, std::forward<F>(f), ex);
+
+    if constexpr (!std::is_same_v<Except, void>)
     {
-        parallel_vertex_loop_no_spawn<Graph, F>(g, std::forward<F>(f));
+        if (get<0>(ret))
+            throw Except(get<1>(ret));
     }
 }
 
@@ -192,50 +228,94 @@ auto get_dir(const boost::filt_graph<Graph, EPred, VPred>& g,
                                                 g._vertex_pred);
 }
 
-template <class Graph, class F>
-void parallel_edge_loop_no_spawn(const Graph& g, F&& f)
+template <class Graph, class F, class Except = void>
+auto parallel_edge_loop_no_spawn(const Graph& g, F&& f,
+                                 [[maybe_unused]] Except* ex = (void*)(nullptr))
 {
     auto&& u = get_dir(g, typename is_directed_::apply<Graph>::type());
     typedef typename std::remove_const
         <typename std::remove_reference<decltype(u)>::type>::type graph_t;
     static_assert(is_directed_::apply<graph_t>::type::value,
                   "graph must be directed at this point");
+
     auto dispatch =
         [&](auto v)
         {
-             for (auto e : out_edges_range(v, u))
-                 f(e);
+            for (auto e : out_edges_range(v, u))
+                f(e);
         };
-    typedef decltype(dispatch) dispatch_t;
-    parallel_vertex_loop_no_spawn<graph_t, dispatch_t&>(u, dispatch);
+
+    return parallel_vertex_loop_no_spawn(u, dispatch, ex);
 }
 
-template <class Graph, class F>
-void parallel_edge_loop(const Graph& g, F&& f, size_t thres = get_openmp_min_thresh())
+template <class Graph, class F, class Except = void>
+void parallel_edge_loop(const Graph& g, F&& f,
+                        size_t thres = get_openmp_min_thresh(),
+                        [[maybe_unused]] Except* ex = (void*)(nullptr))
 {
+    std::tuple<bool, std::string> ret;
     #pragma omp parallel if (num_vertices(g) > thres)
+    ret = parallel_edge_loop_no_spawn<Graph, F>(g, std::forward<F>(f), ex);
+
+    if constexpr (!std::is_same_v<Except, void>)
     {
-        parallel_edge_loop_no_spawn<Graph, F>(g, std::forward<F>(f));
+        if (get<0>(ret))
+            throw Except(get<1>(ret));
     }
 }
 
-template <class Container, class F>
-void parallel_loop_no_spawn(Container&& v, F&& f)
+template <class Container, class F, class Except = void>
+void parallel_loop_no_spawn(Container&& v, F&& f,
+                            [[maybe_unused]] Except* ex = (void*)(nullptr))
 {
+    std::conditional_t<std::is_same_v<Except, void>,
+                       int, Except> e;
+    bool skip = false;
+
     size_t N = v.size();
     #pragma omp for schedule(runtime)
     for (size_t i = 0; i < N; ++i)
-        f(i, v[i]);
+    {
+        if constexpr (!std::is_same_v<Except, void>)
+        {
+            if (skip)
+                continue;
+        }
+
+
+        if constexpr (std::is_same_v<Except, void>)
+        {
+            f(i, v[i]);
+        }
+        else
+        {
+            try
+            {
+                f(i, v[i]);
+            }
+            catch (const Except& ex)
+            {
+                skip = true;
+                #pragma omp critical
+                e = ex;
+            }
+        }
+    }
+
+    if constexpr (!std::is_same_v<Except, void>)
+    {
+        if (skip)
+            throw e;
+    }
 }
 
-template <class Container, class F>
-void parallel_loop(Container&& v, F&& f, size_t thres = get_openmp_min_thresh())
+template <class Container, class F, class Except=void>
+void parallel_loop(Container&& v, F&& f, size_t thres = get_openmp_min_thresh(),
+                   Except* ex = (void*)(nullptr))
 {
     #pragma omp parallel if (v.size() > thres)
-    {
-        parallel_loop_no_spawn<Container, F>(std::forward<Container>(v),
-                                             std::forward<F>(f));
-    }
+    parallel_loop_no_spawn<Container, F>(std::forward<Container>(v),
+                                         std::forward<F>(f), ex);
 }
 
 } // namespace graph_tool

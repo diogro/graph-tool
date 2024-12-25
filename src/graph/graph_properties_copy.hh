@@ -29,201 +29,62 @@ namespace graph_tool
 // Property map copying
 // ====================
 
-template <class IteratorSel, class PropertyMaps>
-struct copy_property
+template <class GraphTgt, class GraphSrc, class PropertyTgt, class PropertySrc>
+void copy_external_edge_property_dispatch(const GraphTgt& tgt, const GraphSrc& src,
+                                          PropertyTgt tgt_map, PropertySrc src_map)
 {
-    template <class GraphTgt, class GraphSrc, class PropertyTgt>
-    void operator()(const GraphTgt& tgt, const GraphSrc& src,
-                    PropertyTgt dst_map, std::any prop_src) const
-    {
-        try
-        {
-            auto src_map = std::any_cast<typename PropertyTgt::checked_t>(prop_src);
-            dispatch(tgt, src, dst_map, src_map);
-        }
-        catch (std::bad_any_cast&)
-        {
-            typedef typename boost::property_traits<PropertyTgt>::value_type val_tgt;
-            typedef typename IteratorSel::template get_descriptor<GraphSrc>::type src_d;
+    bool is_python =
+        (get_underlying_value_type(tgt_map) != typeid(boost::python::object) ||
+         get_underlying_value_type(src_map) != typeid(boost::python::object));
 
-            DynamicPropertyMapWrap<val_tgt, src_d> src_map(prop_src, PropertyMaps());
+    GILRelease gil(!is_python);
 
-            dispatch(tgt, src, dst_map, src_map);
-        }
-    }
+    typedef typename boost::graph_traits<GraphTgt>::edge_descriptor edge_t;
+    std::vector<gt_hash_map<size_t, std::deque<edge_t>>> tgt_edges(num_vertices(tgt));
+    parallel_vertex_loop
+        (tgt,
+         [&](auto u)
+         {
+             auto& es = tgt_edges[u];
+             for (auto e : out_edges_range(u, src))
+             {
+                 auto v = target(e, src);
+                 if (!is_directed(tgt) && u > v)
+                     continue;
+                 es[v].push_back(e);
+             }
+         });
 
-    template <class GraphTgt, class GraphSrc, class PropertyTgt, class PropertySrc>
-    void dispatch(const GraphTgt& tgt, const GraphSrc& src,
-                  PropertyTgt dst_map, PropertySrc src_map) const
-    {
-        try
-        {
-            typename IteratorSel::template apply<GraphSrc>::type vs, vs_end;
-            typename IteratorSel::template apply<GraphTgt>::type vt, vt_end;
-            std::tie(vt, vt_end) = IteratorSel::range(tgt);
-            std::tie(vs, vs_end) = IteratorSel::range(src);
-            for (; vs != vs_end; ++vs)
-            {
-                put(dst_map, *vt++, get(src_map, *vs));
-            }
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-            throw ValueException("property values are not convertible");
-        }
-    }
+    bool parallel =
+        (num_vertices(src) > get_openmp_min_thresh() && !is_python);
 
-};
+    std::tuple<bool, std::string> ret;
 
-template <class IteratorSel, class Graph, class Prop1, class Prop2>
-bool compare_props(Graph& g, Prop1 p1, Prop2 p2)
-{
-    typedef typename boost::property_traits<Prop1>::value_type t1;
-    typedef typename boost::property_traits<Prop2>::value_type t2;
-    typename IteratorSel::template apply<Graph>::type vi, vi_end;
-    std::tie(vi, vi_end) = IteratorSel::range(g);
-    try
-    {
-        for (; vi != vi_end; ++vi)
-        {
-            auto v = *vi;
-            if constexpr (std::is_same_v<t1, t2>)
-            {
-                if (p1[v] != p2[v])
-                    return false;
-            }
-            else if constexpr (std::is_same_v<t1, boost::python::object>)
-            {
-                if (p1[v] != boost::python::object(p2[v]))
-                    return false;
-            }
-            else if constexpr (std::is_same_v<t2, boost::python::object>)
-            {
-                if (p2[v] != boost::python::object(p1[v]))
-                    return false;
-            }
-            else
-            {
-                if (boost::lexical_cast<t1>(p2[v]) != p1[v])
-                    return false;
-            }
-        }
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-        return false;
-    }
-    return true;
-};
+    #pragma omp parallel if (parallel)
+    ret = parallel_vertex_loop_no_spawn
+        (src,
+         [&](auto u)
+         {
+             if (u >= tgt_edges.size())
+                 return;
 
+             auto& es = tgt_edges[u];
+             for (auto e : out_edges_range(u, src))
+             {
+                 auto v = target(e, src);
+                 if (!is_directed(src) && u > v)
+                     continue;
+                 auto iter = es.find(v);
+                 if (iter == es.end() || iter->second.empty())
+                     continue;
+                 put(tgt_map, iter->second.front(), get(src_map, e));
+                 iter->second.pop_front();
+             }
+         }, (ValueException*)(nullptr));
 
-struct edge_selector
-{
-    template <class Graph>
-    struct apply
-    {
-        typedef typename boost::graph_traits<Graph>::edge_iterator type;
-    };
-
-    template <class Graph>
-    struct get_descriptor
-    {
-        typedef typename boost::graph_traits<Graph>::edge_descriptor type;
-    };
-
-    template <class Graph>
-    static std::pair<typename apply<Graph>::type,
-                     typename apply<Graph>::type>
-    range(Graph& g)
-    {
-        return edges(g);
-    }
-};
-
-struct vertex_selector
-{
-    template <class Graph>
-    struct apply
-    {
-        typedef typename boost::graph_traits<Graph>::vertex_iterator type;
-    };
-
-    template <class Graph>
-    struct get_descriptor
-    {
-        typedef typename boost::graph_traits<Graph>::vertex_descriptor type;
-    };
-
-    template <class Graph>
-    static std::pair<typename apply<Graph>::type,
-                     typename apply<Graph>::type>
-    range(Graph& g)
-    {
-        return vertices(g);
-    }
-};
-
-template <class PropertyMaps>
-struct copy_external_edge_property_dispatch
-{
-    template <class GraphTgt, class GraphSrc, class PropertyTgt>
-    void operator()(const GraphTgt& tgt, const GraphSrc& src,
-                    PropertyTgt dst_map, std::any prop_src) const
-    {
-        try
-        {
-            auto src_map = std::any_cast<typename PropertyTgt::checked_t>(prop_src);
-            dispatch(tgt, src, dst_map, src_map);
-        }
-        catch (std::bad_any_cast&)
-        {
-            typedef typename boost::property_traits<PropertyTgt>::value_type val_tgt;
-            typedef typename boost::graph_traits<GraphSrc>::edge_descriptor edge_t;
-
-            DynamicPropertyMapWrap<val_tgt, edge_t> src_map(prop_src, PropertyMaps());
-
-            dispatch(tgt, src, dst_map, src_map);
-        }
-    }
-
-    template <class GraphTgt, class GraphSrc, class PropertyTgt,
-              class PropertySrc>
-    void dispatch(const GraphTgt& tgt, const GraphSrc& src,
-                  PropertyTgt dst_map, PropertySrc src_map) const
-    {
-        typedef typename boost::graph_traits<GraphTgt>::edge_descriptor edge_t;
-        gt_hash_map<std::tuple<size_t,size_t>, std::deque<edge_t>> tgt_edges;
-        for (auto e : edges_range(tgt))
-        {
-            auto u = source(e, tgt);
-            auto v = target(e, tgt);
-            if (!is_directed(tgt) && u > v)
-                std::swap(u, v);
-            tgt_edges[std::make_tuple(u, v)].push_back(e);
-        }
-
-        try
-        {
-            for (auto e : edges_range(src))
-            {
-                auto u = source(e, src);
-                auto v = target(e, src);
-                if (!is_directed(src) && u > v)
-                    std::swap(u, v);
-                auto& es = tgt_edges[std::make_tuple(u, v)];
-                if (es.empty())
-                    continue;
-                put(dst_map, es.front(), get(src_map, e));
-                es.pop_front();
-            }
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-            throw ValueException("property values are not convertible");
-        }
-    }
-
-};
+    if (get<0>(ret))
+        throw ValueException(get<1>(ret));
+}
 
 
 } // namespace graph_tool

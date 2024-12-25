@@ -141,7 +141,8 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/str_repr.hh \
 	src/graph/shared_map.hh \
 	src/graph/shared_heap.hh \
-	src/graph/transform_iterator.hh
+	src/graph/transform_iterator.hh \
+	src/graph/value_convert.hh
 libgraph_tool_core_la_workarounddir = $(MOD_DIR)/include/boost-workaround/boost/graph/
 libgraph_tool_core_la_workaround_HEADERS = \
 	src/boost-workaround/boost/graph/adjacency_iterator.hpp \

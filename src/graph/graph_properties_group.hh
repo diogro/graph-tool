@@ -82,14 +82,14 @@ struct do_group_vector_property
     template <class RetVal, class Value>
     inline void convert(const Value& v, RetVal& r)  const
     {
-        r = boost::lexical_cast<RetVal>(v);
+        r = graph_tool::convert<RetVal>(v);
     }
 
     template <class RetVal>
     inline void convert(const boost::python::object& v, RetVal& r)  const
     {
         #pragma omp critical
-        r = boost::python::extract<RetVal>(v);
+        r = graph_tool::convert<RetVal>(v);
     }
 
     template <class Value>

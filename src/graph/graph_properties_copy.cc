@@ -29,42 +29,156 @@ void GraphInterface::copy_vertex_property(const GraphInterface& src,
                                           std::any prop_src,
                                           std::any prop_tgt)
 {
-    gt_dispatch<>()
-        ([&](auto& graph, auto src, auto ptgt)
+    gt_dispatch<>(false)
+        ([&](auto& g, auto tgt, auto src)
          {
-             copy_property<vertex_selector, decltype(vertex_properties)>()
-                 (graph, src, ptgt, prop_src);
+             bool is_python =
+                 (get_underlying_value_type(tgt) != typeid(boost::python::object) ||
+                  get_underlying_value_type(src) != typeid(boost::python::object));
+
+             GILRelease gil(!is_python);
+
+             bool parallel =
+                 (num_vertices(g) > get_openmp_min_thresh() && !is_python);
+
+             std::tuple<bool, std::string> ret;
+             #pragma omp parallel if (parallel)
+             ret = parallel_vertex_loop_no_spawn
+                 (g,
+                  [&](auto v)
+                  {
+                      tgt[v] = get(src, v);
+                  }, (ValueException*)(nullptr));
+
+             if (get<0>(ret))
+                 throw ValueException(get<1>(ret));
          },
-         all_graph_views, all_graph_views, writable_vertex_properties)
-         (this->get_graph_view(), src.get_graph_view(), prop_tgt);
+         all_graph_views,
+         writable_vertex_properties,
+         hana::concat(vprop_same_type, dynamic_prop_type))
+         (src.get_graph_view(), prop_tgt,
+          vprop_map_as_dynamic(prop_src, prop_tgt));
 }
 
-bool compare_vertex_properties(const GraphInterface& gi,
-                               std::any prop1,
-                               std::any prop2)
+void GraphInterface::copy_edge_property(const GraphInterface& src,
+                                        std::any prop_src,
+                                        std::any prop_tgt)
 {
-    bool ret = false;
-    gt_dispatch<>()
-        ([&](auto& g, auto p1, auto p2)
+    gt_dispatch<>(false)
+        ([&](auto& g, auto tgt, auto src)
          {
-             ret = compare_props<vertex_selector>(g, p1, p2);
+             bool is_python =
+                 (get_underlying_value_type(tgt) != typeid(boost::python::object) ||
+                  get_underlying_value_type(src) != typeid(boost::python::object));
+
+             GILRelease gil(!is_python);
+
+             bool parallel =
+                 (num_vertices(g) > get_openmp_min_thresh() && !is_python);
+
+             std::tuple<bool, std::string> ret;
+             #pragma omp parallel if (parallel)
+             ret = parallel_edge_loop_no_spawn
+                 (g,
+                  [&](auto e)
+                  {
+                      tgt[e] = get(src, e);
+                  },
+                  (ValueException*)(nullptr));
+
+             if (get<0>(ret))
+                 throw ValueException(get<1>(ret));
          },
-         all_graph_views, vertex_properties, vertex_properties)
-        (gi.get_graph_view(), prop1, prop2);
+         all_graph_views,
+         writable_edge_properties,
+         hana::concat(eprop_same_type, dynamic_prop_type))
+         (src.get_graph_view(), prop_tgt,
+          eprop_map_as_dynamic(prop_src, prop_tgt));
+}
+
+bool compare_vertex_properties(const GraphInterface& src,
+                               std::any prop_src,
+                               std::any prop_tgt)
+{
+    bool ret = true;
+    gt_dispatch<>(false)
+        ([&](auto& g, auto tgt, auto src)
+         {
+             bool is_python =
+                 (get_underlying_value_type(tgt) != typeid(boost::python::object) ||
+                  get_underlying_value_type(src) != typeid(boost::python::object));
+
+             GILRelease gil(!is_python);
+
+             bool parallel =
+                 (num_vertices(g) > get_openmp_min_thresh() && !is_python);
+
+             bool ret_ = true; // clang workaround
+
+             std::tuple<bool, std::string> eret;
+             #pragma omp parallel if (parallel)
+             eret = parallel_vertex_loop_no_spawn
+                 (g,
+                  [&](auto v)
+                  {
+                      if (tgt[v] != get(src, v))
+                          ret_ = false;
+                  },
+                  (ValueException*)(nullptr));
+
+             if (get<0>(eret))
+                 throw ValueException(get<1>(eret));
+
+             ret = ret_;
+         },
+         all_graph_views,
+         writable_vertex_properties,
+         hana::concat(vprop_same_type, dynamic_prop_type))
+         (src.get_graph_view(), prop_tgt,
+          vprop_map_as_dynamic(prop_src, prop_tgt));
     return ret;
 }
 
-bool compare_edge_properties(const GraphInterface& gi,
-                             std::any prop1,
-                             std::any prop2)
+bool compare_edge_properties(const GraphInterface& src,
+                             std::any prop_src,
+                             std::any prop_tgt)
 {
-    bool ret = false;
-    gt_dispatch<>()
-        ([&](auto& g, auto p1, auto p2)
+    bool ret = true;
+    gt_dispatch<>(false)
+        ([&](auto& g, auto tgt, auto src)
          {
-             ret = compare_props<edge_selector>(g, p1, p2);
+             bool is_python =
+                 (get_underlying_value_type(tgt) != typeid(boost::python::object) ||
+                  get_underlying_value_type(src) != typeid(boost::python::object));
+
+             GILRelease gil(!is_python);
+
+             bool parallel =
+                 (num_vertices(g) > get_openmp_min_thresh() && !is_python);
+
+             bool ret_ = true; // clang workaround
+
+             std::tuple<bool, std::string> eret;
+             #pragma omp parallel if (parallel)
+             eret = parallel_edge_loop_no_spawn
+                 (g,
+                  [&](auto e)
+                  {
+                      if (tgt[e] != get(src, e))
+                          ret_ = false;
+                  },
+                  (ValueException*)(nullptr));
+
+             if (get<0>(eret))
+                 throw ValueException(get<1>(eret));
+
+             ret = ret_;
          },
-         all_graph_views, edge_properties, edge_properties)
-        (gi.get_graph_view(), prop1, prop2);
+         all_graph_views,
+         writable_edge_properties,
+         hana::concat(eprop_same_type, dynamic_prop_type))
+         (src.get_graph_view(), prop_tgt,
+          eprop_map_as_dynamic(prop_src, prop_tgt));
+
     return ret;
 }

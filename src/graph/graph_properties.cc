@@ -34,6 +34,60 @@ using namespace graph_tool;
 namespace graph_tool
 {
 
+std::any prop_map_as(std::any amap, std::any atgt, bool copy)
+{
+    std::any rmap;
+
+    gt_dispatch<false>(false)
+        ([&](auto map, auto tgt)
+         {
+             typedef typename decltype(tgt)::value_type tval_t;
+             if (std::is_same_v<decltype(map), decltype(tgt)> && !copy)
+                 rmap = map;
+             else
+                 rmap = map.template copy<tval_t>();
+         },
+         hana::concat(writable_vertex_properties,
+                      writable_edge_properties),
+         hana::concat(writable_vertex_properties,
+                      writable_edge_properties))(amap, atgt);
+
+    return rmap;
+}
+
+std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity)
+{
+    if (identity && amap.type() == atgt.type())
+        return amap;
+    std::any rmap;
+    gt_dispatch<false>(false)
+        ([&](auto tgt)
+         {
+             typedef typename decltype(tgt)::value_type val_t;
+             typedef typename decltype(tgt)::key_type key_t;
+             rmap = DynamicPropertyMapWrap<val_t, key_t>(amap, vertex_properties);
+         },
+         vertex_properties)(atgt);
+    return rmap;
+}
+
+std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity)
+{
+    if (identity && amap.type() == atgt.type())
+        return amap;
+
+    std::any rmap;
+    gt_dispatch<false>(false)
+        ([&](auto tgt)
+         {
+             typedef typename decltype(tgt)::value_type val_t;
+             typedef typename decltype(tgt)::key_type key_t;
+             rmap = DynamicPropertyMapWrap<val_t, key_t>(amap, edge_properties);
+         },
+         edge_properties)(atgt);
+    return rmap;
+}
+
 struct do_shift_vertex_property
 {
     template <class PropertyMap, class Vec>

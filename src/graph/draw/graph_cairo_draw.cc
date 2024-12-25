@@ -228,210 +228,70 @@ istream& operator>>(istream& in, edge_marker_t& c)
     return in;
 }
 
-namespace boost
+namespace graph_tool
 {
-template <>
-string lexical_cast<string,python::object>(const python::object& val)
+
+// color_t
+template <class T2>
+struct convert_dispatch<color_t, vector<T2>>
 {
-    return python::extract<string>(val);
-}
-}
-
-template <class T1, class T2>
-struct specific_convert;
-
-template <class Type1, class Type2>
-struct Converter
-{
-    Type1 operator()(const Type2& v) const
+    color_t operator()(const vector<T2>& cv) const
     {
-        return do_convert(v, std::is_convertible<Type2,Type1>());
+        auto c = [](auto&& x) { return convert<double>(x); };
+        if (cv.size() < 3)
+            return std::make_tuple(0., 0., 0., 0.);
+        if (cv.size() < 4)
+            return std::make_tuple(c(cv[0]), c(cv[1]), c(cv[2]), 1.);
+        return std::make_tuple(c(cv[0]), c(cv[1]), c(cv[2]), c(cv[3]));
     }
-
-    Type1 do_convert(const Type2& v, std::true_type) const
-    {
-        return Type1(v);
-    }
-
-    Type1 do_convert(const Type2& v, std::false_type) const
-    {
-        try
-        {
-            return specific_convert<Type1,Type2>()(v);
-        }
-        catch (bad_lexical_cast&)
-        {
-            string name1 = name_demangle(typeid(Type1).name());
-            string name2 = name_demangle(typeid(Type2).name());
-            string val_name;
-            try
-            {
-                val_name = lexical_cast<string>(v);
-            }
-            catch (bad_lexical_cast&)
-            {
-                val_name = "<no lexical cast available>";
-            }
-            throw GraphException("error converting from type '" + name2 +
-                                 "' to type '" + name1 + "', val: " + val_name);
-        }
-    }
-
-    template <class T1, class T2, class Enable = void>
-    struct specific_convert
-    {
-        T1 operator()(const T2& v) const
-        {
-            return dispatch(v, typename std::is_convertible<T2, T1>::type());
-        }
-
-        T1 dispatch(const T2& v, std::true_type) const
-        {
-            return T1(v);
-        }
-
-        T1 dispatch(const T2& v, std::false_type) const
-        {
-            return lexical_cast<T1>(v);
-        }
-    };
-
-    template <class T1> // noop
-    struct specific_convert<T1, T1>
-    {
-        T1 operator()(const T1& v) const
-        {
-            return v;
-        }
-    };
-
-    // specific specializations
-    // string
-    template <class T1>
-    struct specific_convert<T1, string>
-    {
-        T1 operator()(const string& v) const
-        {
-            //uint8_t is not char, it is bool!
-            if (std::is_same<T1, uint8_t>::value)
-                return convert<T1,int>()(lexical_cast<int>(v));
-            else
-                return lexical_cast<T1>(v);
-        }
-    };
-
-    // boost::python::object
-    template <class T1>
-    struct specific_convert<T1,boost::python::object>
-    {
-        T1 operator()(const boost::python::object& v) const
-        {
-            boost::python::extract<T1> x(v);
-            if (x.check())
-                return x();
-            else
-                throw bad_lexical_cast();
-        }
-    };
-
-    template <class T2>
-    struct specific_convert<string, T2,
-                            typename std::enable_if
-                            <boost::mpl::not_<
-                                 std::is_same<T2,boost::python::object>>::type::value>::type>
-    {
-        string operator()(const T2& v) const
-        {
-            //uint8_t is not char, it is bool!
-            if (std::is_same<T2, uint8_t>::value)
-                return convert<string, int>()(lexical_cast<int>(v));
-            else
-                return lexical_cast<string>(v);
-        }
-    };
-
-    // vectors
-    template <class T1, class T2>
-    struct specific_convert<vector<T1>, vector<T2>>
-    {
-        vector<T1> operator()(const vector<T2>& v) const
-        {
-            vector<T1> v2(v.size());
-            convert<T1,T2> c;
-            for (size_t i = 0; i < v.size(); ++i)
-                v2[i] = c(v[i]);
-            return v2;
-        }
-    };
-
-    // color_t
-    template <class T2>
-    struct specific_convert<color_t, vector<T2>>
-    {
-        specific_convert<double, T2> c;
-        color_t operator()(const vector<T2>& cv) const
-        {
-            if (cv.size() < 3)
-                return std::make_tuple(0., 0., 0., 0.);
-            if (cv.size() < 4)
-                return std::make_tuple(c(cv[0]), c(cv[1]), c(cv[2]), 1.);
-            return std::make_tuple(c(cv[0]), c(cv[1]), c(cv[2]), c(cv[3]));
-        }
-    };
-
-    // vector<color_t>
-    template <class T2>
-    struct specific_convert<vector<color_t>, vector<T2>>
-    {
-        specific_convert<double, T2> c;
-        vector<color_t> operator()(const vector<T2>& cv) const
-        {
-            if (cv.size() < 4)
-                throw bad_lexical_cast();
-            vector<color_t> color;
-            for (size_t i = 0; i < cv.size() / 4; ++i)
-            {
-                if (4 * i + 3 >= cv.size())
-                    throw bad_lexical_cast();
-                color.push_back(std::make_tuple(c(cv[4*i]), c(cv[4*i + 1]),
-                                                c(cv[4*i + 2]), c(cv[4*i + 3])));
-            }
-            return color;
-        }
-    };
-
-    // vertex_shape_t
-    template <class T2>
-    struct specific_convert<vertex_shape_t, T2,
-                            typename std::enable_if
-                            <boost::mpl::and_<typename boost::mpl::not_<
-                                                  std::is_same<T2,string>>::type,
-                                              typename boost::mpl::not_<
-                                                  std::is_same<T2,boost::python::object>>::type>::type::value>::type>
-    {
-        specific_convert<int, T2> c;
-        vertex_shape_t operator()(const T2& v) const
-        {
-            return static_cast<vertex_shape_t>(c(v));
-        }
-    };
-
-    // edge_marker_t
-    template <class T2>
-    struct specific_convert<edge_marker_t, T2,
-                            typename std::enable_if
-                            <boost::mpl::and_<typename boost::mpl::not_<
-                                                  std::is_same<T2,string>>::type,
-                                              typename boost::mpl::not_<
-                                                  std::is_same<T2,boost::python::object>>::type>::type::value>::type>
-    {
-        specific_convert<int, T2> c;
-        edge_marker_t operator()(const T2& v) const
-        {
-            return static_cast<edge_marker_t>(c(v));
-        }
-    };
 };
+
+// vector<color_t>
+template <class T2>
+struct convert_dispatch<vector<color_t>, vector<T2>>
+{
+    vector<color_t> operator()(const vector<T2>& cv) const
+    {
+        auto c = [](auto&& x) { return convert<double>(x); };
+        if (cv.size() < 4)
+            throw bad_lexical_cast();
+        vector<color_t> color;
+        for (size_t i = 0; i < cv.size() / 4; ++i)
+        {
+            if (4 * i + 3 >= cv.size())
+                throw bad_lexical_cast();
+            color.push_back(std::make_tuple(c(cv[4*i]), c(cv[4*i + 1]),
+                                            c(cv[4*i + 2]), c(cv[4*i + 3])));
+        }
+        return color;
+    }
+};
+
+// vertex_shape_t
+template <class T2>
+struct convert_dispatch<vertex_shape_t, T2,
+                        std::enable_if_t<!std::is_same_v<T2,string> &&
+                                         !std::is_same_v<T2,boost::python::object>>>
+{
+    vertex_shape_t operator()(const T2& v) const
+    {
+        return static_cast<vertex_shape_t>(convert<int>(v));
+    }
+};
+
+// edge_marker_t
+template <class T2>
+struct convert_dispatch<edge_marker_t, T2,
+                        std::enable_if_t<!std::is_same_v<T2,string> &&
+                                         !std::is_same_v<T2,boost::python::object>>>
+{
+    edge_marker_t operator()(const T2& v) const
+    {
+        return static_cast<edge_marker_t>(convert<int>(v));
+    }
+};
+
+} // namespace graph_tool
 
 
 template <class Descriptor>
@@ -447,7 +307,7 @@ public:
         auto iter = _attrs.find(k);
         if (iter != _attrs.end())
         {
-            typedef DynamicPropertyMapWrap<Value, Descriptor, Converter> pmap_t;
+            typedef DynamicPropertyMapWrap<Value, Descriptor> pmap_t;
             pmap_t pmap(std::any_cast<pmap_t>(iter->second));
             return pmap.get(_descriptor);
         }
@@ -1731,7 +1591,7 @@ void populate_attrs(PropMaps ps, boost::python::dict vattrs, attrs_t& attrs)
                        [&](auto t)
                        {
                            typedef typename decltype(+hana::second(t))::type val_t;
-                           typedef DynamicPropertyMapWrap<val_t, Descriptor, Converter> pmap_t;
+                           typedef DynamicPropertyMapWrap<val_t, Descriptor> pmap_t;
                            if (type == hana::first(t).value)
                                pmap = pmap_t(oattr, ps);
                        });

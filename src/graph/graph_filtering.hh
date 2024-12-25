@@ -92,6 +92,18 @@ private:
     std::vector<const std::type_info*> _args;
 };
 
+struct same_arg_t {};
+constexpr inline auto same_arg_type = hana::tuple_t<same_arg_t>;
+
+struct vprop_same_t {};
+constexpr inline auto vprop_same_type = hana::tuple_t<vprop_same_t>;
+
+struct eprop_same_t {};
+constexpr inline auto eprop_same_type = hana::tuple_t<eprop_same_t>;
+
+struct dynamic_prop_t {};
+constexpr inline auto dynamic_prop_type = hana::tuple_t<dynamic_prop_t>;
+
 template <bool uncheck=true>
 struct gt_dispatch
 {
@@ -133,9 +145,28 @@ struct gt_dispatch
                                 struct stop_transform {};
                                 try
                                 {
+                                    constexpr auto fats
+                                        = hana::fold
+                                        (ats, hana::tuple(),
+                                         [](auto xs, auto x)
+                                         {
+                                             typedef typename decltype(+x)::type x_t;
+                                             if constexpr (std::is_same_v<x_t, same_arg_t>)
+                                                 return hana::append(xs, hana::back(xs));
+                                             else if constexpr (std::is_same_v<x_t, vprop_same_t>)
+                                                 return hana::append(xs, hana::type<vprop_map_t<typename decltype(+hana::back(xs))::type::value_type>>());
+                                             else if constexpr (std::is_same_v<x_t, eprop_same_t>)
+                                                 return hana::append(xs, hana::type<eprop_map_t<typename decltype(+hana::back(xs))::type::value_type>>());
+                                             else if constexpr (std::is_same_v<x_t, dynamic_prop_t>)
+                                                 return hana::append(xs, hana::type<DynamicPropertyMapWrap<typename decltype(+hana::back(xs))::type::value_type,
+                                                                                                           typename decltype(+hana::back(xs))::type::key_type>>());
+                                             else
+                                                 return hana::append(xs, x);
+                                         });
+
                                     auto args =
                                         hana::transform
-                                        (hana::zip(ats, hana::make_tuple(std::ref(as)...)),
+                                        (hana::zip(fats, hana::make_tuple(std::ref(as)...)),
                                          [](auto&& tv)
                                          {
                                              using T = typename decltype(+tv[0_c])::type;
@@ -159,7 +190,7 @@ struct gt_dispatch
                                              }
                                              return val;
                                          });
-                                    hana::unpack(args, [&](auto&... vals){ a(pmap(*vals)...); });
+                                    hana::unpack(args, [&](auto&... vals) { a(pmap(*vals)...); });
                                     found = true;
                                     throw stop_dispatch();
                                 }

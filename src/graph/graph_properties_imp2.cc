@@ -58,17 +58,15 @@ struct SumOp
     template <class Graph, class Vertex, class EProp, class VProp>
     void operator()(Vertex v, EProp& eprop, VProp& vprop, Graph& g) const
     {
-        typedef typename property_traits<EProp>::value_type eval_t;
         typedef typename property_traits<VProp>::value_type vval_t;
 
-        convert<vval_t, eval_t> conv;
         size_t count = 0;
         for (const auto& e : out_edges_range(v, g))
         {
             if (count == 0)
-                vprop[v] = conv(eprop[e]);
+                vprop[v] = convert<vval_t>(eprop[e]);
             else
-                vprop[v] += conv(eprop[e]);
+                vprop[v] += convert<vval_t>(eprop[e]);
             ++count;
         }
     }
@@ -79,17 +77,15 @@ struct ProdOp
     template <class Graph, class Vertex, class EProp, class VProp>
     void operator()(Vertex v, EProp& eprop, VProp& vprop, Graph& g) const
     {
-        typedef typename property_traits<EProp>::value_type eval_t;
         typedef typename property_traits<VProp>::value_type vval_t;
 
-        convert<vval_t, eval_t> conv;
         size_t count = 0;
         for (const auto& e : out_edges_range(v, g))
         {
             if (count == 0)
-                vprop[v] = conv(eprop[e]);
+                vprop[v] = convert<vval_t>(eprop[e]);
             else
-                vprop[v] *= conv(eprop[e]);
+                vprop[v] *= convert<vval_t>(eprop[e]);
             ++count;
         }
     }
@@ -101,19 +97,16 @@ struct MinOp
     template <class Graph, class Vertex, class EProp, class VProp>
     void operator()(Vertex v, EProp& eprop, VProp& vprop, Graph& g) const
     {
-        typedef typename property_traits<EProp>::value_type eval_t;
         typedef typename property_traits<VProp>::value_type vval_t;
-
-        convert<vval_t, eval_t> conv;
 
         for (const auto& e : out_edges_range(v, g))
         {
-            vprop[v] = conv(eprop[e]);
+            vprop[v] = convert<vval_t>(eprop[e]);
             break;
         }
 
         for (const auto& e : out_edges_range(v, g))
-            vprop[v] = std::min(vprop[v], conv(eprop[e]));
+            vprop[v] = std::min(vprop[v], convert<vval_t>(eprop[e]));
     }
 };
 
@@ -122,19 +115,16 @@ struct MaxOp
     template <class Graph, class Vertex, class EProp, class VProp>
     void operator()(Vertex v, EProp& eprop, VProp& vprop, Graph& g) const
     {
-        typedef typename property_traits<EProp>::value_type eval_t;
         typedef typename property_traits<VProp>::value_type vval_t;
-
-        convert<vval_t, eval_t> conv;
 
         for (const auto& e : out_edges_range(v, g))
         {
-            vprop[v] = conv(eprop[e]);
+            vprop[v] = convert<vval_t>(eprop[e]);
             break;
         }
 
         for (const auto& e : out_edges_range(v, g))
-            vprop[v] = std::max(vprop[v], conv(eprop[e]));
+            vprop[v] = std::max(vprop[v], convert<vval_t>(eprop[e]));
     }
 };
 
