@@ -145,7 +145,7 @@ public:
         : _gp(gp), _yield(yield) {}
 
     template <class Edge, class Graph>
-    void tree_edge(const Edge& e, Graph& g)
+    void tree_edge(const Edge& e, Graph&)
     {
         _yield(boost::python::object(PythonEdge<Graph>(_gp, e)));
     }

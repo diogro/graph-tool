@@ -228,8 +228,8 @@ void graph_exception_translator(const Exception& e)
         error = PyExc_IOError;
     else if constexpr (std::is_same_v<Exception, ValueException>)
         error = PyExc_ValueError;
-    else
-        static_assert(false);
+    // else
+    //     static_assert(false);
     PyErr_SetString(error, e.what());
 }
 
