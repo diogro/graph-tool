@@ -1854,6 +1854,8 @@ class Graph(object):
                         self.add_vertex(g.shape[0])
                         if not directed:
                             g = scipy.sparse.triu(g)
+                        else:
+                            g = g.T
                         s, t, w = scipy.sparse.find(g)
                         es = numpy.array([s, t, w]).T
                         vids = self.add_edge_list(es,
