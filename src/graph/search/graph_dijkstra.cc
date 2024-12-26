@@ -238,7 +238,7 @@ public:
         : _gp(gp), _yield(yield) {}
 
     template <class Edge, class Graph>
-    void edge_relaxed(const Edge& e, Graph& g)
+    void edge_relaxed(const Edge& e, Graph&)
     {
         _yield(boost::python::object(PythonEdge<Graph>(_gp, e)));
     }
