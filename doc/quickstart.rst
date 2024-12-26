@@ -225,7 +225,7 @@ The nonzero entries of the matrix are stored as an edge property map named
    ...               [0, 7, 0]])
    >>> g = Graph(scipy.sparse.lil_matrix(m))
    >>> print(g.ep.weight.a)
-   [ 1.2 10.   7. ]
+   [ 1.2  7.  10. ]
 
 For undirected graphs (i.e. the option ``directed = False`` is given) only the
 upper triangular portion of the passed matrix will be considered, and the
