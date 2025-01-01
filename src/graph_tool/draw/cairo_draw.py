@@ -84,7 +84,7 @@ except ImportError:
 from .. draw import sfdp_layout, random_layout, _avg_edge_distance, \
     radial_tree_layout, prop_to_size
 
-from .. generation import graph_union
+from .. generation import graph_merge
 from .. topology import shortest_path
 
 _vdefaults = {
@@ -1611,6 +1611,9 @@ class GraphArtist(matplotlib.artist.Artist):
         self.eprops = eprops if eprops is not None else {}
         self.raster = raster
         self.kwargs = kwargs.copy()
+        self.set_zorder(1)
+        self.ax.update_datalim(self.get_extents())
+        self.ax.autoscale()
 
     def set_raster(self, raster=True):
         """If ``raster == True``, then the graph will be rasterized even if a
@@ -1774,6 +1777,12 @@ class GraphArtist(matplotlib.artist.Artist):
             gc = renderer.new_gc()
             renderer.draw_image(gc, l, b, im)
 
+    def get_extents(self):
+        """Return a :class:`matplotlib.transforms.Bbox` with the node position
+        limits."""
+        x, y = ungroup_vector_property(self.pos, [0, 1])
+        return matplotlib.transforms.Bbox([[x.fa.min(), y.fa.min()],
+                                           [x.fa.max(), y.fa.max()]])
 #
 # Drawing hierarchies
 # ===================

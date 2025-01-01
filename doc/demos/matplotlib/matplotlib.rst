@@ -19,7 +19,6 @@ as we demonstrate in the following.
    .. code::
 
       import matplotlib.pyplot as plt
-
       plt.switch_backend("cairo")
 
    When using a backend not based on cairo, `rasterization
@@ -32,31 +31,30 @@ and passing a container (e.g. :class:`matplotlib.axes.Axes`) as the ``mplfig``
 parameter. When this option is passed, the function will return a
 :func:`~graph_tool.draw.GraphArtist` object that has been added to the figure.
 
-.. warning::
-
-   `Axis autoscaling
-   <https://matplotlib.org/stable/users/explain/axes/autoscale.html>`_ will not
-   work with :func:`~graph_tool.draw.GraphArtist`, so the axis limits need to be
-   set explicitly with :meth:`matplotlib.axes.Axes.set_xlim` and
-   :meth:`matplotlib.axes.Axes.set_ylim`.
-
-   More conveniently, :func:`~graph_tool.draw.GraphArtist` offers a
-   :meth:`~graph_tool.draw.GraphArtist.fit_view` that does this automatically.
 
 .. tip::
    :class: margin
 
-   When calling :func:`~graph_tool.draw.graph_draw` without integrating with
-   matplotlib, the node positions correspond to cairo coordinates, which have an
-   origin in the upper left corner, and with the y axis increasing from top to
-   bottom.
+   `Axis autoscaling
+   <https://matplotlib.org/stable/users/explain/axes/autoscale.html>`_ will work
+   as expected with :func:`~graph_tool.draw.GraphArtist`, but the aspect ratio
+   will be set the by the figure axis shape, rather than the node positions themselves.
+
+   In order to restore the aspect ratio independently of the axis shape,
+   :func:`~graph_tool.draw.GraphArtist` offers a
+   :meth:`~graph_tool.draw.GraphArtist.fit_view` method that does this automatically.
+
+   Furthermore, when calling :func:`~graph_tool.draw.graph_draw` without
+   integrating with matplotlib, the node positions correspond to cairo
+   coordinates, which have an origin in the upper left corner, and with the y
+   axis increasing from top to bottom.
 
    In order for the visualization to be the same when matplotlib is being used,
    the y axis needs to be flipped by inverting the limits with
    :meth:`matplotlib.axes.Axes.set_ylim`.
 
    Alternatively, the option ``yflip`` can be passed to
-   :meth:`graph_tool.draw.GraphArtist.fit_view` for this to be done
+   :meth:`~graph_tool.draw.GraphArtist.fit_view` for this to be done
    automatically.
 
 The example below shows how to plot several graphs in different subplots of the
