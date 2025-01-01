@@ -53,7 +53,7 @@ that sets up the Python-C++ interface:
    disable the GIL release by calling instead ``gt_dispatch<>(false)``.
 
 When using the ``gt_dispatch<>()`` function, we can make use of the following
-type lists for the graph views:
+`hana <https://boostorg.github.io/hana/>`_ type lists for the graph views:
 
 .. tabularcolumns:: |l|l|
 
@@ -157,7 +157,7 @@ like:
 .. code-block:: c++
 
    auto rg = vertices(g);
-   for(auto vi = rg.first; vi != rg.second; ++vi)
+   for (auto vi = rg.first; vi != rg.second; ++vi)
    {
        auto v = *vi;  // get the vertex descriptor
    }
@@ -168,7 +168,7 @@ In graph-tool iteration can also be done in a more convenient way using
 
 .. code-block:: c++
 
-   for(auto v : vertices_range(g))
+   for (auto v : vertices_range(g))
    {
        // v is the vertex descriptor
    }
@@ -182,19 +182,19 @@ Extracting specific property maps
 
 Sometimes it's more convenient to extract property map of known types
 directly instead of relying on ``gt_dispatch<>()``. This can be done
-simply by calling ``boost::any_cast`` as follows:
+simply by calling ``std::any_cast`` as follows:
 
 .. code-block:: c++
 
-   void kcore_bind(GraphInterface& gi, boost::any core_map)
+   void kcore_bind(GraphInterface& gi, std::any core_map)
    {
        // Vertex property map of type int32_t
        typedef typename vprop_map_t<int32_t>::type vprop_t;
-       vprop_t c = boost::any_cast<vprop_t>(core_map);
+       vprop_t c = std::any_cast<vprop_t>(core_map);
 
        gt_dispatch<>()
            ([&](auto& g){ kcore_decomposition(g, c.get_unchecked()); },
-            all_graph_views()) (gi.get_graph_view());
+            all_graph_views)(gi.get_graph_view());
    };
               
 Checked and unchecked property maps
@@ -215,34 +215,43 @@ The default property map types are by default `checked`:
     // vprop_t and eprop_t below are checked vertex and edge
     // property maps of type int32_t
                 
-    typedef typename vprop_map_t<int32_t>::type vprop_t;
-    typedef typename eprop_map_t<int32_t>::type eprop_t;
+    typedef vprop_map_t<int32_t> vprop_t;
+    typedef eprop_map_t<int32_t> eprop_t;
 
-The type hidden in a ``boost::any`` that comes from Python is a checked
-property map. **However** the types propagated by ``gt_dispatch<>()``
+The type hidden in a ``std::any`` that comes from Python is a checked
+property map. **However**, the types propagated by ``gt_dispatch<>()``
 are by default 'unchecked'. It's easy to obtain checked and unchecked
 versions of each kind of property map:
 
+.. note::
+   :class: margin
+
+   The member functions ``get_checked()`` and ``get_unchecked()`` perform
+   nothing more than a `reinterpret_cast
+   <https://en.cppreference.com/w/cpp/language/reinterpret_cast>`_, and
+   therefore are very cheap operations, incurring no run-time performance
+   overhead when called.
+
 .. code-block:: c++
 
-    // core_map is of type boost::any
+    // core_map is of type std::any
 
-    typedef typename vprop_map_t<int32_t>::type vprop_t;
-    vprop_t c = boost::any_cast<vprop_t>(core_map);
+    typedef vprop_map_t<int32_t> vprop_t;
+    vprop_t c = std::any_cast<vprop_t>(core_map);
 
     // c is a checked property map. We can obtain an unchecked version
     // as follows:
 
-    auto uc = c.get_unchecked();   // The type of uc is vprop_map_t<int32_t>::type::unchecked_t
+    auto& uc = c.get_unchecked();   // The type of uc is vprop_map_t<int32_t>::unchecked_t
 
     // If the underlying graph has changed size in the mean-time, we
     // need to specify the new size when creating the unchecked map:
 
-    auto uc2 = c.get_unchecked(10000);
+    auto& uc2 = c.get_unchecked(10000);
 
     // From a checked property map, we can get the checked type in a similar fashion:
 
-    auto c2 = uc.get_checked();
+    auto& c2 = uc.get_checked();
 
     // c and c2 have the same type.
     
