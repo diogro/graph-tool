@@ -1796,17 +1796,19 @@ def line_graph(g):
 
     Notes
     -----
-    Given an undirected graph G, its line graph L(G) is a graph such that:
+    Given an undirected graph :math:`G`, its line graph :math:`L(G)` is a graph
+    such that:
 
-        * Each vertex of L(G) represents an edge of G; and
-        * Two vertices of L(G) are adjacent if and only if their corresponding
-          edges share a common endpoint ("are adjacent") in G.
+    1. Each vertex of :math:`L(G)` represents an edge of :math:`G`; and
+    2. Two vertices of :math:`L(G)` are adjacent if and only if their
+       corresponding edges share a common endpoint ("are adjacent") in
+       :math:`G`.
 
     For a directed graph, the second criterion becomes:
 
-        * Two vertices representing directed edges from u to v and from w to x
-          in G are connected by an edge from uv to wx in the line digraph when v
-          = w.
+    2. Two vertices representing directed edges from :math:`u` to :math:`v` and
+       from :math:`w` to :math:`x` in :math:`G` are connected by an edge from
+       :math:`uv` to :math:`wx` in the line digraph when :math:`v = w`.
 
 
     Examples
@@ -2266,6 +2268,7 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
     graph_difference: Difference of the edge sets between two graphs.
     graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
     graph_intersection: Intersection of the edge sets between two graphs.
+    condensation_graph: Obtain the condensation graph.
 
     Notes
     -----
