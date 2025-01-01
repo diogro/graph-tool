@@ -310,11 +310,6 @@ libgraph_tool_generation_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS)
 libgraph_tool_generation_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS)
 libgraph_tool_generation_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_generation_la_SOURCES = \
-	src/graph/generation/graph_community_network.cc \
-	src/graph/generation/graph_community_network_eavg.cc \
-	src/graph/generation/graph_community_network_eavg_imp1.cc \
-	src/graph/generation/graph_community_network_edges.cc \
-	src/graph/generation/graph_community_network_vavg.cc \
 	src/graph/generation/graph_complete.cc \
 	src/graph/generation/graph_contract_edges.cc \
 	src/graph/generation/graph_generation.cc \
@@ -336,7 +331,6 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_merge_vprop.cc
 libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/dynamic_sampler.hh \
-	src/graph/generation/graph_community_network.hh \
 	src/graph/generation/graph_complete.hh \
 	src/graph/generation/graph_contract_edges.hh \
 	src/graph/generation/graph_generation.hh \

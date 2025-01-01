@@ -320,11 +320,14 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     def __get_base_u(self, u):
         node_index = u.vp["vmap"].copy("int64_t")
         pmap(node_index, self.agg_state.node_index)
-        base_u, nindex, vcount, ecount = \
-            condensation_graph(u, node_index,
-                               self_loops=True,
-                               parallel_edges=True)[:4]
-        rindex = zeros(nindex.a.max() + 1, dtype="int64")
+
+        idx = perfect_prop_hash([node_index])[0]
+        nindex = node_index.fa[:idx.fa.max() + 1]
+        base_u, vcount, ecount = condensation_graph(u, idx,
+                                                    parallel_edges=True)
+        nindex = base_u.new_ep("int64_t", vals=nindex)
+
+        rindex = np.zeros(nindex.a.max() + 1, dtype="int64")
         reverse_map(nindex, rindex)
         pmap(node_index, rindex)
         base_u.vp["vmap"] = nindex

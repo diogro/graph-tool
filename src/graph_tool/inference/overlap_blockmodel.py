@@ -798,13 +798,12 @@ def augmented_graph(g, b, node_index, eweight=None):
                                        br_b, br_ni)
 
 
-    au, idx, vcount, ecount = condensation_graph(g, node_map,
-                                                 eweight=eweight,
-                                                 self_loops=True)[:4]
-    anidx = idx.copy("int")
+    au, vcount, ecount = condensation_graph(g, node_map,
+                                            eweight=eweight)[:3]
+    anidx = au.vertex_index.copy("int")
     libinference.vector_map(anidx.a, br_ni.a)
 
-    ab = idx.copy("int")
+    ab = au.vertex_index.copy("int")
     libinference.vector_map(ab.a, br_b.a)
 
     return au, ab, anidx, ecount, node_map

@@ -433,6 +433,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
             cg = Graph(self.ecandidates, directed=False)
             cg.add_vertex(self.u.num_vertices() - cg.num_vertices())
             graph_union(cg, u, in_place=True)
+            cg.set_fast_edge_removal()
+            remove_parallel_edges(cg)
             self.ecandidates = cg.get_edges()
 
     def clear_candidates(self):

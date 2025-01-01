@@ -3200,10 +3200,10 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
 
     return g
 
-def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
-                       aeprops=None, self_loops=False, parallel_edges=False):
-    r"""
-    Obtain the condensation graph, where each vertex with the same 'prop' value
+@_parallel
+def condensation_graph(g, prop, vweight=None, eweight=None, aprops=None,
+                       parallel_edges=False, **kwargs):
+    r"""Obtain the condensation graph, where each vertex with the same 'prop' value
     is condensed in one vertex.
 
     Parameters
@@ -3211,20 +3211,15 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
     prop : :class:`~graph_tool.VertexPropertyMap`
-        Vertex property map with the community partition.
+        Vertex property map with the community partition (needs to be
+        integer-valued).
     vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map with the optional vertex weights.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge property map with the optional edge weights.
-    avprops : list of :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
+    aprops : list of :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         If provided, the sum of each property map in this list for
-        each vertex in the condensed graph will be computed and returned.
-    aeprops : list of :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
-        If provided, the sum of each property map in this list for
-        each edge in the condensed graph will be computed and returned.
-    self_loops : ``bool`` (optional, default: ``False``)
-        If ``True``, self-loops due to intra-block edges are also included in
-        the condensation graph.
+        each vertex or edge in the condensed graph will be computed and returned.
     parallel_edges : ``bool`` (optional, default: ``False``)
         If ``True``, parallel edges will be included in the condensation graph,
         such that the total number of edges will be the same as in the original
@@ -3234,18 +3229,17 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
     -------
     condensation_graph : :class:`~graph_tool.Graph`
         The community network
-    prop : :class:`~graph_tool.VertexPropertyMap`
-        The community values.
     vcount : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the vertex count for each community.
     ecount : :class:`~graph_tool.EdgePropertyMap`
         An edge property map with the inter-community edge count for each edge.
-    va : list of :class:`~graph_tool.VertexPropertyMap`
-        A list of vertex property maps with summed values of the properties
-        passed via the ``avprops`` parameter.
-    ea : list of :class:`~graph_tool.EdgePropertyMap`
-        A list of edge property maps with summed values of the properties
-        passed via the ``avprops`` parameter.
+    props : list of :class:`~graph_tool.PropertyMap`
+        A list of property maps with summed values of the properties
+        passed via the ``aprops`` parameter.
+
+    See Also
+    --------
+    graph_merge: Merge the edge sets between two graphs.
 
     Notes
     -----
@@ -3253,6 +3247,11 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
     original graph (vertices with the same 'prop' value), and the edges
     represent existent edges between vertices of the respective communities in
     the original graph.
+
+    This algorithm is a wrapper around :func:`graph_merge`, and shares with it
+    the same algorithmic complexity.
+
+    @parallel@
 
     Examples
     --------
@@ -3281,13 +3280,13 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
 
     .. doctest:: condensation_graph
 
-       >>> bg, bb, vcount, ecount, avp, aep = \
-       ...     gt.condensation_graph(g, b, avprops=[g.vp["pos"]],
-       ...                           self_loops=True)
-       >>> pos = avp[0]
+       >>> bg, vcount, ecount, props = \
+       ...     gt.condensation_graph(g, b, aprops=[g.vp["pos"]])
+       >>> pos = props[0]
        >>> for v in bg.vertices():
        ...     pos[v].a /= vcount[v]
-       >>> gt.graph_draw(bg, pos=avp[0], vertex_fill_color=bb, vertex_shape=bb,
+       >>> gt.graph_draw(bg, pos=pos, vertex_fill_color=bg.vertex_index,
+       ...               vertex_shape=bg.vertex_index,
        ...               vertex_size=gt.prop_to_size(vcount, mi=40, ma=100),
        ...               edge_pen_width=gt.prop_to_size(ecount, mi=2, ma=10),
        ...               fit_view=.8, output="polbooks_blocks_B5_cond.pdf")
@@ -3311,75 +3310,31 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
        Condensation graph of the obtained block partition.
 
     """
+
     gp = Graph(directed=g.is_directed())
     if vweight is None:
-        vcount = gp.new_vertex_property("int32_t")
-    else:
-        vcount = gp.new_vertex_property(vweight.value_type())
+        vweight = g.new_vp("int", val=1)
     if eweight is None:
-        ecount = gp.new_edge_property("int32_t")
+        eweight = g.new_ep("int", val=1)
+    if aprops is None:
+        aps = []
     else:
-        ecount = gp.new_edge_property(eweight.value_type())
+        aps = aprops
+    gp, props = graph_merge(gp, g, vmap=prop,
+                            props={"sum": [(None, vweight),
+                                           (None, eweight)] +
+                                   [(None, p) for p in aps]},
+                            in_place=True, multiset=parallel_edges, simple=True,
+                            **kwargs)
+    vcount = props["sum"][0]
+    ecount = props["sum"][1]
+    del props["sum"][:2]
+    props = props["sum"]
+    if aprops is not None:
+        return gp, vcount, ecount, props
+    else:
+        return gp, vcount, ecount
 
-    if prop is g.vertex_index:
-        prop = prop.copy(value_type="int32_t")
-    cprop = gp.new_vertex_property(prop.value_type())
-
-    if avprops is None:
-        avprops = []
-    avp = []
-    r_avp = []
-    for p in avprops:
-        if p is g.vertex_index:
-            p = p.copy(value_type="int")
-        if "string" in p.value_type():
-            raise ValueError("Cannot compute sum of string properties!")
-        temp = g.new_vertex_property(p.value_type())
-        cp = gp.new_vertex_property(p.value_type())
-        avp.append((_prop("v", g, p), _prop("v", g, temp), _prop("v", gp, cp)))
-        r_avp.append(cp)
-
-    if aeprops is None:
-        aeprops = []
-    aep = []
-    r_aep = []
-    for p in aeprops:
-        if p is g.edge_index:
-            p = p.copy(value_type="int")
-        if "string" in p.value_type():
-            raise ValueError("Cannot compute sum of string properties!")
-        temp = g.new_edge_property(p.value_type())
-        cp = gp.new_edge_property(p.value_type())
-        aep.append((_prop("e", g, p), _prop("e", g, temp), _prop("e", gp, cp)))
-        r_aep.append(cp)
-
-    libgraph_tool_generation.community_network(g._Graph__graph,
-                                               gp._Graph__graph,
-                                               _prop("v", g, prop),
-                                               _prop("v", gp, cprop),
-                                               _prop("v", gp, vcount),
-                                               _prop("e", gp, ecount),
-                                               _prop("v", g, vweight),
-                                               _prop("e", g, eweight),
-                                               self_loops,
-                                               parallel_edges)
-
-    u = GraphView(g, directed=True, reversed=False)
-    libgraph_tool_generation.community_network_vavg(u._Graph__graph,
-                                                    gp._Graph__graph,
-                                                    _prop("v", g, prop),
-                                                    _prop("v", gp, cprop),
-                                                    _prop("v", g, vweight),
-                                                    avp)
-
-    libgraph_tool_generation.community_network_eavg(g._Graph__graph,
-                                                    gp._Graph__graph,
-                                                    _prop("v", g, prop),
-                                                    _prop("v", gp, cprop),
-                                                    _prop("e", g, eweight),
-                                                    aep, self_loops,
-                                                    parallel_edges)
-    return gp, cprop, vcount, ecount, r_avp, r_aep
 
 def contract_parallel_edges(g, weight=None):
     r"""Contract all parallel edges into simple edges, keeping track of their

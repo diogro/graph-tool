@@ -47,52 +47,33 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
         ecount = None
     if isinstance(vcount, libinference.unity_vprop_t):
         vcount = None
-    avprops = []
-    if vcount is not None:
-        avprops.append(vcount)
-    aeprops = []
-    if ecount is not None:
-        aeprops.append(ecount)
+
+    aprops = []
     if rec is not None:
         for r in rec:
-            aeprops.append(r)
+            aprops.append(r)
     if drec is not None:
         for r in drec:
-            aeprops.append(r)
-    cg, br, vc, ec, av, ae = condensation_graph(g, b,
-                                                avprops=avprops,
-                                                aeprops=aeprops,
-                                                self_loops=True)
-    if vcount is not None:
-        vcount = av[0]
-        del av[0]
-    else:
-        vcount = vc
-    cg.vp.count = vcount
+            aprops.append(r)
 
-    if ecount is not None:
-        ecount = ae[0]
-        del ae[0]
-    else:
-        ecount = ec
+    cg, vcount, ecount, ap = condensation_graph(g, b, eweight=ecount,
+                                                vweight=vcount,
+                                                aprops=aprops)
+
+    cg.vp.count = vcount
     cg.ep.count = ecount
 
     if rec is not None:
         for i in range(len(rec)):
-            cg.ep["rec%d" % i] = ae[0]
-            del ae[0]
+            cg.ep["rec%d" % i] = ap[0]
+            del ap[0]
 
     if drec is not None:
         for i in range(len(drec)):
-            cg.ep["drec%d" % i] = ae[0]
-            del ae[0]
+            cg.ep["drec%d" % i] = ap[0]
+            del ap[0]
 
-    rs = np.setdiff1d(np.arange(B, dtype="int"), br.fa,
-                      assume_unique=True)
-    if len(rs) > 0:
-        cg.add_vertex(len(rs))
-        br.fa[-len(rs):] = rs
-    cg = Graph(cg, vorder=br)
+    cg.add_vertex(B - cg.num_vertices())
 
     cg.gp.rec = cg.new_gp("object", [])
     if rec is not None:

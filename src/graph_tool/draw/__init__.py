@@ -455,9 +455,8 @@ def _coarse_graph(g, vweight, eweight, kind="matching", groups=None):
             raise ValueError("invalid coarsening method:", kind)
     else:
         c = g.new_vp("int", vals=groups)
-    cg, cc, vcount, ecount = condensation_graph(g, c, vweight, eweight,
-                                                self_loops=True)[:4]
-    return cg, cc, vcount, ecount, c, mivs
+    cg, vcount, ecount = condensation_graph(g, c, vweight, eweight)
+    return cg, cg.vertex_index.copy("int32_t"), vcount, ecount, c, mivs
 
 
 def _propagate_pos(g, cg, c, cc, cpos, delta, mivs):
