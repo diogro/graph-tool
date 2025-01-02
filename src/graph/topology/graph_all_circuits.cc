@@ -22,7 +22,11 @@
 #include "coroutine.hh"
 #include "graph_python_interface.hh"
 
+#if (BOOST_VERSION >= 108600)
 #include "boost/graph/hawick_circuits.hpp"
+#else
+#include "boost/graph/hawick_circuits_local.hpp"
+#endif
 
 using namespace std;
 using namespace graph_tool;
@@ -43,7 +47,8 @@ struct CircuitVisitor
 };
 
 
-boost::python::object get_all_circuits(GraphInterface& gi, bool unique)
+boost::python::object get_all_circuits(GraphInterface& gi, bool unique,
+                                       size_t max_length)
 {
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
@@ -54,9 +59,13 @@ boost::python::object get_all_circuits(GraphInterface& gi, bool unique)
                  {
                      CircuitVisitor<decltype(yield)> visitor(yield);
                      if (unique)
-                         hawick_unique_circuits(g, visitor);
+                         hawick_unique_circuits(g, visitor,
+                                                get(boost::vertex_index, g),
+                                                max_length);
                      else
-                         hawick_circuits(g, visitor);
+                         hawick_circuits(g, visitor,
+                                         get(boost::vertex_index, g),
+                                         max_length);
                  })();
         };
     return boost::python::object(CoroGenerator(dispatch));

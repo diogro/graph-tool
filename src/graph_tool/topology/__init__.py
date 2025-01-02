@@ -2608,7 +2608,7 @@ def all_paths(g, source, target, cutoff=None, edges=False):
     for p in path_iterator:
         yield p
 
-def all_circuits(g, unique=False):
+def all_circuits(g, unique=False, max_length=0):
     """Return an iterator over all the cycles in a directed graph.
 
     Parameters
@@ -2619,6 +2619,10 @@ def all_circuits(g, unique=False):
         directed edges in both directions.)
     unique : ``bool`` (optional, default: ``None``)
         If ``True``, parallel edges and self-loops will be ignored.
+    max_length: ``int`` (optional, default: ``0``)
+        The maximum circuit length to consider. Beyond this it truncates the
+        depth-first search, reducing the computation time by ignoring longer
+        circuits. The default value of ``max_length = 0`` implies no maximum.
 
     Returns
     -------
@@ -2656,8 +2660,8 @@ def all_circuits(g, unique=False):
 
     """
 
-    circuits_iterator = libgraph_tool_topology.get_all_circuits(g._Graph__graph,
-                                                                unique)
+    circuits_iterator = libgraph_tool_topology.\
+        get_all_circuits(g._Graph__graph, unique, max_length)
     return circuits_iterator
 
 
