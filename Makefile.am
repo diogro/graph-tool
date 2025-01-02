@@ -150,7 +150,7 @@ libgraph_tool_core_la_workaround_HEADERS = \
 	src/boost-workaround/boost/graph/detail/read_graphviz_new.hpp \
 	src/boost-workaround/boost/graph/graphml.hpp \
 	src/boost-workaround/boost/graph/graphviz.hpp \
-	src/boost-workaround/boost/graph/hawick_circuits.hpp \
+	src/boost-workaround/boost/graph/hawick_circuits_local.hpp \
 	src/boost-workaround/boost/graph/kamada_kawai_spring_layout.hpp \
 	src/boost-workaround/boost/graph/maximum_weighted_matching.hpp \
 	src/boost-workaround/boost/graph/metric_tsp_approx.hpp \
