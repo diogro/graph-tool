@@ -16,8 +16,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "graph_tool.hh"
-#include "uncertain_marginal.hh"
 #include "parallel_rng.hh"
+#include "../../generation/sampler.hh"
+#include "../support/util.hh"
 
 using namespace boost;
 using namespace graph_tool;

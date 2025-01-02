@@ -29,6 +29,7 @@ from . base_states import *
 
 from . blockmodel import *
 from . nested_blockmodel import *
+from .. generation import graph_merge
 
 import numpy as np
 import scipy.special
@@ -327,17 +328,19 @@ class UncertainBaseState(EntropyState):
         if g is None:
             g = Graph(directed=self.g.is_directed())
             g.add_vertex(self.g.num_vertices())
-            g.gp.count = g.new_gp("int", 0)
-            g.ep.count = g.new_ep("int")
 
+        if "count" not in g.gp:
+            g.gp.count = g.new_gp("int", 0)
+        if "count" not in g.ep:
+            g.ep.count = g.new_ep("int")
         if "eprob" not in g.ep:
             g.ep.eprob = g.new_ep("double")
 
         u = self.get_graph()
         try:
-            libinference.collect_marginal(g._Graph__graph,
-                                          u._Graph__graph,
-                                          _prop("e", g, g.ep.count))
+            g.set_fast_edge_lookup(True)
+            graph_merge(g, u, in_place=True, simple=True,
+                        props=dict(sum=[(g.ep.count, u.new_ep("int", val=1))]))
         finally:
             g.gp.count += 1
             g.ep.eprob.fa = g.ep.count.fa
@@ -356,8 +359,8 @@ class UncertainBaseState(EntropyState):
         -------
         g : :class:`~graph_tool.Graph`
             New marginal graph, with internal edge
-            :class:`~graph_tool.EdgePropertyMap` ``"w"`` and ``"wcount"``,
-            containing the edge multiplicities and their respective counts.
+            :class:`~graph_tool.EdgePropertyMap` ``"whist"``,
+            containing the edge multiplicity counts.
 
         Notes
         -----
@@ -377,14 +380,19 @@ class UncertainBaseState(EntropyState):
         if g is None:
             g = Graph(directed=self.g.is_directed())
             g.add_vertex(self.g.num_vertices())
-            g.ep.w = g.new_ep("vector<int>")
-            g.ep.wcount = g.new_ep("vector<int>")
 
-        libinference.collect_marginal_count(g._Graph__graph,
-                                            self.u._Graph__graph,
-                                            _prop("e", self.u, self.eweight),
-                                            _prop("e", g, g.ep.w),
-                                            _prop("e", g, g.ep.wcount))
+        if "w" not in g.ep:
+            g.ep.whist = g.new_ep("vector<int32_t>")
+
+        if "wcount" not in g.gp:
+            g.gp.wcount = g.new_gp("int", 0)
+
+        try:
+            g.set_fast_edge_lookup(True)
+            graph_merge(g, self.u, in_place=True, simple=True,
+                        props=dict(idx_inc=[(g.ep.whist, self.eweight)]))
+        finally:
+            g.gp.wcount += 1
         return g
 
 class UncertainBlockState(UncertainBaseState):

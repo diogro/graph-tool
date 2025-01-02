@@ -22,7 +22,7 @@ from .. import _prop, _get_rng, Vector_int32_t
 
 from .. spectral import adjacency
 from .. generation import complete_graph, generate_triadic_closure, \
-    remove_parallel_edges, graph_union
+    remove_parallel_edges, graph_union, graph_merge
 from .. dynamics import IsingGlauberState, NormalState, IsingBPState, \
     NormalBPState, LinearNormalState, LVState
 
@@ -30,6 +30,8 @@ from . uncertain_blockmodel import *
 from . util import pmap
 
 from abc import ABC
+from collections.abc import Iterable
+
 import inspect
 import numpy as np
 import numbers
@@ -238,7 +240,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             v = kwargs[k]
             if isinstance(v, PropertyMap):
                 kwargs[k] = g.own_property(v)
-            elif (isinstance(v, collections.abc.Iterable) and len(v) > 0 and
+            elif (isinstance(v, Iterable) and len(v) > 0 and
                   isinstance(v[0], PropertyMap)):
                 kwargs[k] = [g.own_property(x) for x in v]
 
@@ -1579,7 +1581,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self._state.set_tdelta(delta)
         self.tdelta = delta
 
-    def collect_marginal(self, g=None):
+    def collect_marginal(self, g=None, xbins=100, xslack=.2, tbins=100, tslack=.2):
         r"""Collect marginal inferred network during MCMC runs.
 
         Parameters
@@ -1629,35 +1631,66 @@ class DynamicsBlockStateBase(UncertainBaseState):
             g.ep.count = g.new_ep("int")
             g.ep.eprob = g.new_ep("double")
 
-        if "x" not in g.ep:
             g.ep.xsum = g.new_ep("double")
             g.ep.x2sum = g.new_ep("double")
             g.ep.x = g.new_ep("double")
             g.ep.xdev = g.new_ep("double")
 
-        if "t" not in g.vp:
             g.vp.tsum = g.new_vp("double")
             g.vp.t2sum = g.new_vp("double")
             g.vp.t = g.new_vp("double")
             g.vp.tdev = g.new_vp("double")
 
+        if "xbins" not in g.gp:
+            g.gp.xbins = g.new_gp("object", xbins)
+            g.gp.tbins = g.new_gp("object", tbins)
+
+            g.ep.xhist = g.new_ep("vector<int32_t>")
+            g.vp.thist = g.new_vp("vector<int32_t>")
+
+        def get_bins(bins, vals, slack):
+            if isinstance(bins, Iterable) or len(vals) == 0:
+                return bins
+            xr = [vals.min(), vals.max()]
+            delta = xr[1] - xr[0]
+            if delta == 0:
+                return bins
+            xr[0] -= delta * slack
+            xr[1] += delta * slack
+            return np.linspace(xr[0], xr[1], bins)
+
         u = self.get_graph()
         x = self.get_x()
+        t = self.theta
+
+        xbins = g.gp.xbins = get_bins(g.gp.xbins, x.fa, xslack)
+        tbins = g.gp.tbins = get_bins(g.gp.xbins, t.fa, tslack)
+
+        if len(x.fa) > 0 and isinstance(xbins, Iterable):
+            xd = x.t(lambda y: np.digitize(y, xbins), value_type="int")
+        else:
+            xd = g.new_ep("int", val=-1)
+
+        if isinstance(tbins, Iterable):
+            td = t.t(lambda y: np.digitize(y, tbins), value_type="int")
+        else:
+            td = g.new_vp("int", val=-1)
+
         try:
-            libinference.collect_xmarginal(g._Graph__graph,
-                                           u._Graph__graph,
-                                           _prop("e", u, x),
-                                           _prop("e", g, g.ep.count),
-                                           _prop("e", g, g.ep.xsum),
-                                           _prop("e", g, g.ep.x2sum))
+            g.set_fast_edge_lookup(True)
+            graph_merge(g, u, in_place=True, simple=True,
+                        props=dict(sum=[(g.ep.count, u.new_ep("int", val=1)),
+                                        (g.ep.xsum, x),
+                                        (g.ep.x2sum, x.t(lambda y: y ** 2)),
+                                        (g.vp.tsum, t),
+                                        (g.vp.t2sum, t.t(lambda y: y ** 2))],
+                                   idx_inc=[(g.ep.xhist, xd),
+                                            (g.vp.thist, td)]))
         finally:
             g.gp.count += 1
             g.ep.eprob.fa = g.ep.count.fa / g.gp.count
             g.ep.x.fa = g.ep.xsum.fa / g.ep.count.fa
             g.ep.xdev.fa = np.sqrt(np.abs(g.ep.x2sum.fa / g.ep.count.fa - g.ep.x.fa ** 2))
-
-            g.vp.tsum.fa += self.theta.fa
-            g.vp.t2sum.fa += self.theta.fa ** 2
             g.vp.t.fa = g.vp.tsum.fa / g.gp.count
             g.vp.tdev.fa = np.sqrt(np.abs(g.vp.t2sum.fa / g.gp.count - g.vp.t.fa ** 2))
 

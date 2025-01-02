@@ -16,70 +16,12 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "graph_tool.hh"
-#include "uncertain_marginal.hh"
 #include "parallel_rng.hh"
+#include "../support/util.hh"
 
 using namespace boost;
 using namespace graph_tool;
 
-void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
-                               std::any aecount)
-{
-    typedef eprop_map_t<int32_t> emap_t;
-    auto ecount = std::any_cast<emap_t>(aecount);
-
-    gt_dispatch<>()
-        ([&](auto& g, auto& u) { collect_marginal(g, u, ecount,
-                                                  dummy_property(),
-                                                  dummy_property(),
-                                                  dummy_property(),
-                                                  dummy_property(),
-                                                  dummy_property()); },
-         all_graph_views, all_graph_views)(gi.get_graph_view(),
-                                           ui.get_graph_view());
-}
-
-void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
-                                std::any ax, std::any aecount,
-                                std::any axsum, std::any ax2sum)
-{
-    typedef eprop_map_t<int32_t> emap_t;
-    auto ecount = std::any_cast<emap_t>(aecount);
-
-    typedef eprop_map_t<double> xmap_t;
-    auto xsum = std::any_cast<xmap_t>(axsum);
-    auto x2sum = std::any_cast<xmap_t>(ax2sum);
-
-    gt_dispatch<>()
-        ([&](auto& g, auto& u, auto x) { collect_marginal(g, u, ecount,
-                                                          x, xsum, x2sum,
-                                                          dummy_property(),
-                                                          dummy_property()); },
-         all_graph_views, all_graph_views, edge_scalar_properties)
-        (gi.get_graph_view(), ui.get_graph_view(), ax);
-}
-
-void collect_marginal_count_dispatch(GraphInterface& gi, GraphInterface& ui,
-                                     std::any aex, std::any aexs,
-                                     std::any aexc)
-{
-    typedef eprop_map_t<int32_t> ecmap_t;
-    auto ex = std::any_cast<ecmap_t>(aex);
-
-    typedef eprop_map_t<std::vector<int32_t>> emap_t;
-    auto exs = std::any_cast<emap_t>(aexs);
-    auto exc = std::any_cast<emap_t>(aexc);
-
-    gt_dispatch<>()
-        ([&](auto& g, auto& u) { collect_marginal(g, u,
-                                                  dummy_property(),
-                                                  ex,
-                                                  dummy_property(),
-                                                  dummy_property(),
-                                                  exs, exc); },
-         all_graph_views, all_graph_views)(gi.get_graph_view(),
-                                           ui.get_graph_view());
-}
 
 double marginal_count_entropy(GraphInterface& gi, std::any aexc, std::any aeh)
 {
@@ -169,9 +111,6 @@ REGISTER_MOD
 ([]
 {
     using namespace boost::python;
-    def("collect_marginal", &collect_marginal_dispatch);
-    def("collect_xmarginal", &collect_xmarginal_dispatch);
-    def("collect_marginal_count", &collect_marginal_count_dispatch);
     def("marginal_count_entropy", &marginal_count_entropy);
     def("marginal_graph_sample", &marginal_graph_sample);
     def("marginal_graph_lprob", &marginal_graph_lprob);
