@@ -229,7 +229,7 @@ reconstructed network:
    pv = pmode.get_marginal(u)
 
    edash = u.new_ep("vector<double>")
-   edash[u.edge(15, 73)] = [.1, .1, 0]
+   edash[u.edge(15, 73, add_missing=True)] = [.1, .1, 0]
    bstate.draw(pos=u.own_property(g.vp.pos), vertex_shape="pie", vertex_pie_fractions=pv,
                edge_color=ecolor, edge_dash_style=edash, edge_gradient=None,
                output="lesmis-reconstruction-marginals.svg")

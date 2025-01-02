@@ -2816,17 +2816,17 @@ def lattice(shape, periodic=False):
        gt.seed_rng(42)
 
     >>> g = gt.lattice([10,10])
-    >>> pos = gt.sfdp_layout(g, cooling_step=0.95, epsilon=1e-2)
+    >>> pos = gt.sfdp_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="lattice.pdf")
     <...>
 
     >>> g = gt.lattice([10,20], periodic=True)
-    >>> pos = gt.sfdp_layout(g, cooling_step=0.95, epsilon=1e-2)
+    >>> pos = gt.sfdp_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="lattice_periodic.pdf")
     <...>
 
     >>> g = gt.lattice([10,10,10])
-    >>> pos = gt.sfdp_layout(g, cooling_step=0.95, epsilon=1e-2)
+    >>> pos = gt.sfdp_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="lattice_3d.pdf")
     <...>
 

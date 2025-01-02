@@ -135,16 +135,16 @@ This outputs the following deltas, indicating that convergence was achieved.
 
 .. testoutput:: dynamics
 
-    -4374.171741316452
-    -3430.442095268032
-    -904.7176098519118
-    -190.28064153057187
-    -26.28956787113603
-    -1.9477590574467705
-    -0.4964012530509585
-    -0.0012287004910120913
-    -1.295718874416707e-07
-    -8.93862761586206e-12
+    -4686.196037213296
+    -3286.049921543921
+    -818.8563094596482
+    -115.3160422147071
+    -19.18297219710969
+    -2.427082044189543
+    -0.002041309916862133
+    -0.0029370158383912326
+    -0.0002670763882761662
+    -2.5721647034515627e-12
 
 We can compare the reconstructed network using the  :func:`~graph_tool.topology.similarity` function, as follows
 
@@ -160,7 +160,7 @@ which gives:
 
 .. testoutput:: dynamics
 
-   0.907831...
+   0.908651...
 
 We can visualize the reconstruction with:
 
