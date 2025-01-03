@@ -310,6 +310,7 @@ libgraph_tool_generation_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS)
 libgraph_tool_generation_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS)
 libgraph_tool_generation_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_generation_la_SOURCES = \
+	src/graph/generation/graph_bip_projection.cc \
 	src/graph/generation/graph_complete.cc \
 	src/graph/generation/graph_contract_edges.cc \
 	src/graph/generation/graph_generation.cc \
@@ -318,6 +319,9 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_lattice.cc \
 	src/graph/generation/graph_line_graph.cc \
 	src/graph/generation/graph_maxent_sbm.cc \
+	src/graph/generation/graph_merge.cc \
+	src/graph/generation/graph_merge_eprop.cc \
+	src/graph/generation/graph_merge_vprop.cc \
 	src/graph/generation/graph_parallel.cc \
 	src/graph/generation/graph_predecessor.cc \
 	src/graph/generation/graph_price.cc \
@@ -325,12 +329,10 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_rewiring.cc \
 	src/graph/generation/graph_sbm.cc \
 	src/graph/generation/graph_triadic_closure.cc \
-	src/graph/generation/graph_triangulation.cc \
-	src/graph/generation/graph_merge.cc \
-	src/graph/generation/graph_merge_eprop.cc \
-	src/graph/generation/graph_merge_vprop.cc
+	src/graph/generation/graph_triangulation.cc
 libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/dynamic_sampler.hh \
+	src/graph/generation/graph_bip_projection.hh \
 	src/graph/generation/graph_complete.hh \
 	src/graph/generation/graph_contract_edges.hh \
 	src/graph/generation/graph_generation.hh \
@@ -338,6 +340,7 @@ libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/graph_knn.hh \
 	src/graph/generation/graph_lattice.hh \
 	src/graph/generation/graph_maxent_sbm.hh \
+	src/graph/generation/graph_merge.hh \
 	src/graph/generation/graph_parallel.hh \
 	src/graph/generation/graph_predecessor.hh \
 	src/graph/generation/graph_price.hh \
@@ -346,7 +349,6 @@ libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/graph_sbm.hh \
 	src/graph/generation/graph_triadic_closure.hh \
 	src/graph/generation/graph_triangulation.hh \
-	src/graph/generation/graph_merge.hh \
 	src/graph/generation/sampler.hh \
 	src/graph/generation/urn_sampler.hh
 

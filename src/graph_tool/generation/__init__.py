@@ -76,6 +76,7 @@ Graph transformations
    label_parallel_edges
    remove_self_loops
    label_self_loops
+   graph_projection
 
 Graph set operations
 ++++++++++++++++++++
@@ -123,13 +124,14 @@ from copy import copy
 __all__ = ["random_graph", "random_rewire", "add_random_edges",
            "remove_random_edges", "generate_sbm", "solve_sbm_fugacities",
            "generate_maxent_sbm", "generate_knn", "generate_triadic_closure",
-           "predecessor_tree", "line_graph", "graph_merge", "graph_union",
-           "graph_difference", "graph_sym_difference", "graph_intersection",
-           "triangulation", "lattice", "geometric_graph", "price_network",
-           "complete_graph", "circular_graph", "condensation_graph",
-           "contract_parallel_edges", "expand_parallel_edges",
-           "remove_parallel_edges", "remove_self_loops", "label_parallel_edges",
-           "label_self_loops", "remove_labeled_edges"]
+           "predecessor_tree", "line_graph", "graph_projection", "graph_merge",
+           "graph_union", "graph_difference", "graph_sym_difference",
+           "graph_intersection", "triangulation", "lattice", "geometric_graph",
+           "price_network", "complete_graph", "circular_graph",
+           "condensation_graph", "contract_parallel_edges",
+           "expand_parallel_edges", "remove_parallel_edges",
+           "remove_self_loops", "label_parallel_edges", "label_self_loops",
+           "remove_labeled_edges"]
 
 def random_graph(N, deg_sampler, directed=True,
                  parallel_edges=False, self_loops=False, block_membership=None,
@@ -2692,6 +2694,137 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     if len(ret) > 1:
         return ret
     return ret[0]
+
+
+def graph_projection(g, p, proj_props=[], props=[]):
+    r"""Return the projection of selected vertices on the remaning vertices.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+       Graph to be projected.
+    p : :class:`~graph_tool.VertexPropertyMap`
+       Vertex property map indicating the vertices that should be projected. A
+       value convertible to ``True`` (i.e. a nonzero scalar value) indicates
+       that the vertex should be projected.
+    proj_props : list of :class:`~graph_tool.VertexPropertyMap` objects (optional, default: ``[]``)
+       Vertex property maps to be included as edge property maps in the projection.
+    props : list of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
+       Property maps to be included the projection, for nodes and edges not
+       participating in the projection.
+
+    Returns
+    -------
+    pg : :class:`~graph_tool.Graph`
+        The projected graph.
+    nproj_props : list of :class:`~graph_tool.EdgePropertyMap` objects
+        List of edge properties in the projected graph. This is only returned if
+        `proj_props` is not empty.
+    nprops : list of :class:`~graph_tool.PropertyMap` objects
+        List of properties in the projected graph, for nodes and edges not
+        participating in the projection. This is only returned if
+        `props` is not empty.
+
+    Notes
+    -----
+
+    A vertex is projected when it's removed from the graph, and its neighbours are
+    connected to form a clique.
+
+    In the case of directed graphs, an edge :math:`u\to v` exists in the
+    projected graph if a path :math:`u\to w\to v` exists in the original graph
+    for a projected vertex :math:`w`.
+
+    The original graph does not need to be bipartite. Edges not involved in the
+    projection are preserved.
+
+    This algorithm runs in time :math:`O(N + E + N_p\left<k^2\right>)`, where
+    :math:`N` and :math:`E` are the number of vertices and edges, respectively,
+    :math:`N_p` is the number of vertices to be projected, and
+    :math:`\left<k^2\right>` is their average squared degree.
+
+    Examples
+    --------
+
+    >>> g = gt.Graph({0: (1,2,3), 4: (5,6,7,8)}, directed=False)
+    >>> p = g.new_vp("bool", vals=[v in [0, 4] for v in g.vertices()])
+    >>> pos = gt.sfdp_layout(g)
+    >>> pg, props = gt.graph_projection(g, p, props=[g.vertex_index, pos])
+    >>> gt.graph_draw(g, pos=pos, vertex_text=g.vertex_index, output="bipartite.pdf")
+    <...>
+    >>> gt.graph_draw(pg, pos=props[1], vertex_text=props[0], output="projection.pdf")
+    <...>
+
+    .. testcleanup::
+
+       conv_png("bipartite.pdf")
+       conv_png("projection.pdf")
+
+    .. image:: bipartite.png
+       :width: 40%
+       :align: left
+    .. image:: projection.png
+       :width: 40%
+       :align: right
+
+    """
+
+    pg = Graph(directed=g.is_directed())
+    vmap = g.new_vp("int64_t")
+    evmap = pg.new_ep("int64_t")
+
+    emap = libgraph_tool_generation.bipartite_projection(pg._Graph__graph,
+                                                         g._Graph__graph,
+                                                         _prop("v", g, p),
+                                                         _prop("v", g, vmap),
+                                                         _prop("e", pg, evmap))
+
+    nprops = []
+    for i, p in enumerate(props):
+        if not p.is_writable():
+            p = p.copy()
+        if p.key_type() == "e":
+            np = pg.new_ep(p.value_type())
+            libgraph_tool_generation.\
+                projection_copy_reprop(pg._Graph__graph,
+                                       emap,
+                                       _prop("e", pg, np),
+                                       _prop("e", g, p))
+        elif p.key_type() == "v":
+            np = pg.new_vp(p.value_type())
+            libgraph_tool_generation.\
+                projection_copy_vprop(g._Graph__graph,
+                                      _prop("v", g, vmap),
+                                      _prop("v", pg, np),
+                                      _prop("v", g, p))
+        else:
+            np = pg.new_gp(p.value_type(), val=p[g])
+        nprops.append(np)
+
+    nproj_props = []
+    for i, p in enumerate(proj_props):
+        if p.key_type() != "v":
+            raise ValueError("'proj_props' must be vertex property maps!")
+        if not p.is_writable():
+            p = p.copy()
+        np = pg.new_ep(p.value_type())
+        libgraph_tool_generation.\
+            projection_copy_eprop(pg._Graph__graph,
+                                  _prop("e", pg, evmap),
+                                  _prop("e", pg, np),
+                                  _prop("v", g, p))
+        nproj_props.append(np)
+
+
+    ret = [pg]
+    if len(nproj_props) > 0:
+        ret += [nproj_props]
+    if len(nprops) > 0:
+        ret += [nprops]
+    if len(ret) > 1:
+        return tuple(ret)
+    else:
+        return ret[0]
 
 
 @_limit_args({"type": ["simple", "delaunay"]})
