@@ -117,6 +117,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
     else
     {
         std::shared_mutex mutex;
+        std::vector<std::mutex> vmutex(is_vindex ? 0 : num_vertices(ug));
         std::vector<edge_t> res;
         gt_hash_set<edge_t> res_set;
 
@@ -167,7 +168,6 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                              continue;
                          if (t == s)
                          {
-                             assert(false);
                              auto iter = self_loops.find(eindex[e]);
                              if (iter != self_loops.end())
                                  continue;
@@ -206,16 +206,26 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                      if (w2 == 0)
                          continue;
 
-                     std::decay_t<decltype(ueweight[e])> w1 = 0;
+                     size_t s_u = vmap[s];
+                     size_t t_u = vmap[t];
 
+                     if (!is_vindex && parallel)
+                     {
+                         if (s_u != t_u)
+                             std::lock(vmutex[s_u], vmutex[t_u]);
+                         else
+                             vmutex[s_u].lock();
+                     }
+
+                     std::decay_t<decltype(ueweight[e])> w1 = 0;
                      edge_t ge;
-                     bool exists;
+                     bool exists = false;
+
                      if (simple)
                      {
                          lock([&]()
                               {
-                                  std::tie(ge, exists) = edge(size_t(vmap[s]),
-                                                              size_t(vmap[t]), ug);
+                                  std::tie(ge, exists) = edge(s_u, t_u, ug);
                                   if (exists)
                                       w1 = ueweight[ge];
                               }, true);
@@ -225,15 +235,17 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                          lock([&]()
                               {
                                   edge_range_iter
-                                      (size_t(vmap[s]), size_t(vmap[t]), ug,
+                                      (s_u, t_u, ug,
                                        [&](const auto& ge_)
                                        {
                                            w1 += ueweight[ge_];
                                            if (ge == edge_t())
+                                           {
                                                ge = ge_;
+                                               exists = true;
+                                           }
                                        });
                               }, true);
-                         exists = ge != edge_t();
                      }
 
                      auto w = compose_weight(w1, w2);
@@ -246,6 +258,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                              {
                                  lock([&]()
                                       {
+                                          #pragma omp atomic
                                           ueweight[ge] += w;
                                       }, true);
                              }
@@ -254,8 +267,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                          {
                              lock([&]()
                                   {
-                                      ge = add_edge(size_t(vmap[s]),
-                                                    size_t(vmap[t]), ug).first;
+                                      ge = add_edge(s_u, t_u, ug).first;
                                       if constexpr (is_weighted)
                                           ueweight.get_checked()[ge] = w;
                                   }, false);
@@ -279,8 +291,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                              {
                                  lock([&]()
                                       {
-                                          edge_range_iter(size_t(vmap[s]),
-                                                          size_t(vmap[t]), ug,
+                                          edge_range_iter(s_u, t_u, ug,
                                                           [&](const auto& ge_)
                                                           {
                                                               auto iter = res_set.find(ge_);
@@ -294,13 +305,41 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                          }
                          emap[e] = edge_t();
                      }
+
+                     if (!is_vindex && parallel)
+                     {
+                         vmutex[s_u].unlock();
+                         if (t_u != s_u)
+                             vmutex[t_u].unlock();
+                     }
                  }
 
                  if (!res.empty())
                  {
                      std::unique_lock lock(mutex);
                      for (auto e : res)
-                         remove_edge(e, ug);
+                     {
+                         bool exists = false;
+                         if (simple)
+                         {
+                             exists = edge(source(e, ug), target(e, ug), ug).second;
+                         }
+                         else
+                         {
+                             edge_range_iter(source(e, ug), target(e, ug), ug,
+                                             [&](const auto& ge_)
+                                             {
+                                                 if (e == ge_);
+                                                 {
+                                                     exists = true;
+                                                     return false;
+                                                 }
+                                                 return true;
+                                             });
+                         }
+                         if  (exists)
+                             remove_edge(e, ug);
+                     }
                      res.clear();
                      res_set.clear();
                  }
@@ -420,21 +459,17 @@ struct property_merge
     void operator()(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                     UnionProp uprop, Prop prop, bool simple) const
     {
-        bool parallel = false;
-        if constexpr (merge == merge_t::set || merge == merge_t::sum ||
-                      merge == merge_t::diff)
-            parallel = std::is_scalar_v
-                <typename property_traits<UnionProp>::value_type>;
-        else if constexpr (merge == merge_t::idx_inc)
-            parallel = std::is_scalar_v
-                <typename property_traits<UnionProp>::value_type::value_type>;
-
-        dispatch(ug, g, vmap, emap, uprop, prop, simple, parallel,
-                 std::is_same<typename property_traits<UnionProp>::key_type,
-                              typename graph_traits<Graph>::vertex_descriptor>());
+        typedef typename property_traits<UnionProp>::value_type uval_t;
+        constexpr bool atomic = (std::is_scalar_v<uval_t> &&
+                                 (merge == merge_t::set ||
+                                  merge == merge_t::sum ||
+                                  merge == merge_t::diff));
+        dispatch<atomic>(ug, g, vmap, emap, uprop, prop, simple,
+                         std::is_same<typename property_traits<UnionProp>::key_type,
+                                      typename graph_traits<Graph>::vertex_descriptor>());
     }
 
-    template <class UVal, class Val>
+    template <bool atomic, class UVal, class Val>
     void dispatch_value(UVal& uval, const Val& val) const
     {
         constexpr bool is_object = std::is_same_v<Val, boost::python::object>;
@@ -442,7 +477,7 @@ struct property_merge
 
         if constexpr (merge == merge_t::set)
         {
-            if constexpr (std::is_scalar_v<UVal>)
+            if constexpr (atomic)
             {
                 #pragma omp atomic write
                 uval = convert<UVal>(val);
@@ -473,7 +508,7 @@ struct property_merge
             }
             else
             {
-                if constexpr (std::is_scalar_v<UVal>)
+                if constexpr (atomic)
                 {
                     #pragma omp atomic
                     uval += convert<UVal>(val);
@@ -505,7 +540,7 @@ struct property_merge
             }
             else
             {
-                if constexpr (std::is_scalar_v<UVal>)
+                if constexpr (atomic)
                 {
                     #pragma omp atomic
                     uval -= convert<UVal>(val);
@@ -536,15 +571,7 @@ struct property_merge
             }
             if (idx >= uval.size())
                 uval.resize(idx + 1);
-            if constexpr (std::is_scalar_v<typename UVal::value_type>)
-            {
-                #pragma omp atomic
-                uval[idx] += diff;
-            }
-            else
-            {
-                uval[idx] += diff;
-            }
+            uval[idx] += diff;
         }
         else if constexpr (merge == merge_t::append)
         {
@@ -601,11 +628,10 @@ struct property_merge
         }
     }
 
-    template <class UnionGraph, class Graph, class VertexMap,
+    template <bool atomic, class UnionGraph, class Graph, class VertexMap,
               class EdgeMap, class UnionProp, class Prop>
     void dispatch(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap,
-                  UnionProp uprop, Prop prop, bool simple, bool parallel,
-                  std::true_type) const
+                  UnionProp uprop, Prop prop, bool simple, std::true_type) const
     {
         typedef typename property_traits<Prop>::value_type val_t;
         typedef typename property_traits<UnionProp>::value_type uval_t;
@@ -621,28 +647,33 @@ struct property_merge
 
         GILRelease gil(!is_object && !is_object_union);
 
-        parallel = (parallel && (!is_object && !is_object_union &&
-                                 (is_vindex || simple) &&
-                                 (num_vertices(g) > get_openmp_min_thresh()) &&
-                                 (get_num_threads() > 1)));
-
-        auto dispatch_v =
-            [&](auto v){ dispatch_value(uprop[vertex(get(vmap, v), ug)],
-                                        get(prop, v)); };
+        bool parallel = (!is_object && !is_object_union &&
+                         (is_vindex || simple) &&
+                         (num_vertices(g) > get_openmp_min_thresh()) &&
+                         (get_num_threads() > 1));
 
         if (!parallel)
         {
             for (auto v : vertices_range(g))
-                dispatch_v(v);
+                dispatch_value<false>(uprop[vertex(get(vmap, v), ug)],
+                                      get(prop, v));
         }
         else
         {
+            auto dispatch_v =
+                [&](auto v){ dispatch_value<atomic>(uprop[vertex(get(vmap, v), ug)],
+                                                    get(prop, v)); };
+
+            std::vector<std::mutex> vmutex((is_vindex || atomic) ? 0 : num_vertices(ug));
             std::string err;
             #pragma omp parallel
             parallel_vertex_loop_no_spawn
                 (g,
                  [&](auto v)
                  {
+                     auto uv = get(vmap, v);
+                     if constexpr (!is_vindex && !atomic)
+                         vmutex[uv].lock();
                      if constexpr (std::is_convertible_v<val_t, uval_t> &&
                                    !is_object && !is_object_union &&
                                    !is_dynamic_map_v<Prop> &&
@@ -664,6 +695,8 @@ struct property_merge
                              err = e.what();
                          }
                      }
+                     if constexpr (!is_vindex && !atomic)
+                         vmutex[uv].unlock();
                  });
 
             if (!err.empty())
@@ -671,11 +704,10 @@ struct property_merge
         }
     }
 
-    template <class UnionGraph, class Graph, class VertexMap,
+    template <bool atomic, class UnionGraph, class Graph, class VertexMap,
               class EdgeMap, class UnionProp, class Prop>
-    void dispatch(UnionGraph&, Graph& g, VertexMap, EdgeMap emap,
-                  UnionProp uprop, Prop prop, bool simple, bool parallel,
-                  std::false_type) const
+    void dispatch(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
+                  UnionProp uprop, Prop prop, bool simple, std::false_type) const
     {
         typedef typename property_traits<Prop>::value_type val_t;
         typedef typename property_traits<UnionProp>::value_type uval_t;
@@ -684,36 +716,56 @@ struct property_merge
             std::is_same_v<val_t, boost::python::object>;
         constexpr bool is_object_union =
             std::is_same_v<uval_t, boost::python::object>;
+        constexpr bool is_vindex =
+            !std::is_convertible_v
+            <typename boost::property_traits<VertexMap>::category,
+             boost::writable_property_map_tag>;
 
         typedef typename graph_traits<UnionGraph>::edge_descriptor edge_t;
 
         GILRelease gil(!is_object && !is_object_union);
 
-        auto dispatch_e =
-            [&](const auto& e)
-            {
-                auto& ge = emap[e];
-                if (ge != edge_t())
-                    dispatch_value(uprop[ge], get(prop, e));
-            };
-
-        parallel = parallel && (!is_object && !is_object_union && simple &&
-                                (num_vertices(g) > get_openmp_min_thresh()) &&
-                                (get_num_threads() > 1));
+        bool parallel = (!is_object && !is_object_union && simple &&
+                         (num_vertices(g) > get_openmp_min_thresh()) &&
+                         (get_num_threads() > 1));
 
         if (!parallel)
         {
             for (auto e : edges_range(g))
-                dispatch_e(e);
+            {
+                auto& ge = emap[e];
+                if (ge != edge_t())
+                    dispatch_value<false>(uprop[ge], get(prop, e));
+            }
         }
         else
         {
+            auto dispatch_e =
+                [&](const auto& e)
+                {
+                    auto& ge = emap[e];
+                    if (ge != edge_t())
+                        dispatch_value<atomic>(uprop[ge], get(prop, e));
+                };
+
+            std::vector<std::mutex> vmutex((is_vindex || atomic) ? 0 : num_vertices(ug));
             std::string err;
             #pragma omp parallel
             parallel_edge_loop_no_spawn
                 (g,
                  [&](const auto& e)
                  {
+                     auto s_u = get(vmap, source(e, g));
+                     auto t_u = get(vmap, target(e, g));
+
+                     if constexpr (!is_vindex && !atomic)
+                     {
+                         if (s_u != t_u)
+                             std::lock(vmutex[s_u], vmutex[t_u]);
+                         else
+                             vmutex[s_u].lock();
+                     }
+
                      if constexpr ((std::is_convertible_v<val_t, uval_t> &&
                                     !is_object && !is_object_union &&
                                     !is_dynamic_map_v<Prop> &&
@@ -734,6 +786,13 @@ struct property_merge
                              #pragma omp critical
                              err = e.what();
                          }
+                     }
+
+                     if constexpr (!is_vindex && !atomic)
+                     {
+                         vmutex[s_u].unlock();
+                         if (t_u != s_u)
+                             vmutex[t_u].unlock();
                      }
                  });
 
