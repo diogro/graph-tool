@@ -121,8 +121,7 @@ build_sid_git_opt1:
   variables:
     BASE: debian:sid
     PLATFORM: amd64
-    MARCH: "x86-64-1"
-
+    MARCH: "x86-64-v2"
 
 build_trixie:
   extends: .build_deb
