@@ -2207,7 +2207,8 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
 
 @_parallel
 def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
-                internal_props=False, in_place=False, multiset=False, **kwargs):
+                mt="set", internal_props=False, in_place=False, multiset=False,
+                **kwargs):
     """Return a graph containing the union of the vertices and edges
     of graphs ``g1`` and ``g2``.
 
@@ -2239,6 +2240,10 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
        element must be a property of ``g1``, and the second of ``g2``. If either
        value is ``None``, an new map will be created, and set to appropriately
        empty values.
+    mt : ``str`` (otional, default: ``"set"``)
+       Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
+       ``"diff"``, ``"idx_inc"``, ``"append"``,``"concat"``. See
+       :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the union.
@@ -2250,6 +2255,9 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
        If ``True``, the edges in the union graph will form a multiset, so that
        a single edge that exists in both ``g1`` and ``g2`` becomes a parallel
        edge in the union graph.
+    **kwargs : ``dict`` (optional, default: ``{}``)
+       Remaining keyword parameters will be forwarded to
+       :func:`~graph_tool.generation.graph_merge`.
 
     Returns
     -------
@@ -2318,14 +2326,14 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
     """
 
     return graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
-                       internal_props={"set": "all"} if internal_props else {},
+                       internal_props={mt: "all"} if internal_props else {},
                        in_place=in_place, multiset=multiset, **kwargs)
 
 
 @_parallel
 def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
-                         props=[], internal_props=False, in_place=False,
-                         **kwargs):
+                         props=[], mt="set", internal_props=False,
+                         in_place=False, **kwargs):
     """Return a graph containing the symmetric difference of the edges
     of graphs ``g1`` and ``g2``.
 
@@ -2357,6 +2365,10 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        element must be a property of ``g1``, and the second of ``g2``. If either
        value is ``None``, an new map will be created, and set to appropriately
        empty values.
+    mt : ``str`` (otional, default: ``"set"``)
+       Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
+       ``"diff"``, ``"idx_inc"``, ``"append"``,``"concat"``. See
+       :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the difference.
@@ -2364,6 +2376,9 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        If ``True``, the symmetric difference is computed in-place into `g1`,
        which is then modified. If ``False``, a new graph is created, and both
        graphs remain unmodified.
+    **kwargs : ``dict`` (optional, default: ``{}``)
+       Remaining keyword parameters will be forwarded to
+       :func:`~graph_tool.generation.graph_merge`.
 
     Returns
     -------
@@ -2429,12 +2444,13 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     """
 
     return graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
-                       internal_props={"set": "all"} if internal_props else {},
+                       internal_props={mt: "all"} if internal_props else {},
                        in_place=in_place, sym_diff=True, **kwargs)
 
 @_parallel
 def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
-                     props=[], internal_props=False, in_place=False, **kwargs):
+                     props=[], mt="set", internal_props=False, in_place=False,
+                     **kwargs):
     """Return a graph containing the differences of the edges of graphs ``g1``
     and ``g2``, i.e. the edges in ``g1`` that are not in ``g2``.
 
@@ -2473,6 +2489,9 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        If ``True``, graph `g2` is subtracted in-place from `g1`, which is then
        modified. If ``False``, a new graph is created, and both graphs remain
        unmodified.
+    **kwargs : ``dict`` (optional, default: ``{}``)
+       Remaining keyword parameters will be forwarded to
+       :func:`~graph_tool.generation.graph_merge`.
 
     Returns
     -------
@@ -2540,12 +2559,13 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     """
 
     return graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
-                       internal_props={"set": "all"} if internal_props else {},
+                       internal_props={mt: "all"} if internal_props else {},
                        in_place=in_place, diff=True, **kwargs)
 
 @_parallel
 def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
-                       props=[], internal_props=False, in_place=False, **kwargs):
+                       props=[], mt="set", internal_props=False, in_place=False,
+                       **kwargs):
     """Return a graph containing the intersection of the edges of graphs ``g1``
     and ``g2``.
 
@@ -2577,6 +2597,10 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        element must be a property of ``g1``, and the second of ``g2``. If either
        value is ``None``, an new map will be created, and set to appropriately
        empty values.
+    mt : ``str`` (otional, default: ``"set"``)
+       Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
+       ``"diff"``, ``"idx_inc"``, ``"append"``,``"concat"``. See
+       :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the intersection.
@@ -2584,6 +2608,9 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        If ``True``, the intersection is obtained in-place by subtracting edges
        from `g1`, which is then modified. If ``False``, a new graph is created,
        and both graphs remain unmodified.
+    **kwargs : ``dict`` (optional, default: ``{}``)
+       Remaining keyword parameters will be forwarded to
+       :func:`~graph_tool.generation.graph_merge`.
 
     Returns
     -------
@@ -2654,10 +2681,9 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
         ret_w = False
 
     ret = graph_merge(g1, g2, eweight1, eweight2, vmap, props={"set": props},
-                      internal_props={"set": "all"} if internal_props else {},
+                      internal_props={mt: "all"} if internal_props else {},
                       in_place=in_place, intersect=True, symmetric=True,
                       **kwargs)
-
     if ret_w:
         return ret
     ret = list(ret)
