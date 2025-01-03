@@ -23,6 +23,7 @@ RUN DEBEMAIL="Tiago de Paula Peixoto <tiago@skewed.de>"
 
 ARG DEB_VERSION=1
 ARG MARCH=x86-64
+ARG MARCH_SUFFIX=""
 
 RUN major=`cat configure.ac | grep -o "graph_tool_version_major, [^)]*" | sed s/.*,\ //`; \
     minor=`cat configure.ac | grep -o "graph_tool_version_minor, [^)]*" | sed s/.*,\ //`; \
@@ -59,7 +60,11 @@ RUN apt-get -y dist-upgrade
 RUN apt-get -y install gdebi-core
 RUN apt-get -y install python3-matplotlib gir1.2-gtk-3.0 python3-cairo
 
+ARG MARCH_SUFFIX
+
 RUN mkdir build
 COPY --from=builder build/* build/
-RUN gdebi -n build/python3-graph-tool_*.deb
-RUN python3 -c "from graph_tool.all import *; show_config(); g = random_graph(10, lambda: 5, directed=False); graph_draw(g, output='foo.png')"
+RUN gdebi -n build/python3-graph-tool${MARCH_SUFFIX}_*.deb
+RUN if [ $MARCH_SUFFIX = "" ]; then \
+    python3 -c "from graph_tool.all import *; show_config(); g = random_graph(10, lambda: 5, directed=False); graph_draw(g, output='foo.png')"; \
+    fi

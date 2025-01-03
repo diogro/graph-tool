@@ -70,7 +70,7 @@ build_tarball:
     - cd release/debian
     - if [[ "$MARCH" = "x86-64" || "$MARCH" = "armv8-a" ]]; then MARCH_SUFFIX=""; else MARCH_SUFFIX="-${MARCH}"; fi
     - sed -i "s/__MARCH_SUFFIX/$MARCH_SUFFIX/" debian/control
-    - docker buildx build --platform linux/$PLATFORM --build-arg BASE=$BASE --build-arg DEB_VERSION=$DEB_VERSION --build-arg REF=`git log -n1 --pretty='%H'` --build-arg MARCH=$MARCH -t $img . --no-cache --pull --load --progress=plain
+    - docker buildx build --platform linux/$PLATFORM --build-arg BASE=$BASE --build-arg DEB_VERSION=$DEB_VERSION --build-arg REF=`git log -n1 --pretty='%H'` --build-arg MARCH=$MARCH --build-arg MARCH_SUFFIX=$MARCH_SUFFIX -t $img . --no-cache --pull --load --progress=plain
     - cid=`docker create $img`
     - docker cp ${cid}:build build
     - docker rm -v $cid
