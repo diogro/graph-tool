@@ -359,7 +359,7 @@ class UncertainBaseState(EntropyState):
         -------
         g : :class:`~graph_tool.Graph`
             New marginal graph, with internal edge
-            :class:`~graph_tool.EdgePropertyMap` ``"whist"``,
+            :class:`~graph_tool.EdgePropertyMap` ``"wcount"``,
             containing the edge multiplicity counts.
 
         Notes
@@ -381,8 +381,8 @@ class UncertainBaseState(EntropyState):
             g = Graph(directed=self.g.is_directed())
             g.add_vertex(self.g.num_vertices())
 
-        if "w" not in g.ep:
-            g.ep.whist = g.new_ep("vector<int32_t>")
+        if "wcount" not in g.ep:
+            g.ep.wcount = g.new_ep("vector<int32_t>")
 
         if "wcount" not in g.gp:
             g.gp.wcount = g.new_gp("int", 0)
@@ -390,7 +390,7 @@ class UncertainBaseState(EntropyState):
         try:
             g.set_fast_edge_lookup(True)
             graph_merge(g, self.u, in_place=True, simple=True,
-                        props=dict(idx_inc=[(g.ep.whist, self.eweight)]))
+                        props=dict(idx_inc=[(g.ep.wcount, self.eweight)]))
         finally:
             g.gp.wcount += 1
         return g
