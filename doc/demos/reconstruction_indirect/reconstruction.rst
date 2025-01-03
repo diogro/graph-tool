@@ -286,7 +286,7 @@ We will begin by fetching the data and computing the log-returns:
    from collections import defaultdict
    import csv
 
-   r = requests.get('https://raw.githubusercontent.com/plotly/datasets/master/all_stocks_5yr.csv')
+   r = requests.get('https://downloads.skewed.de/data/all_stocks_5yr.csv')
    lines = r.iter_lines(decode_unicode=True)
    next(lines)                                     # remove header
    prices = defaultdict(list)

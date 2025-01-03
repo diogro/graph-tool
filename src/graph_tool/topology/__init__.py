@@ -2656,7 +2656,7 @@ def all_circuits(g, unique=False, max_length=0):
        Circuits and Loops in Graphs with Self-Arcs and Multiple-Arcs.",
        In Proceedings of FCS. 2008, 14-20,
        http://cssg.massey.ac.nz/cstn/013/cstn-013.html
-    .. [hawick-bgl] http://www.boost.org/doc/libs/graph/doc/hawick_circuits.html
+    .. [hawick-bgl] https://www.boost.org/doc/libs/release/libs/graph/doc/hawick_circuits.html
 
     """
 
