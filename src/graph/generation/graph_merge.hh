@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_UNION_HH
-#define GRAPH_UNION_HH
+#ifndef GRAPH_MERGE_HH
+#define GRAPH_MERGE_HH
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -329,7 +329,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                              edge_range_iter(source(e, ug), target(e, ug), ug,
                                              [&](const auto& ge_)
                                              {
-                                                 if (e == ge_);
+                                                 if (e == ge_)
                                                  {
                                                      exists = true;
                                                      return false;
@@ -805,4 +805,4 @@ struct property_merge
 
 } // graph_tool namespace
 
-#endif // GRAPH_UNION_HH
+#endif // GRAPH_MERGE_HH

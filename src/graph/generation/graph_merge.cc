@@ -49,10 +49,10 @@ boost::python::tuple graph_merge_dispatch(GraphInterface& ugi, GraphInterface& g
             gt_dispatch<>(false)
                 ([&](auto& ug, auto& g, auto& vmap, auto& w1, auto& w2)
                  {
-                     return graph_tool::graph_merge(ug, g, vmap, emap, w1, w2,
-                                                    multiset, diff, sym_diff,
-                                                    intersect, symmetric,
-                                                    simple, ugi.get_keep_ehash());
+                     graph_tool::graph_merge(ug, g, vmap, emap, w1, w2,
+                                             multiset, diff, sym_diff,
+                                             intersect, symmetric,
+                                             simple, ugi.get_keep_ehash());
                  },
                  gviews,
                  gviews,
