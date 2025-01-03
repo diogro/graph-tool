@@ -60,19 +60,23 @@ build_tarball:
   variables:
     BASE: ""
     PLATFORM: ""
+    MARCH: "x86-64"
   before_script:
     - export DEB_VERSION=1
+    - export MARCH=$MARCH
   script:
     - img=`echo $BASE | sed s/:/_/`
     - img="${img}_${CI_COMMIT_SHORT_SHA}"
     - cd release/debian
-    - docker buildx build --platform linux/$PLATFORM --build-arg BASE=$BASE --build-arg DEB_VERSION=$DEB_VERSION --build-arg REF=`git log -n1 --pretty='%H'` -t $img . --no-cache --pull --load --progress=plain
+    - if [[ "$MARCH" = "x86-64" || "$MARCH" = "armv8-a" ]]; then MARCH_SUFFIX=""; else MARCH_SUFFIX="_${MARCH}"; fi
+    - sed -i "s/__MARCH_SUFFIX/$MARCH_SUFFIX/" debian/control
+    - docker buildx build --platform linux/$PLATFORM --build-arg BASE=$BASE --build-arg DEB_VERSION=$DEB_VERSION --build-arg REF=`git log -n1 --pretty='%H'` --build-arg MARCH=$MARCH -t $img . --no-cache --pull --load --progress=plain
     - cid=`docker create $img`
     - docker cp ${cid}:build build
     - docker rm -v $cid
     - name=`echo $BASE | grep -o ":.*" | sed s/://`
     - aptly repo create $name || true
-    - for f in `ls build/python3-graph-tool_*.deb`; do nf=`echo $f | sed s/.deb/_$name.deb/`; mv $f $nf; aptly repo add $name $nf || true; done
+    - for f in `ls build/python3-graph-tool*.deb`; do nf=`echo $f | sed s/.deb/_${name}_${MARCH}.deb/`; mv $f $nf; aptly repo add $name $nf || true; done
     - aptly publish drop $name filesystem:skewed:/apt-git || true
     - aptly publish repo -distribution=$name $name filesystem:skewed:/apt-git || true
     - aptly publish update $name filesystem:skewed:/apt-git || true
@@ -103,6 +107,7 @@ build_sid_arm:
   variables:
     BASE: debian:sid
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_sid"]
 
 build_sid_git:
@@ -110,6 +115,14 @@ build_sid_git:
   variables:
     BASE: debian:sid
     PLATFORM: amd64
+
+build_sid_git_opt1:
+  extends: .build_deb_git
+  variables:
+    BASE: debian:sid
+    PLATFORM: amd64
+    MARCH: "x86-64-1"
+
 
 build_trixie:
   extends: .build_deb
@@ -122,6 +135,7 @@ build_trixie_arm:
   variables:
     BASE: debian:trixie
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_trixie"]
 
 build_trixie_git:
@@ -141,6 +155,7 @@ build_bookworm_arm:
   variables:
     BASE: debian:bookworm
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_bookworm"]
 
 build_bookworm_git:
@@ -164,6 +179,7 @@ build_bullseye_arm:
   variables:
     BASE: debian:bullseye
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_bullseye"]
 
 build_bullseye_git:
@@ -185,6 +201,7 @@ build_jammy_arm:
   variables:
     BASE: ubuntu:jammy
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_jammy"]
 
 build_jammy_git:
@@ -204,6 +221,7 @@ build_noble_arm:
   variables:
     BASE: ubuntu:noble
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_noble"]
 
 build_noble_git:
@@ -223,6 +241,7 @@ build_oracular_arm:
   variables:
     BASE: ubuntu:oracular
     PLATFORM: arm64
+    MARCH: "armv8-a"
   needs: ["build_oracular"]
 
 build_oracular_git:

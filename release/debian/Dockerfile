@@ -22,6 +22,7 @@ RUN /bin/bash git2debchangelog.sh > debian/changelog
 RUN DEBEMAIL="Tiago de Paula Peixoto <tiago@skewed.de>"
 
 ARG DEB_VERSION=1
+ARG MARCH=x86-64
 
 RUN major=`cat configure.ac | grep -o "graph_tool_version_major, [^)]*" | sed s/.*,\ //`; \
     minor=`cat configure.ac | grep -o "graph_tool_version_minor, [^)]*" | sed s/.*,\ //`; \
