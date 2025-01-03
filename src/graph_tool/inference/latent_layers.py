@@ -89,18 +89,18 @@ class LatentLayerBaseState(EntropyState):
                 gs.append(g)
 
         for l, g in enumerate(gs):
-            if "eprob" not in g.ep:
-                g.ep.eprob = g.new_ep("double")
-
             u = self.us[l] if l < len(self.us) else self.g
             if l == 0:
                 es = edge_endpoint_property(u, u.vertex_index, "source")
                 et = edge_endpoint_property(u, u.vertex_index, "target")
                 u = GraphView(u, efilt=es.fa != et.fa)
-            libinference.collect_marginal(g._Graph__graph,
-                                          u._Graph__graph,
-                                          _prop("e", g, g.ep.count))
+
+            g.set_fast_edge_lookup(True)
+            graph_merge(g, u, in_place=True, simple=True,
+                        props={"sum": [(g.ep.count, u.new_ep("int", val=1))]})
             g.gp.count += 1
+            if "eprob" not in g.ep:
+                g.ep.eprob = g.new_ep("double")
             g.ep.eprob.fa = g.ep.count.fa
             g.ep.eprob.fa /= g.gp.count
         return gs
