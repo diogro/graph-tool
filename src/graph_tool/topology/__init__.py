@@ -2631,7 +2631,7 @@ def all_circuits(g, unique=False, max_length=0):
 
     Notes
     -----
-    This algorithm [johnson-finding-1975]_[hawick-enumerating-2008]_ runs in
+    This algorithm [johnson-finding-1975]_ [hawick-enumerating-2008]_ runs in
     worst time :math:`O[(V + E)(C + 1)]`, where :math:`C` is the number of
     circuits.
 

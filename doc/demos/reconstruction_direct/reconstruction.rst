@@ -537,10 +537,9 @@ latent multiedges of a network of political books:
    # compute average multiplicities
 
    ew = u.new_ep("double")
-   w = u.ep.w
-   wcount = u.ep.wcount
+   wcount = u.ep.whist
    for e in u.edges():
-       ew[e] = (wcount[e].a * w[e].a).sum() / wcount[e].a.sum()
+       ew[e] = (wcount[e].a * arange(len(wcount[e].a))).sum() / wcount[e].a.sum()
 
    bstate = state.get_block_state()
    bstate = bstate.levels[0].copy(g=u)
