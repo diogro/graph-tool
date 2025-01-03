@@ -57,7 +57,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'graph-tool'
-copyright = u'2006-2024, Tiago de Paula Peixoto <tiago@skewed.de>'
+copyright = u'2006-2025, Tiago de Paula Peixoto <tiago@skewed.de>'
 author = 'Tiago de Paula Peixoto'
 
 # The version info for the project you're documenting, acts as replacement for
