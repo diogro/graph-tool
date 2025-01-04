@@ -198,12 +198,14 @@ build_bookworm_opt3:
     PLATFORM: amd64
     MARCH: "x86-64-v3"
 
-build_bookworm_opt4:
-  extends: .build_deb
-  variables:
-    BASE: debian:bookworm
-    PLATFORM: amd64
-    MARCH: "x86-64-v4"
+# build_bookworm_opt4:
+#   extends: .build_deb
+#   variables:
+#     BASE: debian:bookworm
+#     PLATFORM: amd64
+#     MARCH: "x86-64-v4"
+#   before_script:
+#     - sed -i "s/ac_cgal=no/ac_cgal=yes/" m4/ax_lib_cgal_core.m4
 
 build_bookworm_arm:
   extends: .build_deb
@@ -245,14 +247,16 @@ build_bullseye_opt3:
     PLATFORM: amd64
     MARCH: "x86-64-v3"
 
-build_bullseye_opt4:
-  extends: .build_deb
-  before_script:
-    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
-  variables:
-    BASE: debian:bullseye
-    PLATFORM: amd64
-    MARCH: "x86-64-v4"
+# build_bullseye_opt4:
+#   extends: .build_deb
+#   before_script:
+#     - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+#   variables:
+#     BASE: debian:bullseye
+#     PLATFORM: amd64
+#     MARCH: "x86-64-v4"
+#   before_script:
+#     - sed -i "s/ac_cgal=no/ac_cgal=yes/" m4/ax_lib_cgal_core.m4
 
 build_bullseye_arm:
   extends: .build_deb

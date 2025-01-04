@@ -91,7 +91,7 @@ for ac_cgal_iterate in $ac_cgal_dirs ; do
                     CGAL::convex_hull_2(points.begin(),points.end(),std::back_inserter(result));
                     //std::cout << result.size() << " points on the convex hull" << std::endl;]
                     ])]
-                    ,[ac_cgal=yes],[ac_cgal=no])
+                    ,[ac_cgal=yes],[ac_cgal=no],[ac_cgal=yes])
 
            LDFLAGS="$LDFLAGS_SAVED"
            export LDFLAGS

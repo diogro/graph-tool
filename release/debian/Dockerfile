@@ -66,5 +66,5 @@ RUN mkdir build
 COPY --from=builder build/* build/
 RUN gdebi -n build/python3-graph-tool${MARCH_SUFFIX}_*.deb
 RUN if [ $MARCH_SUFFIX = "" ]; then \
-    python3 -c "from graph_tool.all import *; show_config(); g = random_graph(10, lambda: 5, directed=False); graph_draw(g, output='foo.png')"; \
+       python3 -c "from graph_tool.all import *; show_config(); g = random_graph(10, lambda: 5, directed=False); graph_draw(g, output='foo.png')"; \
     fi
