@@ -102,6 +102,27 @@ build_sid:
     BASE: debian:sid
     PLATFORM: amd64
 
+build_sid_opt2:
+  extends: .build_deb
+  variables:
+    BASE: debian:sid
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_sid_opt3:
+  extends: .build_deb
+  variables:
+    BASE: debian:sid
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_sid_opt4:
+  extends: .build_deb
+  variables:
+    BASE: debian:sid
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
+
 build_sid_arm:
   extends: .build_deb
   variables:
@@ -129,6 +150,27 @@ build_trixie:
     BASE: debian:trixie
     PLATFORM: amd64
 
+build_trixie_opt2:
+  extends: .build_deb
+  variables:
+    BASE: debian:trixie
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_trixie_opt3:
+  extends: .build_deb
+  variables:
+    BASE: debian:trixie
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_trixie_opt4:
+  extends: .build_deb
+  variables:
+    BASE: debian:trixie
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
+
 build_trixie_arm:
   extends: .build_deb
   variables:
@@ -148,6 +190,27 @@ build_bookworm:
   variables:
     BASE: debian:bookworm
     PLATFORM: amd64
+
+build_bookworm_opt2:
+  extends: .build_deb
+  variables:
+    BASE: debian:bookworm
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_bookworm_opt3:
+  extends: .build_deb
+  variables:
+    BASE: debian:bookworm
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_bookworm_opt4:
+  extends: .build_deb
+  variables:
+    BASE: debian:bookworm
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
 
 build_bookworm_arm:
   extends: .build_deb
@@ -170,6 +233,33 @@ build_bullseye:
   variables:
     BASE: debian:bullseye
     PLATFORM: amd64
+
+build_bullseye_opt2:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:bullseye
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_bullseye_opt3:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:bullseye
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_bullseye_opt4:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:bullseye
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
 
 build_bullseye_arm:
   extends: .build_deb
@@ -195,6 +285,27 @@ build_jammy:
     BASE: ubuntu:jammy
     PLATFORM: amd64
 
+build_jammy_opt2:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:jammy
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_jammy_opt3:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:jammy
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_jammy_opt4:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:jammy
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
+
 build_jammy_arm:
   extends: .build_deb
   variables:
@@ -215,6 +326,27 @@ build_noble:
     BASE: ubuntu:noble
     PLATFORM: amd64
 
+build_noble_opt2:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:noble
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_noble_opt3:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:noble
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_noble_opt4:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:noble
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
+
 build_noble_arm:
   extends: .build_deb
   variables:
@@ -234,6 +366,27 @@ build_oracular:
   variables:
     BASE: ubuntu:oracular
     PLATFORM: amd64
+
+build_oracular_opt2:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:oracular
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_oracular_opt3:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:oracular
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_oracular_opt4:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:oracular
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
 
 build_oracular_arm:
   extends: .build_deb
