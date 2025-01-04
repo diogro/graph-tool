@@ -170,7 +170,7 @@ struct MCMCTheta
                 };
 
             double l = get_lprob(s);
-            double Z = get_lprob(0);
+            double Z = -numeric_limits<double>::infinity();
             for (auto x : _state._tvals)
             {
                 if (std::find(except.begin(), except.end(), x) != except.end())
