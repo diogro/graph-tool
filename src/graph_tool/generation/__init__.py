@@ -2750,17 +2750,17 @@ def graph_projection(g, p, proj_props=[], props=[]):
     >>> p = g.new_vp("bool", vals=[v in [0, 4] for v in g.vertices()])
     >>> pos = gt.sfdp_layout(g)
     >>> pg, props = gt.graph_projection(g, p, props=[g.vertex_index, pos])
-    >>> gt.graph_draw(g, pos=pos, vertex_text=g.vertex_index, output="bipartite.pdf")
+    >>> gt.graph_draw(g, pos=pos, vertex_text=g.vertex_index, output="bipartite_orig.pdf")
     <...>
     >>> gt.graph_draw(pg, pos=props[1], vertex_text=props[0], output="projection.pdf")
     <...>
 
     .. testcleanup::
 
-       conv_png("bipartite.pdf")
+       conv_png("bipartite_orig.pdf")
        conv_png("projection.pdf")
 
-    .. image:: bipartite.png
+    .. image:: bipartite_orig.png
        :width: 40%
        :align: left
     .. image:: projection.png
