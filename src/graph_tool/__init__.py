@@ -3064,19 +3064,21 @@ class Graph(object):
 
     # Property map creation
 
-    def new_property(self, key_type, value_type, vals=None):
+    def new_property(self, key_type, value_type, vals=None, val=None):
 
         """Create a new (uninitialized) vertex property map of key type
         ``key_type`` (``v``, ``e`` or ``g``), value type ``value_type``, and
         return it. If provided, the values will be initialized by ``vals``,
-        which should be a sequence.
+        which should be a sequence, or by ``val`` which should be a single
+        value.
         """
-        if key_type == "v" or key_type == "vertex":
-            return self.new_vertex_property(value_type, vals)
-        if key_type == "e" or key_type == "edge":
-            return self.new_edge_property(value_type, vals)
-        if key_type == "g" or key_type == "graph":
-            return self.new_graph_property(value_type, vals)
+        if key_type in ("v", "vertex"):
+            return self.new_vertex_property(value_type, vals, val)
+        if key_type in ("e", "edge"):
+            return self.new_edge_property(value_type, vals, val)
+        if key_type in ("g", "graph"):
+            return self.new_graph_property(value_type,
+                                           val if vals is None else vals)
         raise ValueError("unknown key type: " + key_type)
 
     def new_vertex_property(self, value_type, vals=None, val=None):
@@ -3086,8 +3088,7 @@ class Graph(object):
         """
         prop = VertexPropertyMap(new_vertex_property(_type_alias(value_type),
                                                      self.__graph.get_vertex_index(),
-                                                     libcore.any()),
-                           self)
+                                                     libcore.any()), self)
         if vals is not None:
             try:
                 prop.fa = vals
@@ -3108,8 +3109,7 @@ class Graph(object):
         """
         prop = EdgePropertyMap(new_edge_property(_type_alias(value_type),
                                                  self.__graph.get_edge_index(),
-                                                 libcore.any()),
-                               self)
+                                                 libcore.any()), self)
         if vals is not None:
             try:
                 prop.fa = vals

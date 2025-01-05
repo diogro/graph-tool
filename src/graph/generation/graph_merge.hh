@@ -337,7 +337,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                                                  return true;
                                              });
                          }
-                         if  (exists)
+                         if (exists)
                              remove_edge(e, ug);
                      }
                      res.clear();
@@ -557,15 +557,31 @@ struct property_merge
             typename UVal::value_type diff;
             if constexpr (is_vector_v<Val>)
             {
-                idx = val.size() > 0 ? val[0] : 0;
-                diff = val.size() > 0 ? val[1] : 0;
-                if (diff == 0)
-                    return;
+
+                typedef typename Val::value_type val_t;
+                val_t a = val.size() > 0 ? val[0] : val_t(0);
+                if constexpr (std::is_signed_v<val_t>)
+                {
+                    if (a < 0)
+                    {
+                        size_t n = std::ceil(-a);
+                        uval.resize(uval.size() + n);
+                        for (size_t i = uval.size() - 1; i > n-1; --i)
+                            uval[i] = uval[i-n];
+                        a = 0;
+                        return;
+                    }
+                }
+                idx = a;
+                diff = val.size() > 1 ? val[1] : 0;
             }
             else
             {
-                if (long(val) < 0)
-                    return;
+                if constexpr (std::is_signed_v<Val>)
+                {
+                    if (val < 0)
+                        return;
+                }
                 idx = val;
                 diff = 1;
             }

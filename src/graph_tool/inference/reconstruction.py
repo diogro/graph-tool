@@ -1581,23 +1581,60 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self._state.set_tdelta(delta)
         self.tdelta = delta
 
-    def collect_marginal(self, g=None, xbins=100, xslack=.2, tbins=100, tslack=.2):
+    def collect_marginal(self, g=None, xbins=100, xslack=.2, expand_xbins=True,
+                         tbins=100, tslack=.2, expand_tbins=True):
         r"""Collect marginal inferred network during MCMC runs.
 
         Parameters
         ----------
         g : :class:`~graph_tool.Graph` (optional, default: ``None``)
             Previous marginal graph.
+        xbins : :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
+            Bins to be used to obtain the marginal edge weight distribution. If
+            an integer is given, it will correspond to the number of equally
+            spaced bins spanning the range of current weight values, increased
+            in both directions by a factor ``xslack`` of the total range.
+        xslack : ``float`` (optional, default: ``.2``)
+            Fraction of the current range of edge weight values to increase when
+            constructing the bins.
+        expand_xbins : ``bool`` (optional, default: ``True``)
+            If ``True``, when a edge weight value is encountered below or above
+            the current range of the bins, the bins are expanded in the
+            corresponding direction by duplicating their size, using the same
+            spacing.
+        tbins : :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
+            Bins to be used to obtain the marginal node bias distribution. If
+            an integer is given, it will correspond to the number of equally
+            spaced bins spanning the range of current bias values, increaseed in
+            both directions by a factor ``tslack`` of the total range.
+        tslack : ``float`` (optional, default: ``.2``)
+            Fraction of the current range of node bias values to increase when
+            constructing the bins.
+        expand_tbins : ``bool`` (optional, default: ``True``)
+            If ``True``, when a node bias value is encountered below or above
+            the current range of the bins, the bins are expanded in the
+            corresponding direction by duplicating their size, using the same
+            spacing.
 
         Returns
         -------
         g : :class:`~graph_tool.Graph`
-            New marginal graph, with internal edge
-            :class:`~graph_tool.EdgePropertyMap` ``"eprob"``, ``"x"``, and
-            ``"xdev"`` containing the marginal probabilities, mean weight, and
-            weight standard deviation, respectively, for each edge, and
-            :class:`~graph_tool.VertexPropertyMap` ``"t"`` and ``"tdev"``, for
-            the mean and standard deviation, respectively, for the node biases.
+            New marginal graph, containing the following :ref:`internal properties <sec_internal_props>`:
+
+            ============ ====== ======================= ===========================================
+            Name         Key    Value type              Description
+            ============ ====== ======================= ===========================================
+            ``"eprob"``  Edge   ``double``              Marginal edge probabilities
+            ``"x"``      Edge   ``double``              Marginal edge weight mean
+            ``"xdev"``   Edge   ``double``              Marginal edge weight standard deviation
+            ``"t"``      Vertex ``double``              Marginal node bias mean
+            ``"tdev"``   Vertex ``double``              Marginal node bias standard deviation
+            ``"xbins"``  Graph  :class:`~numpy.ndarray` Edge weight bins
+            ``"xcount"`` Edge   ``vector<int>``         Marginal edge weight counts
+            ``"tbins"``  Graph  :class:`~numpy.ndarray` Node bias bins
+            ``"tcount"`` Vertex ``vector<int>``         Marginal node bias counts
+            ``"count"``  Graph  ``int``                 Total number of marginal samples collected
+            ============ ====== ======================= ===========================================
 
         Notes
         -----
@@ -1645,8 +1682,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
             g.gp.xbins = g.new_gp("object", xbins)
             g.gp.tbins = g.new_gp("object", tbins)
 
-            g.ep.xhist = g.new_ep("vector<int32_t>")
-            g.vp.thist = g.new_vp("vector<int32_t>")
+        if "xcount" not in g.ep:
+            g.ep.xcount = g.new_ep("vector<int32_t>")
+            g.vp.tcount = g.new_vp("vector<int32_t>")
 
         def get_bins(bins, vals, slack):
             if isinstance(bins, Iterable) or len(vals) == 0:
@@ -1659,19 +1697,42 @@ class DynamicsBlockStateBase(UncertainBaseState):
             xr[1] += delta * slack
             return np.linspace(xr[0], xr[1], bins)
 
+        def expand_bins(bins, count, left):
+            d = np.diff(bins)
+            if left:
+                nbins = np.concatenate((np.cumsum(-d)[::-1] + bins[0], bins))
+                graph_merge(g, g, in_place=True,
+                            props=dict(idx_inc=[(count,
+                                                 g.new_property(count.key_type(),
+                                                               "vector<int>",
+                                                                val=[-len(bins)+1, 0]))]))
+            else:
+                nbins = np.concatenate((bins, np.cumsum(d) + bins[-1]))
+            return nbins
+
         u = self.get_graph()
         x = self.get_x()
         t = self.theta
 
         xbins = g.gp.xbins = get_bins(g.gp.xbins, x.fa, xslack)
-        tbins = g.gp.tbins = get_bins(g.gp.xbins, t.fa, tslack)
+        tbins = g.gp.tbins = get_bins(g.gp.tbins, t.fa, tslack)
 
         if len(x.fa) > 0 and isinstance(xbins, Iterable):
+            if expand_xbins:
+                while x.fa.min() < xbins[0] and not np.isinf(x.fa.min()):
+                    xbins = g.gp.xbins = expand_bins(xbins, g.ep.xcount, True)
+                while x.fa.max() >= xbins[-1] and not np.isinf(x.fa.max()):
+                    xbins = g.gp.xbins = expand_bins(xbins, g.ep.xcount, False)
             xd = x.t(lambda y: np.digitize(y, xbins), value_type="int")
         else:
             xd = g.new_ep("int", val=-1)
 
         if isinstance(tbins, Iterable):
+            if expand_tbins:
+                while t.fa.min() < tbins[0] and not np.isinf(t.fa.min()):
+                    tbins = g.gp.tbins = expand_bins(tbins, g.vp.tcount, True)
+                while t.fa.max() >= tbins[-1] and not np.isinf(t.fa.max()):
+                    tbins = g.gp.tbins = expand_bins(tbins, g.vp.tcount, False)
             td = t.t(lambda y: np.digitize(y, tbins), value_type="int")
         else:
             td = g.new_vp("int", val=-1)
@@ -1684,8 +1745,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
                                         (g.ep.x2sum, x.t(lambda y: y ** 2)),
                                         (g.vp.tsum, t),
                                         (g.vp.t2sum, t.t(lambda y: y ** 2))],
-                                   idx_inc=[(g.ep.xhist, xd),
-                                            (g.vp.thist, td)]))
+                                   idx_inc=[(g.ep.xcount, xd),
+                                            (g.vp.tcount, td)]))
         finally:
             g.gp.count += 1
             g.ep.eprob.fa = g.ep.count.fa / g.gp.count
