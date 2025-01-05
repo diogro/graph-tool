@@ -521,9 +521,15 @@ edge(typename filt_graph<G, EP, VP>::vertex_descriptor u,
      const filt_graph<G, EP, VP>& g)
 {
     typename graph_traits<G>::edge_descriptor e;
-    bool exists;
-    boost::tie(e, exists) = edge(u, v, g._g);
-    return std::make_pair(e, exists && g._edge_pred(e));
+    bool exists = false;
+    edge_range_iter(u, v, g,
+                    [&](const auto& e_)
+                    {
+                        e = e_;
+                        exists = true;
+                        return false;
+                    });
+    return std::make_pair(e, exists);
 }
 
 template <typename G, typename EP, typename VP, typename F>
