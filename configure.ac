@@ -37,9 +37,6 @@ PKG_INSTALLDIR
 
 AX_CXX_COMPILE_STDCXX_17([ext],[mandatory])
 
-dnl turn on warnings
-[CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
-
 dnl Checks for options
 
 dnl Turn debugging on or off
@@ -58,14 +55,18 @@ AC_ARG_ENABLE([debug],
               [CPPFLAGS="-DNDEBUG ${CPPFLAGS}"]
               [AC_MSG_RESULT(no)])
 
+dnl turn on warnings
+[CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
+
 dnl disable deprecation warning, to silence some harmless BGL-related warnings
 [CXXFLAGS="-Wno-deprecated ${CXXFLAGS}"]
 
 dnl set default visibility
 [CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
 
-dnl set default optimizations
-[CXXFLAGS="-O3 ${CXXFLAGS}"]
+dnl Enforce -O3. It makes a substantial difference, e.g. 12x speed improvement
+dnl over -O2 in benchmarks.
+[CXXFLAGS="${CXXFLAGS} -O3"]
 
 dnl disable annoying boost warnings
 [CPPFLAGS="-DBOOST_ALLOW_DEPRECATED_HEADERS ${CPPFLAGS}"]
@@ -326,6 +327,7 @@ AC_DEFINE_UNQUOTED([INSTALL_PREFIX],"${prefix}", [python prefix])
 AC_DEFINE_UNQUOTED([PYTHON_DIR], "${PYTHON_SITE_PKG}", [The directory name for the site-packages subdirectory of the standard Python install tree.])
 
 AC_DEFINE_UNQUOTED([CXXFLAGS],"${CXXFLAGS}", [c++ compilation options])
+AC_DEFINE_UNQUOTED([MOD_CXXFLAGS],"${MOD_CXXFLAGS}", [overrideable c++ compilation options])
 AC_DEFINE_UNQUOTED([CPPFLAGS],"${CPPFLAGS}", [c++ preprocessor compilation options])
 AC_DEFINE_UNQUOTED([LDFLAGS],"${LDFLAGS}", [linker options])
 
@@ -350,6 +352,10 @@ AC_DEFINE([GCC_VERSION], [(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATC
 # extra CPP flags for submodules
 [MOD_CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
 AC_SUBST(MOD_CPPFLAGS)
+
+# extra CCXX flags for submodules
+[MOD_CXXFLAGS="${MOD_CXXFLAGS}"]
+AC_SUBST(MOD_CXXFLAGS)
 
 # extra LIBADD flags for submodules
 [MOD_LIBADD="${PYTHON_LIBS} ${BOOST_LIBS} ${EXPAT_LIBS} ${EXPAT_LDFLAGS} ${OPENMP_LDFLAGS}"]
@@ -424,6 +430,7 @@ echo -e "$(color 3)OpenMP compiler flags:  $(color 4)${OPENMP_CXXFLAGS}$(reset)"
 echo -e "$(color 3)OpenMP LD flags:        $(color 4)${OPENMP_LDFLAGS}$(reset)"
 echo -e "$(color 3)Extra CPPFLAGS:         $(color 4)${CPPFLAGS}$(reset)"
 echo -e "$(color 3)Extra CXXFLAGS:         $(color 4)${CXXFLAGS}$(reset)"
+echo -e "$(color 3)Extra MOD_CXXFLAGS:     $(color 4)${MOD_CXXFLAGS}$(reset)"
 echo -e "$(color 3)Extra LDFLAGS:          $(color 4)${LDFLAGS}$(reset)\n"
 echo -n -e "$(color 3)Using OpenMP:           "
 if test ${USING_OPENMP} = yes; then

@@ -43,7 +43,7 @@ struct LibInfo
     string GetVersion()   const {return VERSION " (commit " GIT_COMMIT
                                         ", " GIT_COMMIT_DATE ")";}
     string GetLicense()   const {return "GPL version 3 or above";}
-    string GetCXXFLAGS()  const {return CPPFLAGS " " CXXFLAGS " " LDFLAGS;}
+    string GetCXXFLAGS()  const {return CPPFLAGS " " MOD_CXXFLAGS " " CXXFLAGS " " LDFLAGS;}
     string GetInstallPrefix() const {return INSTALL_PREFIX;}
     string GetPythonDir() const {return PYTHON_DIR;}
     string GetGCCVersion() const

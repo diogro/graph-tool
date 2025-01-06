@@ -74,6 +74,7 @@ libgraph_tool_coredir = $(MOD_DIR)
 libgraph_tool_core_LTLIBRARIES = libgraph_tool_core.la
 libgraph_tool_core_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_core_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_core_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_core_la_SOURCES = \
 	src/graph/base64.cc \
 	src/graph/demangle.cc \
@@ -175,6 +176,7 @@ libgraph_tool_centrality_LTLIBRARIES = libgraph_tool_centrality.la
 libgraph_tool_centrality_la_includedir = $(MOD_DIR)/include/centrality
 libgraph_tool_centrality_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_centrality_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_centrality_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_centrality_la_SOURCES = \
 	src/graph/centrality/graph_betweenness.cc \
 	src/graph/centrality/graph_centrality_bind.cc \
@@ -204,6 +206,7 @@ libgraph_tool_clustering_LTLIBRARIES = libgraph_tool_clustering.la
 libgraph_tool_clustering_la_includedir = $(MOD_DIR)/include/clustering
 libgraph_tool_clustering_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_clustering_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_clustering_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_clustering_la_SOURCES = \
 	src/graph/clustering/graph_clustering.cc \
 	src/graph/clustering/graph_extended_clustering.cc \
@@ -222,6 +225,7 @@ libgraph_tool_correlations_LTLIBRARIES = libgraph_tool_correlations.la
 libgraph_tool_correlations_la_includedir = $(MOD_DIR)/include/correlations
 libgraph_tool_correlations_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_correlations_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_correlations_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_correlations_la_SOURCES = \
 	src/graph/correlations/graph_assortativity.cc \
 	src/graph/correlations/graph_correlations.cc \
@@ -269,6 +273,7 @@ libgraph_tool_dynamics_LTLIBRARIES = libgraph_tool_dynamics.la
 libgraph_tool_dynamics_la_includedir = $(MOD_DIR)/include/dynamics
 libgraph_tool_dynamics_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_dynamics_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_dynamics_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_dynamics_la_SOURCES = \
 	src/graph/dynamics/graph_continuous.cc \
 	src/graph/dynamics/graph_discrete.cc \
@@ -290,6 +295,7 @@ libgraph_tool_flow_LTLIBRARIES = libgraph_tool_flow.la
 libgraph_tool_flow_la_includedir = $(MOD_DIR)/include/flow
 libgraph_tool_flow_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_flow_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_flow_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_flow_la_SOURCES = \
 	src/graph/flow/graph_edmonds_karp.cc \
 	src/graph/flow/graph_push_relabel.cc \
@@ -309,6 +315,7 @@ libgraph_tool_generation_la_includedir = $(MOD_DIR)/include/generation
 libgraph_tool_generation_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS)
 libgraph_tool_generation_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS)
 libgraph_tool_generation_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_generation_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_bip_projection.cc \
 	src/graph/generation/graph_complete.cc \
@@ -320,6 +327,7 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_line_graph.cc \
 	src/graph/generation/graph_maxent_sbm.cc \
 	src/graph/generation/graph_merge.cc \
+	src/graph/generation/graph_merge_imp.cc \
 	src/graph/generation/graph_merge_eprop.cc \
 	src/graph/generation/graph_merge_vprop.cc \
 	src/graph/generation/graph_parallel.cc \
@@ -361,6 +369,7 @@ libgraph_tool_inference_LTLIBRARIES = libgraph_tool_inference.la
 libgraph_tool_inference_la_includedir = $(MOD_DIR)/include/inference
 libgraph_tool_inference_la_LIBADD = $(MOD_LIBADD) libgraph_tool_inference_fast.la
 libgraph_tool_inference_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_inference_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/graph_blockmodel.cc \
 	src/graph/inference/blockmodel/graph_blockmodel_em.cc \
@@ -481,7 +490,7 @@ noinst_LTLIBRARIES = libgraph_tool_inference_fast.la
 libgraph_tool_inference_fast_la_includedir = $(MOD_DIR)/include/inference
 libgraph_tool_inference_fast_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_inference_fast_la_LDFLAGS = $(MOD_LDFLAGS)
-libgraph_tool_inference_fast_la_CXXFLAGS = -ffast-math -funswitch-loops
+libgraph_tool_inference_fast_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -funswitch-loops -fno-lto
 libgraph_tool_inference_fast_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/epidemics/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/cising_glauber/base_vec.cc \
@@ -636,6 +645,7 @@ libgraph_tool_layout_LTLIBRARIES = libgraph_tool_layout.la
 libgraph_tool_layout_la_includedir = $(MOD_DIR)/include/layout
 libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_layout_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_layout_la_SOURCES = \
 	src/graph/layout/graph_arf.cc \
 	src/graph/layout/graph_planar_layout.cc \
@@ -657,6 +667,7 @@ libgraph_tool_search_LTLIBRARIES = libgraph_tool_search.la
 libgraph_tool_search_la_includedir = $(MOD_DIR)/include/search
 libgraph_tool_search_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_search_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_search_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_search_la_SOURCES = \
 	src/graph/search/graph_bfs.cc \
 	src/graph/search/graph_dfs.cc \
@@ -677,6 +688,7 @@ libgraph_tool_spectral_LTLIBRARIES = libgraph_tool_spectral.la
 libgraph_tool_spectral_la_includedir = $(MOD_DIR)/include/spectral
 libgraph_tool_spectral_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_spectral_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_spectral_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_spectral_la_SOURCES = \
 	src/graph/spectral/graph_adjacency.cc \
 	src/graph/spectral/graph_incidence.cc \
@@ -701,6 +713,7 @@ libgraph_tool_stats_LTLIBRARIES = libgraph_tool_stats.la
 libgraph_tool_stats_la_includedir = $(MOD_DIR)/include/stats
 libgraph_tool_stats_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_stats_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_stats_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_stats_la_SOURCES = \
 	src/graph/stats/graph_histograms.cc \
 	src/graph/stats/graph_average.cc \
@@ -722,6 +735,7 @@ libgraph_tool_topology_LTLIBRARIES = libgraph_tool_topology.la
 libgraph_tool_topology_la_includedir = $(MOD_DIR)/include/topology
 libgraph_tool_topology_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_topology_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_topology_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_topology_la_SOURCES = \
 	src/graph/topology/graph_all_circuits.cc \
 	src/graph/topology/graph_all_distances.cc \
@@ -769,6 +783,7 @@ libgraph_tool_util_LTLIBRARIES = libgraph_tool_util.la
 libgraph_tool_util_la_includedir = $(MOD_DIR)/include/util
 libgraph_tool_util_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_util_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_util_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_util_la_SOURCES = \
 	src/graph/util/graph_search.cc \
 	src/graph/util/graph_util_bind.cc
