@@ -59,16 +59,16 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
     {
         for (auto v : vertices_range(g))
         {
-            if (vmap[v] < 0)
+            if (get(vmap, v) < 0)
             {
-                vmap[v] = add_vertex(ug);
+                put(vmap, v, add_vertex(ug));
             }
             else
             {
-                auto w = vertex(vmap[v], ug);
+                auto w = vertex(get(vmap, v), ug);
                 if (w == graph_traits<UnionGraph>::null_vertex())
                 {
-                    vmap[v] = add_vertex(ug);
+                    put(vmap, v, add_vertex(ug));
                 }
                 else
                 {
@@ -80,7 +80,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
     }
     else
     {
-        while (num_vertices(ug)  < num_vertices(g))
+        while (num_vertices(ug) < num_vertices(g))
             add_vertex(ug);
     }
 
@@ -107,8 +107,8 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
             if (eweight[e] <= 0)
                 continue;
 
-            auto ne = add_edge(vertex(vmap[source(e, g)], ug),
-                               vertex(vmap[target(e, g)], ug), ug).first;
+            auto ne = add_edge(vertex(get(vmap, source(e, g)), ug),
+                               vertex(get(vmap, target(e, g)), ug), ug).first;
             emap[e] = ne;
             if constexpr (is_weighted)
                 ueweight[ne] = eweight[e];
@@ -158,6 +158,8 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                  if (!is_directed(g))
                      self_loops.clear();
 
+                 size_t s_u = get(vmap, s);
+
                  for (auto e : out_edges_range(s, g))
                  {
                      auto t = target(e, g);
@@ -206,8 +208,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                      if (w2 == 0)
                          continue;
 
-                     size_t s_u = vmap[s];
-                     size_t t_u = vmap[t];
+                     size_t t_u = get(vmap, t);
 
                      if (!is_vindex && parallel)
                      {

@@ -23,12 +23,25 @@
 using namespace graph_tool;
 using namespace boost;
 
+boost::python::tuple graph_merge_dispatch_imp(GraphInterface& ugi,
+                                              GraphInterface& gi,
+                                              std::any avmap, std::any aw1,
+                                              std::any aw2, bool multiset,
+                                              bool diff, bool sym_diff,
+                                              bool intersect, bool symmetric,
+                                              bool simple);
+
 boost::python::tuple graph_merge_dispatch(GraphInterface& ugi, GraphInterface& gi,
                                           std::any avmap, std::any aw1,
                                           std::any aw2, bool multiset,
                                           bool diff, bool sym_diff, bool intersect,
                                           bool symmetric, bool simple)
 {
+    if (!ugi.get_directed())
+        return graph_merge_dispatch_imp(ugi, gi, avmap, aw1, aw2, multiset,
+                                        diff, sym_diff, intersect, symmetric,
+                                        simple);
+
     auto writable_weight_props =
         hana::append(writable_edge_scalar_properties,
                      hana::type<null_weight_map_t>());
@@ -43,30 +56,21 @@ boost::python::tuple graph_merge_dispatch(GraphInterface& ugi, GraphInterface& g
     emap_t emap(gi.get_edge_index());
     emap.reserve(gi.get_edge_index_range());
 
-    auto dispatch =
-        [&](auto& gviews)
-        {
-            gt_dispatch<>(false)
-                ([&](auto& ug, auto& g, auto& vmap, auto& w1, auto& w2)
-                 {
-                     graph_merge(ug, g, vmap, emap, w1, w2,
-                                 multiset, diff, sym_diff,
-                                 intersect, symmetric,
-                                 simple, ugi.get_keep_ehash());
-                 },
-                 gviews,
-                 gviews,
-                 vertex_integer_properties,
-                 writable_weight_props,
-                 same_arg_type)
-                (ugi.get_graph_view(), gi.get_graph_view(),
-                 avmap, aw1, aw2);
-        };
-
-    if (ugi.get_directed())
-        dispatch(always_directed);
-    else
-        dispatch(never_directed);
+    gt_dispatch<>(false)
+        ([&](auto& ug, auto& g, auto& vmap, auto& w1, auto& w2)
+         {
+             graph_merge(ug, g, vmap, emap, w1, w2,
+                         multiset, diff, sym_diff,
+                         intersect, symmetric,
+                         simple, ugi.get_keep_ehash());
+         },
+         always_directed,
+         always_directed,
+         vertex_integer_properties,
+         writable_weight_props,
+         same_arg_type)
+        (ugi.get_graph_view(), gi.get_graph_view(),
+         avmap, aw1, aw2);
 
     return boost::python::make_tuple(avmap, std::any(emap));
 }
