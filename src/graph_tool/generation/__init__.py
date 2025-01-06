@@ -1869,12 +1869,12 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
        Vertex property map owned by ``g2`` which maps each of its vertices to
        vertex indices belonging to ``g1``, in which case they are considered to
        be identical. Negative values mean no mapping exists, and thus both
-       vertices in ``g1`` and ``g2`` will be present in the merged graph. If this
-       argument is not provided (i.e. ``vmap`` is ``None``), both vertex sets will
-       be added to the merge. If ``vmap`` is ``g2.vertex_index``, and the vertex
-       indexes are identical in both graphs, the merge will correspond only to
-       the edge sets. A special value of ``vmap == "identity"`` is a shortcut
-       for ``vmap = g2.vertex_index``.
+       vertices in ``g1`` and ``g2`` will be present in the merged graph. If
+       this argument is not provided (i.e. ``vmap`` is ``None``), both vertex
+       sets will be added to the merge. If ``vmap`` is ``g2.vertex_index``, and
+       the vertex indexes are identical in both graphs, the merge will
+       correspond only to the edge sets. A special value of ``vmap ==
+       "identity"`` is a shortcut for ``vmap = g2.vertex_index``.
     props : dictionary with list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``{}``)
        Property maps to be considered in the merge. The key in this dictionary
        must be a string indicating the merge rule:
@@ -1887,9 +1887,12 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
           The value from ``g2`` will be subtracted from the value from ``g1``.
        ``"idx_inc"``
           The scalar value from ``g2`` will be used as an index to increment the
-          vector value from ``g1`` by one. Alternnatively, if the values from
+          vector value from ``g1`` by one. Alternatively, if the values from
           ``g2`` are vectors, they will be interpreted as an ``(index,
-          increment)`` pair.
+          increment)`` pair. A negative ``index`` value means that the vector
+          will be increased and its values shifted to the right by the absolute
+          value of ``index``, and the vector value at position ``0`` will be
+          incremented.
        ``"append"``
           The scalar value from ``g2`` will be appended to the vector value from
           ``g1``.
@@ -1897,7 +1900,7 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
           The vector value from ``g2`` will be concatenated to the vector value
           from ``g1``.
 
-       The values of the dicitionary must be lists, where each each element is a
+       The values of the dictionary must be lists, where each each element is a
        pair of :class:`~graph_tool.PropertyMap` objects. The first element must
        be a property of ``g1``, and the second of ``g2``. If either value is
        ``None``, an new map will be created, and set to appropriately empty
@@ -1905,7 +1908,7 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
 
        The values of the property maps are propagated into the merged graph, and
        returned in a similar fashion.
-    internal_props : dictionary with iternal property names (optional, default: ``{}``)
+    internal_props : dictionary with internal property names (optional, default: ``{}``)
        Internal property maps to be considered in the merge. The key in this
        dictionary must be a string indicating the merge rule, as documented in
        the ``props`` parameter.
@@ -1915,14 +1918,14 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
        respectively, and ``"name"`` is the name of the property map.
 
        An alternative value of ``"all"`` indicates that all property maps should
-       be considerd. E.g. ``props = {"set": "all"}`` will set all the internal
+       be considered. E.g. ``props = {"set": "all"}`` will set all the internal
        property maps to the merged graph.
 
-       If an intenal property map with the given name is not present in one of
+       If an internal property map with the given name is not present in one of
        the graphs, an new map will be created, and set appropriately to empty
        values.
     in_place : ``bool`` (optional, default: ``False``)
-       If ``True``, graph `g2` is inserted in-place into `g1`, which is then
+       If ``True``, graph ``g2`` is inserted in-place into ``g1``, which is then
        modified. If ``False``, a new graph is created, and both graphs remain
        unmodified.
     multiset : ``bool`` (optional, default: ``False``)
@@ -2244,13 +2247,13 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
        empty values.
     mt : ``str`` (otional, default: ``"set"``)
        Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
-       ``"diff"``, ``"idx_inc"``, ``"append"``,``"concat"``. See
+       ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
        :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the union.
     in_place : ``bool`` (optional, default: ``False``)
-       If ``True``, graph `g2` is inserted in-place into `g1`, which is then
+       If ``True``, graph ``g2`` is inserted in-place into ``g1``, which is then
        modified. If ``False``, a new graph is created, and both graphs remain
        unmodified.
     multiset : ``bool`` (optional, default: ``False``)
@@ -2369,13 +2372,13 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        empty values.
     mt : ``str`` (otional, default: ``"set"``)
        Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
-       ``"diff"``, ``"idx_inc"``, ``"append"``,``"concat"``. See
+       ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
        :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the difference.
     in_place : ``bool`` (optional, default: ``False``)
-       If ``True``, the symmetric difference is computed in-place into `g1`,
+       If ``True``, the symmetric difference is computed in-place into ``g1``,
        which is then modified. If ``False``, a new graph is created, and both
        graphs remain unmodified.
     **kwargs : ``dict`` (optional, default: ``{}``)
@@ -2488,7 +2491,7 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the difference.
     in_place : ``bool`` (optional, default: ``False``)
-       If ``True``, graph `g2` is subtracted in-place from `g1`, which is then
+       If ``True``, graph ``g2`` is subtracted in-place from ``g1``, which is then
        modified. If ``False``, a new graph is created, and both graphs remain
        unmodified.
     **kwargs : ``dict`` (optional, default: ``{}``)
@@ -2601,14 +2604,14 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        empty values.
     mt : ``str`` (otional, default: ``"set"``)
        Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
-       ``"diff"``, ``"idx_inc"``, ``"append"``,``"concat"``. See
+       ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
        :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the intersection.
     in_place : ``bool`` (optional, default: ``False``)
        If ``True``, the intersection is obtained in-place by subtracting edges
-       from `g1`, which is then modified. If ``False``, a new graph is created,
+       from ``g1``, which is then modified. If ``False``, a new graph is created,
        and both graphs remain unmodified.
     **kwargs : ``dict`` (optional, default: ``{}``)
        Remaining keyword parameters will be forwarded to

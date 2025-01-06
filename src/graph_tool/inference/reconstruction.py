@@ -1605,7 +1605,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         tbins : :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
             Bins to be used to obtain the marginal node bias distribution. If
             an integer is given, it will correspond to the number of equally
-            spaced bins spanning the range of current bias values, increaseed in
+            spaced bins spanning the range of current bias values, increased in
             both directions by a factor ``tslack`` of the total range.
         tslack : ``float`` (optional, default: ``.2``)
             Fraction of the current range of node bias values to increase when
