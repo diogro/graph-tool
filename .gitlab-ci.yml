@@ -16,7 +16,7 @@ job_gcc_amd64:
 job_clang_amd64:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache clang++" CXXFLAGS="" MOD_CXXFLAGS="-flto=thin" LDFLAGS="-Wl,-mllvm,-threads=8" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache clang++" CXXFLAGS="" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
