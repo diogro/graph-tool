@@ -7,5 +7,6 @@ export SPARSEHASH_CFLAGS=-I/usr/include
 export SPARSEHASH_LIBS=-L/usr/lib
 
 export CXXFLAGS=-O3 -march=${MARCH} -mtune=generic  # prevent -O2 -g default
+export MOD_CXXFLAGS=-flto=auto
 
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-openmp --docdir=/usr/share/doc/python3-graph-tool PYTHON=python3 --with-sparsehash-prefix=google
