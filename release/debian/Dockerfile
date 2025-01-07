@@ -34,6 +34,8 @@ RUN major=`cat configure.ac | grep -o "graph_tool_version_major, [^)]*" | sed s/
     dch -r --no-force-save-on-release -m 'New package release'; \
     head debian/changelog
 
+RUN sed -i "s/ac_cgal=no/ac_cgal=yes/" m4/ax_lib_cgal_core.m4
+
 RUN ./autogen.sh
 
 ARG NJOBS=4
