@@ -569,6 +569,8 @@ struct property_merge
                         uval.resize(uval.size() + n);
                         for (size_t i = uval.size() - 1; i > n-1; --i)
                             uval[i] = uval[i-n];
+                        for (size_t i = 0; i < n; ++i)
+                            uval[i] = 0;
                         a = 0;
                         return;
                     }
