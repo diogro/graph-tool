@@ -2148,7 +2148,7 @@ def zero_mean(s, g):
 
 class PseudoNormalBlockState(BPBlockStateBase):
     def __init__(self, s, g=None, fix_mean=True, positive=True, pslack=1e-6,
-                 theta_range=(-200, np.inf), **kwargs):
+                 theta_range=(-200, 200), **kwargs):
         r"""State for network reconstruction based on the multivariate normal
         distribution, using the Pseudolikelihood approximation and the
         stochastic block model as a prior.
