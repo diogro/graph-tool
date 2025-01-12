@@ -1195,7 +1195,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             If ``True``, the KNN graph will be returned.
         gradient : ``boolean`` (optional, default: ``None``)
             Whether to use the gradient to rank edges. If ``None``, it defaults
-            to ``True`` is the number of edge categories is empty.
+            to ``True`` if the number of edge categories is empty.
         h : ``float`` (optional, default: ``1e-8``)
             Step length used to compute the gradient with central finite
             difference.

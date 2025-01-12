@@ -3118,7 +3118,7 @@ def geometric_graph(points, radius, ranges=None):
         List of points. This must be a two-dimensional array, where the rows are
         coordinates in a N-dimensional space.
     radius : float
-        Pairs of points with an euclidean distance lower than this parameters
+        Pairs of points with an euclidean distance lower than this parameter
         will be connected.
     ranges : list or :class:`numpy.ndarray` (optional, default: ``None``)
         If provided, periodic boundary conditions will be assumed, and the
