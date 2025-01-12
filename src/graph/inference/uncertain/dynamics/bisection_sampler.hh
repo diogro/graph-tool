@@ -168,8 +168,19 @@ public:
         FibonacciSearch<size_t> fb;
         auto [i, dS] = fb.search(0, vals.size() - 1,
                                  [&](size_t i){ return f(vals[i]); },
-                                 0, 0, rng...);
+                                 _args.maxiter, _args.tol, rng...);
         return vals[i];
+    }
+
+    template <class... RNG>
+    double bisect_fb(double x_min, double x_max, RNG&... rng)
+    {
+        _seg_sampler = SegmentSampler();
+        FibonacciSearch<double> fb;
+        auto [fx, dS] = fb.search(x_min, x_max,
+                                  [&](double x){ return f(x); },
+                                  _args.maxiter, _args.tol, rng...);
+        return fx;
     }
 
     template <class RNG>

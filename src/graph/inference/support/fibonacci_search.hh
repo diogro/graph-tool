@@ -54,8 +54,28 @@ public:
         // initial bracketing
         x_mid = get_mid(x_min, x_max, rng...);
         double f_max = f(x_max);
-        double f_mid = f(x_mid);
+        double f_mid = std::numeric_limits<double>::infinity();
         double f_min = f(x_min);
+
+        auto ret_min =
+            [&]()
+            {
+                std::array<Value,3> xs = {x_min, x_mid, x_max};
+                std::array<double,3> fs = {f_min, f_mid, f_max};
+                size_t pos = std::min_element(fs.begin(), fs.end()) - fs.begin();
+                return std::make_tuple(xs[pos], fs[pos]);
+            };
+
+        size_t niter = 2;
+
+        if (maxiter > 0 && niter >= maxiter)
+            return ret_min();
+
+        f_mid = f(x_mid);
+        niter++;
+
+        if (maxiter > 0 && niter == maxiter)
+            return ret_min();
 
         Value md = _discrete ? 1 : 0;
 
@@ -75,12 +95,14 @@ public:
             }
 
             f_mid = f(x_mid);
+            niter++;
+
+            if (maxiter > 0 && niter == maxiter)
+                return ret_min();
 
             if (x_min == x_mid && (x_max - x_mid) <= md)
                 break;
         }
-
-        size_t niter = 0;
 
         // Fibonacci search
         while (x_max - x_mid > md)
@@ -92,6 +114,10 @@ public:
                 x = get_mid(x_min, x_mid, rng...);
 
             double f_x = f(x);
+            niter++;
+
+            if (maxiter > 0 && niter == maxiter)
+                return ret_min();
 
             if (f_x < f_mid)
             {
@@ -124,18 +150,12 @@ public:
 
             if constexpr (!_discrete)
             {
-                niter++;
                 if (x_max - x_min < tol)
-                    break;
-                if (maxiter > 0 && niter > maxiter)
                     break;
             }
         }
 
-        std::array<Value,3> xs = {x_min, x_mid, x_max};
-        std::array<double,3> fs = {f_min, f_mid, f_max};
-        size_t pos = std::min_element(fs.begin(), fs.end()) - fs.begin();
-        return {xs[pos], fs[pos]};
+        return ret_min();
     }
 
     Value fibo(size_t n)

@@ -72,6 +72,14 @@ REGISTER_MOD
                   return s.bisect(x, delta);
               })
         .def("bisect_fb",
+             +[](BisectionSampler& s, double xmin, double xmax, bool random,
+                 rng_t& rng)
+              {
+                  if (random)
+                      return s.bisect_fb(xmin, xmax, rng);
+                  return s.bisect_fb(xmin, xmax);
+              })
+        .def("bisect_fb_vals",
              +[](BisectionSampler& s, const std::vector<double>& vals,
                  bool random, rng_t& rng)
               {
