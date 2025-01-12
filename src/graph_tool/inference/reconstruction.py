@@ -1510,7 +1510,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             self.tdelta = self._state.get_tdelta()
         return ret
 
-    def sample_x(self, u, v, beta=1, entropy_args={}, bisect_args={},
+    def sample_x(self, u, v, beta=1, entropy_args={}, bisect_args={}, fb=False,
                  ret_sampler=False):
         r"""Sample a proposed weight value for edge :math:`(u, v)`.
 
@@ -1528,21 +1528,27 @@ class DynamicsBlockStateBase(UncertainBaseState):
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
             :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+        fb : ``bool`` (optional, default: ``False``)
+            If ``True``, the search will be confined to a Fibonacci search over
+            the discrete values given by
+            :meth:`~DynamicsBlockStateBase.get_xvals()`.
         ret_sampler : ``boolean`` (optional, default: ``False``)
             If ``True``, a ``BisectionSampler`` object will be returned as well
             (for debugging purposes).
+
         """
         entropy_args = self._get_entropy_args(entropy_args)
         bisect_args = get_bisect_args(**dict(dict(min_bound=self.xmin_bound,
                                                   max_bound=self.xmax_bound),
                                              **bisect_args))
         ret = self._state.sample_x(int(u), int(v), beta, entropy_args,
-                                    bisect_args, _get_rng())
+                                   bisect_args, fb, _get_rng())
         if ret_sampler:
             return ret
         return ret[0]
 
-    def sample_t(self, v, beta=1, entropy_args={}, bisect_args={}):
+    def sample_t(self, v, beta=1, entropy_args={}, bisect_args={}, fb=False,
+                 ret_sampler=False):
         r"""Sample a value for node ``v``.
 
         Parameters
@@ -1557,6 +1563,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
             :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+        fb : ``bool`` (optional, default: ``False``)
+            If ``True``, the search will be confined to a Fibonacci search over
+            the discrete values given by
+            :meth:`~DynamicsBlockStateBase.get_xvals()`.
         ret_sampler : ``boolean`` (optional, default: ``False``)
             If ``True``, a ``BisectionSampler`` object will be returned as well
             (for debugging purposes).
@@ -1566,7 +1576,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                                                   max_bound=self.tmax_bound),
                                              **bisect_args))
         ret = self._state.sample_t(int(v), beta, entropy_args,
-                                   bisect_args, _get_rng())
+                                   bisect_args, fb, _get_rng())
         if ret_sampler:
             return ret
         return ret[0]
