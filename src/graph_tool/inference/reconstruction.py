@@ -18,13 +18,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import _prop, _get_rng, Vector_int32_t
+from .. import _prop, _get_rng, Vector_int32_t, group_vector_property
 
 from .. spectral import adjacency
 from .. generation import complete_graph, generate_triadic_closure, \
     remove_parallel_edges, graph_union, graph_merge
 from .. dynamics import IsingGlauberState, NormalState, IsingBPState, \
-    NormalBPState, LinearNormalState, LVState
+    NormalBPState, LinearNormalState, LVState, PottsGlauberState
 
 from . uncertain_blockmodel import *
 from . util import pmap
@@ -1936,7 +1936,17 @@ class IsingBlockStateBase(ABC):
         """Return an :class:`~graph_tool.dynamics.IsingGlauberState` instance
         corresponding to the inferred model, optionally with initial state given
         by ``s``."""
-        return IsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+        if not self.params["has_zero"]:
+            return IsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+        return PottsGlauberState(self.u, f=[[ 1 , 0, -1],
+                                            [ 0 , 0,  0],
+                                            [-1,  0,  1]],
+                                 w=self.x,
+                                 h=group_vector_property([self.theta.t(lambda x: -x),
+                                                          self.u.new_vp("double"),
+                                                          self.theta]),
+                                 s=s,
+                                 shift=-1)
 
 class IsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
     def __init__(self, s, g=None, has_zero=False, **kwargs):
