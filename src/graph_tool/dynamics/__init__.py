@@ -126,7 +126,7 @@ class DiscreteStateBase(object):
 
     def copy(self):
         """Return a copy of the state."""
-        return type(self)(**self.__getstate__())
+        return type(self)(self.__getstate__())
 
     def __getstate__(self):
         return dict(g=self.g, s=self.s, params=self.params)
@@ -1177,8 +1177,8 @@ class IsingMetropolisState(DiscreteStateBase):
                                    dict(w=w, h=h, beta=beta), s)
 
 class PottsGlauberState(DiscreteStateBase):
-    def __init__(self, g, f, w=1, h=0, s=None):
-        r"""Glauber dynamics of the Potts model.
+    def __init__(self, g, f, w=1, h=0, s=None, shift=0):
+        r"""Glauber dynamics of the generalized Potts model.
 
         Parameters
         ----------
@@ -1190,17 +1190,22 @@ class PottsGlauberState(DiscreteStateBase):
         w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1.``)
            Edge interaction strength. If a scalar is provided, it's used for all edges.
         h : :class:`~graph_tool.VertexPropertyMap` or iterable or ``float`` (optional, default: ``0.``)
-           Vertex local field. If an iterable is provided, it will be used as
+           Vertex local field. It should be property map of type
+           ``vector<double>``. If an iterable is provided, it will be used as
            the field for all vertices. If a scalar is provided, it will be used
            for all spins values and vertices.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
+        shift : ``int`` (optional, default: ``0``)
+           The node states will be shifted be assumed to lie in the range
+           ``[-shift, q-1-shift]``, which will then be translated to the range
+           ``[0, q-1]`` before the transition probabilities are computed.
 
         Notes
         -----
 
-        This implements the Glauber dynamics of the Potts model [potts-model]_
-        on a network.
+        This implements the Glauber dynamics of the generalized Potts model
+        [potts-model]_ on a network.
 
         If a node :math:`i` is updated at time :math:`t`, the transition
         to state :math:`s_i(t+1) \in \{0,\dots,q-1\}` is done with probability
@@ -1258,13 +1263,14 @@ class PottsGlauberState(DiscreteStateBase):
                 h = [h] * q
             h = g.new_vp("vector<double>", val=h)
         if s is None:
-            s = g.new_vp("int32_t", vals=numpy.random.randint(0, q, g.num_vertices()))
+            s = g.new_vp("int32_t", vals=numpy.random.randint(shift, shift + q,
+                                                              g.num_vertices()))
         DiscreteStateBase.__init__(self, g,
                                    lib_dynamics.make_potts_glauber_state,
-                                   dict(f=f, w=w, h=h), s)
+                                   dict(f=f, w=w, h=h, shift=shift), s)
 
 class PottsMetropolisState(DiscreteStateBase):
-    def __init__(self, g, f, w=1, h=0, s=None):
+    def __init__(self, g, f, w=1, h=0, s=None, shift=0):
         r"""Metropolis-Hastings dynamics of the Potts model.
 
         Parameters
@@ -1282,6 +1288,10 @@ class PottsMetropolisState(DiscreteStateBase):
            for all spins values and vertices.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
+        shift : ``int`` (optional, default: ``0``)
+           The node states will be shifted be assumed to lie in the range
+           ``[-shift, q-1-shift]``, which will then be translated to the range
+           ``[0, q-1]`` before the transition probabilities are computed.
 
         Notes
         -----
@@ -1359,10 +1369,11 @@ class PottsMetropolisState(DiscreteStateBase):
                 h = [h] * q
             h = g.new_vp("vector<double>", val=h)
         if s is None:
-            s = g.new_vp("int32_t", vals=numpy.random.randint(0, q, g.num_vertices()))
+            s = g.new_vp("int32_t", vals=numpy.random.randint(shift, shift + q,
+                                                              g.num_vertices()))
         DiscreteStateBase.__init__(self, g,
                                    lib_dynamics.make_potts_metropolis_state,
-                                   dict(f=f, w=w, h=h), s)
+                                   dict(f=f, w=w, h=h, shift=shift), s)
 
 class KirmanState(DiscreteStateBase):
     def __init__(self, g, d=.1, c1=.001, c2=.001, s=None):

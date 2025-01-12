@@ -143,7 +143,7 @@ public:
                 }
             }
         }
-    };
+    }
 
     template <class Graph>
     void expose(Graph&, size_t v, smap_t& s_out)
@@ -311,7 +311,7 @@ public:
     SIS_state(Graph& g, smap_t s, smap_t s_temp, python::dict params, RNG& rng)
         : base_t(g, s, s_temp, params, rng),
           _gamma(get_pmap<rmap_t>(params["gamma"]))
-    {};
+    {}
 
     template <bool sync, class Graph>
     void recover(Graph& g, size_t v, smap_t& s_out)
@@ -399,7 +399,7 @@ public:
     SIRS_state(Graph& g, smap_t s, smap_t s_temp, python::dict params, RNG& rng)
         : base_t(g, s, s_temp, params, rng),
           _mu(get_pmap<rmap_t>(params["mu"]))
-    {};
+    {}
 
 
     template <bool sync, class Graph, class RNG>
@@ -484,7 +484,7 @@ public:
     majority_voter_state(Graph&, smap_t s, smap_t s_temp, python::dict params, RNG&)
         : discrete_state_base(s, s_temp),
           _q(python::extract<size_t>(params["q"])),
-          _r(python::extract<double>(params["r"])) {};
+          _r(python::extract<double>(params["r"])) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -543,7 +543,7 @@ public:
         : discrete_state_base(s, s_temp),
           _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
           _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
-          _r(python::extract<double>(params["r"])) {};
+          _r(python::extract<double>(params["r"])) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -589,7 +589,7 @@ public:
         : discrete_state_base(s, s_temp),
           _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
           _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
-          _beta(python::extract<double>(params["beta"])) {};
+          _beta(python::extract<double>(params["beta"])) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -627,7 +627,7 @@ public:
         : discrete_state_base(s, s_temp),
           _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
           _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
-          _beta(python::extract<double>(params["beta"])) {};
+          _beta(python::extract<double>(params["beta"])) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -678,7 +678,7 @@ public:
         : discrete_state_base(s, s_temp),
           _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
           _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
-          _beta(python::extract<double>(params["beta"])) {};
+          _beta(python::extract<double>(params["beta"])) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -716,7 +716,7 @@ public:
         : discrete_state_base(s, s_temp),
           _d(python::extract<double>(params["d"])),
           _c1(python::extract<double>(params["c1"])),
-          _c2(python::extract<double>(params["c2"])){};
+          _c2(python::extract<double>(params["c2"])){}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -790,7 +790,7 @@ public:
             if (_r.shape()[0] < k || _r.shape()[1] < k)
                 throw ValueException("r matrix should have dimensions at least as large as the largest (in-)degree");
         }
-    };
+    }
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -833,7 +833,8 @@ public:
         : discrete_state_base(s, s_temp),
           _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
           _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
-          _f(get_array<double, 2>(params["f"])), _q(_f.shape()[0]), _m(_q) {};
+          _f(get_array<double, 2>(params["f"])), _q(_f.shape()[0]), _m(_q),
+          _shift(python::extract<int>(params["shift"])) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -844,7 +845,7 @@ public:
         for (auto e : in_or_out_edges_range(v, g))
         {
             auto u = source(e, g);
-            auto s = _s[u];
+            auto s = _s[u] - _shift;
             for (int r = 0; r < _q; ++r)
                 _m[r] += _w[e] * _f[r][s];
         }
@@ -869,6 +870,8 @@ public:
                 break;
         }
 
+        t += _shift;
+
         int32_t s = _s[v];
         s_out[v] = t;
 
@@ -882,6 +885,7 @@ private:
     multi_array_ref<double, 2> _f;
     int32_t _q;
     std::vector<double> _m;
+    int _shift;
 };
 
 class potts_metropolis_state: public discrete_state_base<>
@@ -897,7 +901,7 @@ public:
         : discrete_state_base(s, s_temp),
           _w(std::any_cast<wmap_t::checked_t>(python::extract<std::any>(params["w"].attr("_get_any")())()).get_unchecked()),
           _h(std::any_cast<hmap_t::checked_t>(python::extract<std::any>(params["h"].attr("_get_any")())()).get_unchecked()),
-          _f(get_array<double, 2>(params["f"])), _q(_f.shape()[0]), _m(_q) {};
+          _f(get_array<double, 2>(params["f"])), _q(_f.shape()[0]), _m(_q) {}
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -959,7 +963,7 @@ public:
             for (size_t i = s_v.size(); i < _f; ++i)
                 s_v.push_back(sample(rng));
         }
-    };
+    }
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
@@ -1045,7 +1049,7 @@ public:
             for (size_t pos = f_v.size(); pos < M; ++pos)
                 f_v.push_back(random(rng));
         }
-    };
+    }
 
     template <bool sync, class Graph, class RNG>
     bool update_node(Graph& g, size_t v, smap_t& s_out, RNG& rng)
