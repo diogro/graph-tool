@@ -206,7 +206,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
     int ddL = 0;
     double dS = 0, dS_dl = 0;
     auto positive_entries_op =
-        [&](size_t i, auto&& w_log_P, auto&& w_log_prior)
+        [&](size_t i, auto&& w_log_P, auto&& w_log_prior, bool micro_dl)
         {
             int dB_E = 0;
             wentries_op(m_entries, state._emat,
@@ -236,8 +236,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
                                     dB_E--;
                             }
                         });
-            if (dB_E != 0 && ea.recs_dl && std::isnan(state._wparams[i][0])
-                && std::isnan(state._wparams[i][1]))
+            if (dB_E != 0 && ea.recs_dl && micro_dl)
             {
                 dS_dl -= -w_log_prior(state._B_E);
                 dS_dl += -w_log_prior(state._B_E + dB_E);
@@ -263,7 +262,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
                                                           state._recsum[i],
                                                           wp[0], wp[1],
                                                           state._epsilon[i]);
-                                });
+                                }, std::isnan(wp[0]) && std::isnan(wp[1]));
             break;
         case weight_type::DISCRETE_GEOMETRIC:
             positive_entries_op(i,
@@ -276,7 +275,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
                                                            state._recsum[i],
                                                            wp[0],
                                                            wp[1]);
-                                });
+                                }, std::isnan(wp[0]) && std::isnan(wp[1]));
             break;
         case weight_type::DISCRETE_POISSON:
             positive_entries_op(i,
@@ -289,7 +288,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
                                                            state._recsum[i],
                                                            wp[0],
                                                            wp[1]);
-                                });
+                                }, std::isnan(wp[0]) && std::isnan(wp[1]));
             break;
         case weight_type::DISCRETE_BINOMIAL:
             positive_entries_op(i,
@@ -302,7 +301,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
                                                            state._recsum[i],
                                                            wp[1],
                                                            wp[2]);
-                                });
+                                }, std::isnan(wp[1]) && std::isnan(wp[2]));
             break;
         case weight_type::REAL_NORMAL:
             {
