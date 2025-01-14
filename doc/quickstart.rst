@@ -1056,11 +1056,10 @@ It is possible also to filter graphs "in-place", i.e. without creating an
 additional object. To achieve this, vertices or edges which are to be filtered
 should be marked with a :class:`~graph_tool.PropertyMap` with value type
 ``bool``, and then set with :meth:`~graph_tool.Graph.set_vertex_filter` or
-:meth:`~graph_tool.Graph.set_edge_filter` methods. By default, vertex or edges
-with value "1" are `kept` in the graphs, and those with value "0" are filtered
-out. This behaviour can be modified with the ``inverted`` parameter of the
-respective functions. All manipulation functions and algorithms will work as if
-the marked edges or vertices were removed from the graph, with minimum overhead.
+:meth:`~graph_tool.Graph.set_edge_filter` methods. Vertex or edges with value
+"1" are `kept` in the graphs, and those with value "0" are filtered out. All
+manipulation functions and algorithms will work as if the marked edges or
+vertices were removed from the graph, with minimum overhead.
 
 
 For example, to reproduce the same example as before for the facebook graph we

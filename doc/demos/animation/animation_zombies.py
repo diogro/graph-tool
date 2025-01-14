@@ -136,7 +136,7 @@ def update_state():
             vertex_sfcs[v] = Iimg
 
     # Filter out the recovered vertices
-    g.set_vertex_filter(removed, inverted=True)
+    g.set_vertex_filter(removed.t(lambda x: 1-x))
 
     # The following will force the re-drawing of the graph, and issue a
     # re-drawing of the GTK window.
