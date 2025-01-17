@@ -134,7 +134,7 @@ struct MCMCTheta
             std::tie(nx, dS, sampler) = sample_nx(v, move == xmove_t::x_old, rng);
 
             double lf_x_old = -numeric_limits<double>::infinity();
-            if (!std::isinf(_beta) && _state.get_count(_state._xhist, nx) > 0)
+            if (!std::isinf(_beta) && _state.get_count(_state._thist, nx) > 0)
                 lf_x_old = sample_old_x_lprob(nx, sampler);
 
             if (_parallel)
