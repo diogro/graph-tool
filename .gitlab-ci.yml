@@ -66,7 +66,7 @@ build_tarball:
     - export MARCH=$MARCH
   script:
     - img=`echo $BASE | sed s/:/_/`
-    - img="${img}_${CI_COMMIT_SHORT_SHA}"
+    - img="${img}_${CI_COMMIT_SHORT_SHA}_${MARCH}"
     - cd release/debian
     - if [[ "$MARCH" = "x86-64" || "$MARCH" = "armv8-a" ]]; then MARCH_SUFFIX=""; else MARCH_SUFFIX="-${MARCH}"; fi
     - sed -i "s/__MARCH_SUFFIX/$MARCH_SUFFIX/" debian/control
