@@ -19,7 +19,12 @@
 #define GRAPH_BLOCKMODEL_OVERLAP_PARTITION_HH
 
 #include "graph_blockmodel_overlap_util.hh"
+
+#if (BOOST_VERSION > 108500)
+#include "boost/container/small_vector_old.hpp"
+#else
 #include "boost/container/small_vector.hpp"
+#endif
 
 namespace std
 {

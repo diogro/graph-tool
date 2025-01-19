@@ -24,7 +24,7 @@
 
 // container
 #include <boost/container/container_fwd.hpp>
-#include <boost/container/vector.hpp>
+#include <boost/container/vector_old.hpp>
 #include <boost/container/allocator_traits.hpp>
 #include <boost/container/new_allocator.hpp> //new_allocator
 // container/detail
