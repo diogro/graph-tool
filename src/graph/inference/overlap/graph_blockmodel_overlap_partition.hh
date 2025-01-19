@@ -64,7 +64,7 @@ namespace graph_tool
 {
 
 //=============================
-// Partition Description length
+// Partition description length
 //=============================
 
 struct overlap_partition_stats_t

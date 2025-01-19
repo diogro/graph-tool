@@ -146,6 +146,8 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/value_convert.hh
 libgraph_tool_core_la_workarounddir = $(MOD_DIR)/include/boost-workaround/boost/graph/
 libgraph_tool_core_la_workaround_HEADERS = \
+	src/boost-workaround/boost/container/small_vector.hpp \
+	src/boost-workaround/boost/container/vector.hpp \
 	src/boost-workaround/boost/graph/adjacency_iterator.hpp \
 	src/boost-workaround/boost/graph/betweenness_centrality.hpp \
 	src/boost-workaround/boost/graph/detail/read_graphviz_new.hpp \
