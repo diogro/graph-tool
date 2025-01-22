@@ -33,6 +33,8 @@
 #include "../uncertain_util.hh"
 #include "../../../generation/graph_knn.hh"
 
+#include "../../../parallel_util.hh"
+
 #include "dynamics_util.hh"
 
 #include "bisection_sampler.hh"
@@ -627,20 +629,6 @@ struct Dynamics
         std::shared_mutex _x_mutex;
         std::shared_mutex _t_mutex;
 
-        template <class F, class Mutex>
-        void do_lock(F&& f, Mutex& mutex, bool lock)
-        {
-            if (lock)
-            {
-                std::shared_lock lock(mutex);
-                f();
-            }
-            else
-            {
-                f();
-            }
-        }
-
         double edge_x_S(xval_t x, const dentropy_args_t& ea)
         {
             if ((ea.sbm && x == 0) || ea.xdist || !ea.latent_edges)
@@ -691,10 +679,10 @@ struct Dynamics
 
             if (ea.sbm)
             {
-                do_lock([&]()
-                        {
-                            dS += _block_state.modify_edge_dS(u, v, e, -dm, ea);
-                        }, _sbm_mutex, lock);
+                do_slock([&]()
+                         {
+                             dS += _block_state.modify_edge_dS(u, v, e, -dm, ea);
+                         }, _sbm_mutex, lock);
             }
 
             if (ea.density)
@@ -714,14 +702,14 @@ struct Dynamics
 
                     if (ea.xdist && !_disable_xdist)
                     {
-                        do_lock([&]()
-                                {
-                                    dS += hist_modify_dS<false>(x, _M, _xhist,
-                                                                _xvals,
-                                                                ea.xdist_uniform,
-                                                                ea.xl1, _xdelta,
-                                                                ea.sbm);
-                                }, _x_mutex, lock);
+                        do_slock([&]()
+                                 {
+                                     dS += hist_modify_dS<false>(x, _M, _xhist,
+                                                                 _xvals,
+                                                                 ea.xdist_uniform,
+                                                                 ea.xl1, _xdelta,
+                                                                 ea.sbm);
+                                 }, _x_mutex, lock);
                     }
                 }
             }
@@ -750,10 +738,10 @@ struct Dynamics
 
             if (ea.sbm)
             {
-                do_lock([&]()
-                        {
-                            dS += _block_state.modify_edge_dS(u, v, e, dm, ea);
-                        }, _sbm_mutex, lock);
+                do_slock([&]()
+                         {
+                             dS += _block_state.modify_edge_dS(u, v, e, dm, ea);
+                         }, _sbm_mutex, lock);
             }
 
             if (ea.density)
@@ -777,15 +765,15 @@ struct Dynamics
                     assert(!std::isinf(dS) && !std::isnan(dS));
                     if (ea.xdist && !_disable_xdist)
                     {
-                        do_lock([&]()
-                                {
-                                    dS += hist_modify_dS<true>(x, _M, _xhist,
-                                                               _xvals,
-                                                               ea.xdist_uniform,
-                                                               ea.xl1, _xdelta,
-                                                               ea.sbm);
-                                    assert(!isinf(dS));
-                                }, _x_mutex, lock);
+                        do_slock([&]()
+                                 {
+                                     dS += hist_modify_dS<true>(x, _M, _xhist,
+                                                                _xvals,
+                                                                ea.xdist_uniform,
+                                                                ea.xl1, _xdelta,
+                                                                ea.sbm);
+                                     assert(!isinf(dS));
+                                 }, _x_mutex, lock);
                     }
                     assert(!std::isinf(dS) && !std::isnan(dS));
                 }
@@ -822,13 +810,13 @@ struct Dynamics
 
                     if (ea.xdist && !_disable_xdist)
                     {
-                        do_lock([&]()
-                                {
-                                    dS += hist_move_dS(x, nx, _M, _xhist,
-                                                       _xvals, ea.xdist_uniform,
-                                                       ea.xl1, _xdelta, ea.sbm);
-                                    assert(!std::isinf(dS) && !std::isnan(dS));
-                                }, _x_mutex, lock);
+                        do_slock([&]()
+                                 {
+                                     dS += hist_move_dS(x, nx, _M, _xhist,
+                                                        _xvals, ea.xdist_uniform,
+                                                        ea.xl1, _xdelta, ea.sbm);
+                                     assert(!std::isinf(dS) && !std::isnan(dS));
+                                 }, _x_mutex, lock);
                     }
                 }
             }
@@ -910,7 +898,7 @@ struct Dynamics
 
         template <class Unlock = std::function<void(void)>>
         void remove_edge(size_t u, size_t v, int dm, Unlock&& unlock = [](){},
-                         bool dstate=true)
+                         bool dstate=true, bool lock=true)
         {
             //serial part
             if (dm == 0)
@@ -925,12 +913,13 @@ struct Dynamics
 
             assert(e != _null_edge);
 
-            {
-                std::unique_lock lock(_sbm_mutex);
-                _block_state.template modify_edge<false>(u, v, e, dm);
-                if (e == _null_edge)
-                    erase_u_edge(u, v);
-            }
+            do_ulock
+                ([&]()
+                 {
+                     _block_state.template modify_edge<false>(u, v, e, dm);
+                     if (e == _null_edge)
+                         erase_u_edge(u, v);
+                 }, _sbm_mutex, lock);
 
             #pragma omp atomic
             _E -= dm;
@@ -939,8 +928,12 @@ struct Dynamics
             {
                 if (!_disable_xdist)
                 {
-                    std::unique_lock lock(_x_mutex);
-                    hist_remove(x, _xhist, _xvals);
+                    do_ulock
+                        ([&]()
+                         {
+                             hist_remove(x, _xhist, _xvals);
+                         },
+                         _x_mutex, lock);
                 }
 
                 #pragma omp atomic
@@ -965,7 +958,8 @@ struct Dynamics
 
         template <class Unlock = std::function<void(void)>>
         void add_edge(size_t u, size_t v, int dm, double nx,
-                      Unlock&& unlock = [](){}, bool dstate = true)
+                      Unlock&& unlock = [](){}, bool dstate = true,
+                      bool lock = true)
         {
             // serial part
             if (dm == 0)
@@ -978,10 +972,11 @@ struct Dynamics
 
             auto& e = get_u_edge<true>(u, v);
 
-            {
-                std::unique_lock lock(_sbm_mutex);
-                _block_state.template modify_edge<true>(u, v, e, dm);
-            }
+            do_ulock
+                ([&]()
+                 {
+                     _block_state.template modify_edge<true>(u, v, e, dm);
+                 }, _sbm_mutex, lock);
 
             #pragma omp atomic
             _E += dm;
@@ -993,8 +988,11 @@ struct Dynamics
                 {
                     if (!_disable_xdist)
                     {
-                        std::unique_lock lock(_x_mutex);
-                        hist_add(nx, _xhist, _xvals);
+                        do_ulock
+                            ([&]()
+                             {
+                                 hist_add(nx, _xhist, _xvals);
+                             }, _x_mutex, lock);
                     }
 
                     #pragma omp atomic
@@ -1023,7 +1021,7 @@ struct Dynamics
 
         template <class Unlock = std::function<void(void)>>
         void update_edge(size_t u, size_t v, double nx, Unlock&& unlock = [](){},
-                         bool dstate=true)
+                         bool dstate = true, bool lock = true)
         {
             if (_self_loops || u != v)
             {
@@ -1038,9 +1036,12 @@ struct Dynamics
 
                 if (!_disable_xdist)
                 {
-                    std::unique_lock lock(_x_mutex);
-                    hist_remove(x, _xhist, _xvals);
-                    hist_add(nx, _xhist, _xvals);
+                    do_ulock
+                        ([&]()
+                         {
+                             hist_remove(x, _xhist, _xvals);
+                             hist_add(nx, _xhist, _xvals);
+                         }, _x_mutex, lock);
                 }
 
                 assert(nx != 0);
@@ -1135,12 +1136,12 @@ struct Dynamics
 
             if (ea.tdist && !_disable_tdist)
             {
-                do_lock([&]()
-                        {
-                            dS += hist_move_dS(t, nt, num_vertices(_u), _thist,
-                                               _tvals, ea.tdist_uniform, ea.tl1,
-                                               _tdelta, false);
-                        }, _t_mutex, lock);
+                do_slock([&]()
+                         {
+                             dS += hist_move_dS(t, nt, num_vertices(_u), _thist,
+                                                _tvals, ea.tdist_uniform, ea.tl1,
+                                                _tdelta, false);
+                         }, _t_mutex, lock);
             }
 
             dS += node_x_S(nt, ea) - node_x_S(t, ea);
@@ -1167,7 +1168,7 @@ struct Dynamics
             return dS;
         }
 
-        void update_node(size_t v, double nt)
+        void update_node(size_t v, double nt, bool lock = true)
         {
             auto t = _theta[v];
 
@@ -1178,9 +1179,12 @@ struct Dynamics
 
             if (!_disable_tdist)
             {
-                std::unique_lock lock(_t_mutex);
-                hist_remove(t, _thist, _tvals);
-                hist_add(nt, _thist, _tvals);
+                do_ulock
+                    ([&]()
+                     {
+                         hist_remove(t, _thist, _tvals);
+                         hist_add(nt, _thist, _tvals);
+                     }, _t_mutex, lock);
             }
         }
 

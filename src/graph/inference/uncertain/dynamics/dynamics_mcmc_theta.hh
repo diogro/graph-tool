@@ -49,6 +49,7 @@ using namespace std;
     ((deterministic,, bool, 0))                                                \
     ((sequential,, bool, 0))                                                   \
     ((parallel,, bool, 0))                                                     \
+    ((pseudo,, bool, 0))                                                       \
     ((niter,, size_t, 0))
 
 
@@ -75,7 +76,8 @@ struct MCMCTheta
         MCMCDynamicsState(ATs&&... as)
         : MCMCDynamicsStateBase<Ts...>(as...),
             _vlist(num_vertices(_state._u)),
-            _vmutex(_vlist.size())
+            _vmutex(_vlist.size()),
+            _tvals_mutex(_state._t_mutex)
         {
             std::iota(_vlist.begin(), _vlist.end(), 0);
             _xcaches.resize(get_num_threads());
@@ -128,17 +130,17 @@ struct MCMCTheta
 
             move = _move_sampler(rng);
 
-            if (_parallel)
-                _tvals_mutex.lock_shared(); // tvals can change
-
-            std::tie(nx, dS, sampler) = sample_nx(v, move == xmove_t::x_old, rng);
-
+            bool new_nx;
             double lf_x_old = -numeric_limits<double>::infinity();
-            if (!std::isinf(_beta) && _state.get_count(_state._thist, nx) > 0)
-                lf_x_old = sample_old_x_lprob(nx, sampler);
-
-            if (_parallel)
-                _tvals_mutex.unlock_shared(); // tvals can change
+            do_slock
+                ([&]()
+                 {
+                     std::tie(nx, dS, sampler, new_nx) =
+                         sample_nx(v, move == xmove_t::x_old, rng);
+                     if (!std::isinf(_beta) && !new_nx)
+                         lf_x_old = sample_old_x_lprob(nx, sampler);
+                 },
+                 _tvals_mutex, _parallel && !_pseudo);
 
             double ptot = _pold + _pnew;
 
@@ -168,26 +170,22 @@ struct MCMCTheta
 
         void lock_move()
         {
-            _move_mutex.lock();
+            if (!_pseudo)
+                _move_mutex.lock();
         }
 
         void unlock_move()
         {
-            _move_mutex.unlock();
+            if (!_pseudo)
+                _move_mutex.unlock();
         }
 
         void perform_move(size_t v, move_t move)
         {
-            if (_parallel)
-                _tvals_mutex.lock();
-
-            _state.update_node(v, move);
+            _state.update_node(v, move, _parallel);
 
             if (_parallel)
-            {
-                _tvals_mutex.unlock();
                 unlock_move();
-            }
         }
 
         std::tuple<double, double>
@@ -211,7 +209,16 @@ struct MCMCTheta
             double a = 0;
             if (!std::isinf(_beta))
             {
-                auto nx_add = _state.get_count(_state._thist, nx) == 0 ?
+                bool is_new_nx = false;
+                bool is_last_x = false;
+                do_slock
+                    ([&]()
+                     {
+                        is_new_nx = (_state.get_count(_state._thist, nx) == 0);
+                        is_last_x = (_state.get_count(_state._thist, x) == 1);
+                     }, _tvals_mutex, _parallel && _pseudo);
+
+                auto nx_add = is_new_nx ?
                     nx : numeric_limits<double>::quiet_NaN();
 
                 double ptot = _pnew + _pold;
@@ -219,7 +226,7 @@ struct MCMCTheta
                 {
                     lb = log(_pnew) - log(ptot) +
                         sample_new_x_lprob(x, sampler);
-                    if (_state.get_count(_state._thist, x) > 1)
+                    if (!is_last_x)
                         lb = log_sum_exp(lb,
                                          log(_pold) - log(ptot) +
                                          sample_old_x_lprob(x, sampler,
@@ -227,7 +234,7 @@ struct MCMCTheta
                 }
                 else
                 {
-                    if (_state.get_count(_state._thist, x) > 1)
+                    if (!is_last_x)
                         lb = log(_pold) - log(ptot) +
                             sample_old_x_lprob(x, sampler, nx_add);
                     else
@@ -249,18 +256,41 @@ struct MCMCTheta
         template <class RNG>
         auto sample_nx(size_t v, bool told, RNG& rng)
         {
-            auto [nx, sampler] = told ?
-                ((_pnew == 0 && _ptu == 1) ?
-                 _state.bisect_t_init(v, _entropy_args, _bisect_args) :
-                 _state.bisect_t(v, _entropy_args, _bisect_args,
-                                 told && std::isinf(_beta), rng)) :
-                _state.sample_t(v, _beta, _entropy_args, _bisect_args,
-                                told && std::isinf(_beta), rng);
+            auto [nx, sampler] =
+                do_slock
+                ([&]()
+                 {
+                     return told ?
+                         ((_pnew == 0 && _ptu == 1) ?
+                          _state.bisect_t_init(v, _entropy_args, _bisect_args) :
+                          _state.bisect_t(v, _entropy_args, _bisect_args,
+                                          told && std::isinf(_beta), rng)) :
+                         _state.sample_t(v, _beta, _entropy_args, _bisect_args,
+                                         told && std::isinf(_beta), rng);
+                 },
+                 _tvals_mutex,
+                 _parallel && _pseudo && (told || std::isinf(_beta)));
 
+            bool new_x = true;
             if (told)
             {
-                SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
-                nx = set_sampler.sample(_beta, rng);
+                do_slock
+                    ([&]()
+                     {
+                         SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
+                         nx = set_sampler.sample(_beta, rng);
+                     },
+                     _tvals_mutex, _parallel && _pseudo);
+                new_x = false;
+            }
+            else
+            {
+                do_slock
+                    ([&]()
+                     {
+                         new_x = (_state.get_count(_state._thist, nx) == 0);
+                     },
+                     _tvals_mutex, _parallel && _pseudo);
             }
 
             auto dS = sampler.f(nx, false);
@@ -268,7 +298,7 @@ struct MCMCTheta
             assert(!std::isinf(nx) && !std::isnan(nx));
             assert(!std::isinf(dS) && !std::isnan(dS));
 
-            return std::make_tuple(nx, dS, sampler);
+            return std::make_tuple(nx, dS, sampler, new_x);
         }
 
         template <class Sampler>
@@ -281,7 +311,10 @@ struct MCMCTheta
         double sample_old_x_lprob(tval_t nx, Sampler& sampler,
                                   double x = numeric_limits<double>::quiet_NaN())
         {
+            slock<std::shared_mutex> lock(_tvals_mutex, _parallel && _pseudo);
+
             SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
+
             return set_sampler.lprob(nx, _beta,
                                      numeric_limits<double>::quiet_NaN(),
                                      x);
@@ -319,7 +352,7 @@ struct MCMCTheta
 
     private:
         std::shared_mutex _move_mutex;
-        std::shared_mutex _tvals_mutex;
+        std::shared_mutex& _tvals_mutex;
     };
 };
 

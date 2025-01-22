@@ -611,10 +611,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
     @mcmc_sweep_wrap
     def edge_mcmc_sweep(self, beta=1., niter=1, k=1, elist_args={},
                         keep_elist=False, pold=1, pnew=1, pxu=.1, pm=1,
-                        premove=1, pself=0.1, puniform=1, pedge=1,
-                        pnearby=1, d=2, pcandidates=1, bisect_args={}, binary=False,
+                        premove=1, pself=0.1, puniform=1, pedge=1, pnearby=1,
+                        d=2, pcandidates=1, bisect_args={}, binary=False,
                         deterministic=False, sequential=True, parallel=True,
-                        verbose=False, entropy_args={}, **kwargs):
+                        pseudo=False, verbose=False, entropy_args={}, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC to sample latent edges.
 
@@ -682,6 +682,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
         parallel : ``boolean`` (optional, default: ``True``)
             If ``True``, the updates are performed in parallel, using locks on
             edges candidate incident on the same node.
+        pseudo : ``boolean`` (optional, default: ``False``)
+            If ``True``, detailed balance will no longer be stricly perserved,
+            in favor of higher parallelism.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
         entropy_args : ``dict`` (optional, default: ``{}``)
@@ -932,9 +935,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return np.histogram(self.get_x().fa, xvals)[0]
 
     @mcmc_sweep_wrap
-    def theta_mcmc_sweep(self, beta=1., niter=1, pold=1, pnew=1,
-                         ptu=.1, bisect_args={}, deterministic=False,
-                         sequential=True, parallel=True, verbose=False,
+    def theta_mcmc_sweep(self, beta=1., niter=1, pold=1, pnew=1, ptu=.1,
+                         bisect_args={}, deterministic=False, sequential=True,
+                         parallel=True, pseudo=False, verbose=False,
                          entropy_args={}, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC to sample node parameters.
@@ -966,6 +969,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
             individiual updates will be chosen at random.
         parallel : ``boolean`` (optional, default: ``True``)
             If ``True``, the updates are performed in parallel.
+        pseudo : ``boolean`` (optional, default: ``False``)
+            If ``True``, detailed balance will no longer be stricly perserved,
+            in favor of higher parallelism.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
         entropy_args : ``dict`` (optional, default: ``{}``)

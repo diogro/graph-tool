@@ -137,6 +137,7 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/npy_2_compat.h \
 	src/graph/openmp.hh \
 	src/graph/openmp_lock.hh \
+	src/graph/parallel_util.hh \
 	src/graph/parallel_rng.hh \
 	src/graph/random.hh \
 	src/graph/str_repr.hh \
