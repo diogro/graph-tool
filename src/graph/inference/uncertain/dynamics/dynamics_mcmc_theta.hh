@@ -250,26 +250,34 @@ struct MCMCTheta
                      << lb << ", a: " << a << ", -dS + a: " << -dS + a << endl;
 
             return {dS, a};
-
         }
 
         template <class RNG>
         auto sample_nx(size_t v, bool told, RNG& rng)
         {
-            auto [nx, sampler] =
+            bool fb = told && std::isinf(_beta);
+            std::vector<double> tvals_local;
+            std::vector<double>* tvals;
+            if (_parallel && _pseudo)
+            {
                 do_slock
                 ([&]()
                  {
-                     return told ?
-                         ((_pnew == 0 && _ptu == 1) ?
-                          _state.bisect_t_init(v, _entropy_args, _bisect_args) :
-                          _state.bisect_t(v, _entropy_args, _bisect_args,
-                                          told && std::isinf(_beta), rng)) :
-                         _state.sample_t(v, _beta, _entropy_args, _bisect_args,
-                                         told && std::isinf(_beta), rng);
-                 },
-                 _tvals_mutex,
-                 _parallel && _pseudo && (told || std::isinf(_beta)));
+                     tvals_local = _state._tvals;
+                 }, _tvals_mutex);
+                tvals = &tvals_local;
+            }
+            else
+            {
+                tvals = &_state._tvals;
+            }
+
+            auto [nx, sampler] =
+                told ?
+                ((_pnew == 0 && _ptu == 1) ?
+                 _state.bisect_t_init(v, _entropy_args, _bisect_args) :
+                 _state.bisect_t_disp(v, _entropy_args, _bisect_args, fb, *tvals, rng)) :
+                _state.sample_t_disp(v, _beta, _entropy_args, _bisect_args, fb, *tvals, rng);
 
             bool new_x = true;
             if (told)

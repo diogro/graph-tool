@@ -1490,8 +1490,9 @@ struct Dynamics
 
         template <class... RNG>
         std::tuple<double, BisectionSampler>
-        bisect_x(size_t u, size_t v, const dentropy_args_t& ea,
-                 const bisect_args_t& ba, bool fb, RNG&... rng)
+        bisect_x_disp(size_t u, size_t v, const dentropy_args_t& ea,
+                      const bisect_args_t& ba, bool fb,
+                      const std::vector<double>& xvals, RNG&... rng)
         {
             auto [x, sampler] = bisect_x_init(u, v, ea, ba);
             double nx;
@@ -1500,9 +1501,17 @@ struct Dynamics
             else if (ba.min_bound == ba.max_bound)
                 nx = ba.min_bound;
             else
-                nx = fb ? sampler.bisect_fb(_xvals, rng...) : sampler.bisect(x, _xdelta);
+                nx = fb ? sampler.bisect_fb(xvals, rng...) : sampler.bisect(x, _xdelta);
             sampler.f(nx, true);
             return {nx, sampler};
+        }
+
+        template <class... RNG>
+        std::tuple<double, BisectionSampler>
+        bisect_x(size_t u, size_t v, const dentropy_args_t& ea,
+                 const bisect_args_t& ba, bool fb, RNG&... rng)
+        {
+            return bisect_x_disp(u, v, ea, ba, fb, _xvals, rng...);
         }
 
         std::tuple<double, BisectionSampler>
@@ -1522,17 +1531,25 @@ struct Dynamics
 
         template <class... RNG>
         std::tuple<double, BisectionSampler>
-        bisect_t(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
-                 bool fb, RNG&... rng)
+        bisect_t_disp(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
+                      bool fb, const std::vector<double>& tvals, RNG&... rng)
         {
             auto [x, sampler] = bisect_t_init(v, ea, ba);
             double nx;
             if (ba.min_bound == ba.max_bound)
                 nx = ba.min_bound;
             else
-                nx = fb ? sampler.bisect_fb(_tvals, rng...) : sampler.bisect(x, _tdelta);
+                nx = fb ? sampler.bisect_fb(tvals, rng...) : sampler.bisect(x, _tdelta);
             sampler.f(nx, true);
             return {nx, sampler};
+        }
+
+        template <class... RNG>
+        std::tuple<double, BisectionSampler>
+        bisect_t(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
+                 bool fb, RNG&... rng)
+        {
+            return bisect_t_disp(v, ea, ba, fb, _tvals, rng...);
         }
 
         std::tuple<double, BisectionSampler>
@@ -1662,11 +1679,30 @@ struct Dynamics
 
         template <class RNG>
         std::tuple<double, BisectionSampler>
+        sample_x_disp(size_t u, size_t v, double beta, const dentropy_args_t& ea,
+                      const bisect_args_t& ba, bool fb, std::vector<double>& xvals,
+                      RNG& rng)
+        {
+            auto [nx_, sampler] = bisect_x_disp(u, v, ea, ba, fb, xvals, rng);
+            return {sampler.sample(beta, _xdelta, rng), sampler};
+        }
+
+        template <class RNG>
+        std::tuple<double, BisectionSampler>
         sample_x(size_t u, size_t v, double beta, const dentropy_args_t& ea,
                  const bisect_args_t& ba, bool fb, RNG& rng)
         {
-            auto [nx_, sampler] = bisect_x(u, v, ea, ba, fb, rng);
-            return {sampler.sample(beta, _xdelta, rng), sampler};
+            return sample_x_disp(u, v, beta, ea, ba, fb, _xvals, rng);
+        }
+
+        template <class RNG>
+        std::tuple<double, BisectionSampler>
+        sample_t_disp(size_t v, double beta, const dentropy_args_t& ea,
+                      const bisect_args_t& ba, bool fb, std::vector<double>& tvals,
+                      RNG& rng)
+        {
+            auto [nx_, sampler] = bisect_t_disp(v, ea, ba, fb, tvals, rng);
+            return {sampler.sample(beta, _tdelta, rng), sampler};
         }
 
         template <class RNG>
@@ -1674,8 +1710,7 @@ struct Dynamics
         sample_t(size_t v, double beta, const dentropy_args_t& ea,
                  const bisect_args_t& ba, bool fb, RNG& rng)
         {
-            auto [nx_, sampler] = bisect_t(v, ea, ba, fb, rng);
-            return {sampler.sample(beta, _tdelta, rng), sampler};
+            return sample_t_disp(v, beta, ea, ba, fb, _tvals, rng);
         }
 
         template <class RNG>

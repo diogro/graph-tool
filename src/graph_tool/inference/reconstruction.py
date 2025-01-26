@@ -609,7 +609,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return tuple(ret)
 
     @mcmc_sweep_wrap
-    def edge_mcmc_sweep(self, beta=1., niter=1, k=1, elist_args={},
+    def edge_mcmc_sweep(self, beta=1., niter=1, m=1, k=1, elist_args={},
                         keep_elist=False, pold=1, pnew=1, pxu=.1, pm=1,
                         premove=1, pself=0.1, puniform=1, pedge=1, pnearby=1,
                         d=2, pcandidates=1, bisect_args={}, binary=False,
@@ -627,6 +627,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps.
+        m : ``double`` (optional, default: ``1``)
+            Multiplicative factor to the number of nodes yielding the number of
+            attempted moves at every sweep. This parameter is ignored if
+            ``beta`` is ``np.inf``.
         k : ``int`` (optional, default: ``1``)
             :math:`\kappa` parameter to be passed to :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.

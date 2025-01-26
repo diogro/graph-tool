@@ -49,6 +49,7 @@ using namespace std;
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
+    ((m,, double, 0))                                                          \
     ((elist,, elist_t, 0))                                                     \
     ((ecandidates,, elist_t, 0))                                               \
     ((beta,, double, 0))                                                       \
@@ -95,7 +96,7 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCDynamicsState(ATs&&... as)
             : MCMCDynamicsStateBase<Ts...>(as...),
-              _edges(std::isinf(_beta) ? _elist.shape()[0] : num_vertices(_state._u)),
+              _edges(std::isinf(_beta) ? _elist.shape()[0] : _m * num_vertices(_state._u)),
               _vmutex(num_vertices(_state._u)),
               _xvals_mutex(_state._x_mutex)
         {
@@ -597,20 +598,31 @@ struct MCMC
         template <class RNG>
         auto sample_nx(size_t u, size_t v, bool xold, RNG& rng)
         {
-            bool fb = xold && std::isinf(_beta) && !_state._xvals.empty();
-            auto [nx, sampler] =
+            bool fb;
+            std::vector<double> xvals_local;
+            std::vector<double>* xvals;
+            if (_parallel && _pseudo)
+            {
                 do_slock
                 ([&]()
                  {
-                     return xold ?
-                         ((_pnew == 0 && _pxu == 1) ?
-                          _state.bisect_x_init(u, v, _entropy_args, _bisect_args) :
-                          _state.bisect_x(u, v, _entropy_args, _bisect_args, fb, rng)) :
-                         _state.sample_x(u, v, _beta, _entropy_args, _bisect_args, fb, rng);
-                 },
-                 _xvals_mutex,
-                 _parallel && _pseudo && (xold || std::isinf(_beta)));
+                     fb = xold && std::isinf(_beta) && !_state._xvals.empty();
+                     xvals_local = _state._xvals;
+                 }, _xvals_mutex);
+                xvals = &xvals_local;
+            }
+            else
+            {
+                xvals = &_state._xvals;
+                fb = xold && std::isinf(_beta) && !_state._xvals.empty();
+            }
 
+            auto [nx, sampler] =
+                xold ?
+                ((_pnew == 0 && _pxu == 1) ?
+                 _state.bisect_x_init(u, v, _entropy_args, _bisect_args) :
+                 _state.bisect_x_disp(u, v, _entropy_args, _bisect_args, fb, *xvals, rng)) :
+                _state.sample_x_disp(u, v, _beta, _entropy_args, _bisect_args, fb, *xvals, rng);
 
             if (!_state._self_loops && u == v)
                 return std::make_tuple(0., 0., sampler, false);
