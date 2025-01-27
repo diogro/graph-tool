@@ -19,6 +19,7 @@
 #define PARALLEL_UTIL_HH
 
 #include <shared_mutex>
+#include <utility>
 
 namespace graph_tool
 {
@@ -28,9 +29,10 @@ class slock
 {
 public:
     slock(Mutex& mutex, bool lock=true)
+        : _lock(mutex, std::defer_lock_t())
     {
         if (lock)
-            _lock = std::shared_lock<Mutex>(mutex);
+            _lock.lock();
     }
 
 private:
@@ -42,9 +44,10 @@ class ulock
 {
 public:
     ulock(Mutex& mutex, bool lock=true)
+        : _lock(mutex, std::defer_lock_t())
     {
         if (lock)
-            _lock = std::unique_lock<Mutex>(mutex);
+            _lock.lock();
     }
 
 private:
