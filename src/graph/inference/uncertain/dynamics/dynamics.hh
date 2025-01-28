@@ -1422,8 +1422,7 @@ struct Dynamics
                     auto v = target(e, _u);
                     if (edge(u, v, g).second || edge(v, u, g).second)
                         continue;
-                    auto ne = boost::add_edge(u, v, g).first;
-                    w[ne] = d__(u, v, true);
+                    boost::add_edge(u, v, g).first;
                 }
             }
 
@@ -1433,8 +1432,7 @@ struct Dynamics
                 {
                     if (edge(v, v, g).second)
                         continue;
-                    auto ne = boost::add_edge(v, v, g).first;
-                    w[ne] = d__(v, v, true);
+                    boost::add_edge(v, v, g).first;
                 }
             }
 
