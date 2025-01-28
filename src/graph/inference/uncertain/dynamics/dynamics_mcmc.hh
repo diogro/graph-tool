@@ -107,8 +107,9 @@ struct MCMC
                                            _puniform, _pedge, _pnearby,
                                            _pcandidates, _state._u);
 
-            _state._eweight.reserve(3 * _elist.shape()[0]);
-            _state._x.reserve(3 * _elist.shape()[0]);
+            size_t E = std::max(num_edges(_state._u), _elist.shape()[0]);
+            _state._eweight.reserve(3 * E * std::max(_m, 1.));
+            _state._x.reserve(3 * E * std::max(_m, 1.));
             _xcaches.resize(get_num_threads());
 
             if (std::isinf(_beta))
