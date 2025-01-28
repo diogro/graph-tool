@@ -1211,6 +1211,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
             difference.
         allow_edges : ``boolean`` (optional, default: ``False``)
             Permit currently present edges to be included in the search.
+        include_edges : ``boolean`` (optional, default: ``True``)
+            Include currently present edges in the result.
         use_hint : ``boolean`` (optional, default: ``True``)
             Use current edges as a hint during the search.
         nrandom : ``int`` (optional, default: ``0``)
