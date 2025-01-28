@@ -157,14 +157,14 @@ struct MCMC
 
             if (is_directed(_state._u) || u == v)
             {
-                if (std::isinf(_beta))
+                if (std::isinf(_beta) || _pseudo)
                     return _vmutex[v].try_lock();
                 _vmutex[v].lock();
                 return true;
             }
             else
             {
-                if (std::isinf(_beta))
+                if (std::isinf(_beta) || _pseudo)
                     return std::try_lock(_vmutex[u], _vmutex[v]) == -1;
                 else
                     std::lock(_vmutex[u], _vmutex[v]);
