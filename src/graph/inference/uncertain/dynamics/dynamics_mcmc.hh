@@ -520,7 +520,11 @@ struct MCMC
                             lb = log_sum_exp(lb,
                                              log(pnew) - log(ptot));
                     }
-                    lb += es.log_prob(u, v, 1, u, v);
+                    do_slock
+                        ([&]()
+                         {
+                             lb += es.log_prob(u, v, 1, u, v);
+                         }, _state._sbm_mutex, _parallel && _pseudo);
                 }
                 else
                 {
@@ -552,7 +556,11 @@ struct MCMC
                             lb = log(pnew + pold) - log(ptot);
                         }
                         lb += sample_m_lprob(m, 0);
-                        lb += es.log_prob(u, v, -1, u, v);
+                        do_slock
+                            ([&]()
+                             {
+                                 lb += es.log_prob(u, v, -1, u, v);
+                             }, _state._sbm_mutex, _parallel && _pseudo);
                         break;
                     case xmove_t::x_new: [[fallthrough]];
                     case xmove_t::x_old:
@@ -574,12 +582,20 @@ struct MCMC
                             else
                                 lb = -numeric_limits<double>::infinity();
                         }
-                        lb += es.log_prob(u, v);
+                        do_slock
+                            ([&]()
+                             {
+                                 lb += es.log_prob(u, v);
+                             }, _state._sbm_mutex, _parallel && _pseudo);
                         break;
                     case xmove_t::m:
                         lf = log(pm) - log(ptot);
                         lb += sample_m_lprob(m, m + dm);
-                        lb += es.log_prob(u, v);
+                        do_slock
+                            ([&]()
+                             {
+                                 lb += es.log_prob(u, v);
+                             }, _state._sbm_mutex, _parallel && _pseudo);
                         break;
                     }
                 }
