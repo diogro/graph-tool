@@ -80,7 +80,7 @@ Low-level graph drawing
 
 from .. import Graph, GraphView, _check_prop_vector, _check_prop_scalar, \
     group_vector_property, ungroup_vector_property, infect_vertex_property, \
-    _prop, _get_rng, VertexPropertyMap
+    _prop, _get_rng, VertexPropertyMap, perfect_prop_hash
 from .. topology import max_cardinality_matching, max_independent_vertex_set, \
     label_components, shortest_distance, make_maximal_planar, is_planar
 from .. generation import predecessor_tree, condensation_graph
@@ -439,7 +439,6 @@ def _coarse_graph(g, vweight, eweight, kind="matching", groups=None):
                                            state_args=dict(eweight=eweight),
                                            multilevel_mcmc_args=dict(B_min=B,
                                                                      B_max=B))
-            print(state)
             c = state.b.copy()
         elif kind in ["sbm", "dcsbm"]:
             B = max(g.num_vertices() // 2, 1)
@@ -455,6 +454,7 @@ def _coarse_graph(g, vweight, eweight, kind="matching", groups=None):
             raise ValueError("invalid coarsening method:", kind)
     else:
         c = g.new_vp("int", vals=groups)
+    c = perfect_prop_hash([c])[0]
     cg, vcount, ecount = condensation_graph(g, c, vweight, eweight)
     return cg, cg.vertex_index.copy("int32_t"), vcount, ecount, c, mivs
 
