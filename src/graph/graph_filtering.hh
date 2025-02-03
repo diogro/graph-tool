@@ -219,62 +219,64 @@ struct gt_dispatch
                    constexpr auto cp = hana::cartesian_product(hana::make_tuple(trs...));
 
                    bool found = false;
-                   struct stop_dispatch {};
-                   try
-                   {
-                       hana::for_each
-                           (cp,
-                            [&](auto ats)
-                            {
-                                struct stop_transform {};
-                                try
-                                {
-                                    auto fats
-                                        = hana::fold
-                                        (ats, hana::tuple(),
-                                         [](auto xs, auto x)
-                                         {
-                                             typedef typename decltype(+x)::type x_t;
-                                             if constexpr (std::is_base_of_v<type_func_t, x_t>)
-                                                 return hana::append(xs, x_t::get(hana::back(xs)));
-                                             else
-                                                 return hana::append(xs, x);
-                                         });
+                   hana::for_each
+                       (cp,
+                        [&](auto ats)
+                        {
+                            if (found)
+                                return;
 
-                                    auto args =
-                                        hana::transform
-                                        (hana::zip(fats, hana::make_tuple(std::ref(as)...)),
-                                         [](auto&& tv)
+                            auto fats
+                                = hana::fold
+                                (ats, hana::tuple(),
+                                 [](auto xs, auto x)
+                                 {
+                                     typedef typename decltype(+x)::type x_t;
+                                     if constexpr (std::is_base_of_v<type_func_t, x_t>)
+                                         return hana::append(xs, x_t::get(hana::back(xs)));
+                                     else
+                                         return hana::append(xs, x);
+                                 });
+
+                            bool fail = false;
+
+                            auto args =
+                                hana::transform
+                                (hana::zip(fats, hana::make_tuple(std::ref(as)...)),
+                                 [&](auto&& tv)
+                                 {
+                                     using T = typename decltype(+tv[0_c])::type;
+
+                                     if (fail)
+                                         return (T*) nullptr;
+
+                                     auto& x = tv[1_c].get();
+                                     T* val = std::any_cast<T>(&x);
+                                     if (val == nullptr)
+                                     {
+                                         auto rval = std::any_cast<std::reference_wrapper<T>>(&x);
+                                         if (rval == nullptr)
                                          {
-                                             using T = typename decltype(+tv[0_c])::type;
-                                             auto& x = tv[1_c].get();
-                                             T* val = std::any_cast<T>(&x);
-                                             if (val == nullptr)
-                                             {
-                                                 auto rval = std::any_cast<std::reference_wrapper<T>>(&x);
-                                                 if (rval == nullptr)
-                                                 {
-                                                     auto sval = std::any_cast<std::shared_ptr<T>>(&x);
-                                                     if (sval == nullptr)
-                                                         throw stop_transform();
-                                                     else
-                                                         val = sval->get();
-                                                 }
-                                                 else
-                                                 {
-                                                     val = &rval->get();
-                                                 }
-                                             }
-                                             return val;
-                                         });
-                                    hana::unpack(args, [&](auto&... vals) { a(pmap(*vals)...); });
-                                    found = true;
-                                    throw stop_dispatch();
-                                }
-                                catch (stop_transform) {}
-                            });
-                   }
-                   catch (stop_dispatch) {}
+                                             auto sval = std::any_cast<std::shared_ptr<T>>(&x);
+                                             if (sval == nullptr)
+                                                 fail = true;
+                                             else
+                                                 val = sval->get();
+                                         }
+                                         else
+                                         {
+                                             val = &rval->get();
+                                         }
+                                     }
+                                     return val;
+                                 });
+
+                            if (fail)
+                                return;
+
+                            hana::unpack(args, [&](auto&... vals) { a(pmap(*vals)...); });
+                            found = true;
+                        });
 
                    if (!found)
                    {
