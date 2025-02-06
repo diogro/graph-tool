@@ -249,11 +249,12 @@ struct MCMC
                 Z = log_sum_exp(Z, get_lprob(x));
             }
             l -= log1p(-exp(Z));
-            assert(!std::isinf(l));
-            return log_sum_exp(log1p(-_c) + l,
-                               log(_c) + log(_state._xdelta)
-                               - log(d - (_state._xvals.size() +
-                                          except.size() + 1) * _state._xdelta));
+            double L = log_sum_exp(log1p(-_c) + l,
+                                   log(_c) + log(_state._xdelta)
+                                   - log(d - (_state._xvals.size() +
+                                              except.size() + 1) * _state._xdelta));
+            assert(!std::isinf(L));
+            return L;
         }
 
         std::vector<std::array<std::tuple<double, double>,2>> _dS;
