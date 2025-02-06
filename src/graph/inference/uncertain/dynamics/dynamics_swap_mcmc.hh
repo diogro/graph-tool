@@ -266,8 +266,7 @@ struct MCMC
                 break;
             case move_t::swap:
                 {
-                    if ((!_state._self_loops && (u == v || s == v ||
-                                                 s == t || u == t)) ||
+                    if (((u == v || s == v || s == t || u == t)) ||
                         (x_uv == x_sv && x_st == x_sv) || (u == s) || (v == t))
                     {
                         proposal_unlock(pos);
