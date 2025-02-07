@@ -20,7 +20,7 @@
 
 #include "graph_blockmodel_overlap_util.hh"
 
-#if (BOOST_VERSION > 108500)
+#if (BOOST_VERSION > 108500 && BOOST_VERSION < 108700)
 #include "boost/container/small_vector_old.hpp"
 #else
 #include "boost/container/small_vector.hpp"
