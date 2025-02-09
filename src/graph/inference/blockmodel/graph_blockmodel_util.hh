@@ -44,7 +44,6 @@ public:
     virtual double virtual_move(size_t v, size_t r, size_t nr,
                                 const entropy_args_t& eargs) = 0;
     virtual void sample_branch(size_t v, size_t u, rng_t& rng) = 0;
-    virtual void copy_branch(size_t v, BlockStateVirtualBase&) = 0;
     virtual size_t sample_block(size_t v, double c, double d, rng_t& rng) = 0;
     virtual double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
                                  bool reverse) = 0;

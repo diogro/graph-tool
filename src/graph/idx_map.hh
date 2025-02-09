@@ -31,7 +31,8 @@ size_t get_size(T n)
     return k;
 }
 
-template <class Key, class T, bool shared_pos=false, bool check_size=true>
+template <class Key, class T, bool shared_pos = false, bool check_size = true,
+          bool shared_tpos = false>
 class idx_map
 {
 public:
@@ -59,27 +60,15 @@ public:
             return _pos;
     }
 
-    template <class P>
-    std::pair<iterator,bool> insert(P&& value)
+    std::pair<iterator, bool> insert(const std::pair<Key, T>& value)
     {
-        auto& pos = get_pos();
-        if constexpr (check_size)
-        {
-            if (pos.size() <= size_t(value.first))
-                pos.resize(get_size(value.first + 1), _null);
-        }
-        size_t& idx = pos[value.first];
-        if (idx == _null || shared_pos)
-        {
-            idx = _items.size();
-            _items.push_back(value);
-            return std::make_pair(begin() + idx, true);
-        }
-        else
-        {
-            _items[idx].second = value.second;
-            return std::make_pair(begin() + idx, false);
-        }
+        return insert_or_emplace<true>(value.first, value.second);
+    }
+
+    template <class... Args>
+    std::pair<iterator, bool> emplace(const Key& k, Args&&... args)
+    {
+        return insert_or_emplace<false>(k, std::forward<Args>(args)...);
     }
 
     size_t erase(const Key& k)
@@ -109,7 +98,12 @@ public:
     {
         auto iter = find(key);
         if (iter == end())
-            iter = insert(std::make_pair(key, T())).first;
+        {
+            if constexpr (shared_tpos)
+                iter = insert(std::make_pair(key, T(_tpos))).first;
+            else
+                iter = insert(std::make_pair(key, T())).first;
+        }
         return iter->second;
     }
 
@@ -174,13 +168,52 @@ public:
     bool empty() { return _items.empty(); }
 
 private:
+    template <bool insert, class A, class... Args>
+    std::pair<iterator, bool> insert_or_emplace(const Key& k, A&& a,
+                                                Args&&... args)
+    {
+        auto& pos = get_pos();
+        if constexpr (check_size)
+        {
+            if (pos.size() <= size_t(k))
+                pos.resize(get_size(k + 1), _null);
+        }
+
+        size_t& idx = pos[k];
+        if (idx == _null || shared_pos)
+        {
+            idx = _items.size();
+            if constexpr (insert)
+                _items.emplace_back(k, a);
+            else
+                _items.emplace_back(std::piecewise_construct,
+                                    std::forward_as_tuple(k),
+                                    std::forward_as_tuple(a, args...));
+            return std::make_pair(begin() + idx, true);
+        }
+        else
+        {
+            if constexpr (insert)
+                _items[idx].second = a;
+            else
+                _items.emplace(_items.begin() + idx,
+                               std::piecewise_construct,
+                               std::forward_as_tuple(k),
+                               std::forward_as_tuple(a, args...));
+            return std::make_pair(begin() + idx, false);
+        }
+    }
+
     std::vector<std::pair<Key,T>> _items;
     std::conditional_t<shared_pos,
                        std::vector<size_t>*,
                        std::vector<size_t>> _pos;
     inline static constexpr size_t _null = std::numeric_limits<size_t>::max();
+    struct empty_t {};
+    std::conditional_t<shared_tpos,
+                       std::vector<size_t>,
+                       empty_t> _tpos;
 };
-
 
 template <class Key, bool shared_pos=false, bool check_size=true>
 class idx_set
@@ -302,5 +335,6 @@ private:
     std::conditional_t<shared_pos, pos_t*, pos_t> _pos;
     inline static constexpr size_t _null = std::numeric_limits<size_t>::max();
 };
+
 
 #endif // IDX_MAP_HH

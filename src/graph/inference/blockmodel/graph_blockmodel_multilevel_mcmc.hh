@@ -319,22 +319,7 @@ struct MCMC
 
     };
 
-    class gmap_t :
-        public idx_map<size_t, idx_set<size_t, true>>
-    {
-    public:
-
-        idx_set<size_t, true>& operator[](const size_t& key)
-        {
-            auto iter = find(key);
-            if (iter == end())
-                iter = insert(std::make_pair(key, idx_set<size_t, true>(_pos))).first;
-            return iter->second;
-        }
-
-    private:
-        std::vector<size_t> _pos;
-    };
+    using gmap_t = idx_map<size_t, idx_set<size_t, true>, false, true, true>;
 
     template <class T>
     using iset = idx_set<T>;

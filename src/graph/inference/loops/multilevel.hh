@@ -1030,9 +1030,6 @@ struct Multilevel:
         for (auto& v : _vs)
             move_node(v, _bprev[v]);
 
-        if (_force_accept)
-            _dS = -numeric_limits<double>::infinity();
-
         return {0, _nmoves};
     }
 

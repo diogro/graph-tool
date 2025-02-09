@@ -71,6 +71,7 @@ struct MetropolisStateBase
     template <class Node, class State>
     constexpr void step(Node&&, State&&) { };
 
+    constexpr static bool _force_accept = false;
     constexpr static bool _verbose = false;
 };
 
@@ -177,7 +178,7 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
             nattempts += nsteps;
 
             bool accept = false;
-            if (metropolis_accept(dS, mP, beta, rng))
+            if (metropolis_accept(dS, mP, beta, rng) || state._force_accept)
             {
                 state.perform_move(v, s);
                 nmoves += nsteps;

@@ -329,7 +329,10 @@ public:
 
         double get_edges_dl(const std::array<int,3>& dE, int dB)
         {
-            size_t B = _ustate._candidate_groups.size() + dB;
+            size_t B = 0;
+            for (auto& ps : _ustate._partition_stats)
+                B += ps.get_actual_B();
+            B += dB;
 
             double S = 0;
 
@@ -403,6 +406,11 @@ public:
         size_t virtual_remove_size(size_t v)
         {
             return _ustate.virtual_remove_size(v);
+        }
+
+        auto& get_candidate_groups(size_t v)
+        {
+            return _ustate.get_candidate_groups(v);
         }
 
         template <class V>

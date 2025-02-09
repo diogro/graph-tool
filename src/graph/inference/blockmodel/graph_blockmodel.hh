@@ -143,7 +143,7 @@ public:
             if (_wr[r] == 0)
                 _empty_groups.insert(r);
             else
-                _candidate_groups.insert(r);
+                _candidate_groups[_bclabel[r]].insert(r);
         }
 
         for (auto& p : _brec)
@@ -189,14 +189,12 @@ public:
         }
         _dBdx.resize(_rec_types.size());
 
-        _N = 0;
-
         if constexpr (std::is_same_v<degs_t, degs_map_t::unchecked_t>)
             _degs.resize(num_vertices(_g));
 
         for (auto v : vertices_range(_g))
         {
-            _N += _vweight[v];
+            _N[_bclabel[_b[v]]] += _vweight[v];
             if constexpr (std::is_same_v<degs_t, degs_map_t::unchecked_t>)
             {
                 _degs[v] = {in_degreeS()(v, _g, _eweight),
@@ -435,7 +433,7 @@ public:
 
         if (_vweight[v] > 0 && _wr[r] == _vweight[v])
         {
-            _candidate_groups.erase(r);
+            _candidate_groups[_bclabel[r]].erase(r);
             _empty_groups.insert(r);
 
             if (_coupled_state != nullptr)
@@ -465,7 +463,7 @@ public:
         if (_vweight[v] > 0 && _wr[r] == _vweight[v])
         {
             _empty_groups.erase(r);
-            _candidate_groups.insert(r);
+            _candidate_groups[_bclabel[r]].insert(r);
 
             if (_coupled_state != nullptr)
             {
@@ -823,9 +821,10 @@ public:
     template <class VMap>
     void set_vertex_weight(size_t v, int w, VMap&& vweight)
     {
-        _N -= vweight[v];
+        auto r = _b[v];
+        _N[_bclabel[r]] -= vweight[v];
         vweight[v] = w;
-        _N += w;
+        _N[_bclabel[r]] += w;
     }
 
     void init_vertex_weight(size_t v)
@@ -1511,8 +1510,8 @@ public:
     {
         if (_empty_groups.empty() || force_add)
         {
-            size_t s = add_block();
             auto r = _b[v];
+            auto s = add_block();
             _bclabel[s] = _bclabel[r];
             if (_coupled_state != nullptr)
             {
@@ -1523,7 +1522,10 @@ public:
             }
             return s;
         }
-        return *(_empty_groups.end()-1);
+        else
+        {
+            return *(_empty_groups.end()-1);
+        }
     }
 
     void sample_branch(size_t v, size_t u, rng_t& rng)
@@ -1531,10 +1533,12 @@ public:
         size_t s;
         auto r = _b[u];
 
-        std::bernoulli_distribution new_r(1./(_candidate_groups.size()+1));
-        if (_candidate_groups.size() < num_vertices(_g) && new_r(rng))
+        auto& candidate_groups = _candidate_groups[_bclabel[r]];
+
+        std::bernoulli_distribution new_r(1./(candidate_groups.size()+1));
+        if (candidate_groups.size() < _N[_bclabel[r]] && new_r(rng))
         {
-            get_empty_block(v);
+            get_empty_block(u);
             s = uniform_sample(_empty_groups, rng);
             if (_coupled_state != nullptr)
             {
@@ -1546,47 +1550,24 @@ public:
         }
         else
         {
-            s = uniform_sample(_candidate_groups, rng);
+            s = uniform_sample(candidate_groups, rng);
         }
         _b[v] = s;
-    }
-
-    void copy_branch(size_t r, BlockStateVirtualBase& state)
-    {
-        if (r >= num_vertices(_bg))
-            add_block(r - num_vertices(_bg) + 1);
-
-        _bclabel[r] = state.get_bclabel()[r];
-
-        if (_coupled_state != nullptr)
-        {
-            auto& cstate = *state.get_coupled_state();
-            auto& sbh = cstate.get_b();
-
-            auto s = sbh[r];
-
-            _coupled_state->copy_branch(s, cstate);
-
-            auto& bh = _coupled_state->get_b();
-            bh[r] = s;
-            auto& pclabel = cstate.get_pclabel();
-            auto& hpclabel = _coupled_state->get_pclabel();
-            hpclabel[r] = pclabel[r];
-        }
     }
 
     // Sample node placement
     size_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
-        size_t B = _candidate_groups.size();
+        auto r = _b[v];
+
+        size_t B = _candidate_groups[_bclabel[r]].size();
 
         // attempt new block
         std::bernoulli_distribution new_r(d);
-        if (d > 0 && B < _N && new_r(rng))
+        if (d > 0 && B < _N[_bclabel[r]] && new_r(rng))
         {
             get_empty_block(v);
             auto s = uniform_sample(_empty_groups, rng);
-            auto r = _b[v];
             if (_coupled_state != nullptr)
             {
                 _coupled_state->sample_branch(s, r, rng);
@@ -1620,12 +1601,12 @@ public:
             }
             else
             {
-                s = uniform_sample(_candidate_groups, rng);
+                s = uniform_sample(_candidate_groups[_bclabel[r]], rng);
             }
         }
         else
         {
-            s = uniform_sample(_candidate_groups, rng);
+            s = uniform_sample(_candidate_groups[_bclabel[r]], rng);
         }
 
         return s;
@@ -1648,7 +1629,7 @@ public:
         }
         else
         {
-            return uniform_sample(_candidate_groups, rng);
+            return uniform_sample(_candidate_groups[_bclabel[_b[v]]], rng);
         }
     }
 
@@ -1657,7 +1638,7 @@ public:
     double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
                          bool reverse, MEntries& m_entries)
     {
-        size_t B = _candidate_groups.size();
+        size_t B = _candidate_groups[_bclabel[r]].size();
 
         if (r == s)
             reverse = false;
@@ -1676,7 +1657,7 @@ public:
                 return log(d);
         }
 
-        if (B == _N)
+        if (B == _N[_bclabel[r]])
             d = 0;
 
         if (std::isinf(c))
@@ -2435,7 +2416,10 @@ public:
 
     size_t get_N()
     {
-        return _N;
+        size_t N = 0;
+        for (auto& [k, n] : _N)
+            N += n;
+        return N;
     }
 
     size_t get_E()
@@ -2546,6 +2530,11 @@ public:
         _egroups_update = !relax;
         if (_coupled_state != nullptr)
             _coupled_state->relax_update(relax);
+    }
+
+    auto& get_candidate_groups(size_t v)
+    {
+        return _candidate_groups[_bclabel[_b[v]]];
     }
 
     double _global = false;
@@ -2739,7 +2728,7 @@ public:
         bg_t;
     bg_t& _bg;
 
-    idx_set<size_t> _candidate_groups;
+    idx_map<size_t, idx_set<size_t, true>, false, true, true> _candidate_groups;
     idx_set<size_t> _empty_groups;
 
     std::vector<double> _recsum;
@@ -2748,7 +2737,7 @@ public:
     size_t _B_E = 0;
     size_t _B_E_D = 0;
     int _rt = weight_type::NONE;
-    size_t _N;
+    idx_map<size_t, size_t> _N;
     size_t _E;
 
     vweight_t _vweight;

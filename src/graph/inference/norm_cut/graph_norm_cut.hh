@@ -102,6 +102,11 @@ public:
         }
     }
 
+    auto& get_candidate_groups(size_t)
+    {
+        return _candidate_groups;
+    }
+
     typedef typename
         std::conditional<is_directed_::apply<g_t>::type::value,
                          GraphInterface::multigraph_t,

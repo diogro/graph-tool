@@ -627,10 +627,6 @@ public:
     {
     }
 
-    void copy_branch(size_t, BlockStateVirtualBase&)
-    {
-    }
-
     template <class RNG>
     size_t get_lateral_half_edge(size_t v, RNG& rng)
     {
@@ -1158,6 +1154,11 @@ public:
         }
         _emat.add_block(_bg);
         return r;
+    }
+
+    auto& get_candidate_groups(size_t)
+    {
+        return _candidate_groups;
     }
 
     void add_edge(const GraphInterface::edge_t&)

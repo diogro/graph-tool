@@ -122,13 +122,21 @@ struct MCMC
         template <bool sample_branch=true, class RNG, class VS = std::array<size_t,0>>
         size_t sample_new_group(size_t v, RNG& rng, VS&& except = VS())
         {
-            _state.get_empty_block(v, except.size() >= _state._empty_groups.size());
-            size_t t;
-            do
+            for (auto r : except)
             {
-                t = uniform_sample(_state._empty_groups, rng);
-            } while (!except.empty() &&
-                     std::find(except.begin(), except.end(), t) != except.end());
+                if (_state._empty_groups.find(r) != _state._empty_groups.end())
+                    _state._empty_groups.erase(r);
+            }
+
+            _state.get_empty_block(v);
+
+            auto t = uniform_sample(_state._empty_groups, rng);
+
+            for (auto r : except)
+            {
+                if (r != _null_group &&_state._wr[r] == 0)
+                    _state._empty_groups.insert(r);
+            }
 
             auto r = _state._b[v];
             _state._bclabel[t] = _state._bclabel[r];
@@ -138,11 +146,7 @@ struct MCMC
             {
                 if constexpr (sample_branch)
                 {
-                    do
-                    {
-                        cstate->sample_branch(t, r, rng);
-                    }
-                    while(!_state.allow_move(r, t));
+                    cstate->sample_branch(t, r, rng);
                 }
                 else
                 {
@@ -231,22 +235,7 @@ struct MCMC
         }
    };
 
-    class gmap_t :
-        public idx_map<size_t, idx_set<size_t, true>>
-    {
-    public:
-
-        idx_set<size_t, true>& operator[](const size_t& key)
-        {
-            auto iter = find(key);
-            if (iter == end())
-                iter = insert(std::make_pair(key, idx_set<size_t, true>(_pos))).first;
-            return iter->second;
-        }
-
-    private:
-        std::vector<size_t> _pos;
-    };
+    using gmap_t = idx_map<size_t, idx_set<size_t, true>, false, true, true>;
 
     template <class T>
     using iset = idx_set<T>;

@@ -697,7 +697,8 @@ class OverlapBlockState(BlockState):
         from graph_tool.draw import graph_draw
         return graph_draw(self.base_g,
                           vertex_shape=kwargs.get("vertex_shape", "pie"),
-                          vertex_pie_colors=kwargs.get("vertex_pie_colors", bv),
+                          vertex_pie_colors=kwargs.get("vertex_pie_colors",
+                                                       bv),
                           vertex_pie_fractions=kwargs.get("vertex_pie_fractions",
                                                           pie_fractions),
                           edge_gradient=gradient,

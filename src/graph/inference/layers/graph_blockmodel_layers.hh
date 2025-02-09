@@ -42,8 +42,8 @@ typedef std::vector<bmap_t> vbmap_t;
 
 #define LAYERED_BLOCK_STATE_params                                             \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((alayer_states,, std::vector<std::any>, 0))                             \
-    ((ablock_rmaps,, std::vector<std::any>, 0))                              \
+    ((alayer_states,, std::vector<std::any>, 0))                               \
+    ((ablock_rmaps,, std::vector<std::any>, 0))                                \
     ((ec,, emap_t, 0))                                                         \
     ((vc,, vcvmap_t, 0))                                                       \
     ((vmap,, vcvmap_t, 0))                                                     \
@@ -717,10 +717,6 @@ struct Layers
         void sample_branch(size_t v, size_t u, rng_t& rng)
         {
             BaseState::sample_branch(v, u, rng);
-        }
-
-        void copy_branch(size_t, BlockStateVirtualBase&)
-        {
         }
 
         double entropy(const entropy_args_t& ea, bool propagate=false)

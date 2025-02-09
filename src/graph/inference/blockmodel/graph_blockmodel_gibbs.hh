@@ -75,12 +75,11 @@ struct Gibbs
 
         std::vector<size_t> _candidate_groups;
 
-        auto& get_moves(size_t)
+        auto& get_moves(size_t v)
         {
             _candidate_groups.clear();
-            _candidate_groups.insert(_candidate_groups.end(),
-                                     _state._candidate_groups.begin(),
-                                     _state._candidate_groups.end());
+            const auto& c = _state.get_candidate_groups(v);
+            _candidate_groups.insert(_candidate_groups.end(), c.begin(), c.end());
             _candidate_groups.push_back(null_group);
             return _candidate_groups;
         }

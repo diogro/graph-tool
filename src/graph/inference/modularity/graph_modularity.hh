@@ -44,7 +44,7 @@ typedef decltype(hana::tuple_t<eprop_map_t<int32_t>,
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(never_directed), 1))                                      \
     ((eweight,, emaps_t, 1))                                                   \
-    ((_abg, &, std::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                  \
     ((b,, vmap_t, 0))
 
 GEN_STATE_BASE(ModularityStateBase, BLOCK_STATE_params)
@@ -198,8 +198,20 @@ public:
         return _wr[_b[v]] - 1;
     }
 
-    constexpr void add_block(size_t)
+    size_t add_block(size_t n = 1)
     {
+        size_t N = num_vertices(_bg);
+        assert(_wr.size() == N);
+        _wr.resize(N + n, 0);
+        _er.resize(N + n, 0);
+        _err.resize(N + n, 0);
+        _bclabel.resize(N + n);
+        for (size_t i = 0; i < n; ++i)
+        {
+            auto r = boost::add_vertex(_bg);
+            _empty_groups.insert(r);
+        }
+        return N;
     }
 
     double virtual_move(size_t v, size_t r, size_t nr,
@@ -245,8 +257,10 @@ public:
         return dS;
     }
 
-    size_t get_empty_block(size_t, bool=false)
+    size_t get_empty_block(size_t, bool force_add = false)
     {
+        if (_empty_groups.empty() || force_add)
+            return add_block();
         return *(_empty_groups.end() - 1);
     }
 
@@ -358,6 +372,11 @@ public:
     constexpr bool allow_move(size_t, size_t)
     {
         return true;
+    }
+
+    auto& get_candidate_groups(size_t)
+    {
+        return _candidate_groups;
     }
 
     template <class V>

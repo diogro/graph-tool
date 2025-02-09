@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import _prop, Graph, GraphView, libcore, _get_rng
+from .. import _prop, Graph, GraphView, libcore, _get_rng, openmp_context
 import numpy
 import copy
 import warnings
@@ -323,11 +323,12 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         idx = perfect_prop_hash([node_index])[0]
         nindex = node_index.fa[:idx.fa.max() + 1]
-        base_u, vcount, ecount = condensation_graph(u, idx,
-                                                    parallel_edges=True)
-        nindex = base_u.new_ep("int64_t", vals=nindex)
+        with openmp_context(nthreads=1):
+            base_u, vcount, ecount = condensation_graph(u, idx,
+                                                        parallel_edges=True)
+        nindex = base_u.new_vp("int64_t", vals=nindex)
 
-        rindex = np.zeros(nindex.a.max() + 1, dtype="int64")
+        rindex = np.zeros(node_index.a.max() + 1, dtype="int64")
         reverse_map(nindex, rindex)
         pmap(node_index, rindex)
         base_u.vp["vmap"] = nindex
@@ -486,17 +487,15 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             else:
                 urec = ug.new_ep("vector<double>")
                 udrec = ug.new_ep("vector<double>")
-            bg, props = graph_merge(bg, ug,
-                                    props={"set": [(mrs, ug.ep["count"]),
-                                                   (ec, uec),
-                                                   (rec, urec),
-                                                   (drec, udrec)]},
-                                    multiset=True,
-                                    in_place=True)
-            mrs = props[0]
-            ec = props[1]
-            rec = props[2]
-            drec = props[3]
+            with openmp_context(nthreads=1):
+                bg, props = graph_merge(bg, ug,
+                                        props={"set": [(mrs, ug.ep["count"]),
+                                                       (ec, uec),
+                                                       (rec, urec),
+                                                       (drec, udrec)]},
+                                        multiset=True,
+                                        in_place=True)
+            mrs, ec, rec, drec = props["set"]
 
         rec = ungroup_vector_property(rec, range(len(self.rec)))
         drec = ungroup_vector_property(drec, range(len(self.drec)))
@@ -1054,7 +1053,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
 
 def init_layer_confined(g, ec):
-    tmp_state = CovariateBlockState(g, ec=ec, B=g.num_vertices())
+    tmp_state = LayeredBlockState(g, ec=ec, B=g.num_vertices())
     tmp_state = tmp_state.copy(overlap=True)
     be = tmp_state.get_edge_blocks()
     ba = ungroup_vector_property(be, [0])[0]

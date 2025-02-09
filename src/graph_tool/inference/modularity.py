@@ -144,9 +144,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             eweight = g.own_property(eweight)
         self.eweight = eweight
 
-        self.bg = self.g.base
-        if self.bg.is_directed():
-            self.bg = GraphView(self.bg, directed=False)
+        self.bg = Graph(g.num_vertices(), directed=False)
         self._abg = self.bg._get_any()
         self._state = libinference.make_modularity_state(self)
 
@@ -187,7 +185,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         w = np.array(w, dtype="double")
         w = w[w>0]
         w /= w.sum()
-        return np.exp(-(w*log(w)).sum())
+        return np.exp(-(w*np.log(w)).sum())
 
     @copy_state_wrap
     def _entropy(self, gamma=1.):

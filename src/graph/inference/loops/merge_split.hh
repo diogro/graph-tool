@@ -911,16 +911,12 @@ struct MergeSplit:
     Group sample_move(const Group& r, RNG& rng)
     {
         Node v = uniform_sample(_groups[r], rng);
-        auto s = r;
-        while (s == r)
-            s = State::sample_group(v, allow_empty, rng);   // FIXME: eliminate rejection
-        return s;
+        return State::sample_group(v, allow_empty, rng);
     }
 
     double get_move_prob(const Group& r, const Group& s)
     {
         double prs = -numeric_limits<double>::infinity();
-        double prr = -numeric_limits<double>::infinity();
         auto& vs = _groups[r];
 
         std::vector<Node> vs_;
@@ -932,17 +928,14 @@ struct MergeSplit:
         {
             const auto& v = vs_[i];
             auto ps = State::get_move_prob(v, r, s, allow_empty, false);
-            auto pr = State::get_move_prob(v, r, r, allow_empty, false);
             #pragma omp critical (get_move_prob)
             {
                 prs = log_sum_exp(prs, ps);
-                prr = log_sum_exp(prr, pr);
             }
         }
         prs -= safelog_fast(vs.size());
-        prr -= safelog_fast(vs.size());
 
-        auto lp = prs - log1p(-exp(prr));
+        auto lp = prs;
         assert(!std::isnan(lp));
         return lp;
     }
