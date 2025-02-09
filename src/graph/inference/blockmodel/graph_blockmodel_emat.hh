@@ -117,9 +117,10 @@ public:
 
         _h.clear();
         _h.resize(0);
+#ifdef HAVE_SPARSEHASH
         _h.max_load_factor(.5);
         _h.min_load_factor(.25);
-
+#endif
         for (auto e : edges_range(bg))
         {
             assert(get_me(source(e, bg), target(e, bg)) == _null_edge);
