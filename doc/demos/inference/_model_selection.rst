@@ -24,8 +24,8 @@ case of the :ns:`political blogs <polblogs>` network we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:     63114.098664...
-   Degree-corrected DL:         61540.920016...
+   Non-degree-corrected DL:     63132.269843...
+   Degree-corrected DL:         61570.084731...
 
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
@@ -51,7 +51,7 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -1573.178648...
+   ln Λ:  -1562.185111...
 
 The precise threshold that should be used to decide when to `reject a hypothesis
 <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is subjective and
@@ -66,7 +66,7 @@ example, for the American football network above, we have:
 
 .. testsetup:: model-selection-football
 
-   gt.seed_rng(42)
+   gt.seed_rng(43)
 
 .. testcode:: model-selection-football
 
@@ -83,8 +83,8 @@ example, for the American football network above, we have:
    :options: +NORMALIZE_WHITESPACE
 
    Non-degree-corrected DL:     1733.525685...
-   Degree-corrected DL:         1782.407946...
-   ln Λ:                        -48.882261...
+   Degree-corrected DL:         1782.020007...
+   ln Λ:                        -48.4943222...
 
 Hence, with a posterior odds ratio of :math:`\Lambda \approx
 \mathrm{e}^{-48} \approx 10^{-21}` in favor of the non-degree-corrected
