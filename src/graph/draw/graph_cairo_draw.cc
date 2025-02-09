@@ -252,9 +252,11 @@ struct convert_dispatch<vector<color_t>, vector<T2>>
     vector<color_t> operator()(const vector<T2>& cv) const
     {
         auto c = [](auto&& x) { return convert<double>(x); };
+        vector<color_t> color;
+        if (cv.empty())
+            return color;
         if (cv.size() < 4)
             throw bad_lexical_cast();
-        vector<color_t> color;
         for (size_t i = 0; i < cv.size() / 4; ++i)
         {
             if (4 * i + 3 >= cv.size())
@@ -363,7 +365,7 @@ double get_polygon_anchor(size_t N, double radius, double angle)
 void draw_pie(double radius, const vector<double>& f,
               const vector<color_t>& colors, Cairo::Context& cr)
 {
-    if (colors.empty())
+    if (!f.empty() && colors.empty())
         throw ValueException("No pie colors!");
     double s = 0;
     for (size_t i = 0; i < f.size(); ++i)
