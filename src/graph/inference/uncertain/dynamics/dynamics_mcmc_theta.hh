@@ -132,13 +132,19 @@ struct MCMCTheta
 
             bool new_nx;
             double lf_x_old = -numeric_limits<double>::infinity();
+
+            // workaround clang bug with captures
+            auto& nx_ = nx;
+            auto& dS_ = dS;
+            auto& sampler_ = sampler;
+            auto& move_ = move;
             do_slock
                 ([&]()
                  {
-                     std::tie(nx, dS, sampler, new_nx) =
-                         sample_nx(v, move == xmove_t::x_old, rng);
+                     std::tie(nx_, dS_, sampler_, new_nx) =
+                         sample_nx(v, move_ == xmove_t::x_old, rng);
                      if (!std::isinf(_beta) && !new_nx)
-                         lf_x_old = sample_old_x_lprob(nx, sampler);
+                         lf_x_old = sample_old_x_lprob(nx_, sampler_);
                  },
                  _tvals_mutex, _parallel && !_pseudo);
 
@@ -282,21 +288,24 @@ struct MCMCTheta
             bool new_x = true;
             if (told)
             {
+                auto& sampler_ = sampler; // workaround clang bug
+                auto& nx_ = nx;
                 do_slock
                     ([&]()
                      {
-                         SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
-                         nx = set_sampler.sample(_beta, rng);
+                         SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler_);
+                         nx_ = set_sampler.sample(_beta, rng);
                      },
                      _tvals_mutex, _parallel && _pseudo);
                 new_x = false;
             }
             else
             {
+                auto& nx_ = nx;  // workaround clang bug
                 do_slock
                     ([&]()
                      {
-                         new_x = (_state.get_count(_state._thist, nx) == 0);
+                         new_x = (_state.get_count(_state._thist, nx_) == 0);
                      },
                      _tvals_mutex, _parallel && _pseudo);
             }
