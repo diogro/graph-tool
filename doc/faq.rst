@@ -68,7 +68,7 @@ the section :ref:`inference-howto`, e.g.
 
    For a more detailed explanation see `“Modularity maximization
    considered harmful”
-   <https://skewed.de/tiago/blog/modularity-harmful>`_, as well as
+   <https://skewed.de/lab/posts/modularity-harmful>`_, as well as
    [peixoto-descriptive-2023]_.
 
    Do not use this approach in the analysis of networks without

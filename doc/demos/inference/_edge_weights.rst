@@ -104,7 +104,7 @@ the weights, as follows:
        os.chdir("demos/inference")
    except FileNotFoundError:
        pass
-   gt.seed_rng(42)
+   gt.seed_rng(46)
          
 .. testcode:: weighted-model
 
@@ -122,7 +122,7 @@ the weights, as follows:
    for i in range(100):
        ret = state.multiflip_mcmc_sweep(niter=10, beta=np.inf)
 
-   state.draw(edge_color=g.ep.weight, ecmap=(matplotlib.cm.inferno, .6),
+   state.draw(edge_color=g.ep.weight.copy("double"), ecmap=matplotlib.cm.plasma,
               eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 2, 8, power=1),
               edge_gradient=[], output="moreno-train-wsbm.svg")
 
