@@ -1432,7 +1432,7 @@ struct Dynamics
                 {
                     if (edge(v, v, g).second)
                         continue;
-                    boost::add_edge(v, v, g).first;
+                    boost::add_edge(v, v, g);
                 }
             }
 

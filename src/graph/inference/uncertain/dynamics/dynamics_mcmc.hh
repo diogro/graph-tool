@@ -190,7 +190,9 @@ struct MCMC
         template <class RNG>
         bool stage_proposal(std::tuple<size_t, size_t>& uv, RNG& rng)
         {
-            auto& [u, v] = uv;
+            // captures not supported with clang w/ openmp
+            auto& u = get<0>(uv);
+            auto& v = get<1>(uv);
 
             auto& es = get_elist_state();
 
@@ -437,9 +439,15 @@ struct MCMC
         std::tuple<double, double>
         virtual_move_dS(std::tuple<size_t, size_t>& uv, move_t& mv)
         {
-            auto& [u, v] = uv;
-            auto [m, x] = _state.edge_state(u, v);
-            auto& [dm, nx] = mv;
+            auto& u = get<0>(uv);  // captures are not supported by clang w/ openmp
+            auto& v = get<1>(uv);
+
+            auto mx = _state.edge_state(u, v);
+            auto& m = get<0>(mx);
+            auto& x = get<1>(mx);
+
+            auto& dm = get<0>(mv);
+            auto& nx = get<1>(mv);
 
             if (dm == 0 && nx == x)
                 return {0., 0.};
