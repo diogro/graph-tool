@@ -121,7 +121,7 @@ bool compare_vertex_properties(const GraphInterface& src,
                  (g,
                   [&](auto v)
                   {
-                      if (tgt[v] != get(src, v))
+                      if (get(tgt, v) != get(src, v))
                           ret_ = false;
                   },
                   (ValueException*)(nullptr));
@@ -132,7 +132,7 @@ bool compare_vertex_properties(const GraphInterface& src,
              ret = ret_;
          },
          all_graph_views,
-         writable_vertex_properties,
+         vertex_properties,
          hana::concat(vprop_same_type, dynamic_prop_type))
          (src.get_graph_view(), prop_tgt,
           vprop_map_as_dynamic(prop_src, prop_tgt));
@@ -164,7 +164,7 @@ bool compare_edge_properties(const GraphInterface& src,
                  (g,
                   [&](auto e)
                   {
-                      if (tgt[e] != get(src, e))
+                      if (get(tgt, e) != get(src, e))
                           ret_ = false;
                   },
                   (ValueException*)(nullptr));
@@ -175,7 +175,7 @@ bool compare_edge_properties(const GraphInterface& src,
              ret = ret_;
          },
          all_graph_views,
-         writable_edge_properties,
+         edge_properties,
          hana::concat(eprop_same_type, dynamic_prop_type))
          (src.get_graph_view(), prop_tgt,
           eprop_map_as_dynamic(prop_src, prop_tgt));

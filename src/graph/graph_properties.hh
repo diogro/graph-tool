@@ -400,8 +400,8 @@ public:
         hana::for_each(pts,
                        [&](auto t)
                        {
-                           choose_converter()((typename decltype(t)::type*)(nullptr),
-                                              pmap, _converter, _value_type);
+                           typedef typename decltype(t)::type map_t;
+                           choose_converter<map_t>(pmap, _converter, _value_type);
                        });
 
         if (_converter.get() == nullptr)
@@ -491,20 +491,16 @@ private:
         PropertyMap _pmap;
     };
 
-    struct choose_converter
+    template <class PropertyMap>
+    void choose_converter(std::any& dmap,
+                          std::shared_ptr<ValueConverter>& converter,
+                          std::type_info const*& value_type)
     {
-        typedef void return_type;
-        template <class PropertyMap>
-        void operator()(PropertyMap*, std::any& dmap,
-                        std::shared_ptr<ValueConverter>& converter,
-                        std::type_info const*& value_type) const
+        PropertyMap* pmap = std::any_cast<PropertyMap>(&dmap);
+        if (pmap != nullptr)
         {
-            PropertyMap* pmap = std::any_cast<PropertyMap>(&dmap);
-            if (pmap != nullptr)
-            {
-                converter = std::make_shared<ValueConverterImp<PropertyMap>>(*pmap);
-                value_type = &typeid(typename boost::property_traits<PropertyMap>::value_type);
-            }
+            converter = std::make_shared<ValueConverterImp<PropertyMap>>(*pmap);
+            value_type = &typeid(typename boost::property_traits<PropertyMap>::value_type);
         }
     };
 

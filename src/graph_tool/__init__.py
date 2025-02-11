@@ -983,6 +983,8 @@ class VertexPropertyMap(PropertyMap):
     def __eq__(self, other):
         if not isinstance(other, VertexPropertyMap):
             return False
+        if other is self:
+            return True
         g = self.get_graph()
         if g.base is not other.get_graph().base:
             return False
@@ -1064,6 +1066,8 @@ class EdgePropertyMap(PropertyMap):
     def __eq__(self, other):
         if not isinstance(other, EdgePropertyMap):
             return False
+        if other is self:
+            return True
         g = self.get_graph()
         if g.base is not other.get_graph().base:
             return False
@@ -3626,7 +3630,8 @@ class Graph(object):
             for pmap in self.__known_properties.values():
                 if (pmap() is not None and pmap().key_type() == "v" and
                     pmap().is_writable() and
-                    pmap() not in [self.vertex_index, self.edge_index]):
+                    pmap() is not self.vertex_index and
+                    pmap() is not self.edge_index):
                     self.__graph.re_index_vertex_property(_prop("v", self, pmap()),
                                                           _prop("v", self, old_indices))
         else:
@@ -3634,7 +3639,8 @@ class Graph(object):
             pmaps = []
             for pmap in self.__known_properties.values():
                 if (pmap() is not None and pmap().key_type() in ["v", "e"] and
-                    pmap() not in [self.vertex_index, self.edge_index]):
+                    pmap() is not self.vertex_index and
+                    pmap() is not self.edge_index):
                     pmaps.append(pmap())
                     pname = "__tmp_purge_vertices_%d_%d" % (stamp, id(pmaps[-1]))
                     self.properties[(pmaps[-1].key_type(), pname)] = pmaps[-1]
