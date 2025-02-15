@@ -3084,7 +3084,7 @@ def max_cardinality_matching(g, weight=None, bipartite=False,
 
     If `heuristic == True`, the algorithm runs in time :math:`O(V + E)`.
 
-    If `brute_force == True`, the algorithm runs in time :math:`O(exp(E))`.
+    If `brute_force == True`, the algorithm runs in time :math:`O(\exp(E))`.
 
     For a more detailed description, see [boost-max-matching]_ and
     [boost-max-weighted-matching]_.

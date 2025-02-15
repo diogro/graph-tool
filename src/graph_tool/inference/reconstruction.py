@@ -1883,7 +1883,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
     def get_t(self):
         """Return the latent edge transmission probabilities."""
         x = self.get_x()
-        x.fa = 1-exp(x.fa)
+        x.fa = 1-np.exp(x.fa)
         return x
 
     def _mcmc_sweep(self, mcmc_state):
@@ -2207,10 +2207,10 @@ class PseudoNormalBlockState(BPBlockStateBase):
         pslack = self.params["pslack"]
         for v in self.u.vertices():
             k = v.out_degree(w)
-            theta[v] =  min(theta[v], -log(k)/2-pslack) if k > 0 else theta[v]
+            theta[v] =  min(theta[v], -np.log(k)/2-pslack) if k > 0 else theta[v]
         W = adjacency(self.u, self.x).tolil()
         for v in self.u.vertices():
-            W[int(v), int(v)] = 1/exp(theta[v] * 2)
+            W[int(v), int(v)] = 1/np.exp(theta[v] * 2)
         return W
 
     def get_theta_shifted(self):
@@ -2248,7 +2248,7 @@ class PseudoNormalBlockState(BPBlockStateBase):
         by ``s``."""
         h = self.get_theta_shifted()
         h.a = np.exp(h.a)
-        return NormalState(self.u, w=self.x, h=h, s=s)
+        return NormalState(self.u, w=self.x, sigma=h, s=s)
 
     def get_bp_state(self, **kwargs):
         """Return an :class:`~graph_tool.dynamics.NormalBPState` instance

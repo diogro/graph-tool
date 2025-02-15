@@ -94,6 +94,8 @@ on the simulation of the `Kinetic Ising model
 
 .. testcode:: dynamics
 
+   import numpy as np
+
    g = gt.collection.data["dolphins"]
    E = g.num_edges()
    N = g.num_vertices()
@@ -295,7 +297,7 @@ We will begin by fetching the data and computing the log-returns:
    stocks, s = zip(*[(stock, vals) for stock, vals in prices.items() if len(vals) == 1259])
 
    # compute log-returns
-   s = [[log(p[i+1]) - log(p[i]) for i in range(len(p)-1)] for p in s]
+   s = [[np.log(p[i+1]) - np.log(p[i]) for i in range(len(p)-1)] for p in s]
 
    s = array(s)
 
