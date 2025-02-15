@@ -19,7 +19,12 @@
 #include "graph.hh"
 #include "graph_properties.hh"
 
+#if (BOOST_VERSION >= 108800)
 #include <boost/graph/maximum_weighted_matching.hpp>
+#else
+#include <boost/graph/maximum_weighted_matching_new.hpp>
+#endif
+#include <boost/graph/maximum_weighted_matching_brute.hpp>
 
 #include "graph_bipartite_weighted_matching.hh"
 
@@ -85,12 +90,12 @@ void get_max_weighted_matching(GraphInterface& gi, std::any oweight,
              typedef std::remove_reference_t<decltype(g)> g_t;
 
              typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-             vprop_map_t<vertex_t> match(get(vertex_index,g));
+             vprop_map_t<vertex_t> match(get(vertex_index, g));
 
              if (brute_force)
-                 brute_force_maximum_weighted_matching(g, w, match);
+                 alt::brute_force_maximum_weighted_matching(g, w, match);
              else
-                 maximum_weighted_matching(g, w, match);
+                 maximum_weighted_matching(g, match, get(vertex_index, g), w);
 
              for (auto v : vertices_range(g))
              {

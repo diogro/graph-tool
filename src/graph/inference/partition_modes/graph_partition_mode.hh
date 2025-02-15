@@ -22,7 +22,6 @@
 
 #include <vector>
 
-#include <boost/graph/maximum_weighted_matching.hpp>
 #include "../blockmodel/graph_blockmodel_util.hh"
 #include "../../topology/graph_bipartite_weighted_matching.hh"
 
@@ -45,7 +44,6 @@ size_t partition_overlap(BV& x, BV& y)
     vprop_map_t<vertex_t> match(get(vertex_index_t(), g));
 
     auto& u = get_undirected_adaptor(g);
-    //maximum_weighted_matching(u, mrs, match);
     maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
     size_t m = 0;
