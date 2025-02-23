@@ -66,6 +66,12 @@ dist-hook:
 		fi \
 	done
 
+install-data-hook:
+	cd $(DESTDIR)$(pkgconfigdir) && $(LN_S) graph-tool-py${PYTHON_VERSION}.pc graph-tool-py.pc
+
+uninstall-hook:
+	cd $(DESTDIR)$(pkgconfigdir) && rm -f graph-tool-py.pc
+
 ##############
 # src/graph/ #
 ##############
