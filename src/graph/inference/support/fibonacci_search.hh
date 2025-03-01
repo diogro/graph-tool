@@ -190,7 +190,9 @@ public:
             return a;
         if constexpr (_discrete)
         {
-            std::uniform_int_distribution<Value> sample(a, b - 1);
+            if (b - a < 2)
+                return a;
+            std::uniform_int_distribution<Value> sample(a + 1, b - 1);
             return sample(rng);
         }
         else
