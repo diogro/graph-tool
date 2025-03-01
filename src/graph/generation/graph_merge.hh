@@ -494,7 +494,7 @@ struct property_merge
             {
                 if (val.size() > uval.size())
                     uval.resize(val.size());
-                for (size_t i = val.size(); i < val.size(); ++i)
+                for (size_t i = 0; i < val.size(); ++i)
                     uval[i] += convert<typename UVal::value_type>(val[i]);
             }
             else if constexpr (is_vector_v<UVal>)
