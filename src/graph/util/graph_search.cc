@@ -47,7 +47,7 @@ find_vertex_range(GraphInterface& gi, GraphInterface::deg_t adeg,
          {
              return find_vertices()(*gp, gp, deg, range, ret);
          },
-         all_selectors)(degree_selector(adeg));
+         all_prop_selectors)(degree_selector(adeg));
     return ret;
 }
 

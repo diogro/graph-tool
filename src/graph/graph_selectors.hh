@@ -308,8 +308,15 @@ inline constexpr auto scalar_selectors =
     hana::transform(vertex_scalar_properties,
                     [](auto t){ return hana::type<scalarS<typename decltype(t)::type>>();});
 
+inline constexpr auto prop_selectors =
+    hana::transform(vertex_properties,
+                    [](auto t){ return hana::type<scalarS<typename decltype(t)::type>>();});
+
 inline constexpr auto all_selectors =
     hana::concat(degree_selectors, scalar_selectors);
+
+inline constexpr auto all_prop_selectors =
+    hana::concat(degree_selectors, prop_selectors);
 
 
 // retrieves the appropriate degree selector
