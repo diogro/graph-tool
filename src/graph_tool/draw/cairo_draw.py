@@ -434,15 +434,15 @@ def _convert(attr, val, cmap, vnorm, pmap_default=False, g=None, k=None):
         elif isinstance(val, str):
             new_val = list(color_converter.to_rgba(val))
         elif isinstance(val, PropertyMap):
+            if not val.is_writable():
+                val = val.copy()
             if val.value_type() in ["vector<double>", "vector<long double>"]:
                 new_val = val
             elif val.value_type() in ["int16_t", "int32_t", "int64_t", "double",
-                                      "long double", "unsigned long",
-                                      "unsigned int", "bool"]:
+                                      "long double", "bool"]:
                 cmap, is_seq = choose_cm(val, cmap)
                 g = val.get_graph()
-                if val.value_type() in ["int16_t", "int32_t", "int64_t",
-                                        "unsigned long", "unsigned int"]:
+                if val.value_type() in ["int16_t", "int32_t", "int64_t"]:
                     if not is_seq and vnorm is None:
                         nval = val.copy()
                         nval.fa = rankdata(val.fa, method='dense') - 1
@@ -450,22 +450,19 @@ def _convert(attr, val, cmap, vnorm, pmap_default=False, g=None, k=None):
                         nval = val
                 else:
                     nval = val
-                try:
-                    vrange = [nval.fa.min(), nval.fa.max()]
-                except (AttributeError, ValueError):
-                    #vertex index
-                    vrange = [int(g.vertex(0, use_index=False)),
-                              int(g.vertex(g.num_vertices() - 1,
-                                           use_index=False))]
+
+                vrange = [nval.fa.min(), nval.fa.max()]
+
                 if vnorm is None:
                     if not is_seq:
-                        cnorm = lambda x : x % cmap.N
+                        def cnorm(x):
+                            return x % cmap.N
                     else:
                         cnorm = matplotlib.colors.Normalize(vmin=vrange[0],
                                                             vmax=vrange[1])
                 else:
                     cnorm = vnorm
-                    cnorm(vrange) # for auto-scale, if needed
+                    cnorm(vrange)  # for auto-scale, if needed
 
                 g = val.get_graph()
                 if val.key_type() == "v":
@@ -481,8 +478,7 @@ def _convert(attr, val, cmap, vnorm, pmap_default=False, g=None, k=None):
                     prop = g.new_vertex_property("vector<double>")
                 else:
                     prop = g.new_edge_property("vector<double>")
-                map_property_values(val, prop,
-                                    lambda x: color_converter.to_rgba(x))
+                map_property_values(val, prop, color_converter.to_rgba)
                 new_val = prop
             else:
                 raise ValueError("Invalid value for attribute %s: %s" %
@@ -490,14 +486,14 @@ def _convert(attr, val, cmap, vnorm, pmap_default=False, g=None, k=None):
         if pmap_default and not isinstance(val, PropertyMap):
             if attr in [vertex_attrs.color, vertex_attrs.fill_color,
                         vertex_attrs.text_color, vertex_attrs.halo_color]:
-                val_a = numpy.zeros((g.num_vertices(),len(new_val)))
+                val_a = numpy.zeros((g.num_vertices(), len(new_val)))
                 for i in range(len(new_val)):
                     val_a[:, i] = new_val[i]
                 return g.new_vertex_property("vector<double>", val_a)
             else:
                 val_a = numpy.zeros((g.num_edges(), len(new_val)))
                 for i in range(len(new_val)):
-                    val_a[:,i] = new_val[i]
+                    val_a[:, i] = new_val[i]
                 return g.new_edge_property("vector<double>", val_a)
         else:
             return new_val
