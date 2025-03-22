@@ -817,6 +817,73 @@ class MixedMeasuredBlockState(UncertainBaseState):
                                                  self._state,
                                                  _get_rng())
 
+class LatentMaskBlockState(UncertainBaseState):
+    r"""Inference state of a measured graph, using the stochastic block model as a
+    prior.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Measured graph.
+    ecount : :class:`~graph_tool.EdgePropertyMap`
+        Edge property map of type ``int64_t``, containing the edge counts in the
+        observed multigraph.
+    f : :class:`~graph_tool.EdgePropertyMap`
+        Edge property map of type ``double``, containing the probability of
+        preserving a latent edge count in the observed multigraph.
+    f_default : ``int`` (optional, default: ``0``)
+        Default probability of preserving a latent edge for edges not present in
+        ``g``.
+    nested : ``boolean`` (optional, default: ``True``)
+        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        will be used, otherwise
+        :class:`~graph_tool.inference.BlockState`.
+    state_args : ``dict`` (optional, default: ``{}``)
+        Arguments to be passed to
+        :class:`~graph_tool.inference.NestedBlockState` or
+        :class:`~graph_tool.inference.BlockState`.
+    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState` (optional, default: ``None``)
+        If passed, this will be used to initialize the block state
+        directly.
+
+    References
+    ----------
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing
+       networks with unknown and heterogeneous errors", Phys. Rev. X 8
+       041011 (2018). :doi:`10.1103/PhysRevX.8.041011`, :arxiv:`1806.07956`
+
+    """
+
+    def __init__(self, g, ecount, f, f_default=0., nested=True,
+                 state_args={}, init_count=1, bstate=None, **kwargs):
+
+        super().__init__(g, nested=nested, state_args=state_args, bstate=bstate,
+                         init_empty=True, **kwargs)
+
+        if ecount.value_type() != "int64_t":
+            ecount = ecount.copy(value_type="int64_t")
+        self.ecount = ecount
+        self.f = f
+        self.f_default = f_default
+        self.init = init_count if bstate is None else 0.
+        self.rng = _get_rng()
+
+        self._state = libinference.make_latent_mask_state(self.bstate._state,
+                                                          self)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        return dict(state, ecount=self.ecount, f=self.f, f_default=self.f_default)
+
+    def __repr__(self):
+        return "<LatentMaskBlockState object with %s, at 0x%x>" % \
+            (self.nbstate if self.nbstate is not None else self.bstate,
+             id(self))
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_latent_mask_sweep(mcmc_state,
+                                                   self._state,
+                                                   _get_rng())
 
 def marginal_multigraph_entropy(g, ecount):
     r"""Compute the entropy of the marginal latent multigraph distribution.

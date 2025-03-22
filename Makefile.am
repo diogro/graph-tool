@@ -484,6 +484,8 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/test/state.cc \
 	src/graph/inference/uncertain/latent_closure.cc \
 	src/graph/inference/uncertain/latent_closure_mcmc.cc \
+	src/graph/inference/uncertain/latent_mask.cc \
+	src/graph/inference/uncertain/latent_mask_mcmc.cc \
 	src/graph/inference/uncertain/measured.cc \
 	src/graph/inference/uncertain/measured_mcmc.cc \
 	src/graph/inference/uncertain/uncertain.cc \
@@ -606,6 +608,7 @@ dist_graph_inference_uncertain_HEADERS = \
 	src/graph/inference/uncertain/latent_closure.hh \
 	src/graph/inference/uncertain/latent_layers.hh \
 	src/graph/inference/uncertain/latent_layers_mcmc.hh \
+	src/graph/inference/uncertain/latent_mask.hh \
 	src/graph/inference/uncertain/measured.hh \
 	src/graph/inference/uncertain/uncertain.hh \
 	src/graph/inference/uncertain/uncertain_mcmc.hh \
