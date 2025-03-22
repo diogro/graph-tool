@@ -74,10 +74,10 @@ namespace graph_tool
 
 struct overlap_partition_stats_t
 {
-    typedef std::tuple<int, int> deg_t;
+    typedef std::tuple<int64_t, int64_t> deg_t;
     typedef boost::container::small_vector<deg_t, 64> cdeg_t;
 
-    typedef boost::container::small_vector<int, 64> bv_t;
+    typedef boost::container::small_vector<int64_t, 64> bv_t;
 
     typedef gt_hash_map<bv_t, size_t> bhist_t;
     typedef gt_hash_map<cdeg_t, size_t, std::hash<cdeg_t>> cdeg_hist_t;
@@ -86,7 +86,7 @@ struct overlap_partition_stats_t
 
     typedef gt_hash_map<bv_t, vector<size_t>> ebhist_t;
 
-    typedef gt_hash_map<int, int> dmap_t;
+    typedef gt_hash_map<int64_t, int64_t> dmap_t;
 
     template <class Graph, class Vprop, class Eprop, class Vlist>
     overlap_partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E,
@@ -226,7 +226,7 @@ struct overlap_partition_stats_t
         double S = 0;
         for (size_t d = 1; d < _dhist.size(); ++d)
         {
-            int nd = _dhist[d];
+            int64_t nd = _dhist[d];
             if (nd == 0)
                 continue;
             double x = lbinom_fast(_actual_B, d);
@@ -364,7 +364,7 @@ struct overlap_partition_stats_t
         size_t kin = (in_deg + out_deg == 0) ? in_degreeS()(v, g) : in_deg;
         size_t kout = (in_deg + out_deg == 0) ? out_degreeS()(v, g) : out_deg;
 
-        gt_hash_map<size_t, std::pair<int, int>> deg_delta;
+        gt_hash_map<size_t, std::pair<int64_t, int64_t>> deg_delta;
         //vector<size_t> rs;
 
         auto& d_r = deg_delta[r];
@@ -514,15 +514,15 @@ struct overlap_partition_stats_t
             S_a += lbinom_fast(n_D + _N - 1, _N);
         }
 
-        int dB = 0;
+        int64_t dB = 0;
         if (_overlap_stats->virtual_remove_size(v, o_r, in_deg, out_deg) == 0)
             dB--;
         if (_overlap_stats->get_block_size(o_nr) == 0)
             dB++;
 
-        auto get_S_d = [&] (size_t d_i, int delta, int dB) -> double
+        auto get_S_d = [&] (size_t d_i, int64_t delta, int64_t dB) -> double
             {
-                int nd = int(_dhist[d_i]) + delta;
+                int64_t nd = int64_t(_dhist[d_i]) + delta;
                 if (nd == 0)
                     return 0.;
                 double x = lbinom_fast(_actual_B + dB, d_i);
@@ -570,9 +570,9 @@ struct overlap_partition_stats_t
         assert(bv_count > 0);
         size_t n_bv_count = get_bv_count(n_bv);
 
-        auto get_S_b = [&] (bool is_bv, int delta) -> double
+        auto get_S_b = [&] (bool is_bv, int64_t delta) -> double
             {
-                assert(int(bv_count) + delta >= 0);
+                assert(int64_t(bv_count) + delta >= 0);
                 if (is_bv)
                     return -lgamma_fast(bv_count + delta + 1);
                 return -lgamma_fast(n_bv_count + delta + 1);
@@ -593,7 +593,7 @@ struct overlap_partition_stats_t
 
         double S_b = 0, S_a = 0;
 
-        int dB = 0;
+        int64_t dB = 0;
         if (_overlap_stats->virtual_remove_size(v, r) == 0)
             dB--;
         if (_overlap_stats->get_block_size(nr) == 0)
@@ -643,14 +643,14 @@ struct overlap_partition_stats_t
         size_t bv_count = get_bv_count(bv);
         size_t n_bv_count = bv_count;
 
-        auto get_S_bv = [&] (bool is_bv, int delta) -> double
+        auto get_S_bv = [&] (bool is_bv, int64_t delta) -> double
             {
                 if (is_bv)
                     return lgamma_fast(bv_count + delta + 1);
                 return lgamma_fast(n_bv_count + delta + 1);
             };
 
-        auto get_S_e = [&] (bool is_bv, int bdelta, int deg_delta) -> double
+        auto get_S_e = [&] (bool is_bv, int64_t bdelta, int64_t deg_delta) -> double
             {
                 size_t bv_c = ((is_bv) ? bv_count : n_bv_count) + bdelta;
                 if (bv_c == 0)
@@ -672,12 +672,12 @@ struct overlap_partition_stats_t
                     {
                         if (_directed)
                         {
-                            S += log_q(size_t(bmh[i] + deg_delta * int(get<0>(deg_i[i]))), bv_c);
-                            S += log_q(size_t(bph[i] + deg_delta * int(get<1>(deg_i[i]))), bv_c);
+                            S += log_q(size_t(bmh[i] + deg_delta * int64_t(get<0>(deg_i[i]))), bv_c);
+                            S += log_q(size_t(bph[i] + deg_delta * int64_t(get<1>(deg_i[i]))), bv_c);
                         }
                         else
                         {
-                            S += log_q(size_t(bph[i] + deg_delta * int(get<1>(deg_i[i]))) - bv_c, bv_c);
+                            S += log_q(size_t(bph[i] + deg_delta * int64_t(get<1>(deg_i[i]))) - bv_c, bv_c);
                         }
                     }
                 }
@@ -687,12 +687,12 @@ struct overlap_partition_stats_t
                     {
                         if (_directed)
                         {
-                            S += log_q(size_t(deg_delta * int(get<0>(deg_i[i]))), bv_c);
-                            S += log_q(size_t(deg_delta * int(get<1>(deg_i[i]))), bv_c);
+                            S += log_q(size_t(deg_delta * int64_t(get<0>(deg_i[i]))), bv_c);
+                            S += log_q(size_t(deg_delta * int64_t(get<1>(deg_i[i]))), bv_c);
                         }
                         else
                         {
-                            S += log_q(size_t(deg_delta * int(get<1>(deg_i[i]))) - bv_c, bv_c);
+                            S += log_q(size_t(deg_delta * int64_t(get<1>(deg_i[i]))) - bv_c, bv_c);
                         }
                     }
                 }
@@ -700,7 +700,7 @@ struct overlap_partition_stats_t
                 return S;
             };
 
-        auto get_S_e2 = [&] (int deg_delta, int ndeg_delta) -> double
+        auto get_S_e2 = [&] (int64_t deg_delta, int64_t ndeg_delta) -> double
             {
                 double S = 0;
                 const auto& bmh = _embhist.find(bv)->second;
@@ -711,19 +711,19 @@ struct overlap_partition_stats_t
                     if (_directed)
                     {
                         S += log_q(size_t(bmh[i] +
-                                          deg_delta * int(get<0>(deg[i])) +
-                                          ndeg_delta * int(get<0>(n_deg[i]))),
+                                          deg_delta * int64_t(get<0>(deg[i])) +
+                                          ndeg_delta * int64_t(get<0>(n_deg[i]))),
                                    bv_count);
                         S += log_q(size_t(bph[i] +
-                                          deg_delta * int(get<1>(deg[i])) +
-                                          ndeg_delta * int(get<1>(n_deg[i]))),
+                                          deg_delta * int64_t(get<1>(deg[i])) +
+                                          ndeg_delta * int64_t(get<1>(n_deg[i]))),
                                    bv_count);
                     }
                     else
                     {
                         S += log_q(size_t(bph[i] +
-                                          deg_delta * int(get<1>(deg[i])) +
-                                          ndeg_delta * int(get<1>(n_deg[i])))
+                                          deg_delta * int64_t(get<1>(deg[i])) +
+                                          ndeg_delta * int64_t(get<1>(n_deg[i])))
                                    - bv_count,
                                    bv_count);
                     }
@@ -750,7 +750,7 @@ struct overlap_partition_stats_t
         size_t deg_count = get_deg_count(bv, deg);
         size_t n_deg_count = get_deg_count(n_bv, n_deg);
 
-        auto get_S_deg = [&] (bool is_deg, int delta) -> double
+        auto get_S_deg = [&] (bool is_deg, int64_t delta) -> double
             {
                 if (is_deg)
                     return -lgamma_fast(deg_count + delta + 1);
@@ -784,8 +784,8 @@ struct overlap_partition_stats_t
             S_b += lbinom_fast(_r_count[s] + _ephist[s] - 1, _ephist[s]);
         }
 
-        gt_hash_map<size_t, pair<int, int>> deg_delta;
-        gt_hash_map<size_t, int> r_count_delta;
+        gt_hash_map<size_t, pair<int64_t, int64_t>> deg_delta;
+        gt_hash_map<size_t, int64_t> r_count_delta;
 
         if (bv != n_bv)
         {
@@ -1042,8 +1042,8 @@ private:
     size_t _total_B;
     size_t _D;
     bool _directed;
-    vector<int> _dhist;        // d-histogram
-    vector<int> _r_count;      // m_r
+    vector<int64_t> _dhist;    // d-histogram
+    vector<int64_t> _r_count;  // m_r
     bhist_t _bhist;            // b-histogram
     vector<size_t> _emhist;    // e-_r histogram
     vector<size_t> _ephist;    // e+_r histogram

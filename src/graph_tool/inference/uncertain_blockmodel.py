@@ -51,14 +51,14 @@ class UncertainBaseState(EntropyState):
         if bstate is None:
             if init_empty:
                 self.u = Graph(g.num_vertices(), directed=g.is_directed())
-                self.eweight = self.u.new_ep("int", val=1)
+                self.eweight = self.u.new_ep("int64_t", val=1)
             elif "g" in state_args:
                 self.u = state_args.pop("g")
                 self.eweight = state_args.pop("eweight",
-                                              self.u.new_ep("int", val=1))
+                                              self.u.new_ep("int64_t", val=1))
             else:
                 self.u = g.copy()
-                self.eweight = self.u.new_ep("int", val=1)
+                self.eweight = self.u.new_ep("int64_t", val=1)
         else:
             self.u = bstate.g.copy()
             if nested:
@@ -529,10 +529,10 @@ class MeasuredBlockState(UncertainBaseState):
     g : :class:`~graph_tool.Graph`
         Measured graph.
     n : :class:`~graph_tool.EdgePropertyMap`
-        Edge property map of type ``int``, containing the total number of
+        Edge property map of type ``int64_t``, containing the total number of
         measurements for each edge.
     x : :class:`~graph_tool.EdgePropertyMap`
-        Edge property map of type ``int``, containing the number of
+        Edge property map of type ``int64_t``, containing the number of
         positive measurements for each edge.
     n_default : ``int`` (optional, default: ``1``)
         Total number of measurements for each non-edge.
@@ -585,7 +585,11 @@ class MeasuredBlockState(UncertainBaseState):
         super().__init__(g, nested=nested, state_args=state_args, bstate=bstate,
                          **kwargs)
 
+        if n.value_type() != "int64_t":
+            n = n.copy("int64_t")
         self.n = n
+        if x.value_type() != "int64_t":
+            x = x.copy("int64_t")
         self.x = x
         self.n_default = n_default
         self.x_default = x_default

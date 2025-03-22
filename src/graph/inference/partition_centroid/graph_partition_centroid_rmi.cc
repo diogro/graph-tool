@@ -64,18 +64,18 @@ REGISTER_MOD
     def("log_omega",
         +[](python::object onr, python::object ons) -> double
          {
-             auto nr = get_array<int32_t, 1>(onr);
-             auto ns = get_array<int32_t, 1>(ons);
+             auto nr = get_array<int64_t, 1>(onr);
+             auto ns = get_array<int64_t, 1>(ons);
              return log_omega(nr, ns, [](auto& x) {return x;});
          });
 
     def("expected_MI",
         +[](python::object onr, python::object ons) -> double
          {
-             auto nr = get_array<int32_t, 1>(onr);
-             auto ns = get_array<int32_t, 1>(ons);
+             auto nr = get_array<int64_t, 1>(onr);
+             auto ns = get_array<int64_t, 1>(ons);
 
-             int32_t N = 0;
+             int64_t N = 0;
              for (auto c : nr)
                  N += c;
 
@@ -88,7 +88,7 @@ REGISTER_MOD
                  {
                      auto a = nr[r];
                      auto b = ns[s];
-                     for (int32_t m = max(1, a + b - N); m <= min(a, b); ++m)
+                     for (int64_t m = max(1L, a + b - N); m <= min(a, b); ++m)
                      {
                          double T = (m * (safelog_fast(m) + safelog_fast(N) - safelog_fast(a) - safelog_fast(b))) / N;
                          double lT = lgamma_fast(a + 1) + lgamma_fast(b + 1);

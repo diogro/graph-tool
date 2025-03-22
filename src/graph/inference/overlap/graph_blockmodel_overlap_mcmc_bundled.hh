@@ -86,7 +86,7 @@ struct MCMC
 
             for (auto& he : _half_edges)
             {
-                gt_hash_map<int, vector<size_t>> bundle;
+                gt_hash_map<int64_t, vector<size_t>> bundle;
                 for (auto v : he)
                     bundle[_state._b[v]].push_back(v);
                 for (auto& kv : bundle)

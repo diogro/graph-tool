@@ -51,7 +51,7 @@ public:
         _pos.emplace_back();
     }
 
-    void insert_edge(size_t s, size_t t, int weight)
+    void insert_edge(size_t s, size_t t, int64_t weight)
     {
         auto& pos = _pos[s];
         auto iter = pos.find(t);
@@ -63,7 +63,7 @@ public:
     }
 
     template <class EV>
-    void insert_edge(size_t t, int weight, EV& elist, size_t& pos)
+    void insert_edge(size_t t, int64_t weight, EV& elist, size_t& pos)
     {
         if (pos != _null_pos)
         {

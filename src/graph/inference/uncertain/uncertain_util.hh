@@ -47,7 +47,7 @@ double get_edge_prob(State& state, size_t u, size_t v, const uentropy_args_t& ea
 {
     auto e = state.get_u_edge(u, v);
     size_t ew = 0;
-    [[maybe_unused]] int old_x = 0;
+    [[maybe_unused]] int64_t old_x = 0;
     if (e != state._null_edge)
     {
         ew = state._eweight[e];

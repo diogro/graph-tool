@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Graph, PropertyMap, _get_rng, Vector_int32_t, Vector_size_t, \
+from .. import Graph, PropertyMap, _get_rng, Vector_int64_t, Vector_size_t, \
     _parallel
 from . blockmodel import DictState
 from . base_states import *
@@ -102,9 +102,9 @@ class PartitionModeState(object):
                 return x.fa
             return x
         if self.nested:
-            b = [Vector_int32_t(init=c(x)) for x in b]
+            b = [Vector_int64_t(init=c(x)) for x in b]
         else:
-            b = [Vector_int32_t(init=c(b))]
+            b = [Vector_int64_t(init=c(b))]
         i = self._base.add_partition(b, relabel)
         self.bs[i] = b
         return i
@@ -120,9 +120,9 @@ class PartitionModeState(object):
         were inserted the ensemble, after relabelling it if ``relabel=True``.
         """
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         return self._base.virtual_add_partition(b, relabel)
 
     def virtual_remove_partition(self, b, relabel=True):
@@ -130,9 +130,9 @@ class PartitionModeState(object):
         were removed from the ensemble, after relabelling it if ``relabel=True``.
         """
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         return self._base.virtual_add_partition(b, relabel)
 
     def replace_partitions(self):
@@ -144,9 +144,9 @@ class PartitionModeState(object):
         r"""Returns a relabelled copy of partition ``b``, according to its alignment with
         the ensemble."""
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         self._base.relabel_partition(b)
         if not self.nested:
             return b[0].a.copy()
@@ -204,9 +204,9 @@ class PartitionModeState(object):
         ```MLE=True```, otherwise using posterior mean estimates.
         """
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         return self._base.posterior_lprob(b, MLE)
 
     def get_coupled_state(self):
@@ -230,7 +230,7 @@ class PartitionModeState(object):
         r"""Return a :class:`~graph_tool.VertexPropertyMap` for
         :class:`~graph_tool.Graph` ``g``, with ``int`` values containing the
         maximum marginal group membership for each node."""
-        b = g.new_vp("int")
+        b = g.new_vp("int64_t")
         self._base.get_map(g._Graph__graph, b._get_any())
         return b
 
@@ -295,18 +295,18 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
 
         for bv in bs:
             if self.nested:
-                bv = [Vector_int32_t(init=x) for x in bv]
+                bv = [Vector_int64_t(init=x) for x in bv]
             else:
-                bv = [Vector_int32_t(init=bv)]
+                bv = [Vector_int64_t(init=bv)]
             self.bs.append(bv)
 
         if b is None:
-            self.b = np.random.randint(0, B, len(self.bs), dtype="int32")
+            self.b = np.random.randint(0, B, len(self.bs), dtype="int64")
         else:
-            self.b = np.asarray(b, dtype="int32")
+            self.b = np.asarray(b, dtype="int64")
             if self.b.max() >= len(self.bs):
                 raise ValueError("supplied clustering 'b' has maximum label larger than number of partitions")
-        self.b = Vector_int32_t(init=self.b)
+        self.b = Vector_int64_t(init=self.b)
 
         self.relabel_init = relabel
         self.g = Graph()
@@ -384,17 +384,17 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         were inserted in cluster ``r``, after relabelling it if ``relabel=True``.
         """
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         return self._state.virtual_add_partition(b, r, relabel)
 
     def add_partition(self, b, r, relabel=True):
         r"""Add partition ``b`` in cluster ``r``, after relabelling it if ``relabel=True``."""
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         self._state.add_partition(b, r, relabel)
 
     def classify_partition(self, b, relabel=True, new_group=True, sample=False):
@@ -443,9 +443,9 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         maximum likelihood estimates for the marginal node probabilities if
         ```MLE=True```, otherwise using posterior mean estimates."""
         if self.nested:
-            b = [Vector_int32_t(init=x) for x in b]
+            b = [Vector_int64_t(init=x) for x in b]
         else:
-            b = [Vector_int32_t(init=b)]
+            b = [Vector_int64_t(init=b)]
         return self._state.posterior_lprob(r, b, MLE)
 
     def replace_partitions(self):
@@ -584,8 +584,8 @@ def partition_overlap(x, y, norm=True):
        :doi:`10.1137/0105003`
 
     """
-    x = np.asarray(x, dtype="int32")
-    y = np.asarray(y, dtype="int32")
+    x = np.asarray(x, dtype="int64")
+    y = np.asarray(y, dtype="int64")
     if len(x) != len(y):
         raise ValueError("Partitions need to have the same number of elements")
     m = libinference.partition_overlap(x, y)
@@ -731,13 +731,13 @@ def contingency_graph(x, y):
                     7,  7,  8,  8, 12, 10, 11,  8, 15,  6, 13, 14, 14,  8, 10,
                     8, 11,  7,  6, 10, 13, 10, 13,  6, 11, 15,  5,  4, 10, 13,
                     8,  8,  9, 14,  8,  6, 11,  7,  8, 15, 10,  9,  7,  8, 11,
-                   10, 11,  9,  8,  8, 10,  7,  8,  3,  9], dtype=int32)
+                   10, 11,  9,  8,  8, 10,  7,  8,  3,  9])
     """
-    x = np.asarray(x, dtype="int32")
-    y = np.asarray(y, dtype="int32")
+    x = np.asarray(x, dtype="int64")
+    y = np.asarray(y, dtype="int64")
     g = Graph(directed=False)
-    g.ep.mrs = g.new_ep("int32_t")
-    g.vp.label = g.new_vp("int32_t")
+    g.ep.mrs = g.new_ep("int64_t")
+    g.vp.label = g.new_vp("int64_t")
     g.vp.partition = g.new_vp("bool")
     libinference.get_contingency_graph(g._Graph__graph,
                                        g.vp.label._get_any(),
@@ -764,10 +764,10 @@ def shuffle_partition_labels(x):
     --------
     >>> x = [0, 0, 0, 1, 1, 1, 2, 2, 2]
     >>> gt.shuffle_partition_labels(x)
-    array([0, 0, 0, 2, 2, 2, 1, 1, 1], dtype=int32)
+    array([0, 0, 0, 2, 2, 2, 1, 1, 1])
     """
 
-    x = np.asarray(x, dtype="int32").copy()
+    x = np.asarray(x, dtype="int64").copy()
     libinference.partition_shuffle_labels(x, _get_rng())
     return x
 
@@ -789,10 +789,10 @@ def shuffle_nested_partition_labels(x):
     --------
     >>> x = [[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 0, 1], [1, 0]]
     >>> gt.shuffle_nested_partition_labels(x)
-    [array([0, 0, 0, 2, 2, 2, 1, 1, 1], dtype=int32), array([1, 0, 1], dtype=int32), array([1, 0], dtype=int32)]
+    [array([0, 0, 0, 2, 2, 2, 1, 1, 1]), array([1, 0, 1]), array([1, 0])]
     """
 
-    x = [np.asarray(xl, dtype="int32") for xl in x]
+    x = [np.asarray(xl, dtype="int64") for xl in x]
     x = libinference.nested_partition_shuffle_labels(x, _get_rng())
     return x
 
@@ -815,10 +815,10 @@ def order_partition_labels(x):
     --------
     >>> x = [0, 2, 2, 1, 1, 1, 2, 2, 2]
     >>> gt.order_partition_labels(x)
-    array([2, 0, 0, 1, 1, 1, 0, 0, 0], dtype=int32)
+    array([2, 0, 0, 1, 1, 1, 0, 0, 0])
     """
 
-    x = np.asarray(x, dtype="int32").copy()
+    x = np.asarray(x, dtype="int64").copy()
     libinference.partition_order_labels(x)
     return x
 
@@ -841,10 +841,10 @@ def order_nested_partition_labels(x):
     --------
     >>> x = [[0, 2, 2, 1, 1, 1, 2, 2, 2], [1, 1, 0], [1, 1]]
     >>> gt.order_nested_partition_labels(x)
-    [array([2, 0, 0, 1, 1, 1, 0, 0, 0], dtype=int32), array([1, 0, 0], dtype=int32), array([0, 0], dtype=int32)]
+    [array([2, 0, 0, 1, 1, 1, 0, 0, 0]), array([1, 0, 0]), array([0, 0])]
     """
 
-    x = [np.asarray(xl, dtype="int32") for xl in x]
+    x = [np.asarray(xl, dtype="int64") for xl in x]
     x = libinference.nested_partition_order_labels(x)
     return x
 
@@ -880,7 +880,7 @@ def align_partition_labels(x, y):
     >>> print(y)
     [3 1 1 2 2 2 1 0 1]
     >>> gt.align_partition_labels(y, x)
-    array([0, 2, 2, 1, 1, 1, 2, 3, 2], dtype=int32)
+    array([0, 2, 2, 1, 1, 1, 2, 3, 2])
 
     References
     ----------
@@ -889,8 +889,8 @@ def align_partition_labels(x, y):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
     """
 
-    x = np.asarray(x, dtype="int32").copy()
-    y = np.asarray(y, dtype="int32")
+    x = np.asarray(x, dtype="int64").copy()
+    y = np.asarray(y, dtype="int64")
     libinference.align_partition_labels(x, y)
     return x
 
@@ -924,13 +924,13 @@ def align_nested_partition_labels(x, y):
     >>> x = [[0, 2, 2, 1, 1, 1, 2, 3, 2], [1, 0, 1, 0], [0,0]]
     >>> y = gt.shuffle_nested_partition_labels(x)
     >>> print(y)
-    [array([3, 1, 1, 2, 2, 2, 1, 0, 1], dtype=int32), array([0, 1, 0, 1], dtype=int32), array([0, 0], dtype=int32)]
+    [array([3, 1, 1, 2, 2, 2, 1, 0, 1]), array([0, 1, 0, 1]), array([0, 0])]
     >>> gt.align_nested_partition_labels(y, x)
-    [array([0, 2, 2, 1, 1, 1, 2, 3, 2], dtype=int32), array([1, 0, 1, 0], dtype=int32), array([0, 0], dtype=int32)]
+    [array([0, 2, 2, 1, 1, 1, 2, 3, 2]), array([1, 0, 1, 0]), array([0, 0])]
     """
 
-    x = [np.asarray(xl, dtype="int32") for xl in x]
-    y = [np.asarray(yl, dtype="int32") for yl in y]
+    x = [np.asarray(xl, dtype="int64") for xl in x]
+    y = [np.asarray(yl, dtype="int64") for yl in y]
     x = libinference.align_nested_partition_labels(x, y)
     return x
 
@@ -1002,7 +1002,7 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
     >>> print(c, r)
     [1 1 2 0 3 0 3 0 0 0 0] 0.06818181...
     >>> gt.align_partition_labels(c, x)
-    array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0], dtype=int32)
+    array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0])
 
     References
     ----------
@@ -1013,11 +1013,11 @@ def partition_overlap_center(bs, init=None, relabel_bs=False):
 
     bs = _get_array(bs)
     if not relabel_bs:
-        bs = np.array(bs, dtype="int32")
+        bs = np.array(bs, dtype="int64")
     if init is None:
-        c = np.zeros(len(bs[0]), dtype="int32")
+        c = np.zeros(len(bs[0]), dtype="int64")
     else:
-        c = np.asarray(init, dtype="int32")
+        c = np.asarray(init, dtype="int64")
 
     r = libinference.partition_overlap_center(bs, c)
     return c, r
@@ -1091,9 +1091,9 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
     [[array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 3]), array([0, 1, 0, 1, 1, 1])], [array([5, 5, 2, 0, 1, 0, 4, 0, 0, 0, 0]), array([0, 1, 1, 1, 1, 1])], [array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 2]), array([0, 1, 0, 1, 1, 1])]]
     >>> c, r = gt.nested_partition_overlap_center(bs)
     >>> print(c, r)
-    [array([1, 1, 2, 0, 3, 0, 3, 0, 0, 0, 0], dtype=int32), array([0, 1, 0, 1, 1], dtype=int32)] 0.069385...
+    [array([1, 1, 2, 0, 3, 0, 3, 0, 0, 0, 0]), array([0, 1, 0, 1, 1])] 0.069385...
     >>> gt.align_nested_partition_labels(c, x)
-    [array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0], dtype=int32), array([ 0,  1,  0, -1, -1,  1], dtype=int32)]
+    [array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0]), array([ 0,  1,  0, -1, -1,  1])]
 
     References
     ----------
@@ -1102,11 +1102,11 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
     """
 
-    bs = [[np.asarray(_get_array(bs[m][l]), dtype="int32") for l in range(len(bs[m]))] for m in range(len(bs))]
+    bs = [[np.asarray(_get_array(bs[m][l]), dtype="int64") for l in range(len(bs[m]))] for m in range(len(bs))]
     if init is None:
-        c = [np.zeros(len(bs[0][l]), dtype="int32") for l in range(len(bs[0]))]
+        c = [np.zeros(len(bs[0][l]), dtype="int64") for l in range(len(bs[0]))]
     else:
-        c = [np.asarray(init[l], dtype="int32") for l in range(len(init))]
+        c = [np.asarray(init[l], dtype="int64") for l in range(len(init))]
     c, bs, r = libinference.nested_partition_overlap_center(bs, c)
     if return_bs:
         return c, r, bs
@@ -1137,8 +1137,8 @@ def nested_partition_clear_null(x):
     --------
     >>> x = [[5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0], [0, 1, 0, -1, -1, 1]]
     >>> gt.nested_partition_clear_null(x)
-    [array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0], dtype=int32), array([0, 1, 0, 0, 0, 1], dtype=int32)]
+    [array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0]), array([0, 1, 0, 0, 0, 1])]
 
     """
-    x = [np.asarray(x[l], dtype="int32") for l in range(len(x))]
+    x = [np.asarray(x[l], dtype="int64") for l in range(len(x))]
     return libinference.nested_partition_clear_null(x)

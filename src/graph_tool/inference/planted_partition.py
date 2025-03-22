@@ -58,11 +58,11 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = GraphView(g, directed=False)
         if b is None:
-            self.b = self.g.new_vp("int32_t")
+            self.b = self.g.new_vp("int64_t")
         elif isinstance(g, PropertyMap):
-            self.b = b.copy("int32_t")
+            self.b = b.copy("int64_t")
         else:
-            self.b = self.g.new_vp("int32_t", vals=b)
+            self.b = self.g.new_vp("int64_t", vals=b)
 
         self.wr = Vector_size_t()
         self.er = Vector_size_t()

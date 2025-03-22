@@ -83,12 +83,12 @@ double log_omega(Vr&& nr, Vs&& ns, T&& get_n)
 }
 
 
-typedef multi_array_ref<int32_t,2> bs_t;
-typedef multi_array_ref<int32_t,1> b_t;
+typedef multi_array_ref<int64_t,2> bs_t;
+typedef multi_array_ref<int64_t,1> b_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(always_directed_never_reversed), 1))                      \
-    ((_abg, &, std::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                  \
     ((bs,, bs_t, 0))                                                           \
     ((b,, b_t, 0))
 
@@ -169,7 +169,7 @@ public:
 
     args_t _args;
 
-    typedef int m_entries_t;
+    typedef int64_t m_entries_t;
 
     // =========================================================================
     // State modification
@@ -307,7 +307,7 @@ public:
     double entropy()
     {
         double S = 0, S_n = 0;
-        gt_hash_map<int, int> wr;
+        gt_hash_map<int64_t, int64_t> wr;
         for (auto r : _candidate_groups)
         {
             if (_wr[r] == 0)
@@ -364,13 +364,13 @@ public:
     void relax_update(bool) {}
 
     // owned by deep copy
-    std::shared_ptr<multi_array<int32_t,1>> _bp;
+    std::shared_ptr<multi_array<int64_t,1>> _bp;
 
     template <size_t... Is>
     RMICenterState* deep_copy(index_sequence<Is...>)
     {
-        multi_array<int32_t,1>* bp = new multi_array<int32_t,1>(_b);
-        multi_array_ref<int32_t,1> b(*bp);
+        multi_array<int64_t,1>* bp = new multi_array<int64_t,1>(_b);
+        multi_array_ref<int64_t,1> b(*bp);
         auto args =
             dispatch_args(_args,
                           [&](std::string name, auto& a) -> decltype(auto)
@@ -387,7 +387,7 @@ public:
                           });
 
         auto state = new RMICenterState(std::get<Is>(args)...);
-        state->_bp = std::shared_ptr<multi_array<int32_t,1>>(bp);
+        state->_bp = std::shared_ptr<multi_array<int64_t,1>>(bp);
         return state;
     };
 

@@ -59,9 +59,8 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
     cg, vcount, ecount, ap = condensation_graph(g, b, eweight=ecount,
                                                 vweight=vcount,
                                                 aprops=aprops)
-
-    cg.vp.count = vcount
-    cg.ep.count = ecount
+    cg.vp.count = vcount.copy("int64_t")
+    cg.ep.count = ecount.copy("int64_t")
 
     if rec is not None:
         for i in range(len(rec)):
@@ -189,16 +188,16 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         kwargs = kwargs.copy()
 
         if eweight is None:
-            eweight = g.new_ep("int", 1)
-        elif eweight.value_type() != "int32_t":
-            eweight = g.own_property(eweight.copy(value_type="int32_t"))
+            eweight = g.new_ep("int64_t", 1)
+        elif eweight.value_type() != "int64_t":
+            eweight = g.own_property(eweight).copy(value_type="int64_t")
         else:
             eweight = g.own_property(eweight)
 
         if vweight is None:
-            vweight = g.new_vp("int", 1)
-        elif vweight.value_type() != "int32_t":
-            vweight = g.own_property(vweight.copy(value_type="int32_t"))
+            vweight = g.new_vp("int64_t", 1)
+        elif vweight.value_type() != "int64_t":
+            vweight = g.own_property(vweight).copy(value_type="int64_t")
         else:
             vweight = g.own_property(vweight)
         self.eweight = eweight
@@ -210,6 +209,12 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         self.deg_corr = deg_corr
         self.overlap = False
+
+        if clabel is not None and clabel.value_type() != "int64_t":
+            clabel = g.own_property(clabel).copy(value_type="int64_t")
+
+        if pclabel is not None and pclabel.value_type() != "int64_t":
+            pclabel = g.own_property(pclabel).copy(value_type="int64_t")
 
         if clabel is None:
             clabel = pclabel
@@ -233,18 +238,18 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             ba[:B] = np.arange(B)        # avoid empty blocks
             if B < self.g.num_vertices():
                 np.random.shuffle(ba)
-            b = g.new_vp("int")
+            b = g.new_vp("int64_t")
             b.fa = ba
             self.b = b
         else:
             # if a partition is available, we will incorporate it.
             if isinstance(b, np.ndarray):
-                self.b = g.new_vp("int")
-                ba = np.zeros(len(self.b.fa), dtype="int")
+                self.b = g.new_vp("int64_t")
+                ba = np.zeros(len(self.b.fa), dtype="int64")
                 ba[:min((len(ba), len(b)))] = b[:min((len(ba), len(b)))]
                 self.b.fa = ba
             else:
-                self.b = b = g.own_property(b.copy(value_type="int32_t"))
+                self.b = b = g.own_property(b.copy(value_type="int64_t"))
             if B is None:
                 B = int(self.b.fa.max()) + 1
 
@@ -297,21 +302,21 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         if pclabel is not None:
             if isinstance(pclabel, PropertyMap):
-                self.pclabel = self.g.own_property(pclabel).copy("int")
+                self.pclabel = self.g.own_property(pclabel).copy("int64_t")
             else:
-                self.pclabel = self.g.new_vp("int")
+                self.pclabel = self.g.new_vp("int64_t")
                 self.pclabel.fa = pclabel
         else:
-            self.pclabel = self.g.new_vp("int")
+            self.pclabel = self.g.new_vp("int64_t")
 
         if clabel is not None:
             if isinstance(clabel, PropertyMap):
                 self.clabel = self.g.own_property(clabel)
             else:
-                self.clabel = self.g.new_vp("int")
+                self.clabel = self.g.new_vp("int64_t")
                 self.clabel.fa = clabel
         else:
-            self.clabel = self.g.new_vp("int")
+            self.clabel = self.g.new_vp("int64_t")
 
         self._coupled_state = None
 
@@ -323,7 +328,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             raise ValueError("provided pclabel and clabel are inconsistent")
 
         self.bclabel = self.get_bclabel()
-        self.hclabel = self.bg.new_vp("int")
+        self.hclabel = self.bg.new_vp("int64_t")
 
         self.dense_bg = dense_bg
         self.use_hash = not self.dense_bg
@@ -586,9 +591,9 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         copy_coupled = False
         recs = False
         if vweight == "nonempty":
-            vweight = bg.new_vp("int", self.wr.a > 0)
+            vweight = bg.new_vp("int64_t", self.wr.a > 0)
         elif vweight == "unity":
-            vweight = bg.new_vp("int", 1)
+            vweight = bg.new_vp("int64_t", 1)
         elif vweight == True:
             if copy_bg:
                 vweight = bg.own_property(self.wr.copy())
@@ -690,7 +695,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
         labels for the block graph."""
 
-        bclabel = self.bg.new_vertex_property("int")
+        bclabel = self.bg.new_vertex_property("int64_t")
         idx = self.vweight.fa > 0
         reverse_map(self.b.fa[idx], bclabel)
         if clabel is None:
@@ -746,9 +751,9 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def set_state(self, b):
         r"""Sets the internal partition of the state."""
         if not isinstance(b, VertexPropertyMap):
-            b = self.g.new_vp("int32_t", vals=b)
-        if b.value_type() != "int32_t":
-            b = b.copy("int32_t")
+            b = self.g.new_vp("int64_t", vals=b)
+        if b.value_type() != "int64_t":
+            b = b.copy("int64_t")
         self._state.set_partition(_prop("v", self.g, b))
 
     def get_bg(self):

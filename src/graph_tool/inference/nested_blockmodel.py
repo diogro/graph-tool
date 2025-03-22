@@ -245,7 +245,7 @@ class NestedBlockState(object):
         clabel = self.levels[0].clabel.copy()
         for j in range(l):
             bg = self.levels[j].bg
-            bclabel = bg.new_vertex_property("int")
+            bclabel = bg.new_vertex_property("int64_t")
             reverse_map(self.levels[j].b, bclabel)
             pmap(bclabel, clabel)
             clabel = bclabel
@@ -479,7 +479,7 @@ class NestedBlockState(object):
                 cg.ep["count"] = cg.own_property(bstate.eweight.copy())
                 cg.vp["count"] = cg.own_property(bstate.vweight.copy())
             else:
-                cg.ep["count"] = cg.new_ep("int", 1)
+                cg.ep["count"] = cg.new_ep("int64_t", 1)
 
             bstack.append(cg)
             if bstate.get_N() == 1:
@@ -834,9 +834,9 @@ def get_hierarchy_tree(state, empty_branches=False):
         bg = Graph(directed=g.is_directed())
         bg.add_vertex()
         e = bg.add_edge(0, 0)
-        bg.vp.count = bg.new_vp("int", 1)
-        bg.ep.count = bg.new_ep("int", g.ep.count.fa.sum())
-        bg.vp.b = bg.new_vp("int", 0)
+        bg.vp.count = bg.new_vp("int64_t", 1)
+        bg.ep.count = bg.new_ep("int64_t", g.ep.count.fa.sum())
+        bg.vp.b = bg.new_vp("int64_t", 0)
         bstack.append(bg)
 
     t = Graph()
@@ -847,7 +847,7 @@ def get_hierarchy_tree(state, empty_branches=False):
         t.add_vertex(g.num_vertices(ignore_filter=True))
         filt = g.get_vertex_filter()
         t.set_vertex_filter(t.own_property(filt.copy()))
-    label = t.vertex_index.copy("int")
+    label = t.vertex_index.copy("int64_t")
 
     order = t.own_property(g.degree_property_map("total").copy())
     t_vertices = list(t.vertices())

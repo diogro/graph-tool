@@ -38,7 +38,7 @@ class overlap_stats_t
 public:
     typedef pair<size_t, size_t> deg_t;
 
-    typedef vprop_map_t<int32_t> ::unchecked_t
+    typedef vprop_map_t<int64_t> ::unchecked_t
         vmap_t;
     typedef vprop_map_t<int64_t> ::unchecked_t
         vimap_t;
@@ -141,7 +141,7 @@ public:
         k.first += kin;
         k.second += kout;
 
-        int m = _mi[v];
+        int64_t m = _mi[v];
         if (m != -1)
         {
             size_t r, s;
@@ -183,7 +183,7 @@ public:
         if (k.first + k.second == 0)
             _block_nodes[v_r].erase(u);
 
-        int m = _mi[v];
+        int64_t m = _mi[v];
         if (m != -1)
         {
             size_t r, s;
@@ -283,7 +283,7 @@ public:
     double virtual_move_parallel_dS(size_t v, size_t v_r, size_t v_nr, VProp& b,
                                     Graph& g) const
     {
-        int m = _mi[v];
+        int64_t m = _mi[v];
         if (m == -1)
             return 0;
 
@@ -312,7 +312,7 @@ public:
 
         auto& h = _parallel_bundles[m];
 
-        auto get_h = [&](const std::tuple<size_t, size_t, bool>& k) -> int
+        auto get_h = [&](const std::tuple<size_t, size_t, bool>& k) -> int64_t
             {
                 const auto iter = h.find(k);
                 if (iter == h.end())
@@ -322,15 +322,15 @@ public:
 
         bool is_loop = !is_directed(g) && (_node_index[u] ==
                                                        _node_index[v]);
-        int c  = get_h(std::make_tuple(r,  s, is_loop));
-        int nc = get_h(std::make_tuple(nr, ns, is_loop));
+        int64_t c  = get_h(std::make_tuple(r,  s, is_loop));
+        int64_t nc = get_h(std::make_tuple(nr, ns, is_loop));
 
         assert(c > 0);
         assert(nc >= 0);
         assert(v_r != v_nr);
         assert(make_pair(r, s) != make_pair(nr, ns));
 
-        auto get_S = [&](int m)
+        auto get_S = [&](int64_t m)
                      {
                          if (is_loop)
                          {
@@ -368,10 +368,10 @@ public:
     auto get_in_neighbor(size_t v) const { return _in_neighbors[v]; }
 
 
-    typedef gt_hash_map<std::tuple<size_t, size_t, bool>, int> phist_t;
+    typedef gt_hash_map<std::tuple<size_t, size_t, bool>, int64_t> phist_t;
 
     const vector<phist_t>& get_parallel_bundles() const { return _parallel_bundles; }
-    const vector<int>& get_mi() const { return _mi; }
+    const vector<int64_t>& get_mi() const { return _mi; }
 
     size_t get_N() const { return _N; }
 
@@ -396,7 +396,7 @@ private:
     vector<size_t> _in_neighbors;
 
 
-    vector<int> _mi;
+    vector<int64_t> _mi;
     vector<phist_t> _parallel_bundles; // parallel edge bundles
 };
 
@@ -414,7 +414,7 @@ public:
     const pair<size_t, size_t>& get_move() { return _rnr; }
 
     template <bool First, bool Source, bool Add, class... DVals>
-    void insert_delta_rnr(size_t t, size_t s, int d, DVals... delta)
+    void insert_delta_rnr(size_t t, size_t s, int64_t d, DVals... delta)
     {
         if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -434,7 +434,7 @@ public:
         ++_pos;
     }
 
-    int get_delta(size_t t, size_t s)
+    int64_t get_delta(size_t t, size_t s)
     {
         if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -499,14 +499,14 @@ public:
     std::tuple<EVals...> _self_eweight;
 
     std::vector<std::tuple<size_t, size_t,
-                           GraphInterface::edge_t, int, std::vector<double>>>
+                           GraphInterface::edge_t, int64_t, std::vector<double>>>
         _p_entries;
 
 private:
     pair<size_t, size_t> _rnr;
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;
-    std::array<int, 2> _delta;
+    std::array<int64_t, 2> _delta;
     std::array<std::tuple<EVals...>, 2> _edelta;
     std::array<bedge_t, 2> _mes;
     size_t _mes_pos;

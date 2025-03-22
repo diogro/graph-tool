@@ -30,9 +30,9 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef eprop_map_t<int32_t> emap_t;
-typedef eprop_map_t<std::vector<int32_t>> evmap_t;
-typedef vprop_map_t<int32_t> vmap_t;
+typedef eprop_map_t<int64_t> emap_t;
+typedef eprop_map_t<std::vector<int64_t>> evmap_t;
+typedef vprop_map_t<int64_t> vmap_t;
 
 #define LATENT_CLOSURE_STATE_params                                            \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
@@ -64,8 +64,8 @@ void iter_out_neighbors(size_t v, Graphs& gs, size_t l,
 template <class V>
 static bool cmp_m(const V& m1, const V& m2)
 {
-    set<int> s1(m1.begin(), m1.end());
-    set<int> s2(m2.begin(), m2.end());
+    set<int64_t> s1(m1.begin(), m1.end());
+    set<int64_t> s2(m2.begin(), m2.end());
     return s1 == s2;
 }
 
@@ -227,8 +227,8 @@ struct LatentClosure
 
         std::vector<LatentClosureState*> _cstates;
 
-        vprop_map_t<int32_t>::unchecked_t _M;
-        vprop_map_t<int32_t>::unchecked_t _E;
+        vprop_map_t<int64_t>::unchecked_t _M;
+        vprop_map_t<int64_t>::unchecked_t _E;
         size_t _Nm = 0;
         size_t _Ne = 0;
         size_t _i = std::numeric_limits<size_t>::max();
@@ -238,9 +238,9 @@ struct LatentClosure
             _cstates = cstates;
         }
 
-        std::vector<int32_t> get_m(size_t u, size_t v, bool virt=false)
+        std::vector<int64_t> get_m(size_t u, size_t v, bool virt=false)
         {
-            std::vector<int32_t> m;
+            std::vector<int64_t> m;
 
             if (u == v)
                 return m;
@@ -407,7 +407,7 @@ struct LatentClosure
                 x = std::find(xe.begin(), xe.end(), _i) != xe.end();
 
                 assert(cmp_m(me, get_m(u, v)));
-                assert(std::set<int>(me.begin(), me.end()).size() == me.size());
+                assert(std::set<int64_t>(me.begin(), me.end()).size() == me.size());
             }
             else
             {
@@ -468,7 +468,7 @@ struct LatentClosure
 
             double La = 0, Lb = 0;
 
-            gt_hash_map<size_t, int> dM;
+            gt_hash_map<size_t, int64_t> dM;
 
             auto get_dS =
                 [&](size_t u_, size_t v_)
@@ -702,8 +702,8 @@ struct LatentClosure
 
         bool check()
         {
-            vprop_map_t<int32_t>::unchecked_t M(num_vertices(_gc));
-            vprop_map_t<int32_t>::unchecked_t E(num_vertices(_gc));
+            vprop_map_t<int64_t>::unchecked_t M(num_vertices(_gc));
+            vprop_map_t<int64_t>::unchecked_t E(num_vertices(_gc));
 
             for (auto e : edges_range(_gc))
             {

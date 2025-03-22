@@ -84,8 +84,8 @@ class LatentLayerBaseState(EntropyState):
             for l in range(L):
                 g = Graph(directed=self.g.is_directed())
                 g.add_vertex(self.g.num_vertices())
-                g.gp.count = g.new_gp("int", 0)
-                g.ep.count = g.new_ep("int")
+                g.gp.count = g.new_gp("int64_t", 0)
+                g.ep.count = g.new_ep("int64_t")
                 gs.append(g)
 
         for l, g in enumerate(gs):
@@ -97,7 +97,7 @@ class LatentLayerBaseState(EntropyState):
 
             g.set_fast_edge_lookup(True)
             graph_merge(g, u, in_place=True, simple=True,
-                        props={"sum": [(g.ep.count, u.new_ep("int", val=1))]})
+                        props={"sum": [(g.ep.count, u.new_ep("int64_t", val=1))]})
             g.gp.count += 1
             if "eprob" not in g.ep:
                 g.ep.eprob = g.new_ep("double")
@@ -270,9 +270,9 @@ class LatentClosureBlockState(LatentLayerBaseState):
         self.ex = []
 
         if ew is None:
-            ew = [g.new_ep("int", val=1)] + [g.new_ep("int", val=0) for l in range(L)]
+            ew = [g.new_ep("int64_t", val=1)] + [g.new_ep("int64_t", val=0) for l in range(L)]
         if ex is None:
-            ex = [g.new_ep("vector<int>") for l in range(L+1)]
+            ex = [g.new_ep("vector<int64_t>") for l in range(L+1)]
 
         for w, x in zip(ew, ex):
             u = GraphView(g, efilt=w.fa > 0)
@@ -317,23 +317,27 @@ class LatentClosureBlockState(LatentLayerBaseState):
             self.g_orig = g_orig
 
         self.og = self.g._get_any()
-        self.eweight = self.g.new_ep("int")
+        self.eweight = self.g.new_ep("int64_t")
         self.oa = [u._get_any() for u in self.us]
         self.oaw = [w._get_any() for w in self.ew]
         self.ox = [x._get_any() for x in self.ex]
         self.L = len(self.us)
-        self.m = [u.new_ep("vector<int>") for u in self.us]
+        self.m = [u.new_ep("vector<int64_t>") for u in self.us]
         self.om = [m._get_any() for m in self.m]
-        self.M = [u.new_vp("int") for u in self.us]
+        self.M = [u.new_vp("int64_t") for u in self.us]
         self.oM = [M._get_any() for M in self.M]
-        self.E = [u.new_vp("int") for u in self.us]
+        self.E = [u.new_vp("int64_t") for u in self.us]
         self.oE = [E._get_any() for E in self.E]
         self.bstates = [self.bstate]
 
         self.measured = kwargs.get("measured", False)
         self.ag_orig = self.g_orig._get_any()
-        self.n = kwargs.get("n", self.g_orig.new_ep("int", 1))
-        self.x = kwargs.get("x", self.g_orig.new_ep("int", 1))
+        self.n = kwargs.get("n", self.g_orig.new_ep("int64_t", 1))
+        self.x = kwargs.get("x", self.g_orig.new_ep("int64_t", 1))
+        if self.n.value_type() != "int64_t":
+            self.n = self.n.copy("int64_t")
+        if self.x.value_type() != "int64_t":
+            self.x = self.x.copy("int64_t")
         self.n_default = kwargs.get("n_default", 1)
         self.x_default = kwargs.get("x_default", 0)
         fn_params = kwargs.get("fn_params", {})
@@ -440,7 +444,7 @@ class LatentClosureBlockState(LatentLayerBaseState):
         else:
             u = self.us[0].copy()
 
-        u.ep.gen = u.new_ep("int")
+        u.ep.gen = u.new_ep("int64_t")
 
         for l, (g, w) in enumerate(zip(self.us[1:], self.ew[1:])):
 
@@ -540,8 +544,8 @@ class LatentClosureBlockState(LatentLayerBaseState):
 
             tsum = u.vp.get("tsum", None)
             if tsum is None:
-                tsum = u.vp.tsum = u.new_vp("int")
-                u.vp.msum = u.new_vp("int")
+                tsum = u.vp.tsum = u.new_vp("int64_t")
+                u.vp.msum = u.new_vp("int64_t")
                 u.vp.t = u.new_vp("double")
                 u.vp.m = u.new_vp("double")
                 u.vp.csum = u.new_vp("double")

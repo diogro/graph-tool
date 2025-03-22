@@ -34,7 +34,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef std::vector<int32_t> b_t;
+typedef std::vector<int64_t> b_t;
 typedef PartitionModeState::bv_t bv_t;
 
 #define BLOCK_STATE_params                                                     \
@@ -80,10 +80,10 @@ public:
           _next_state(_M),
           _args(args...)
     {
-        for (int i = 0; i < python::len(_obs); ++i)
+        for (int64_t i = 0; i < python::len(_obs); ++i)
         {
             PartitionModeState::bv_t bv;
-            for (int l = 0; l < python::len(_obs[i]); ++l)
+            for (int64_t l = 0; l < python::len(_obs[i]); ++l)
             {
                 PartitionModeState::b_t& b =
                     python::extract<PartitionModeState::b_t&>(_obs[i][l]);
@@ -134,15 +134,15 @@ public:
     std::vector<size_t> _bclabel;
     std::vector<size_t> _pclabel;
 
-    UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
-    UnityPropertyMap<int,GraphInterface::edge_t> _eweight;
+    UnityPropertyMap<int64_t,GraphInterface::vertex_t> _vweight;
+    UnityPropertyMap<int64_t,GraphInterface::edge_t> _eweight;
     simple_degs_t _degs;
     std::vector<size_t> _vs;
 
     partition_stats<false> _partition_stats;
 
-    std::vector<std::vector<std::tuple<size_t,std::vector<std::vector<int32_t>>>>> _lstack;
-    std::vector<std::vector<std::vector<int32_t>>> _next_state;
+    std::vector<std::vector<std::tuple<size_t,std::vector<std::vector<int64_t>>>>> _lstack;
+    std::vector<std::vector<std::vector<int64_t>>> _next_state;
     std::vector<size_t> _next_list;
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
@@ -445,7 +445,7 @@ public:
         base._count.resize(n);
 
         adj_list<> g;
-        vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+        vprop_map_t<int64_t> label(get(vertex_index_t(), g));
         vprop_map_t<bool> partition(get(vertex_index_t(), g));
         eprop_map_t<double> mrs(get(edge_index_t(), g));
 
@@ -458,7 +458,7 @@ public:
         //maximum_weighted_matching(u, mrs, match);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
-        idx_map<int32_t, size_t> x_vertices;
+        idx_map<int64_t, size_t> x_vertices;
         for (auto v : vertices_range(u))
         {
             if (v < x._B)
@@ -467,8 +467,8 @@ public:
                 break;
         }
 
-        std::vector<int32_t> unmatched;
-        int32_t max_s = 0;
+        std::vector<int64_t> unmatched;
+        int64_t max_s = 0;
         for (size_t r = 0; r < x._count.size(); ++r)
         {
             if (x._count[r] == 0)
@@ -483,7 +483,7 @@ public:
         std::sort(unmatched.begin(), unmatched.end(),
                   [&](auto r, auto s) { return x._count[r] > x._count[s]; });
 
-        idx_map<int32_t, int32_t> umatch;
+        idx_map<int64_t, int64_t> umatch;
         for (auto r : unmatched)
             umatch[r] = ++max_s;
 

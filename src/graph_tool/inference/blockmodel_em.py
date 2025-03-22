@@ -137,7 +137,7 @@ class EMBlockState(object):
 
     def get_MAP(self):
         """Return the maximum a posteriori (MAP) estimate of the node partition."""
-        b = self.g.new_vertex_property("int")
+        b = self.g.new_vertex_property("int64_t")
         self._state.get_MAP(_prop("v", self.g, b))
         return b
 
@@ -187,7 +187,7 @@ class EMBlockState(object):
         draws the state of the graph as colors on the vertices and edges."""
 
         b = self.get_MAP()
-        bv = self.g.new_vertex_property("vector<int32_t>", val=range(self.B))
+        bv = self.g.new_vertex_property("vector<int64_t>", val=range(self.B))
         gradient = self.g.new_ep("double")
         gradient = group_vector_property([gradient])
         from graph_tool.draw import graph_draw

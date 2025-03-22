@@ -30,7 +30,7 @@ using namespace graph_tool;
 void collect_vertex_marginals(GraphInterface& gi, std::any ob,
                               std::any op, size_t update)
 {
-    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<int64_t> vmap_t;
     auto b = std::any_cast<vmap_t>(ob).get_unchecked();
 
     run_action<>()
@@ -53,7 +53,7 @@ void collect_vertex_marginals(GraphInterface& gi, std::any ob,
 }
 
 class BlockPairHist
-    : public gt_hash_map<std::pair<int32_t,int32_t>,size_t>
+    : public gt_hash_map<std::pair<int64_t,int64_t>,size_t>
 {
 public:
 
@@ -75,8 +75,8 @@ public:
         for (int i = 0; i < python::len(keys); ++i)
         {
             auto k = keys[i];
-            int32_t r = python::extract<int32_t>(k[0]);
-            int32_t s = python::extract<int32_t>(k[1]);
+            int64_t r = python::extract<int64_t>(k[0]);
+            int64_t s = python::extract<int64_t>(k[1]);
             size_t v = python::extract<size_t>(state[k]);
             (*this)[make_pair(r, s)] = v;
         }
@@ -84,8 +84,8 @@ public:
 
     size_t get_item(boost::python::object k)
     {
-        int32_t r = python::extract<int32_t>(k[0]);
-        int32_t s = python::extract<int32_t>(k[1]);
+        int64_t r = python::extract<int64_t>(k[0]);
+        int64_t s = python::extract<int64_t>(k[1]);
         auto iter = this->find(make_pair(r, s));
         if (iter == this->end())
             return 0;
@@ -94,8 +94,8 @@ public:
 
     void set_item(boost::python::object k, double v)
     {
-        int32_t r = python::extract<int32_t>(k[0]);
-        int32_t s = python::extract<int32_t>(k[1]);
+        int64_t r = python::extract<int64_t>(k[0]);
+        int64_t s = python::extract<int64_t>(k[1]);
         (*this)[make_pair(r, s)] = v;
     }
 
@@ -104,7 +104,7 @@ public:
 void collect_edge_marginals(GraphInterface& gi, std::any ob,
                             std::any op, size_t update)
 {
-    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<int64_t> vmap_t;
     auto b = std::any_cast<vmap_t>(ob).get_unchecked();
 
     typedef eprop_map_t<python::object>
@@ -225,7 +225,7 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, std::any op,
 }
 
 class PartitionHist
-    : public gt_hash_map<std::vector<int32_t>, double>
+    : public gt_hash_map<std::vector<int64_t>, double>
 {
 public:
 
@@ -242,13 +242,13 @@ public:
         auto keys = state.keys();
         for (int i = 0; i < python::len(keys); ++i)
         {
-            auto& k = python::extract<std::vector<int32_t>&>(keys[i])();
+            auto& k = python::extract<std::vector<int64_t>&>(keys[i])();
             double v = python::extract<double>(state[k]);
             (*this)[k] = v;
         }
     }
 
-    size_t get_item(std::vector<int32_t>& k)
+    size_t get_item(std::vector<int64_t>& k)
     {
         auto iter = this->find(k);
         if (iter == this->end())
@@ -256,17 +256,17 @@ public:
         return iter->second;
     }
 
-    void set_item(std::vector<int32_t>& k, double v)
+    void set_item(std::vector<int64_t>& k, double v)
     {
         (*this)[k] = v;
     }
 
 };
 
-static double log_n_permutations(const vector<int32_t>& b)
+static double log_n_permutations(const vector<int64_t>& b)
 {
     GILRelease gil_release;
-    std::vector<int32_t> count(b.size());
+    std::vector<int64_t> count(b.size());
     for (auto bi : b)
         count[bi]++;
     double n = boost::math::lgamma(b.size() + 1);
@@ -275,10 +275,10 @@ static double log_n_permutations(const vector<int32_t>& b)
     return n;
 }
 
-static vector<int32_t> unlabel_partition(vector<int32_t> b)
+static vector<int64_t> unlabel_partition(vector<int64_t> b)
 {
     GILRelease gil_release;
-    std::vector<int32_t> map(b.size(), -1);
+    std::vector<int64_t> map(b.size(), -1);
     size_t pos = 0;
     for (auto& bi : b)
     {
@@ -296,7 +296,7 @@ static vector<int32_t> unlabel_partition(vector<int32_t> b)
 void collect_partitions(std::any& ob, PartitionHist& h, double update,
                         bool unlabel)
 {
-    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<int64_t> vmap_t;
     auto& b = std::any_cast<vmap_t&>(ob);
     auto& v = b.get_storage();
     if (unlabel)
@@ -313,8 +313,8 @@ void collect_partitions(std::any& ob, PartitionHist& h, double update,
 void collect_hierarchical_partitions(python::object ovb, PartitionHist& h,
                                      size_t update, bool unlabel)
 {
-    typedef vprop_map_t<int32_t> vmap_t;
-    vector<int32_t> v;
+    typedef vprop_map_t<int64_t> vmap_t;
+    vector<int64_t> v;
     for (int i = 0; i < len(ovb); ++i)
     {
         std::any& ob = python::extract<std::any&>(ovb[i])();
@@ -376,7 +376,7 @@ REGISTER_MOD
 
     class_<PartitionHist>("PartitionHist",
                           "Histogram of partitions, implemented in C++.\n"
-                          "Interface supports querying and setting using Vector_int32_t "
+                          "Interface supports querying and setting using Vector_int64_t "
                           "as keys, and ints as values.")
         .def("__setitem__", &PartitionHist::set_item)
         .def("__getitem__", &PartitionHist::get_item)

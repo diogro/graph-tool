@@ -314,10 +314,13 @@ struct Dynamics
             {
                 S -= qlaplace_lprob(vals.front(), l1, delta, nonzero);
                 S -= qlaplace_lprob(vals.back(), l1, delta, nonzero);
+                if (W > 1)
+                    S -= log(2);
                 if (W >= 2)
                     S += lbinom_careful<double,double>
-                        ((vals.back() - vals.front())/delta - 1 - int(nonzero),
+                        ((vals.back() - vals.front())/delta - 1 - int64_t(nonzero),
                          W - 2);
+                S += 64 * 2; // l1 and delta;
             }
 
             if (uniform)
@@ -350,7 +353,7 @@ struct Dynamics
             size_t nr = get_count(h, r);
             size_t ns = get_count(h, s);
             size_t W = h.size();
-            int dW = 0;
+            int64_t dW = 0;
 
             assert(nr > 0);
             assert(nr >= dn);
@@ -387,9 +390,12 @@ struct Dynamics
                     {
                         S -= qlaplace_lprob(xmin, l1, delta, nonzero);
                         S -= qlaplace_lprob(xmax, l1, delta, nonzero);
+                        if (W > 1)
+                            S -= log(2);
                         if (W >= 2)
                             S += lbinom_careful<double, double>
-                                ((xmax - xmin)/delta - 1 - int(nonzero), W - 2);
+                                ((xmax - xmin)/delta - 1 - int64_t(nonzero), W - 2);
+                        S += 64 * 2; // l1 and delta;
                     }
 
                     if (uniform)
@@ -467,9 +473,12 @@ struct Dynamics
                     {
                         S -= qlaplace_lprob(xmin, l1, delta, nonzero);
                         S -= qlaplace_lprob(xmax, l1, delta, nonzero);
+                        if (W > 1)
+                            S -= log(2);
                         if (W >= 2)
                             S += lbinom_careful<double, double>
                                 ((xmax - xmin)/delta - 1 - int(nonzero), W - 2);
+                        S += 64 * 2; // l1 and delta;
                     }
 
                     if (uniform)
@@ -530,8 +539,15 @@ struct Dynamics
                      });
             }
 
+            size_t N = num_vertices(_u);
+            size_t T = is_directed(_u) ?
+                N * (_self_loops ? N : N - 1) :
+                (N * (_self_loops ? N + 1 : N - 1)) / 2;
+
             if (ea.density)
                 S += -(_E * log(ea.aE)) + lgamma_fast(_E + 1) - ea.aE;
+            else
+                S += _E * log1p(1./T) + log1p(T);
 
             #pragma omp parallel reduction(+:S)
             parallel_edge_loop_no_spawn
@@ -543,10 +559,6 @@ struct Dynamics
                      S += edge_x_S(_x[e], ea);
                  });
 
-            size_t N = num_vertices(_u);
-            size_t T = is_directed(_u) ?
-                N * (_self_loops ? N : N-1) :
-                (N * (_self_loops ? N + 1 : N - 1)) / 2;
             S += (T - _E) * edge_x_S(0, ea);
 
             if (!_disable_xdist && ea.xdist)
@@ -663,7 +675,7 @@ struct Dynamics
             return S;
         }
 
-        double remove_edge_dS(size_t u, size_t v, int dm,
+        double remove_edge_dS(size_t u, size_t v, int64_t dm,
                               const dentropy_args_t& ea, bool dstate = true,
                               bool lock = true)
         {
@@ -689,6 +701,14 @@ struct Dynamics
             {
                 dS += log(ea.aE) * dm;
                 dS += lgamma_fast(_E + 1 - dm) - lgamma_fast(_E + 1);
+            }
+            else
+            {
+                size_t N = num_vertices(_u);
+                size_t T = is_directed(_u) ?
+                    N * (_self_loops ? N : N - 1) :
+                    (N * (_self_loops ? N + 1 : N - 1)) / 2;
+                dS -= dm * log1p(1./T);
             }
 
             if (_eweight[e] == dm && (_self_loops || u != v))
@@ -748,6 +768,14 @@ struct Dynamics
             {
                 dS -= log(ea.aE) * dm;
                 dS += lgamma_fast(_E + 1 + dm) - lgamma_fast(_E + 1);
+            }
+            else
+            {
+                size_t N = num_vertices(_u);
+                size_t T = is_directed(_u) ?
+                    N * (_self_loops ? N : N - 1) :
+                    (N * (_self_loops ? N + 1 : N - 1)) / 2;
+                dS += dm * log1p(1./T);
             }
 
             assert(!std::isinf(dS) && !std::isnan(dS));

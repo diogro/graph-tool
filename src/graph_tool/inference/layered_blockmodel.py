@@ -94,7 +94,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         if kwargs.pop("ec_done", False) or ec is None:
             self.ec = ec
         else:
-            self.ec = ec = perfect_prop_hash([ec], "int32_t")[0]
+            self.ec = ec = perfect_prop_hash([ec], "int64_t")[0]
 
         if ec is not None:
             self.C = ec.fa.max() + 1
@@ -107,10 +107,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         dense_bg = False
 
         if vweight is None:
-            vweight = g.new_vp("int", 1)
+            vweight = g.new_vp("int64_t", 1)
 
         if eweight is None:
-            eweight = g.new_ep("int", 1)
+            eweight = g.new_ep("int64_t", 1)
 
         self.Lrecdx = kwargs.pop("Lrecdx", [])
         while len(self.Lrecdx) < self.C + 1:
@@ -125,7 +125,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                 tdegs = libinference.get_mapped_block_degs(self.g._Graph__graph,
                                                            ldegs, 0,
                                                            _prop("v", self.g,
-                                                                 self.g.vertex_index.copy("int")))
+                                                                 self.g.vertex_index.copy("int64_t")))
             else:
                 tdegs = None
 
@@ -150,8 +150,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                                            "gs", "bfield"]))
             self.base_g = agg_state.base_g
             self.g = agg_state.g
-            eweight = self.g.new_ep("int", 1)
-            vweight = self.g.new_vp("int", 1)
+            eweight = self.g.new_ep("int64_t", 1)
+            vweight = self.g.new_vp("int64_t", 1)
             kwargs = dmask(kwargs, ["base_g", "node_index", "eindex",
                                     "half_edges"])
 
@@ -159,7 +159,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         if overlap and self.ec is not None:
             self.base_ec = self.base_g.own_property(ec.copy())
-            ec = agg_state.g.new_ep("int")
+            ec = agg_state.g.new_ep("int64_t")
             eindex = self.base_g.edge_index.copy()
             ec.fa = self.ec.a[eindex.fa]
             self.ec = ec
@@ -190,23 +190,23 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.deg_corr = deg_corr
         self.overlap = overlap
 
-        self.vc = self.g.new_vp("vector<int>")
-        self.vmap = self.g.new_vp("vector<int>")
+        self.vc = self.g.new_vp("vector<int64_t>")
+        self.vmap = self.g.new_vp("vector<int64_t>")
 
         self.gs = kwargs.pop("gs", [])
         self.block_map = libinference.bmap_t()
-        lweights = kwargs.pop("lweights", self.g.new_vp("vector<int>"))
+        lweights = kwargs.pop("lweights", self.g.new_vp("vector<int64_t>"))
 
         if len(self.gs) == 0:
             for l in range(0, self.C):
                 u = Graph(directed=g.is_directed())
-                u.vp["b"] = u.new_vp("int")
-                u.vp["weight"] = u.new_vp("int")
-                u.ep["weight"] = u.new_ep("int")
+                u.vp["b"] = u.new_vp("int64_t")
+                u.vp["weight"] = u.new_vp("int64_t")
+                u.ep["weight"] = u.new_ep("int64_t")
                 u.gp["rec"] = u.new_gp("object", val=[u.new_ep("double") for i in range(len(self.rec))])
                 u.gp["drec"] = u.new_gp("object", val=[u.new_ep("double") for i in range(len(self.drec))])
-                u.vp["brmap"] = u.new_vp("int")
-                u.vp["vmap"] = u.new_vp("int")
+                u.vp["brmap"] = u.new_vp("int64_t")
+                u.vp["vmap"] = u.new_vp("int64_t")
                 self.gs.append(u)
 
             libinference.split_layers(self.g._Graph__graph,
@@ -272,7 +272,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             self.ablock_rmaps.append(state.block_rmap._get_any())
 
         if ec is None:
-            self.ec = self.g.new_ep("int")
+            self.ec = self.g.new_ep("int64_t")
 
         if not self.overlap:
             self._state = \
@@ -470,8 +470,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         r"""Returns the block graph."""
 
         bg = Graph(directed=self.g.is_directed())
-        mrs = bg.new_ep("int")
-        ec = bg.new_ep("int")
+        mrs = bg.new_ep("int64_t")
+        ec = bg.new_ep("int64_t")
         rec = bg.new_edge_property("vector<double>")
         drec = bg.new_edge_property("vector<double>")
 
@@ -479,7 +479,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             u = GraphView(self.g, efilt=self.ec.a == l)
             ug = get_block_graph(u, self.get_B(), self.b, self.vweight, self.eweight,
                                  rec=self.rec, drec=self.drec)
-            uec = ug.new_ep("int")
+            uec = ug.new_ep("int64_t")
             uec.a = l
             if len(ug.gp.rec) > 0:
                 urec = group_vector_property(ug.gp.rec)
@@ -520,12 +520,12 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                 u = GraphView(s.bg)
                 u.ep.weight = s.mrs
                 u.vp.vmap = u.own_property(s.g.vp.brmap).copy()
-                u.vp.b = u.new_vp("int")
+                u.vp.b = u.new_vp("int64_t")
                 if vweight == True:
                     u.vp.weight = u.own_property(s.wr)
                 else:
-                    u.vp.weight = u.new_vp("int", s.wr.a > 0)
-                u.vp.brmap = u.new_vp("int")
+                    u.vp.weight = u.new_vp("int64_t", s.wr.a > 0)
+                u.vp.brmap = u.new_vp("int64_t")
                 u.gp.rec = u.new_gp("object", val=s.brec)
                 u.gp.drec = u.new_gp("object", val=s.bdrec)
                 gs.append(u)
@@ -548,10 +548,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         copy_coupled = False
         recs = False
         if vweight == "nonempty":
-            vweight = bg.new_vp("int", self.wr.a > 0)
+            vweight = bg.new_vp("int64_t", self.wr.a > 0)
             layers = True if layers is None else layers
         elif vweight == "unity":
-            vweight = bg.new_vp("int", 1)
+            vweight = bg.new_vp("int64_t", 1)
             layers = True if layers is None else layers
         elif vweight == True:
             if copy_bg:
@@ -618,7 +618,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   recs=recs,
                                   drec=drec,
                                   rec_params=rec_params,
-                                  b=bg.vertex_index.copy("int") if b is None else b,
+                                  b=bg.vertex_index.copy("int64_t") if b is None else b,
                                   deg_corr=deg_corr,
                                   overlap=overlap,
                                   dense_bg=self.dense_bg,

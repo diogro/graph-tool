@@ -36,7 +36,7 @@ using namespace std;
     ((q_default,, double, 0))                                                  \
     ((S_const,, double, 0))                                                    \
     ((self_loops,, bool, 0))                                                   \
-    ((max_m,, int, 0))
+    ((max_m,, int64_t, 0))
 
 template <class BlockState>
 struct Uncertain
@@ -154,7 +154,7 @@ struct Uncertain
             return -S;
         }
 
-        double remove_edge_dS(size_t u, size_t v, int dm, const uentropy_args_t& ea)
+        double remove_edge_dS(size_t u, size_t v, int64_t dm, const uentropy_args_t& ea)
         {
             auto& e = get_u_edge(u, v);
             double dS = _block_state.modify_edge_dS(source(e, _u),
@@ -178,7 +178,7 @@ struct Uncertain
             return dS;
         }
 
-        double add_edge_dS(size_t u, size_t v, int dm, const uentropy_args_t& ea)
+        double add_edge_dS(size_t u, size_t v, int64_t dm, const uentropy_args_t& ea)
         {
             auto& e = get_u_edge(u, v);
 
@@ -206,14 +206,14 @@ struct Uncertain
             return dS;
         }
 
-        void remove_edge(size_t u, size_t v, int dm)
+        void remove_edge(size_t u, size_t v, int64_t dm)
         {
             auto& e = get_u_edge(u, v);
             _block_state.template modify_edge<false>(u, v, e, dm);
             _E -= dm;
         }
 
-        void add_edge(size_t u, size_t v, int dm)
+        void add_edge(size_t u, size_t v, int64_t dm)
         {
             auto& e = get_u_edge<true>(u, v);
             _block_state.template modify_edge<true>(u, v, e, dm);

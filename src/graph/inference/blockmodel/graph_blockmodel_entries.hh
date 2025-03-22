@@ -197,7 +197,7 @@ public:
 
     template <bool Add, class... DVals>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    void insert_delta_dispatch(size_t s, size_t t, size_t& f, int d, DVals&&... delta)
+    void insert_delta_dispatch(size_t s, size_t t, size_t& f, int64_t d, DVals&&... delta)
     {
         if (f == _null)
         {
@@ -226,7 +226,7 @@ public:
 
     template <bool First, bool Source, bool Add, class... DVals>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    void insert_delta_rnr(size_t s, size_t t, int d, DVals&&... delta)
+    void insert_delta_rnr(size_t s, size_t t, int64_t d, DVals&&... delta)
     {
         auto& f = get_field_rnr<First, Source>(s, t);
         insert_delta_dispatch<Add>(s, t, f, d, std::forward<DVals>(delta)...);
@@ -234,14 +234,14 @@ public:
 
     template <bool Add, class... DVals>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    void insert_delta(size_t s, size_t t, int d, DVals&&... delta)
+    void insert_delta(size_t s, size_t t, int64_t d, DVals&&... delta)
     {
         auto& f = get_field(s, t);
         insert_delta_dispatch<Add>(s, t, f, d, std::forward<DVals>(delta)...);
     }
 
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    int get_delta(size_t r, size_t s)
+    int64_t get_delta(size_t r, size_t s)
     {
         size_t f = get_field(r, s);
         if (f == _null)
@@ -266,7 +266,7 @@ public:
     }
 
     const vector<pair<size_t, size_t>>& get_entries() { return _entries; }
-    const vector<int>&                  get_delta()   { return _delta;   }
+    const vector<int64_t>&                  get_delta()   { return _delta;   }
     const vector<std::tuple<EVals...>>& get_edelta()  { _edelta.resize(_delta.size()); return _edelta;  }
 
     template <class Emat>
@@ -293,7 +293,7 @@ public:
     std::tuple<EVals...> _self_eweight;
 
     std::vector<std::tuple<size_t, size_t,
-                           GraphInterface::edge_t, int, std::vector<double>>>
+                           GraphInterface::edge_t, int64_t, std::vector<double>>>
         _p_entries;
 
 private:
@@ -305,7 +305,7 @@ private:
     vector<size_t> _nr_out_field;
     vector<size_t> _nr_in_field;
     vector<pair<size_t, size_t>> _entries;
-    vector<int> _delta;
+    vector<int64_t> _delta;
     vector<std::tuple<EVals...>> _edelta;
     vector<bedge_t> _mes;
     size_t _dummy;
@@ -328,7 +328,7 @@ void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     auto& eself_weight = m_entries._self_eweight;
-    int self_weight = 0;
+    int64_t self_weight = 0;
     if constexpr (!is_directed_::apply<Graph>::type::value && sizeof...(Eprops) > 0)
     {
         tuple_apply([&](auto&... vals)
@@ -345,7 +345,7 @@ void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
             continue;
         vertex_t u = target(e, g);
         vertex_t s = _b[u];
-        int ew = eweights[e];
+        int64_t ew = eweights[e];
 
         if constexpr (Remove)
             m_entries.template insert_delta_rnr<true, true, false>
@@ -411,7 +411,7 @@ void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
             if (u == v)
                 continue;
             vertex_t s = _b[u];
-            int ew = eweights[e];
+            int64_t ew = eweights[e];
 
             if constexpr (Remove)
                 m_entries.template insert_delta_rnr<true, false, false>
@@ -513,7 +513,7 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
                    size_t ers = 0;
                    if (me != emat.get_null_edge())
                        ers = mrs[me];
-                   assert(int(ers) + d >= 0);
+                   assert(int64_t(ers) + d >= 0);
                    if constexpr (exact)
                        dS += eterm_exact(r, s, ers + d, bg) - eterm_exact(r, s, ers, bg);
                    else

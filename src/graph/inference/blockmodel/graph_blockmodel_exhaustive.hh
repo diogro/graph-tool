@@ -31,7 +31,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t> vmap_t;
+typedef vprop_map_t<int64_t> vmap_t;
 
 #define EXHAUSTIVE_BLOCK_STATE_params(State)                                   \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \

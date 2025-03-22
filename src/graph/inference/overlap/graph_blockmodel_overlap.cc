@@ -62,10 +62,10 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, std::any obe,
                     std::any ohalf_edges, std::any oeindex, std::any orec,
                     std::any oerec)
 {
-    typedef vprop_map_t<int32_t> vmap_t;
+    typedef vprop_map_t<int64_t> vmap_t;
     typedef vprop_map_t<int64_t> vimap_t;
     typedef vprop_map_t<vector<int64_t>> vvmap_t;
-    typedef eprop_map_t<vector<int32_t>> evmap_t;
+    typedef eprop_map_t<vector<int64_t>> evmap_t;
     typedef eprop_map_t<int64_t> emap_t;
     typedef eprop_map_t<vector<double>> ermap_t;
 
@@ -105,8 +105,8 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, std::any obe,
 
 void get_be_from_b_overlap(GraphInterface& gi, std::any obe, std::any ob)
 {
-    typedef vprop_map_t<int32_t>    vmap_t;
-    typedef eprop_map_t<vector<int32_t>> evmap_t;
+    typedef vprop_map_t<int64_t>    vmap_t;
+    typedef eprop_map_t<vector<int64_t>> evmap_t;
 
     vmap_t b = std::any_cast<vmap_t>(ob);
     evmap_t be = std::any_cast<evmap_t>(obe);
@@ -223,7 +223,7 @@ REGISTER_MOD
                       +[](state_t& state, GraphInterface& gi,
                           std::any obe)
                       {
-                          typedef eprop_map_t<vector<int32_t>> evmap_t;
+                          typedef eprop_map_t<vector<int64_t>> evmap_t;
                           evmap_t be = std::any_cast<evmap_t>(obe);
                           run_action<>()(gi,
                                          [&](auto& g)
@@ -236,7 +236,7 @@ REGISTER_MOD
                           std::any obc_in, std::any obc_out,
                           std::any obc_total)
                       {
-                          typedef vprop_map_t<vector<int32_t>> vvmap_t;
+                          typedef vprop_map_t<vector<int64_t>> vvmap_t;
                           vvmap_t bv = std::any_cast<vvmap_t>(obv);
                           vvmap_t bc_in = std::any_cast<vvmap_t>(obc_in);
                           vvmap_t bc_out = std::any_cast<vvmap_t>(obc_out);
@@ -253,8 +253,8 @@ REGISTER_MOD
                       +[](state_t& state, GraphInterface& gi, std::any obv,
                           std::any ob)
                       {
-                          typedef vprop_map_t<int32_t> vmap_t;
-                          typedef vprop_map_t<vector<int32_t>> vvmap_t;
+                          typedef vprop_map_t<int64_t> vmap_t;
+                          typedef vprop_map_t<vector<int64_t>> vvmap_t;
 
                           vvmap_t bv = std::any_cast<vvmap_t>(obv);
                           vmap_t b = std::any_cast<vmap_t>(ob);
@@ -268,8 +268,8 @@ REGISTER_MOD
                       +[](state_t&, GraphInterface& gi, std::any obv,
                           std::any obc_total, std::any ob)
                       {
-                          typedef vprop_map_t<int32_t> vmap_t;
-                          typedef vprop_map_t<vector<int32_t>> vvmap_t;
+                          typedef vprop_map_t<int64_t> vmap_t;
+                          typedef vprop_map_t<vector<int64_t>> vvmap_t;
 
                           vmap_t b = std::any_cast<vmap_t>(ob);
                           vvmap_t bv = std::any_cast<vvmap_t>(obv);
@@ -281,7 +281,7 @@ REGISTER_MOD
                                              {
                                                  if (bv[v].empty())
                                                  {
-                                                     b[v] = numeric_limits<int32_t>::max();
+                                                     b[v] = numeric_limits<int64_t>::max();
                                                      continue;
                                                  }
                                                  auto& c = bc_total[v];

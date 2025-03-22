@@ -33,17 +33,17 @@ using namespace std;
 
 #define MEASURED_STATE_params                                                  \
     ((g, &, decltype(all_graph_views), 1))                                     \
-    ((n,, eprop_map_t<int>, 0))                                                \
-    ((x,, eprop_map_t<int>, 0))                                                \
-    ((n_default,, int, 0))                                                     \
-    ((x_default,, int, 0))                                                     \
+    ((n,, eprop_map_t<int64_t>, 0))                                                \
+    ((x,, eprop_map_t<int64_t>, 0))                                                \
+    ((n_default,, int64_t, 0))                                                     \
+    ((x_default,, int64_t, 0))                                                     \
     ((alpha,, double, 0))                                                      \
     ((beta,, double, 0))                                                       \
     ((mu,, double, 0))                                                         \
     ((nu,, double, 0))                                                         \
     ((lp,, double, 0))                                                         \
     ((lq,, double, 0))                                                         \
-    ((max_m,, int, 0))                                                         \
+    ((max_m,, int64_t, 0))                                                         \
     ((self_loops,, bool, 0))
 
 template <class BlockState>
@@ -222,7 +222,7 @@ struct Measured
             return -S;
         }
 
-        double get_dS(int dT, int dM)
+        double get_dS(int64_t dT, int64_t dM)
         {
             // FIXME: Can be faster!
             double Si = get_MP(_T, _M, false);
@@ -230,7 +230,7 @@ struct Measured
             return -(Sf - Si);
         }
 
-        double remove_edge_dS(size_t u, size_t v, int dm, const uentropy_args_t& ea)
+        double remove_edge_dS(size_t u, size_t v, int64_t dm, const uentropy_args_t& ea)
         {
             auto& e = get_u_edge(u, v);
 
@@ -247,8 +247,8 @@ struct Measured
                 if (_eweight[e] == dm && (_self_loops || u != v))
                 {
                     auto& m = get_edge<false>(u, v);
-                    int dT = (m == _null_edge) ? _x_default : _x[m];
-                    int dM = (m == _null_edge) ? _n_default : _n[m];
+                    int64_t dT = (m == _null_edge) ? _x_default : _x[m];
+                    int64_t dM = (m == _null_edge) ? _n_default : _n[m];
                     dS += get_dS(-dT, -dM);
                 }
             }
@@ -256,7 +256,7 @@ struct Measured
             return dS;
         }
 
-        double add_edge_dS(size_t u, size_t v, int dm, const uentropy_args_t& ea)
+        double add_edge_dS(size_t u, size_t v, int64_t dm, const uentropy_args_t& ea)
         {
             auto& e = get_u_edge(u, v);
 
@@ -278,23 +278,23 @@ struct Measured
                 if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
                 {
                     auto& m = get_edge<false>(u, v);
-                    int dT = (m == _null_edge) ? _x_default : _x[m];
-                    int dM = (m == _null_edge) ? _n_default : _n[m];
+                    int64_t dT = (m == _null_edge) ? _x_default : _x[m];
+                    int64_t dM = (m == _null_edge) ? _n_default : _n[m];
                     dS += get_dS(dT, dM);
                 }
             }
             return dS;
         }
 
-        void remove_edge(size_t u, size_t v, int dm)
+        void remove_edge(size_t u, size_t v, int64_t dm)
         {
             auto& e = get_u_edge(u, v);
 
             if (_eweight[e] == dm && (_self_loops || u != v))
             {
                 auto& m = get_edge<false>(u, v);
-                int dT = (m == _null_edge) ? _x_default : _x[m];
-                int dM = (m == _null_edge) ? _n_default : _n[m];
+                int64_t dT = (m == _null_edge) ? _x_default : _x[m];
+                int64_t dM = (m == _null_edge) ? _n_default : _n[m];
                 _T -= dT;
                 _M -= dM;
             }
@@ -303,15 +303,15 @@ struct Measured
             _E -= dm;
         }
 
-        void add_edge(size_t u, size_t v, int dm)
+        void add_edge(size_t u, size_t v, int64_t dm)
         {
             auto& e = get_u_edge<true>(u, v);
 
             if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
             {
                 auto& m = get_edge<false>(u, v);
-                int dT = (m == _null_edge) ? _x_default : _x[m];
-                int dM = (m == _null_edge) ? _n_default : _n[m];
+                int64_t dT = (m == _null_edge) ? _x_default : _x[m];
+                int64_t dM = (m == _null_edge) ? _n_default : _n[m];
                 _T += dT;
                 _M += dM;
             }

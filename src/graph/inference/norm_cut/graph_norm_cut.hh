@@ -37,7 +37,7 @@ struct norm_cut_entropy_args_t
 };
 
 
-typedef vprop_map_t<int32_t> vmap_t;
+typedef vprop_map_t<int64_t> vmap_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(never_directed), 1))                                      \
@@ -126,10 +126,10 @@ public:
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
 
-    typedef int m_entries_t;
+    typedef int64_t m_entries_t;
 
-    UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
-    UnityPropertyMap<int,GraphInterface::edge_t> _eweight;
+    UnityPropertyMap<int64_t,GraphInterface::vertex_t> _vweight;
+    UnityPropertyMap<int64_t,GraphInterface::edge_t> _eweight;
     simple_degs_t _degs;
 
     args_t _args;
@@ -209,7 +209,7 @@ public:
         if (r == nr)
             return 0;
 
-        std::array<int, 2> derr({0,0});
+        std::array<int64_t, 2> derr({0,0});
         size_t k = 0;
         size_t m = 0;
         for (auto e : out_edges_range(v, _g))
@@ -239,7 +239,7 @@ public:
         Ca -= (_er[r] - k > 0) ? (_err[r] + derr[0])/double(_er[r] - k) : 0;
         Ca -= (_er[nr] + k > 0) ? (_err[nr] + derr[1])/double(_er[nr] + k) : 0;
 
-        int dB = 0;
+        int64_t dB = 0;
         if (_wr[r] == 1)
             dB--;
         if (_wr[nr] == 0)

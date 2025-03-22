@@ -518,9 +518,9 @@ class MultilevelMCMCState(EntropyState):
         if bclabel is not None:
             B_min = max((len(numpy.unique(bclabel.fa)), B_min))
         if b_min is None:
-            b_min = self.g.vertex_index.copy("int")
+            b_min = self.g.vertex_index.copy("int64_t")
         if b_max is None:
-            b_max = self.g.new_vp("int")
+            b_max = self.g.new_vp("int64_t")
 
         mcmc_state = DictState(locals())
         mcmc_state.oentropy_args = self._get_entropy_args(entropy_args)

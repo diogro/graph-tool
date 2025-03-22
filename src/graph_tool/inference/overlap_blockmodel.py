@@ -149,7 +149,7 @@ class OverlapBlockState(BlockState):
             ba[:B] = np.random(B)        # avoid empty blocks
             if B < self.g.num_vertices():
                 np.random.shuffle(ba)
-            b = g.new_vertex_property("int")
+            b = g.new_vertex_property("int64_t")
             b.fa = ba
             self.b = b
         else:
@@ -158,10 +158,10 @@ class OverlapBlockState(BlockState):
             # at this point, *b* must correspond to the partition of
             # *half-edges*
             if isinstance(b, np.ndarray):
-                self.b = g.new_vertex_property("int")
+                self.b = g.new_vertex_property("int64_t")
                 self.b.fa = b
             else:
-                b = b.copy(value_type="int")
+                b = b.copy(value_type="int64_t")
                 b = g.own_property(b)
                 self.b = b
             if B is None:
@@ -211,26 +211,26 @@ class OverlapBlockState(BlockState):
 
         if pclabel is not None:
             if isinstance(pclabel, PropertyMap):
-                self.pclabel = self.g.own_property(pclabel).copy("int")
+                self.pclabel = self.g.own_property(pclabel).copy("int64_t")
             else:
-                self.pclabel = self.g.new_vp("int")
+                self.pclabel = self.g.new_vp("int64_t")
                 self.pclabel.fa = pclabel
         else:
-            self.pclabel = self.g.new_vp("int")
+            self.pclabel = self.g.new_vp("int64_t")
 
         if clabel is not None:
             if isinstance(clabel, PropertyMap):
-                self.clabel = self.g.own_property(clabel).copy("int")
+                self.clabel = self.g.own_property(clabel).copy("int64_t")
             else:
-                self.clabel = self.g.new_vp("int")
+                self.clabel = self.g.new_vp("int64_t")
                 self.clabel.fa = clabel
         elif self.pclabel.fa.max() > 0:
             self.clabel = self.pclabel
         else:
-            self.clabel = self.g.new_vp("int")
+            self.clabel = self.g.new_vp("int64_t")
 
         self.bclabel = self.get_bclabel()
-        self.hclabel = self.bg.new_vp("int")
+        self.hclabel = self.bg.new_vp("int64_t")
 
         BlockState._init_recs(self, self.rec, rec_types, rec_params)
         self.recdx = libcore.Vector_double(len(self.rec))
@@ -362,7 +362,7 @@ class OverlapBlockState(BlockState):
     def get_edge_blocks(self):
         r"""Returns an edge property map which contains the block labels pairs for each
         edge."""
-        be = self.base_g.new_edge_property("vector<int>")
+        be = self.base_g.new_edge_property("vector<int64_t>")
         self._state.get_be_overlap(self.base_g._Graph__graph,
                                     _prop("e", self.base_g, be))
         return be
@@ -386,10 +386,10 @@ class OverlapBlockState(BlockState):
            belong to each group, in the same order as the ``bv`` property above.
 
         """
-        bv = self.base_g.new_vertex_property("vector<int>")
-        bc_in = self.base_g.new_vertex_property("vector<int>")
-        bc_out = self.base_g.new_vertex_property("vector<int>")
-        bc_total = self.base_g.new_vertex_property("vector<int>")
+        bv = self.base_g.new_vertex_property("vector<int64_t>")
+        bc_in = self.base_g.new_vertex_property("vector<int64_t>")
+        bc_out = self.base_g.new_vertex_property("vector<int64_t>")
+        bc_total = self.base_g.new_vertex_property("vector<int64_t>")
         self._state.get_bv_overlap(self.base_g._Graph__graph,
                                     _prop("v", self.base_g, bv),
                                     _prop("v", self.base_g, bc_in),
@@ -402,7 +402,7 @@ class OverlapBlockState(BlockState):
         represented as a single number."""
 
         bv = self.get_overlap_blocks()[0]
-        b = self.base_g.new_vertex_property("int")
+        b = self.base_g.new_vertex_property("int64_t")
         self._state.get_overlap_split(self.base_g._Graph__graph,
                                        _prop("v", self.base_g, bv),
                                        _prop("v", self.base_g, b))
@@ -414,7 +414,7 @@ class OverlapBlockState(BlockState):
 
         bv = self.get_overlap_blocks()
         bv, bc = bv[0], bv[-1]
-        b = self.base_g.new_vertex_property("int")
+        b = self.base_g.new_vertex_property("int64_t")
         self._state.get_maj_overlap(self.base_g._Graph__graph,
                                      _prop("v", self.base_g, bv),
                                      _prop("v", self.base_g, bc),
@@ -425,7 +425,7 @@ class OverlapBlockState(BlockState):
         r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
         labels for the block graph."""
 
-        bclabel = self.bg.new_vertex_property("int")
+        bclabel = self.bg.new_vertex_property("int64_t")
         reverse_map(self.b, bclabel)
         if clabel is None:
             clabel = self.clabel
@@ -726,20 +726,20 @@ def half_edge_graph(g, b=None, B=None, rec=None):
         # if given an array, assume it corresponds to the *final* half-edge
         # partitions
         b_array = b
-        b = g.new_vertex_property("int")
+        b = g.new_vertex_property("int64_t")
 
     if b.key_type() == "v":
         # If a vertex partition is given, we convert it into a
         # non-overlapping edge partition
-        be = g.new_edge_property("vector<int>")
-        b = b.copy("int")
+        be = g.new_edge_property("vector<int64_t>")
+        b = b.copy("int64_t")
         libinference.get_be_from_b_overlap(g._Graph__graph,
                                            _prop("e", g, be),
                                            _prop("v", g, b))
         b = be
     else:
         # If an half-edge partition is provided, we incorporate it
-        b = b.copy(value_type="vector<int32_t>")
+        b = b.copy(value_type="vector<int64_t>")
 
     if B is None:
         if b_array is None:
@@ -756,7 +756,7 @@ def half_edge_graph(g, b=None, B=None, rec=None):
     eg = Graph(directed=g.is_directed())
     node_index = eg.new_vertex_property("int64_t")
     half_edges = g.new_vertex_property("vector<int64_t>")
-    be = eg.new_vertex_property("int")
+    be = eg.new_vertex_property("int64_t")
     eindex = eg.new_edge_property("int64_t")
     erec = eg.new_edge_property("vector<double>")
 
@@ -789,9 +789,9 @@ def augmented_graph(g, b, node_index, eweight=None):
     according to ``b``, where each half-edge belonging to a different group
     inside each node forms a new node."""
 
-    node_map = g.new_vertex_property("int")
-    br_b = libcore.Vector_int32_t()
-    br_ni = libcore.Vector_int32_t()
+    node_map = g.new_vertex_property("int64_t")
+    br_b = libcore.Vector_int64_t()
+    br_ni = libcore.Vector_int64_t()
     libinference.get_augmented_overlap(g._Graph__graph,
                                        _prop("v", g, b),
                                        _prop("v", g, node_index),
@@ -801,10 +801,10 @@ def augmented_graph(g, b, node_index, eweight=None):
 
     au, vcount, ecount = condensation_graph(g, node_map,
                                             eweight=eweight)[:3]
-    anidx = au.vertex_index.copy("int")
+    anidx = au.vertex_index.copy("int64_t")
     libinference.vector_map(anidx.a, br_ni.a)
 
-    ab = au.vertex_index.copy("int")
+    ab = au.vertex_index.copy("int64_t")
     libinference.vector_map(ab.a, br_b.a)
 
     return au, ab, anidx, ecount, node_map

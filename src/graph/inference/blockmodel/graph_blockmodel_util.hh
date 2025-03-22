@@ -38,7 +38,7 @@ public:
     virtual double entropy(const entropy_args_t& eargs, bool propagate) = 0;
     virtual void add_partition_node(size_t v, size_t r) = 0;
     virtual void remove_partition_node(size_t v, size_t r) = 0;
-    virtual void set_vertex_weight(size_t v, int w) = 0;
+    virtual void set_vertex_weight(size_t v, int64_t w) = 0;
     virtual void coupled_resize_vertex(size_t v) = 0;
     virtual BlockStateVirtualBase* get_coupled_state() = 0;
     virtual double virtual_move(size_t v, size_t r, size_t nr,
@@ -54,25 +54,25 @@ public:
     virtual void remove_edge_rec(const GraphInterface::edge_t& e) = 0;
     virtual void update_edge_rec(const GraphInterface::edge_t& e,
                                  const std::vector<double>& delta) = 0;
-    virtual void add_edge(size_t u, size_t v, GraphInterface::edge_t& e, int dm) = 0;
-    virtual void remove_edge(size_t u, size_t v, GraphInterface::edge_t& e, int dm) = 0;
+    virtual void add_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm) = 0;
+    virtual void remove_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm) = 0;
     virtual double modify_edge_dS(size_t u, size_t v, const GraphInterface::edge_t& e,
-                                  int dm, const entropy_args_t& ea) = 0;
+                                  int64_t dm, const entropy_args_t& ea) = 0;
     virtual void propagate_delta(size_t u, size_t v,
                                  std::vector<std::tuple<size_t, size_t,
-                                             GraphInterface::edge_t, int,
+                                             GraphInterface::edge_t, int64_t,
                                              std::vector<double>>>& entries) = 0;
-    virtual double propagate_entries_dS(size_t u, size_t v, int du, int dv,
+    virtual double propagate_entries_dS(size_t u, size_t v, int64_t du, int64_t dv,
                                         std::vector<std::tuple<size_t, size_t,
-                                                               GraphInterface::edge_t, int,
+                                                               GraphInterface::edge_t, int64_t,
                                                                std::vector<double>>>& entries,
                                         const entropy_args_t& ea,
                                         std::vector<double>& dBdx, int dL) = 0;
     virtual double get_delta_partition_dl(size_t v, size_t r, size_t nr,
                                           const entropy_args_t& ea) = 0;
-    virtual vprop_map_t<int32_t>::unchecked_t& get_b() = 0;
-    virtual vprop_map_t<int32_t>::unchecked_t& get_pclabel() = 0;
-    virtual vprop_map_t<int32_t>::unchecked_t& get_bclabel() = 0;
+    virtual vprop_map_t<int64_t>::unchecked_t& get_b() = 0;
+    virtual vprop_map_t<int64_t>::unchecked_t& get_pclabel() = 0;
+    virtual vprop_map_t<int64_t>::unchecked_t& get_bclabel() = 0;
     virtual bool check_edge_counts(bool emat=true) = 0;
     virtual void check_node_counts() = 0;
     virtual bool allow_move(size_t r, size_t nr) = 0;

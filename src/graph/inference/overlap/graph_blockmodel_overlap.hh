@@ -33,8 +33,8 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t> vmap_t;
-typedef eprop_map_t<int32_t> emap_t;
+typedef vprop_map_t<int64_t> vmap_t;
+typedef eprop_map_t<int64_t> emap_t;
 
 typedef vprop_map_t<int64_t> vimap_t;
 typedef vprop_map_t<vector<int64_t>> vvmap_t;
@@ -57,7 +57,7 @@ typedef decltype(hana::tuple_t<std::true_type, std::false_type>) use_hash_tr;
     ((bfield,, vprop_map_t<std::vector<double>>, 0))                           \
     ((Bfield, &, std::vector<double>&, 0))                                     \
     ((deg_corr,, bool, 0))                                                     \
-    ((rec_types,, std::vector<int>, 0))                                        \
+    ((rec_types,, std::vector<int64_t>, 0))                                        \
     ((rec,, std::vector<eprop_map_t<double>>, 0))                              \
     ((drec,, std::vector<eprop_map_t<double>>, 0))                             \
     ((brec,, std::vector<eprop_map_t<double>>, 0))                             \
@@ -297,11 +297,11 @@ public:
         move_vertices(vs, rs);
     }
 
-    void add_edge(size_t, size_t, GraphInterface::edge_t&, int)
+    void add_edge(size_t, size_t, GraphInterface::edge_t&, int64_t)
     {
     }
 
-    void remove_edge(size_t, size_t, GraphInterface::edge_t&, int)
+    void remove_edge(size_t, size_t, GraphInterface::edge_t&, int64_t)
     {
     }
 
@@ -364,8 +364,8 @@ public:
 
         double dS = entries_dS<exact>(m_entries, _mrs, _emat, _bg);
 
-        int dwr = _wr[r] - _overlap_stats.virtual_remove_size(v, r, kin, kout);
-        int dwnr = _overlap_stats.virtual_add_size(v, nr) - _wr[nr];
+        int64_t dwr = _wr[r] - _overlap_stats.virtual_remove_size(v, r, kin, kout);
+        int64_t dwnr = _overlap_stats.virtual_add_size(v, nr) - _wr[nr];
 
         if (multigraph)
             dS += _overlap_stats.virtual_move_parallel_dS(v, r, nr, _b, _g);
@@ -486,8 +486,8 @@ public:
                             });
             }
 
-            int dr = (_overlap_stats.virtual_remove_size(v, r) == 0) ? -1 : 0;
-            int dnr = (_wr[nr] == 0) ? 1 : 0;
+            int64_t dr = (_overlap_stats.virtual_remove_size(v, r) == 0) ? -1 : 0;
+            int64_t dnr = (_wr[nr] == 0) ? 1 : 0;
             if (!m_entries._p_entries.empty() || dr != 0 || dnr != 0)
                 dS_dl += _coupled_state->propagate_entries_dS(r, nr, dr, dnr,
                                                               m_entries._p_entries,
@@ -697,13 +697,13 @@ public:
                     t = r;
                 w++;
 
-                int mts = 0;
+                int64_t mts = 0;
                 const auto& me = m_entries.get_me(t, s, _emat);
                 if (me != _emat.get_null_edge())
                     mts = _mrs[me];
-                int mtp = _mrp[t];
-                int mst = mts;
-                int mtm = mtp;
+                int64_t mtp = _mrp[t];
+                int64_t mst = mts;
+                int64_t mtm = mtp;
 
                 if (is_directed(_g))
                 {
@@ -716,8 +716,8 @@ public:
 
                 if (reverse)
                 {
-                    int dts = m_entries.get_delta(t, s);
-                    int dst = dts;
+                    int64_t dts = m_entries.get_delta(t, s);
+                    int64_t dst = dts;
                     if (is_directed(_g))
                         dst = m_entries.get_delta(s, t);
 
@@ -763,7 +763,7 @@ public:
 
     double get_move_prob(size_t, size_t, size_t, double, double,
                          bool,
-                         std::vector<std::tuple<size_t, size_t, int>>&)
+                         std::vector<std::tuple<size_t, size_t, int64_t>>&)
     {
         return 0;
     }
@@ -799,7 +799,7 @@ public:
 
         if (_deg_corr && deg_entropy)
         {
-            typedef gt_hash_map<int, int> map_t;
+            typedef gt_hash_map<int, int64_t> map_t;
 
             map_t in_hist, out_hist;
             size_t N = _overlap_stats.get_N();
@@ -922,14 +922,14 @@ public:
     }
 
     double modify_edge_dS(size_t, size_t, const GraphInterface::edge_t&,
-                          int, const entropy_args_t&)
+                          int64_t, const entropy_args_t&)
     {
         return 0;
     }
 
-    double propagate_entries_dS(size_t, size_t, int, int,
+    double propagate_entries_dS(size_t, size_t, int64_t, int64_t,
                                 std::vector<std::tuple<size_t, size_t,
-                                                       GraphInterface::edge_t, int,
+                                                       GraphInterface::edge_t, int64_t,
                                                        std::vector<double>>>&,
                                 const entropy_args_t&, std::vector<double>&, int)
     {
@@ -938,7 +938,7 @@ public:
 
     void propagate_delta(size_t, size_t,
                          std::vector<std::tuple<size_t, size_t,
-                                                GraphInterface::edge_t, int,
+                                                GraphInterface::edge_t, int64_t,
                                                 std::vector<double>>>&)
     {
     }
@@ -1059,7 +1059,7 @@ public:
     void get_bv_overlap(Graph& g, VMap bv, VMap bc_in, VMap bc_out,
                         VMap bc_total)
     {
-        typedef gt_hash_map<int, int> map_t;
+        typedef gt_hash_map<int64_t, int64_t> map_t;
         vector<map_t> hist_in;
         vector<map_t> hist_out;
 
@@ -1120,7 +1120,7 @@ public:
     template <class Graph, class VVProp, class VProp>
     void get_overlap_split(Graph& g, VVProp bv, VProp b) const
     {
-        gt_hash_map<vector<int>, size_t> bvset;
+        gt_hash_map<vector<int64_t>, size_t> bvset;
 
         for (auto v : vertices_range(g))
         {
@@ -1182,17 +1182,17 @@ public:
     {
     }
 
-    vprop_map_t<int32_t>::unchecked_t& get_b()
+    vprop_map_t<int64_t>::unchecked_t& get_b()
     {
         return _b;
     }
 
-    vprop_map_t<int32_t>::unchecked_t& get_pclabel()
+    vprop_map_t<int64_t>::unchecked_t& get_pclabel()
     {
         return _pclabel;
     }
 
-    vprop_map_t<int32_t>::unchecked_t& get_bclabel()
+    vprop_map_t<int64_t>::unchecked_t& get_bclabel()
     {
         return _bclabel;
     }
@@ -1262,7 +1262,7 @@ public:
 
     void add_partition_node(size_t, size_t) { }
     void remove_partition_node(size_t, size_t) { }
-    void set_vertex_weight(size_t, int) { }
+    void set_vertex_weight(size_t, int64_t) { }
     void coupled_resize_vertex(size_t) { }
     void update_block_edge(const GraphInterface::edge_t&,
                            const std::vector<double>&) { }
@@ -1464,11 +1464,11 @@ public:
                            std::vector<double>> m_entries_t;
     m_entries_t _m_entries;
 
-    std::vector<std::tuple<size_t, size_t, int, std::vector<double>>>
+    std::vector<std::tuple<size_t, size_t, int64_t, std::vector<double>>>
         _p_entries;
 
-    UnityPropertyMap<int,GraphInterface::edge_t> _eweight;
-    UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
+    UnityPropertyMap<int64_t,GraphInterface::edge_t> _eweight;
+    UnityPropertyMap<int64_t,GraphInterface::vertex_t> _vweight;
 
     typedef entropy_args_t _entropy_args_t;
     BlockStateVirtualBase* _coupled_state;

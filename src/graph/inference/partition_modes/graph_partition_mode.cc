@@ -210,8 +210,8 @@ REGISTER_MOD
     def("partition_overlap",
         +[](object ox, object oy)
          {
-             auto x = get_array<int32_t, 1>(ox);
-             auto y = get_array<int32_t, 1>(oy);
+             auto x = get_array<int64_t, 1>(ox);
+             auto y = get_array<int64_t, 1>(oy);
              GILRelease gil_release;
              return partition_overlap(x, y);
          });
@@ -219,7 +219,7 @@ REGISTER_MOD
     def("partition_shuffle_labels",
         +[](object ox, rng_t& rng)
          {
-             auto x = get_array<int32_t, 1>(ox);
+             auto x = get_array<int64_t, 1>(ox);
              GILRelease gil_release;
              partition_shuffle_labels(x, rng);
          });
@@ -227,10 +227,10 @@ REGISTER_MOD
     def("nested_partition_shuffle_labels",
         +[](object ox, rng_t& rng)
          {
-             std::vector<std::vector<int32_t>> x;
+             std::vector<std::vector<int64_t>> x;
              for (int l = 0; l < python::len(ox); ++l)
              {
-                 auto a = get_array<int32_t, 1>(ox[l]);
+                 auto a = get_array<int64_t, 1>(ox[l]);
                  x.emplace_back(a.begin(), a.end());
              }
 
@@ -249,7 +249,7 @@ REGISTER_MOD
     def("partition_order_labels",
         +[](object ox)
          {
-             auto x = get_array<int32_t, 1>(ox);
+             auto x = get_array<int64_t, 1>(ox);
              GILRelease gil_release;
              partition_order_labels(x);
          });
@@ -257,10 +257,10 @@ REGISTER_MOD
     def("nested_partition_order_labels",
         +[](object ox)
          {
-             std::vector<std::vector<int32_t>> x;
+             std::vector<std::vector<int64_t>> x;
              for (int l = 0; l < python::len(ox); ++l)
              {
-                 auto a = get_array<int32_t, 1>(ox[l]);
+                 auto a = get_array<int64_t, 1>(ox[l]);
                  x.emplace_back(a.begin(), a.end());
              }
 
@@ -279,8 +279,8 @@ REGISTER_MOD
     def("align_partition_labels",
         +[](object ox, object oy)
          {
-             auto x = get_array<int32_t, 1>(ox);
-             auto y = get_array<int32_t, 1>(oy);
+             auto x = get_array<int64_t, 1>(ox);
+             auto y = get_array<int64_t, 1>(oy);
              GILRelease gil_release;
              partition_align_labels(x, y);
          });
@@ -288,16 +288,16 @@ REGISTER_MOD
     def("align_nested_partition_labels",
         +[](object ox, object oy)
          {
-             std::vector<std::vector<int32_t>> x, y;
+             std::vector<std::vector<int64_t>> x, y;
              for (int l = 0; l < python::len(ox); ++l)
              {
-                 auto a = get_array<int32_t, 1>(ox[l]);
+                 auto a = get_array<int64_t, 1>(ox[l]);
                  x.emplace_back(a.begin(), a.end());
              }
 
              for (int l = 0; l < python::len(oy); ++l)
              {
-                 auto a = get_array<int32_t, 1>(oy[l]);
+                 auto a = get_array<int64_t, 1>(oy[l]);
                  y.emplace_back(a.begin(), a.end());
              }
 
@@ -316,8 +316,8 @@ REGISTER_MOD
     def("partition_overlap_center",
         +[](object obs, object oc)
          {
-             auto c = get_array<int32_t, 1>(oc);
-             auto bs = get_array<int32_t, 2>(obs);
+             auto c = get_array<int64_t, 1>(oc);
+             auto bs = get_array<int64_t, 2>(obs);
 
              GILRelease gil_release;
              return partition_overlap_center(c, bs);
@@ -326,14 +326,14 @@ REGISTER_MOD
     def("nested_partition_overlap_center",
         +[](object obs, object oc)
          {
-             std::vector<std::vector<int32_t>> c;
+             std::vector<std::vector<int64_t>> c;
              for (int l = 0; l < python::len(oc); ++l)
              {
-                 auto a = get_array<int32_t, 1>(oc[l]);
+                 auto a = get_array<int64_t, 1>(oc[l]);
                  c.emplace_back(a.begin(), a.end());
              }
 
-             std::vector<std::vector<std::vector<int32_t>>> bs;
+             std::vector<std::vector<std::vector<int64_t>>> bs;
 
              for (int m = 0; m < python::len(obs); ++m)
              {
@@ -341,7 +341,7 @@ REGISTER_MOD
                  auto& x = bs.back();
                  for (int l = 0; l < python::len(obs[m]); ++l)
                  {
-                     auto a = get_array<int32_t, 1>(obs[m][l]);
+                     auto a = get_array<int64_t, 1>(obs[m][l]);
                      x.emplace_back(a.begin(), a.end());
                  }
              }
@@ -372,8 +372,8 @@ REGISTER_MOD
              python::list onx;
              for (int l = 0; l < python::len(ox); ++l)
              {
-                 auto a = get_array<int32_t, 1>(ox[l]);
-                 std::vector<int32_t> x(a.begin(), a.end());
+                 auto a = get_array<int64_t, 1>(ox[l]);
+                 std::vector<int64_t> x(a.begin(), a.end());
                  while (!x.empty() && x.back() == -1)
                      x.pop_back();
                  for (auto& r : x)
@@ -390,11 +390,11 @@ REGISTER_MOD
         +[](GraphInterface& gi, std::any alabel,
             std::any amrs, std::any apartition, object ox, object oy)
          {
-             auto x = get_array<int32_t, 1>(ox);
-             auto y = get_array<int32_t, 1>(oy);
-             auto label = std::any_cast<vprop_map_t<int32_t>>(alabel);
+             auto x = get_array<int64_t, 1>(ox);
+             auto y = get_array<int64_t, 1>(oy);
+             auto label = std::any_cast<vprop_map_t<int64_t>>(alabel);
              auto partition = std::any_cast<vprop_map_t<uint8_t>>(apartition);
-             auto mrs = std::any_cast<eprop_map_t<int32_t>>(amrs);
+             auto mrs = std::any_cast<eprop_map_t<int64_t>>(amrs);
              run_action<>()
                  (gi, [&](auto& g)
                   {

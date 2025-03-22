@@ -80,7 +80,7 @@ def modularity(g, b, gamma=1., weight=None):
        :doi:`10.1073/pnas.0601602103`, :arxiv:`physics/0602124`
     """
 
-    if b.value_type() not in ["bool", "int16_t", "int32_t", "int64_t",
+    if b.value_type() not in ["bool", "int16_t", "int64_t", "int64_t",
                               "unsigned long"]:
         b = perfect_prop_hash([b])[0]
     Q = libinference.modularity(g._Graph__graph, gamma,
@@ -132,14 +132,14 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = GraphView(g, directed=False)
         if b is None:
-            self.b = self.g.new_vp("int32_t")
+            self.b = self.g.new_vp("int64_t")
         elif isinstance(b, PropertyMap):
-            self.b = self.g.own_property(b).copy("int32_t")
+            self.b = self.g.own_property(b).copy("int64_t")
         else:
-            self.b = self.g.new_vp("int32_t", vals=b)
+            self.b = self.g.new_vp("int64_t", vals=b)
 
         if eweight is None:
-            eweight = g.new_ep("int", 1)
+            eweight = g.new_ep("int64_t", 1)
         else:
             eweight = g.own_property(eweight)
         self.eweight = eweight

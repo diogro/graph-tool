@@ -93,7 +93,7 @@ double geometric_w_log_P(DT N, double x, double alpha, double beta)
 
 // discrete: binomial
 template <class DT>
-double binomial_w_log_P(DT N, double x, int n, double alpha, double beta)
+double binomial_w_log_P(DT N, double x, int64_t n, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
@@ -208,7 +208,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
     auto positive_entries_op =
         [&](size_t i, auto&& w_log_P, auto&& w_log_prior, bool micro_dl)
         {
-            int dB_E = 0;
+            int64_t dB_E = 0;
             wentries_op(m_entries, state._emat,
                         [&](auto, auto, auto& me, auto delta, auto& edelta)
                         {
@@ -305,8 +305,8 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
             break;
         case weight_type::REAL_NORMAL:
             {
-                int dB_E = 0;
-                int dB_E_D = 0;
+                int64_t dB_E = 0;
+                int64_t dB_E_D = 0;
                 double dBx2 = 0;
                 state._dBdx[i] = 0;
                 wentries_op(m_entries, state._emat,
@@ -425,7 +425,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
 }
 
 template <class State, class Edge, class MEntries>
-void recs_propagate_insert(State& state, size_t r, size_t s, Edge& e, int d,
+void recs_propagate_insert(State& state, size_t r, size_t s, Edge& e, int64_t d,
                            std::vector<double> dx, MEntries& m_entries)
 {
     assert(dx.size() == state._rec.size());
@@ -445,7 +445,7 @@ void recs_propagate_insert(State& state, size_t r, size_t s, Edge& e, int d,
                       std::pow(x, 2));
         }
 
-        int ers = state._eweight[e];
+        int64_t ers = state._eweight[e];
         if (ers == 0 && d > 0)
         {
             dx[0] = 1;

@@ -31,7 +31,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t> vmap_t;
+typedef vprop_map_t<int64_t> vmap_t;
 
 #define MERGE_OVERLAP_BLOCK_STATE_params(State)                                \
     ((__class__, &, decltype(hana::tuple_t<python::object>), 1))                           \
@@ -68,7 +68,7 @@ struct Merge
 
             _state.clear_egroups();
 
-            gt_hash_map<int, gt_hash_map<int, std::vector<size_t>>>
+            gt_hash_map<int64_t, gt_hash_map<int64_t, std::vector<size_t>>>
                 block_bundles;
 
             for (auto v : vertices_range(_g))

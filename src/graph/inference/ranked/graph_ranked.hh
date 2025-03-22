@@ -92,8 +92,8 @@ public:
                 : bstate_t::m_entries_t(B)
             {}
 
-            gt_hash_map<size_t, int> _delta;
-            std::array<int, 3> _dE = {0, 0, 0};
+            gt_hash_map<size_t, int64_t> _delta;
+            std::array<int64_t, 3> _dE = {0, 0, 0};
         };
 
         m_entries_t _m_entries;
@@ -126,10 +126,10 @@ public:
             _ustate.add_block(n);
         }
 
-        std::array<int, 3>
+        std::array<int64_t, 3>
         get_dE(size_t v, size_t r, size_t nr)
         {
-            std::array<int, 3> dE = {0, 0, 0};
+            std::array<int64_t, 3> dE = {0, 0, 0};
 
             for (auto e : out_edges_range(v, _g))
             {
@@ -168,7 +168,7 @@ public:
             {
                 m_entries._dE = get_dE(v, r, nr);
 
-                int dB = 0;
+                int64_t dB = 0;
                 if (_ustate._wr[r] == 1)
                     dB--;
                 if (_ustate._wr[nr] == 0)
@@ -198,7 +198,7 @@ public:
                                size_t eut = get_beprop(u, t, _ustate._mrs,
                                                        _ustate._emat);
 
-                               int delta_r = 0;
+                               int64_t delta_r = 0;
                                auto iter = m_entries._delta.find(u + B * t);
                                if (iter != m_entries._delta.end())
                                    delta_r = iter->second;
@@ -249,10 +249,10 @@ public:
             _ustate.move_vertex(v, nr);
         }
 
-        std::array<int, 3>
+        std::array<int64_t, 3>
         get_group_dE(size_t r, double nu)
         {
-            std::array<int, 3> dE = {0, 0, 0};
+            std::array<int64_t, 3> dE = {0, 0, 0};
 
             for (auto e : out_edges_range(r, _ustate._bg))
             {
@@ -327,7 +327,7 @@ public:
             return _ustate.get_move_prob(v, r, s, c, d, reverse);
         }
 
-        double get_edges_dl(const std::array<int,3>& dE, int dB)
+        double get_edges_dl(const std::array<int64_t,3>& dE, int64_t dB)
         {
             size_t B = 0;
             for (auto& ps : _ustate._partition_stats)

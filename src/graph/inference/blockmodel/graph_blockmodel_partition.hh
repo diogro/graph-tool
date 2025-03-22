@@ -60,7 +60,7 @@ class partition_stats
 {
 public:
 
-    typedef gt_hash_map<size_t, int> map_t;
+    typedef gt_hash_map<size_t, int64_t> map_t;
 
     template <class Graph, class Vprop, class VWprop, class Eprop, class Degs,
               class Vlist>
@@ -223,8 +223,8 @@ public:
             }
             else
             {
-                int dp = 0;
-                int dm = 0;
+                int64_t dp = 0;
+                int64_t dm = 0;
 
                 if (_directed)
                 {
@@ -260,8 +260,8 @@ public:
         for (auto r : rs)
         {
             r = get_r(r);
-            int dm = 0;
-            int dp = 0;
+            int64_t dm = 0;
+            int64_t dp = 0;
             size_t total = 0;
             if (kins.empty() && kouts.empty())
             {
@@ -344,12 +344,12 @@ public:
     double get_deg_dl(int kind)
     {
         return get_deg_dl(kind, boost::counting_range(size_t(0), _total_B),
-                          std::array<std::pair<size_t,int>,0>(),
-                          std::array<std::pair<size_t,int>,0>());
+                          std::array<std::pair<size_t,int64_t>,0>(),
+                          std::array<std::pair<size_t,int64_t>,0>());
     }
 
     template <class Graph>
-    double get_edges_dl(size_t B, Graph& g, int dE = 0)
+    double get_edges_dl(size_t B, Graph& g, int64_t dE = 0)
     {
         size_t BB = (is_directed(g)) ? B * B : (B * (B + 1)) / 2;
         return lbinom_fast(BB + _E + dE - 1, _E + dE);
@@ -367,7 +367,7 @@ public:
         if (nr != null_group)
             nr = get_r(nr);
 
-        int n = vweight[v];
+        auto n = vweight[v];
         if (n == 0)
         {
             if (r == null_group)
@@ -390,7 +390,7 @@ public:
             S_a += -lgamma_fast(_total[nr] + n + 1);
         }
 
-        int dN = 0;
+        int64_t dN = 0;
         if (r == null_group)
             dN += n;
         if (nr == null_group)
@@ -399,7 +399,7 @@ public:
         S_b += lgamma_fast(_N + 1);
         S_a += lgamma_fast(_N + dN + 1);
 
-        int dB = 0;
+        int64_t dB = 0;
         if (r != null_group && _total[r] == n)
             dB--;
         if (nr != null_group && _total[nr] == 0)
@@ -434,7 +434,7 @@ public:
 
         double S_b = 0, S_a = 0;
 
-        int n = vweight[v];
+        int64_t n = vweight[v];
 
         if (n == 0)
         {
@@ -444,7 +444,7 @@ public:
                 return 0;
         }
 
-        int dB = 0;
+        int64_t dB = 0;
         if (r != null_group && _total[r] == n)
             dB--;
         if (nr != null_group && _total[nr] == 0)
@@ -505,13 +505,13 @@ public:
     }
 
     template <class DegOP>
-    double get_delta_deg_dl_ent_change(size_t r, DegOP&& dop, int diff)
+    double get_delta_deg_dl_ent_change(size_t r, DegOP&& dop, int64_t diff)
     {
-        int nr = _total[r];
-        auto get_Sk = [&](size_t s, pair<size_t, size_t>& deg, int delta)
+        int64_t nr = _total[r];
+        auto get_Sk = [&](size_t s, pair<size_t, size_t>& deg, int64_t delta)
             {
                 double S = 0;
-                int nd = 0;
+                int64_t nd = 0;
                 if (_directed)
                 {
                     auto& h = _hist_in[s];
@@ -532,9 +532,9 @@ public:
             };
 
         double S_b = 0, S_a = 0;
-        int dn = 0;
+        int64_t dn = 0;
 
-        dop([&](size_t kin, size_t kout, int nk)
+        dop([&](size_t kin, size_t kout, int64_t nk)
             {
                 dn += diff * nk;
                 auto deg = make_pair(kin, kout);
@@ -557,13 +557,13 @@ public:
     }
 
     template <class DegOP>
-    double get_delta_deg_dl_uniform_change(size_t r, DegOP&& dop, int diff)
+    double get_delta_deg_dl_uniform_change(size_t r, DegOP&& dop, int64_t diff)
     {
         auto total_r = _total[r];
         auto ep_r = _ep[r];
         auto em_r = _em[r];
 
-        auto get_Se = [&](int dn, int dkin, int dkout)
+        auto get_Se = [&](int64_t dn, int64_t dkin, int64_t dkout)
             {
                 double S = 0;
                 S += lbinom_fast(total_r + dn + ep_r - 1 + dkout, ep_r + dkout);
@@ -573,8 +573,8 @@ public:
             };
 
         double S_b = 0, S_a = 0;
-        int tkin = 0, tkout = 0, n = 0;
-        dop([&](auto kin, auto kout, int nk)
+        int64_t tkin = 0, tkout = 0, n = 0;
+        dop([&](auto kin, auto kout, int64_t nk)
             {
                 tkin += kin * nk;
                 tkout += kout * nk;
@@ -587,13 +587,13 @@ public:
     }
 
     template <class DegOP>
-    double get_delta_deg_dl_dist_change(size_t r, DegOP&& dop, int diff)
+    double get_delta_deg_dl_dist_change(size_t r, DegOP&& dop, int64_t diff)
     {
         auto total_r = _total[r];
         auto ep_r = _ep[r];
         auto em_r = _em[r];
 
-        auto get_Se = [&](int delta, int kin, int kout)
+        auto get_Se = [&](int64_t delta, int64_t kin, int64_t kout)
             {
                 double S = 0;
                 assert(total_r + delta >= 0);
@@ -605,7 +605,7 @@ public:
                 return S;
             };
 
-        auto get_Sr = [&](int delta)
+        auto get_Sr = [&](int64_t delta)
             {
                 assert(total_r + delta + 1 >= 0);
                 if (_directed)
@@ -614,10 +614,10 @@ public:
                     return lgamma_fast(total_r + delta + 1);
             };
 
-        auto get_Sk = [&](pair<size_t, size_t>& deg, int delta)
+        auto get_Sk = [&](pair<size_t, size_t>& deg, int64_t delta)
             {
                 double S = 0;
-                int nd = 0;
+                int64_t nd = 0;
                 if (_directed)
                 {
                     auto& h = _hist_in[r];
@@ -637,8 +637,8 @@ public:
             };
 
         double S_b = 0, S_a = 0;
-        int tkin = 0, tkout = 0, n = 0;
-        dop([&](size_t kin, size_t kout, int nk)
+        int64_t tkin = 0, tkout = 0, n = 0;
+        dop([&](size_t kin, size_t kout, int64_t nk)
             {
                 tkin += kin * nk;
                 tkout += kout * nk;
@@ -659,10 +659,10 @@ public:
     }
 
     template <class VWeight>
-    void change_vertex(size_t v, size_t r, VWeight& vweight, int diff)
+    void change_vertex(size_t v, size_t r, VWeight& vweight, int64_t diff)
     {
-        int vw = vweight[v];
-        int dv = vw * diff;
+        int64_t vw = vweight[v];
+        int64_t dv = vw * diff;
 
         if (_total[r] == 0 && dv > 0)
             _actual_B++;
@@ -678,11 +678,11 @@ public:
 
     template <class Graph, class VWeight, class EWeight, class Degs>
     void change_vertex_degs(size_t v, size_t r, Graph& g, VWeight& vweight,
-                            EWeight& eweight, Degs& degs, int diff)
+                            EWeight& eweight, Degs& degs, int64_t diff)
     {
         auto [kin, kout] = get_deg(v, eweight, degs, g);
         auto n = vweight[v];
-        int dk = diff * n;
+        int64_t dk = diff * n;
 
         auto change_hist =
             [&](auto& h, size_t k)
@@ -733,7 +733,7 @@ public:
             change_vertex_degs(v, nr, g, vweight, eweight, degs, 1);
     }
 
-    void change_E(int dE)
+    void change_E(int64_t dE)
     {
         _E += dE;
     }
@@ -775,9 +775,9 @@ private:
     size_t _actual_B;
     size_t _total_B;
     vector<map_t> _hist_in, _hist_out;
-    vector<int> _total;
-    vector<int> _ep;
-    vector<int> _em;
+    vector<int64_t> _total;
+    vector<int64_t> _ep;
+    vector<int64_t> _em;
     map_t _dummy;
 };
 

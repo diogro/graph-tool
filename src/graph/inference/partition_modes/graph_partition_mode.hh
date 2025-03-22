@@ -34,7 +34,7 @@ template <class BV>
 size_t partition_overlap(BV& x, BV& y)
 {
     adj_list<> g;
-    vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+    vprop_map_t<int64_t> label(get(vertex_index_t(), g));
     vprop_map_t<bool> partition(get(vertex_index_t(), g));
     eprop_map_t<double> mrs(get(edge_index_t(), g));
 
@@ -63,7 +63,7 @@ template <class BX, class BY>
 void partition_align_labels(BX&& x, BY&& y)
 {
     adj_list<> g;
-    vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+    vprop_map_t<int64_t> label(get(vertex_index_t(), g));
     vprop_map_t<bool> partition(get(vertex_index_t(), g));
     eprop_map_t<double> mrs(get(edge_index_t(), g));
 
@@ -75,7 +75,7 @@ void partition_align_labels(BX&& x, BY&& y)
     auto& u = get_undirected_adaptor(g);
     maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
-    idx_set<int> used;
+    idx_set<int64_t> used;
     idx_map<size_t, size_t> vertices, umatch;
     for (auto v : vertices_range(u))
     {
@@ -88,7 +88,7 @@ void partition_align_labels(BX&& x, BY&& y)
         used.insert(label[w]);
     }
 
-    std::vector<int> unused;
+    std::vector<int64_t> unused;
     for (size_t r = 0; r < x.size(); ++r)
     {
         if (used.find(r) != used.end())
@@ -122,7 +122,7 @@ void relabel_nested(BT& b, BT& b_orig, BT& c)
 {
     BT temp = c;
     std::fill(c.begin(), c.end(), -1);
-    idx_map<int, int> rmap;
+    idx_map<int64_t, int64_t> rmap;
     for (size_t j = 0; j < b_orig.size(); ++j)
     {
         if (b_orig[j] == -1)
@@ -148,8 +148,8 @@ void relabel_nested(BT& b, BT& b_orig, std::reference_wrapper<BT>& c)
 template <class BX, class BY>
 void nested_partition_align_labels(BX&& xv, BY&& yv)
 {
-    int L = std::min(xv.size(), yv.size());
-    for (int l = 0; l < L; ++l)
+    int64_t L = std::min(xv.size(), yv.size());
+    for (int64_t l = 0; l < L; ++l)
     {
         auto& x = xv[l];
         auto& y = yv[l];
@@ -158,7 +158,7 @@ void nested_partition_align_labels(BX&& xv, BY&& yv)
         x.resize(N, -1);
         y.resize(N, -1);
 
-        std::vector<int32_t> x_old(x.begin(), x.end());
+        std::vector<int64_t> x_old(x.begin(), x.end());
         partition_align_labels(x, y);
 
         if (size_t(l + 1) == xv.size())
@@ -171,14 +171,14 @@ void nested_partition_align_labels(BX&& xv, BY&& yv)
 template <class BT, class RNG>
 void partition_shuffle_labels(BT& x, RNG& rng)
 {
-     idx_map<int32_t, int32_t> rmap;
+     idx_map<int64_t, int64_t> rmap;
      for (auto r : x)
      {
          if (r == -1)
              continue;
          rmap[r] = r;
      }
-     std::vector<int32_t> rset;
+     std::vector<int64_t> rset;
      for (auto& r : rmap)
          rset.push_back(r.first);
      std::shuffle(rset.begin(), rset.end(), rng);
@@ -199,7 +199,7 @@ void nested_partition_shuffle_labels(BT& xv, RNG& rng)
     for (size_t l = 0; l < xv.size(); ++l)
     {
         auto& x = xv[l];
-        std::vector<int32_t> x_old = x;
+        std::vector<int64_t> x_old = x;
         partition_shuffle_labels(x, rng);
         if (l < xv.size() - 1)
             relabel_nested(x, x_old, xv[l+1]);
@@ -209,19 +209,19 @@ void nested_partition_shuffle_labels(BT& xv, RNG& rng)
 template <class BT>
 void partition_order_labels(BT& x)
 {
-    idx_map<int32_t, int32_t> nr;
+    idx_map<int64_t, int64_t> nr;
     for (auto r : x)
     {
         if (r == -1)
             continue;
         nr[r]++;
     }
-    std::vector<int32_t> rs;
+    std::vector<int64_t> rs;
     for (auto& rnr : nr)
         rs.emplace_back(rnr.first);
     std::sort(rs.begin(), rs.end(),
               [&](auto a, auto b) { return nr[a] > nr[b]; });
-    idx_map<int32_t, int32_t> rmap;
+    idx_map<int64_t, int64_t> rmap;
     for (size_t i = 0; i < rs.size(); ++i)
         rmap[rs[i]] = i;
     for (auto& r : x)
@@ -238,7 +238,7 @@ void nested_partition_order_labels(BT& xv)
     for (size_t l = 0; l < xv.size(); ++l)
     {
         auto& x = xv[l];
-        std::vector<int32_t> x_old = x;
+        std::vector<int64_t> x_old = x;
         partition_order_labels(x);
         if (l < xv.size() - 1)
             relabel_nested(x, x_old, xv[l+1]);
@@ -254,7 +254,7 @@ void nested_partition_order_labels(BT& xv)
 template <class BT, class BS>
 double partition_overlap_center(BT& c, BS& bs)
 {
-    idx_map<int32_t, int32_t> nr;
+    idx_map<int64_t, int64_t> nr;
 
     typename std::remove_reference_t<decltype(bs)>::index_range idx;
 
@@ -293,7 +293,7 @@ double partition_overlap_center(BT& c, BS& bs)
 template <class BT, class BS>
 double nested_partition_overlap_center(BT& c, BS& bs)
 {
-    idx_map<int32_t, int32_t> nr;
+    idx_map<int64_t, int64_t> nr;
 
     double p = 0;
     size_t N = 0;
@@ -369,7 +369,7 @@ class PartitionModeState
 public:
     PartitionModeState() {}
 
-    typedef std::vector<int32_t> b_t;
+    typedef std::vector<int64_t> b_t;
     typedef std::vector<std::reference_wrapper<b_t>> bv_t;
 
     template <class BT>
@@ -384,7 +384,7 @@ public:
             _nr.pop_back();
         }
         auto iter = std::max_element(b.begin(), b.end());
-        if (*iter >= int(_count.size()))
+        if (*iter >= int64_t(_count.size()))
             _count.resize(*iter + 1);
     }
 
@@ -407,7 +407,7 @@ public:
     {
         if (bv.size() - pos == 1)
             return;
-        idx_set<int> rs;
+        idx_set<int64_t> rs;
         for (auto r : bv[pos].get())
         {
             if (r == -1)
@@ -549,7 +549,7 @@ public:
                     _rmax = r;
             }
         }
-        for (int r = 0; r < _rmax; ++r)
+        for (int64_t r = 0; r < _rmax; ++r)
         {
             if (_count[r] == 0)
                 _free_idxs.insert(r);
@@ -560,7 +560,7 @@ public:
 
     void relabel()
     {
-        std::vector<int32_t> labels(_count.size()), map(_count.size());
+        std::vector<int64_t> labels(_count.size()), map(_count.size());
         std::iota(labels.begin(), labels.end(), 0);
         std::sort(labels.begin(), labels.end(),
                   [&](auto r, auto s) { return _count[r] > _count[s]; });
@@ -600,7 +600,7 @@ public:
 
         b_t b_orig = b;
 
-        idx_map<int32_t, size_t> rpos;
+        idx_map<int64_t, size_t> rpos;
         for (size_t i = 0; i < b.size(); ++i)
         {
             auto r = b[i];
@@ -624,7 +624,7 @@ public:
         }
 
         adj_list<> g;
-        vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+        vprop_map_t<int64_t> label(get(vertex_index_t(), g));
         vprop_map_t<bool> partition(get(vertex_index_t(), g));
         eprop_map_t<double> mrs(get(edge_index_t(), g));
 
@@ -636,7 +636,7 @@ public:
         auto& u = get_undirected_adaptor(g);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
-        idx_map<int32_t, size_t> b_vertices;
+        idx_map<int64_t, size_t> b_vertices;
         for (auto v : vertices_range(g))
         {
             if (v >= rpos.size())
@@ -682,7 +682,7 @@ public:
     void align_mode(PartitionModeState& mode)
     {
         adj_list<> g;
-        vprop_map_t<int32_t> label(get(vertex_index_t(), g));
+        vprop_map_t<int64_t> label(get(vertex_index_t(), g));
         vprop_map_t<bool> partition(get(vertex_index_t(), g));
         eprop_map_t<double> mrs(get(edge_index_t(), g));
 
@@ -694,7 +694,7 @@ public:
         auto& u = get_undirected_adaptor(g);
         maximum_bipartite_weighted_matching(u, partition, mrs, match);
 
-        idx_map<int32_t, size_t> vertices;
+        idx_map<int64_t, size_t> vertices;
         for (auto v : vertices_range(g))
         {
             if (partition[v] == 1)
@@ -703,7 +703,7 @@ public:
         }
 
         auto ipos = _free_idxs.begin();
-        idx_map<int32_t, size_t> rpos;
+        idx_map<int64_t, size_t> rpos;
         for (size_t r = 0; r < _count.size(); ++r)
         {
             if (_count[r] == 0)
@@ -804,7 +804,7 @@ public:
             if (v >= _nr.size())
                 break;
             size_t cmax = 0;
-            int r = -1;
+            int64_t r = -1;
             for (auto rn : _nr[v])
             {
                 if (rn.second > cmax)
@@ -817,13 +817,13 @@ public:
         }
     }
 
-    std::vector<int> get_map_b()
+    std::vector<int64_t> get_map_b()
     {
-        std::vector<int> b;
+        std::vector<int64_t> b;
         for (auto& nrv : _nr)
         {
             size_t cmax = 0;
-            int r = 0;
+            int64_t r = 0;
             for (auto& rn : nrv)
             {
                 if (rn.second > cmax)
@@ -991,7 +991,7 @@ public:
         check_size(b);
 
         double dL = 0;
-        std::vector<int> delta_nr(_count.size());
+        std::vector<int64_t> delta_nr(_count.size());
         for (size_t i = 0; i < b.size(); ++i)
         {
             auto r = b[i];
@@ -999,7 +999,7 @@ public:
                 continue;
             auto& x = _nr[i];
 
-            int nir = 0;
+            int64_t nir = 0;
             auto iter = x.find(r);
             if (iter != x.end())
                 nir = iter->second;
@@ -1021,7 +1021,7 @@ public:
             }
         }
 
-        int dB = 0;
+        int64_t dB = 0;
         for (size_t r = 0; r < delta_nr.size(); ++r)
         {
             if constexpr (add)
@@ -1036,11 +1036,11 @@ public:
             }
         }
 
-        int dN = 0;
+        int64_t dN = 0;
         size_t N = 0;
         for (size_t i = 0; i < _nr.size(); ++i)
         {
-            int n = 0;
+            int64_t n = 0;
             for (auto rn : _nr[i])
                 n += rn.second;
 
@@ -1119,7 +1119,7 @@ public:
     b_t sample_partition(bool MLE, RNG& rng)
     {
         b_t b;
-        std::vector<int> rs_base;
+        std::vector<int64_t> rs_base;
         std::vector<double> probs_base;
         if (not MLE)
         {
@@ -1146,7 +1146,7 @@ public:
                 rs.push_back(rn.first);
                 probs.push_back(rn.second);
             }
-            Sampler<int> sample(rs, probs);
+            Sampler<int64_t> sample(rs, probs);
             b.push_back(sample.sample(rng));
         }
         return b;
@@ -1179,7 +1179,7 @@ public:
     std::vector<gt_hash_map<size_t, size_t>> _nr;
     std::vector<size_t> _count;
     size_t _B = 0;
-    int _rmax = 0;
+    int64_t _rmax = 0;
     std::set<size_t> _free_idxs;
     std::vector<size_t> _free_pos;
     size_t _max_pos = 0;

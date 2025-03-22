@@ -58,11 +58,11 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         EntropyState.__init__(self)
         self.g = GraphView(g, directed=False)
         if b is None:
-            self.b = self.g.new_vp("int32_t")
+            self.b = self.g.new_vp("int64_t")
         elif isinstance(b, PropertyMap):
-            self.b = b.copy("int32_t")
+            self.b = b.copy("int64_t")
         else:
-            self.b = self.g.new_vp("int32_t", vals=b)
+            self.b = self.g.new_vp("int64_t", vals=b)
 
         self.er = Vector_size_t()
         self.err = Vector_size_t()

@@ -31,7 +31,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef eprop_map_t<int32_t> emap_t;
+typedef eprop_map_t<int64_t> emap_t;
 
 #define LATENT_LAYERS_STATE_params                                             \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
@@ -39,18 +39,18 @@ typedef eprop_map_t<int32_t> emap_t;
     ((eweight,, emap_t, 0))                                                    \
     ((self_loops,, bool, 0))                                                   \
     ((measured,, bool, 0))                                                     \
-    ((ag_orig, &, std::any, 0))                                              \
-    ((n,, eprop_map_t<int>, 0))                                          \
-    ((x,, eprop_map_t<int>, 0))                                          \
-    ((n_default,, int, 0))                                                     \
-    ((x_default,, int, 0))                                                     \
+    ((ag_orig, &, std::any, 0))                                                \
+    ((n,, eprop_map_t<int64_t>, 0))                                            \
+    ((x,, eprop_map_t<int64_t>, 0))                                            \
+    ((n_default,, int64_t, 0))                                                 \
+    ((x_default,, int64_t, 0))                                                 \
     ((alpha,, long double, 0))                                                 \
     ((beta,, long double, 0))                                                  \
     ((mu,, long double, 0))                                                    \
     ((nu,, long double, 0))                                                    \
     ((lp,, long double, 0))                                                    \
     ((lq,, long double, 0))                                                    \
-    ((max_w,, int, 0))
+    ((max_w,, int64_t, 0))
 
 
 template <class Graph, class EW>

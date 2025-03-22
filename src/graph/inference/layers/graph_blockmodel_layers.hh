@@ -34,8 +34,8 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef eprop_map_t<int32_t> emap_t;
-typedef vprop_map_t<std::vector<int32_t>> vcvmap_t;
+typedef eprop_map_t<int64_t> emap_t;
+typedef vprop_map_t<std::vector<int64_t>> vcvmap_t;
 
 typedef gt_hash_map<size_t, size_t> bmap_t;
 typedef std::vector<bmap_t> vbmap_t;
@@ -91,7 +91,7 @@ struct Layers
         using BaseState::_partition_stats;
         using BaseState::get_move_entries;
 
-        typedef vprop_map_t<int32_t> block_rmap_t;
+        typedef vprop_map_t<int64_t> block_rmap_t;
 
         class LayerState
             : public BaseState
@@ -360,7 +360,7 @@ struct Layers
             auto& vs = _vmap[v];
             for (size_t j = 0; j < ls.size(); ++j)
             {
-                int l = ls[j];
+                int64_t l = ls[j];
                 size_t u = vs[j];
 
                 auto& state = _layers[l];
@@ -400,7 +400,7 @@ struct Layers
             {
                 for (size_t j = 0; j < ls.size(); ++j)
                 {
-                    int l = ls[j];
+                    int64_t l = ls[j];
                     size_t u = vs[j];
                     auto& state = _layers[l];
 
@@ -453,7 +453,7 @@ struct Layers
             auto& vs = _vmap[v];
             for (size_t j = 0; j < ls.size(); ++j)
             {
-                int l = ls[j];
+                int64_t l = ls[j];
                 size_t u = vs[j];
                 auto& state = _layers[l];
                 state.remove_vertex(u);
@@ -516,7 +516,7 @@ struct Layers
             auto& vs = _vmap[v];
             for (size_t j = 0; j < ls.size(); ++j)
             {
-                int l = ls[j];
+                int64_t l = ls[j];
                 size_t u = vs[j];
                 auto& state = _layers[l];
                 size_t r_u = state.get_block_map(r);
@@ -693,7 +693,7 @@ struct Layers
 
         double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
                              bool reverse,
-                             std::vector<std::tuple<size_t, size_t, int>>& p_entries)
+                             std::vector<std::tuple<size_t, size_t, int64_t>>& p_entries)
         {
             return BaseState::get_move_prob(v, r, s, c, d, reverse, p_entries);
         }
@@ -799,7 +799,7 @@ struct Layers
                 return 0;
             if (BaseState::_vweight[v] == 0)
                 return 0;
-            int dB = 0;
+            int64_t dB = 0;
             if (r != null_group && BaseState::virtual_remove_size(v) == 0)
                 --dB;
             if (s != null_group && _wr[s] == 0)
@@ -840,7 +840,7 @@ struct Layers
         }
 
         double modify_edge_dS(size_t, size_t, const GraphInterface::edge_t&,
-                              int, const entropy_args_t&)
+                              int64_t, const entropy_args_t&)
         {
             return 0;
         }
@@ -981,7 +981,7 @@ struct Layers
             return _layers[l].get_block_map(r, put_new);
         }
 
-        void set_vertex_weight(size_t v, int w)
+        void set_vertex_weight(size_t v, int64_t w)
         {
             if (w == 0 && BaseState::_vweight[v] > 0)
                 _N--;
@@ -1010,7 +1010,7 @@ struct Layers
             auto& vs = _vmap_c[v];
             for (size_t j = 0; j < ls.size(); ++j)
             {
-                int l = ls[j];
+                int64_t l = ls[j];
                 size_t u = vs[j];
                 auto& state = _layers[l];
                 state.coupled_resize_vertex(u);
@@ -1043,16 +1043,16 @@ struct Layers
             BaseState::update_edge_rec(e, delta);
         }
 
-        void add_edge(size_t, size_t, GraphInterface::edge_t&, int)
+        void add_edge(size_t, size_t, GraphInterface::edge_t&, int64_t)
         {
         }
 
-        void remove_edge(size_t, size_t, GraphInterface::edge_t&, int)
+        void remove_edge(size_t, size_t, GraphInterface::edge_t&, int64_t)
         {
         }
 
-        double propagate_entries_dS(size_t u, size_t v, int du, int dv,
-                                    std::vector<std::tuple<size_t, size_t, GraphInterface::edge_t, int,
+        double propagate_entries_dS(size_t u, size_t v, int64_t du, int64_t dv,
+                                    std::vector<std::tuple<size_t, size_t, GraphInterface::edge_t, int64_t,
                                                            std::vector<double>>>& entries,
                                     const entropy_args_t& ea, std::vector<double>& dBdx,
                                     int dL)
@@ -1069,7 +1069,7 @@ struct Layers
 
         void propagate_delta(size_t u, size_t v,
                              std::vector<std::tuple<size_t, size_t,
-                                                    GraphInterface::edge_t, int,
+                                                    GraphInterface::edge_t, int64_t,
                                                     std::vector<double>>>& entries)
         {
             return BaseState::propagate_delta(u, v, entries);
@@ -1092,17 +1092,17 @@ struct Layers
         }
 
 
-        vprop_map_t<int32_t>::unchecked_t& get_b()
+        vprop_map_t<int64_t>::unchecked_t& get_b()
         {
             return BaseState::_b;
         }
 
-        vprop_map_t<int32_t>::unchecked_t& get_pclabel()
+        vprop_map_t<int64_t>::unchecked_t& get_pclabel()
         {
             return BaseState::_pclabel;
         }
 
-        vprop_map_t<int32_t>::unchecked_t& get_bclabel()
+        vprop_map_t<int64_t>::unchecked_t& get_bclabel()
         {
             return BaseState::_bclabel;
         }

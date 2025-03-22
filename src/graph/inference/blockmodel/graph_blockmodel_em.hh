@@ -29,7 +29,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t> vmap_t;
+typedef vprop_map_t<int64_t> vmap_t;
 typedef vprop_map_t<double> vrmap_t;
 typedef vprop_map_t<vector<double>> vvmap_t;
 typedef eprop_map_t<vector<double>> vemap_t;
@@ -338,7 +338,7 @@ public:
         for (auto v : vertices_range(_g))
         {
             auto& p = _vm[v];
-            vmap[v] = int(std::max_element(p.begin(), p.end()) - p.begin());
+            vmap[v] = int64_t(std::max_element(p.begin(), p.end()) - p.begin());
         }
     }
 

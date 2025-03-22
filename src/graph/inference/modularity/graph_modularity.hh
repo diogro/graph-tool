@@ -37,8 +37,8 @@ struct modularity_entropy_args_t
     double gamma;
 };
 
-typedef vprop_map_t<int32_t> vmap_t;
-typedef decltype(hana::tuple_t<eprop_map_t<int32_t>,
+typedef vprop_map_t<int64_t> vmap_t;
+typedef decltype(hana::tuple_t<eprop_map_t<int64_t>,
                                eprop_map_t<double>>) emaps_t;
 
 #define BLOCK_STATE_params                                                     \
@@ -125,9 +125,9 @@ public:
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
 
-    typedef int m_entries_t;
+    typedef int64_t m_entries_t;
 
-    UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
+    UnityPropertyMap<int64_t,GraphInterface::vertex_t> _vweight;
     simple_degs_t _degs;
 
     args_t _args;

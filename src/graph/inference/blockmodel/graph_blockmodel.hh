@@ -36,8 +36,8 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int32_t> vmap_t;
-typedef eprop_map_t<int32_t> emap_t;
+typedef vprop_map_t<int64_t> vmap_t;
+typedef eprop_map_t<int64_t> emap_t;
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
@@ -318,7 +318,7 @@ public:
 
     void propagate_delta(size_t u, size_t v,
                          std::vector<std::tuple<size_t, size_t,
-                                                GraphInterface::edge_t, int,
+                                                GraphInterface::edge_t, int64_t,
                                                 std::vector<double>>>& entries)
     {
         size_t r = _b[u];
@@ -655,7 +655,7 @@ public:
     }
 
     template <bool Add, bool Deplete=true>
-    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int dm)
+    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm)
     {
         if (dm == 0)
             return;
@@ -738,7 +738,7 @@ public:
     }
 
     template <bool Add, bool Deplete>
-    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int,
+    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t,
                      std::false_type)
     {
         if constexpr (Add)
@@ -755,7 +755,7 @@ public:
     }
 
     template <bool Add, bool Deplete>
-    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int dm,
+    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm,
                      std::true_type)
     {
         if constexpr (Add)
@@ -798,17 +798,17 @@ public:
         }
     }
 
-    void add_edge(size_t u, size_t v, GraphInterface::edge_t& e, int dm)
+    void add_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm)
     {
         modify_edge<true, true>(u, v, e, dm);
     }
 
-    void remove_edge(size_t u, size_t v, GraphInterface::edge_t& e, int dm)
+    void remove_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm)
     {
         modify_edge<false, true>(u, v, e, dm);
     }
 
-    void set_vertex_weight(size_t v, int w)
+    void set_vertex_weight(size_t v, int64_t w)
     {
         set_vertex_weight(v, w, _vweight);
     }
@@ -819,7 +819,7 @@ public:
     }
 
     template <class VMap>
-    void set_vertex_weight(size_t v, int w, VMap&& vweight)
+    void set_vertex_weight(size_t v, int64_t w, VMap&& vweight)
     {
         auto r = _b[v];
         _N[_bclabel[r]] -= vweight[v];
@@ -962,8 +962,8 @@ public:
 
         auto [kin, kout] = get_deg(v, _eweight, _degs, _g);
 
-        int dwr = _vweight[v];
-        int dwnr = dwr;
+        auto dwr = _vweight[v];
+        auto dwnr = dwr;
 
         if (r == null_group && dwnr == 0)
             dwnr = 1;
@@ -1014,8 +1014,8 @@ public:
         if (r == nr)
             return 0;
 
-        vector<int> deltap(num_vertices(_bg), 0);
-        int deltal = 0;
+        vector<int64_t> deltap(num_vertices(_bg), 0);
+        int64_t deltal = 0;
         for (auto e : out_edges_range(v, _g))
         {
             vertex_t u = target(e, _g);
@@ -1028,7 +1028,7 @@ public:
         if constexpr (!is_directed_::apply<g_t>::type::value)
             deltal /= 2;
 
-        vector<int> deltam(num_vertices(_bg), 0);
+        vector<int64_t> deltam(num_vertices(_bg), 0);
         if (is_directed_::apply<g_t>::type::value)
         {
             for (auto e : in_edges_range(v, _g))
@@ -1042,8 +1042,8 @@ public:
         }
 
         double dS = 0;
-        int dwr = _vweight[v];
-        int dwnr = dwr;
+        int64_t dwr = _vweight[v];
+        int64_t dwnr = dwr;
 
         if (r == null_group && dwnr == 0)
             dwnr = 1;
@@ -1062,8 +1062,8 @@ public:
             if (_wr[s] == 0 && s != r && s != nr)
                 continue;
 
-            int ers = (r != null_group) ? get_beprop(r, s, _mrs, _emat) : 0;
-            int enrs = (nr != null_group) ? get_beprop(nr, s, _mrs, _emat) : 0;
+            int64_t ers = (r != null_group) ? get_beprop(r, s, _mrs, _emat) : 0;
+            int64_t enrs = (nr != null_group) ? get_beprop(nr, s, _mrs, _emat) : 0;
 
             if (!is_directed_::apply<g_t>::type::value)
             {
@@ -1102,8 +1102,8 @@ public:
             }
             else
             {
-                int esr = (r != null_group) ? get_beprop(s, r, _mrs, _emat) : 0;
-                int esnr  = (nr != null_group) ? get_beprop(s, nr, _mrs, _emat) : 0;
+                int64_t esr = (r != null_group) ? get_beprop(s, r, _mrs, _emat) : 0;
+                int64_t esnr  = (nr != null_group) ? get_beprop(s, nr, _mrs, _emat) : 0;
 
                 if (s != nr && s != r)
                 {
@@ -1207,7 +1207,7 @@ public:
 
         if (!_Bfield.empty() && ea.Bfield)
         {
-            int dB = 0;
+            int64_t dB = 0;
             if (virtual_remove_size(v) == 0)
                 dB--;
             if (_wr[nr] == 0)
@@ -1262,8 +1262,8 @@ public:
                             });
             }
 
-            int dr = (_wr[r] == _vweight[v] && _vweight[v] > 0) ? -1 : 0;
-            int dnr = (_wr[nr] == 0 && _vweight[v] > 0) ? 1 : 0;
+            int64_t dr = (_wr[r] == _vweight[v] && _vweight[v] > 0) ? -1 : 0;
+            int64_t dnr = (_wr[nr] == 0 && _vweight[v] > 0) ? 1 : 0;
             if (!m_entries._p_entries.empty() || dr != 0 || dnr != 0)
             {
                 dS_dl += _coupled_state->propagate_entries_dS(r, nr, dr, dnr,
@@ -1275,8 +1275,8 @@ public:
         return dS + ea.beta_dl * dS_dl;
     }
 
-    double propagate_entries_dS(size_t u, size_t v, int du, int dv,
-                                std::vector<std::tuple<size_t, size_t, GraphInterface::edge_t, int,
+    double propagate_entries_dS(size_t u, size_t v, int64_t du, int64_t dv,
+                                std::vector<std::tuple<size_t, size_t, GraphInterface::edge_t, int64_t,
                                                        std::vector<double>>>& entries,
                                 const entropy_args_t& ea, std::vector<double>& dBdx,
                                 int dL)
@@ -1356,7 +1356,7 @@ public:
             auto e_diff =
                 [&](auto rr, auto ss, auto& me, auto d)
                 {
-                    int ers = 0;
+                    int64_t ers = 0;
                     if (me != _emat.get_null_edge())
                         ers = this->_mrs[me];
                     auto wr = this->_wr[rr];
@@ -1426,8 +1426,8 @@ public:
             }
         }
 
-        int dr = (_wr[r] + du == 0) ? -1 : 0;
-        int ds = (_wr[s] == 0) ? 1 : 0;
+        int64_t dr = (_wr[r] + du == 0) ? -1 : 0;
+        int64_t ds = (_wr[s] == 0) ? 1 : 0;
         if (_coupled_state != nullptr)
         {
             dS += _coupled_state->propagate_entries_dS(r, s, dr, ds,
@@ -1680,13 +1680,13 @@ public:
                         t = r;
                     w++;
 
-                    int mts = 0;
+                    int64_t mts = 0;
                     const auto& me = m_entries.get_me(t, s, _emat);
                     if (me != _emat.get_null_edge())
                         mts = _mrs[me];
-                    int mtp = _mrp[t];
-                    int mst = mts;
-                    int mtm = mtp;
+                    int64_t mtp = _mrp[t];
+                    int64_t mst = mts;
+                    int64_t mtm = mtp;
 
                     if constexpr (is_directed_::apply<g_t>::type::value)
                     {
@@ -1699,8 +1699,8 @@ public:
 
                     if (reverse)
                     {
-                        int dts = m_entries.get_delta(t, s);
-                        int dst = dts;
+                        int64_t dts = m_entries.get_delta(t, s);
+                        int64_t dst = dts;
                         if constexpr (is_directed_::apply<g_t>::type::value)
                             dst = m_entries.get_delta(s, t);
 
@@ -1746,7 +1746,7 @@ public:
 
     double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
                          bool reverse,
-                         std::vector<std::tuple<size_t, size_t, int>>& p_entries)
+                         std::vector<std::tuple<size_t, size_t, int64_t>>& p_entries)
     {
         _m_entries.set_move(r, s, num_vertices(_bg));
         for (auto& rsd : p_entries)
@@ -1777,7 +1777,7 @@ public:
     // =========================================================================
 
     double get_deg_entropy(size_t v, const simple_degs_t&,
-                           const std::array<int,2>& delta = {0, 0})
+                           const std::array<int64_t,2>& delta = {0, 0})
     {
         auto kin = in_degreeS()(v, _g, _eweight) + delta[0];
         auto kout = out_degreeS()(v, _g, _eweight) + delta[1];
@@ -1787,7 +1787,7 @@ public:
 
     double get_deg_entropy(size_t v,
                            const typename degs_map_t::unchecked_t& degs,
-                           const std::array<int,2>& delta = {0, 0})
+                           const std::array<int64_t,2>& delta = {0, 0})
     {
         auto& ks = degs[v];
         auto kin = get<0>(ks) + delta[0];
@@ -1949,7 +1949,7 @@ public:
     }
 
     template <class Vs, class Skip>
-    double get_parallel_entropy(Vs&& vs, Skip&& skip, int delta = 0)
+    double get_parallel_entropy(Vs&& vs, Skip&& skip, int64_t delta = 0)
     {
         double S = 0;
         for (auto v : vs)
@@ -1998,7 +1998,7 @@ public:
     }
 
     double modify_edge_dS(size_t u, size_t v, const GraphInterface::edge_t& e,
-                          int dm, const entropy_args_t& ea)
+                          int64_t dm, const entropy_args_t& ea)
     {
         if (dm == 0)
             return 0;
@@ -2013,7 +2013,7 @@ public:
 
             if (r != s || u == v)
             {
-                std::array<std::tuple<size_t, int>, 2> kins, kouts;
+                std::array<std::tuple<size_t, int64_t>, 2> kins, kouts;
 
                 auto [kin, kout] = get_deg(u, _eweight, _degs, _g);
 
@@ -2099,8 +2099,8 @@ public:
 
                 if constexpr (!is_directed_::apply<g_t>::type::value)
                 {
-                    std::array<std::tuple<size_t, int>, 0> kins;
-                    std::array<std::tuple<size_t, int>, 4> kouts;
+                    std::array<std::tuple<size_t, int64_t>, 0> kins;
+                    std::array<std::tuple<size_t, int64_t>, 4> kouts;
 
                     auto [kin, kout] = get_deg(u, _eweight, _degs, _g);
 
@@ -2141,8 +2141,8 @@ public:
                 }
                 else
                 {
-                    std::array<std::tuple<size_t, int>, 2> kins;
-                    std::array<std::tuple<size_t, int>, 2> kouts;
+                    std::array<std::tuple<size_t, int64_t>, 2> kins;
+                    std::array<std::tuple<size_t, int64_t>, 2> kouts;
 
                     auto [kin, kout] = get_deg(u, _eweight, _degs, _g);
 
@@ -2427,17 +2427,17 @@ public:
         return _E;
     }
 
-    vprop_map_t<int32_t>::unchecked_t& get_b()
+    vprop_map_t<int64_t>::unchecked_t& get_b()
     {
         return _b;
     }
 
-    vprop_map_t<int32_t>::unchecked_t& get_bclabel()
+    vprop_map_t<int64_t>::unchecked_t& get_bclabel()
     {
         return _bclabel;
     }
 
-    vprop_map_t<int32_t>::unchecked_t& get_pclabel()
+    vprop_map_t<int64_t>::unchecked_t& get_pclabel()
     {
         return _pclabel;
     }
@@ -2764,7 +2764,7 @@ public:
                      std::vector<double>> m_entries_t;
     m_entries_t _m_entries;
 
-    std::vector<std::tuple<size_t, size_t, int>>
+    std::vector<std::tuple<size_t, size_t, int64_t>>
         _pp_entries;
 
     typedef entropy_args_t _entropy_args_t;
