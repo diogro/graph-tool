@@ -15,11 +15,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#define BOOST_PYTHON_MAX_ARITY 30
-#include <boost/python.hpp>
-
 #include "graph_tool.hh"
 #include "random.hh"
+#include "graph_python_interface.hh"
 
 #include "bisection_sampler.hh"
 
@@ -51,6 +49,10 @@ REGISTER_MOD
         .def_readwrite("ftol", &bisect_args_t::ftol)
         .def_readwrite("reversible", &bisect_args_t::reversible)
         .def_readwrite("nmax_extend", &bisect_args_t::nmax_extend);
+
+    export_vector_types<false,false,false>()(bisect_args_t(), "bisect_args_t");
+
+    using BisectionSampler = BisectionSampler<>;
 
     class_<BisectionSampler,
            std::shared_ptr<BisectionSampler>>("BisectionSampler",

@@ -47,6 +47,9 @@ public:
           _esample(esample),
           _usample(usample)
     {
+        if (_esample == 0 && _usample == 1)
+            return;
+
         for (auto v : _tgts)
         {
             for (auto e : in_or_out_edges_range(v, state._g))
@@ -121,8 +124,11 @@ public:
         return {u, v};
     }
 
-    void update_edge(size_t u, size_t v, size_t m, int delta)
+    void update_edge(size_t u, size_t v, size_t m, int64_t delta)
     {
+        if (_esample == 0 && _usample == 1)
+            return;
+
         if (m == 0 && delta > 0)
         {
             _edges.push_back(get_edge(u, v));
@@ -155,7 +161,7 @@ public:
         auto me = _state._emat.get_me(r, s);
         assert (me != _state._emat.get_null_edge());
 
-        int ers = _state._mrs[me] + ((delta < 0) ? delta : 0);
+        int64_t ers = _state._mrs[me] + ((delta < 0) ? delta : 0);
         if (ers == 0)
         {
             _rs_sampler.remove(_rs_pos[me]);
@@ -198,7 +204,7 @@ public:
         {
             _rs_sampler.update(_rs_pos[me], delta, true);
 
-            int dm = delta;
+            int64_t dm = delta;
             if (!is_directed(_state._g) && r == s)
                 dm *= 2;
 
@@ -260,6 +266,11 @@ public:
         // if (_edges.empty())
         //     return _null_edge;
         // return uniform_sample(_edges, rng);
+        if (_esample == 0 && _usample == 1)
+        {
+            return get_edge(_sample_vertex(rng),
+                            uniform_sample(_tgts, rng));
+        }
 
         if (_esample == 1 || edges_only)
         {
@@ -296,12 +307,14 @@ public:
                         s_sampler.sample(rng));
     }
 
-    double log_prob(size_t u, size_t v, size_t m, int delta,
+    double log_prob(size_t u, size_t v, size_t m, int64_t delta,
                     bool edges_only = false)
     {
         // if (_edges.size() + delta == 0)
         //     return -numeric_limits<double>::infinity();
         // return -log(_edges.size() + delta);
+        if (_esample == 0 && _usample == 1)
+            return 0;
 
         if (_esample == 1 || edges_only)
             return -log(_edges.size() + delta);

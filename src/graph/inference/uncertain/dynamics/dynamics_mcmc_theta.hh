@@ -27,8 +27,8 @@
 #include "../../support/graph_state.hh"
 #include "../../loops/mcmc_loop.hh"
 #include "../../support/fibonacci_search.hh"
+#include "../../support/segment_sampler.hh"
 #include "dynamics.hh"
-#include "segment_sampler.hh"
 #include "openmp.hh"
 
 namespace graph_tool
@@ -113,7 +113,7 @@ struct MCMCTheta
         }
 
         std::vector<std::tuple<xmove_t, tval_t, double, double,
-                               BisectionSampler>> _xcaches;
+                               BisectionSampler<>>> _xcaches;
 
         std::array<double, 2> _ws;
 

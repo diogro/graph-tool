@@ -24,8 +24,8 @@
 #include <boost/math/special_functions/relative_difference.hpp>
 #include "segment_sampler.hh"
 
-#include "../../support/util.hh"
-#include "../../support/fibonacci_search.hh"
+#include "util.hh"
+#include "fibonacci_search.hh"
 
 namespace graph_tool
 {
@@ -51,6 +51,7 @@ T quantize(T x, T delta)
     return std::floor(x/delta) * delta;
 }
 
+template <class Val=double>
 class BisectionSampler
 {
 public:
@@ -173,18 +174,18 @@ public:
     }
 
     template <class... RNG>
-    double bisect_fb(double x_min, double x_max, RNG&... rng)
+    double bisect_fb(Val x_min, Val x_max, RNG&... rng)
     {
         _seg_sampler = SegmentSampler();
-        FibonacciSearch<double> fb;
+        FibonacciSearch<Val> fb;
         auto [fx, dS] = fb.search(x_min, x_max,
-                                  [&](double x){ return f(x); },
+                                  [&](Val x){ return f(x); },
                                   _args.maxiter, _args.tol, rng...);
         return fx;
     }
 
     template <class RNG>
-    double sample(double beta, double delta, RNG& rng)
+    Val sample(double beta, double delta, RNG& rng)
     {
         double val;
         if (std::isinf(beta))
@@ -201,7 +202,7 @@ public:
         return quantize(val, delta);
     }
 
-    double lprob(double x, double beta, double delta)
+    double lprob(Val x, double beta, double delta)
     {
         auto& seg = get_seg_sampler(beta);
         if (delta == 0)
@@ -209,7 +210,7 @@ public:
         return seg.lprob_int(x, delta);
     }
 
-    double f(double x, bool add = true)
+    double f(Val x, bool add = true)
     {
         auto iter = _fcache.find(x);
         if (iter != _fcache.end())
@@ -246,7 +247,7 @@ public:
 
 private:
 
-    std::function<double(double)> _f;
+    std::function<double(Val)> _f;
     bisect_args_t _args;
     std::vector<double> _vals;
     std::map<double, double> _fcache;
@@ -258,7 +259,7 @@ class SetBisectionSampler
 {
 public:
     SetBisectionSampler(const std::vector<double>& vals, double pu,
-                        BisectionSampler& sampler)
+                        BisectionSampler<>& sampler)
         : _vals(vals), _pu(pu), _sampler(sampler)
     {
     }
@@ -340,7 +341,7 @@ public:
 private:
     const std::vector<double>& _vals;
     double _pu;
-    BisectionSampler& _sampler;
+    BisectionSampler<>& _sampler;
 };
 
 }

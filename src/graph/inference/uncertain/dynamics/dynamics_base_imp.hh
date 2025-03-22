@@ -33,7 +33,7 @@ get_node_prob(size_t v)
     auto theta = _spec.transform_theta(_theta[v], k);
     iter_time<true, true, false>
         (std::array<size_t,0>({}), v,
-         [&](auto, auto, auto&&, auto m, int w, auto... s_v)
+         [&](auto, auto, auto&&, auto m, auto w, auto... s_v)
          {
              if constexpr (!keep_k)
                  L += _spec.log_P(theta, m, s_v...) * w;

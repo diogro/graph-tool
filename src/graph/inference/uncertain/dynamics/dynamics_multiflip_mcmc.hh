@@ -26,7 +26,7 @@
 #include "graph_tool.hh"
 #include "../../support/graph_state.hh"
 #include "dynamics.hh"
-#include "segment_sampler.hh"
+#include "../../support/segment_sampler.hh"
 #include "openmp.hh"
 
 #include "idx_map.hh"
@@ -488,7 +488,7 @@ struct MCMC
                                                        }, r, nx, _entropy_args);
                      };
 
-            BisectionSampler sampler(f, _bisect_args);
+            BisectionSampler<> sampler(f, _bisect_args);
             double nx = sampler.bisect(r, _state._xdelta);
             double dS = sampler.f(nx, false);
 

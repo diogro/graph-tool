@@ -30,6 +30,7 @@
 
 #include "../../support/graph_state.hh"
 #include "../../support/fibonacci_search.hh"
+#include "../../support/bisection_sampler.hh"
 #include "../uncertain_util.hh"
 #include "../../../generation/graph_knn.hh"
 
@@ -37,7 +38,6 @@
 
 #include "dynamics_util.hh"
 
-#include "bisection_sampler.hh"
 
 namespace graph_tool
 {
@@ -79,7 +79,7 @@ typedef vprop_map_t<double> smap_t;
     ((disable_xdist,, bool, 0))                                                \
     ((disable_tdist,, bool, 0))                                                \
     ((self_loops,, bool, 0))                                                   \
-    ((max_m,, int, 0))
+    ((max_m,, int64_t, 0))
 
 class DStateBase
 {
@@ -429,8 +429,8 @@ struct Dynamics
 
             size_t nr = get_count(h, r);
             size_t W = h.size();
-            int dW = 0;
-            int dN = 0;
+            int64_t dW = 0;
+            int64_t dN = 0;
 
             double xmin = (W > 0) ? vals.front() : 0;
             double xmax = (W > 0) ? vals.back() : 0;
@@ -738,7 +738,7 @@ struct Dynamics
             return dS;
         }
 
-        double add_edge_dS(size_t u, size_t v, int dm, double x,
+        double add_edge_dS(size_t u, size_t v, int64_t dm, double x,
                            const dentropy_args_t& ea, bool dstate = true,
                            bool lock = true)
         {
@@ -911,7 +911,7 @@ struct Dynamics
             }
             else
             {
-                std::vector<int> ms;
+                std::vector<int64_t> ms;
                 for (auto& [u, v, m] : eds)
                 {
                     dS += remove_edge_dS(u, v, m, ea, false);
@@ -925,7 +925,7 @@ struct Dynamics
         }
 
         template <class Unlock = std::function<void(void)>>
-        void remove_edge(size_t u, size_t v, int dm, Unlock&& unlock = [](){},
+        void remove_edge(size_t u, size_t v, int64_t dm, Unlock&& unlock = [](){},
                          bool dstate=true, bool lock=true)
         {
             //serial part
@@ -985,7 +985,7 @@ struct Dynamics
         }
 
         template <class Unlock = std::function<void(void)>>
-        void add_edge(size_t u, size_t v, int dm, double nx,
+        void add_edge(size_t u, size_t v, int64_t dm, double nx,
                       Unlock&& unlock = [](){}, bool dstate = true,
                       bool lock = true)
         {
@@ -1332,7 +1332,7 @@ struct Dynamics
 
                     if (ba.min_bound != ba.max_bound)
                     {
-                        BisectionSampler sampler(f, ba);
+                        BisectionSampler<> sampler(f, ba);
                         auto nx = sampler.bisect(x, _xdelta);
                         double dS = sampler.f(nx);
 
@@ -1495,7 +1495,7 @@ struct Dynamics
             return {n_tot, n_iter, d._miss_count};
         }
 
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_x_init(size_t u, size_t v, const dentropy_args_t& ea,
                       const bisect_args_t& ba)
         {
@@ -1510,12 +1510,12 @@ struct Dynamics
                             (edge_x_S(nx, ea) - edge_x_S(x, ea)));
                 };
 
-            BisectionSampler sampler(f, ba);
+            BisectionSampler<> sampler(f, ba);
             return {x, sampler};
         }
 
         template <class... RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_x_disp(size_t u, size_t v, const dentropy_args_t& ea,
                       const bisect_args_t& ba, bool fb,
                       const std::vector<double>& xvals, RNG&... rng)
@@ -1533,14 +1533,14 @@ struct Dynamics
         }
 
         template <class... RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_x(size_t u, size_t v, const dentropy_args_t& ea,
                  const bisect_args_t& ba, bool fb, RNG&... rng)
         {
             return bisect_x_disp(u, v, ea, ba, fb, _xvals, rng...);
         }
 
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_t_init(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba)
         {
             auto x = _theta[v];
@@ -1551,12 +1551,12 @@ struct Dynamics
                         (node_x_S(nx, ea) - node_x_S(x, ea));
                 };
 
-            BisectionSampler sampler(f, ba);
+            BisectionSampler<> sampler(f, ba);
             return {x, sampler};
         }
 
         template <class... RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_t_disp(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
                       bool fb, const std::vector<double>& tvals, RNG&... rng)
         {
@@ -1571,14 +1571,14 @@ struct Dynamics
         }
 
         template <class... RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_t(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
                  bool fb, RNG&... rng)
         {
             return bisect_t_disp(v, ea, ba, fb, _tvals, rng...);
         }
 
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_xl1(const dentropy_args_t& ea, const bisect_args_t& ba)
         {
             double S0 = entropy(ea);
@@ -1591,12 +1591,12 @@ struct Dynamics
                     return entropy(ea_) - S0;
                 };
 
-            BisectionSampler sampler(f, ba);
+            BisectionSampler<> sampler(f, ba);
             double nx = sampler.bisect(ea.xl1, 0);
             return {nx, sampler};
         }
 
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         bisect_tl1(const dentropy_args_t& ea, const bisect_args_t& ba)
         {
             double S0 = entropy(ea);
@@ -1609,7 +1609,7 @@ struct Dynamics
                     return entropy(ea_) - S0;
                 };
 
-            BisectionSampler sampler(f, ba);
+            BisectionSampler<> sampler(f, ba);
             double nx = sampler.bisect(ea.tl1, 0);
             return {nx, sampler};
         }
@@ -1704,7 +1704,7 @@ struct Dynamics
         }
 
         template <class RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         sample_x_disp(size_t u, size_t v, double beta, const dentropy_args_t& ea,
                       const bisect_args_t& ba, bool fb, std::vector<double>& xvals,
                       RNG& rng)
@@ -1714,7 +1714,7 @@ struct Dynamics
         }
 
         template <class RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         sample_x(size_t u, size_t v, double beta, const dentropy_args_t& ea,
                  const bisect_args_t& ba, bool fb, RNG& rng)
         {
@@ -1722,7 +1722,7 @@ struct Dynamics
         }
 
         template <class RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         sample_t_disp(size_t v, double beta, const dentropy_args_t& ea,
                       const bisect_args_t& ba, bool fb, std::vector<double>& tvals,
                       RNG& rng)
@@ -1732,7 +1732,7 @@ struct Dynamics
         }
 
         template <class RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         sample_t(size_t v, double beta, const dentropy_args_t& ea,
                  const bisect_args_t& ba, bool fb, RNG& rng)
         {
@@ -1740,7 +1740,7 @@ struct Dynamics
         }
 
         template <class RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         sample_xl1(double beta, const dentropy_args_t& ea,
                    const bisect_args_t& ba, RNG& rng)
         {
@@ -1749,7 +1749,7 @@ struct Dynamics
         }
 
         template <class RNG>
-        std::tuple<double, BisectionSampler>
+        std::tuple<double, BisectionSampler<>>
         sample_tl1(double beta, const dentropy_args_t& ea,
                    const bisect_args_t& ba, RNG& rng)
         {
@@ -1794,7 +1794,7 @@ struct Dynamics
                              return f_(xi, vals[xi], x);
                          };
 
-                BisectionSampler sampler(f, ba);
+                BisectionSampler<> sampler(f, ba);
                 double nx = sampler.bisect(vals[xi], delta);
                 double dS = sampler.f(nx, false);
 

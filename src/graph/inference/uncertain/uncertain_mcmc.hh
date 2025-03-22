@@ -27,6 +27,9 @@
 #include "../loops/mcmc_loop.hh"
 #include "sample_edge_sbm.hh"
 
+#include "../support/sample_util.hh"
+#include "../support/bisection_sampler.hh"
+
 namespace graph_tool
 {
 using namespace boost;
@@ -39,7 +42,9 @@ typedef std::vector<size_t> vlist_t;
     ((state, &, State&, 0))                                                    \
     ((beta,, double, 0))                                                       \
     ((entropy_args,, uentropy_args_t, 0))                                      \
-    ((edges_only,, bool, 0))                                                   \
+    ((pedges,, double, 0))                                                     \
+    ((puniform,, double, 0))                                                   \
+    ((bisect,, bool, 0))                                                       \
     ((verbose,, int, 0))                                                       \
     ((niter,, size_t, 0))
 
@@ -64,7 +69,7 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCUncertainState(ATs&&... as)
             : MCMCUncertainStateBase<Ts...>(as...),
-              _edge_sampler(_state._block_state, _edges_only ? 1. : 0.25),
+              _edge_sampler(_state._block_state, _pedges, _puniform),
               _vlist(num_vertices(_state._u))
         {
         }
@@ -73,7 +78,7 @@ struct MCMC
 
         std::tuple<size_t, size_t> _e;
         std::vector<size_t> _vlist;
-        int _null_move = 0;
+        int64_t _null_move = 0;
 
         std::tuple<size_t, size_t> get_edge()
         {
@@ -95,20 +100,37 @@ struct MCMC
             return node_state(u, v);
         }
 
+        BisectionSampler<int64_t> _bisection_sampler;
+
         template <class RNG>
-        int move_proposal(size_t, RNG& rng)
+        int64_t move_proposal(size_t, RNG& rng)
         {
-            _e = _edge_sampler.sample(rng);
+            auto [u, v] = _e = _edge_sampler.sample(rng);
+            int64_t m = node_state(u, v);
 
-            int m = node_state(get<0>(_e), get<1>(_e));
+            if (_bisect)
+            {
+                _bisection_sampler =
+                    BisectionSampler<int64_t>
+                    ([&](auto nm)
+                     {
+                         int64_t dm = nm - m;
+                         if (dm < 0)
+                             return _state.remove_edge_dS(u, v, -dm, _entropy_args);
+                         else
+                             return _state.add_edge_dS(u, v, dm, _entropy_args);
+                     }, bisect_args_t());
+                auto nm = _bisection_sampler.bisect_fb(0, _state._max_m, rng);
+                if (std::isinf(_beta))
+                    return nm - m;
+                return _bisection_sampler.sample(1, 1, rng) - m;
+            }
 
-            std::geometric_distribution<int> sample_m(1./(m + 2));
-
-            return sample_m(rng) - m;
+            return sample_geometric(m + 2, rng) - m;
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t, int dm)
+        virtual_move_dS(size_t, int64_t dm)
         {
             if (dm == 0)
                 return {0., 0.};
@@ -128,13 +150,21 @@ struct MCMC
 
             size_t nm = m + dm;
 
-            a -= nm * safelog_fast(m + 1) - (nm + 1) * safelog_fast(m + 2);
-            a += m * safelog_fast(nm + 1) - (m + 1) * safelog_fast(nm + 2);
+            if (_bisect)
+            {
+                a -= _bisection_sampler.lprob(nm, 1, 1);
+                a += _bisection_sampler.lprob(m, 1, 1);
+            }
+            else
+            {
+                a -= geometric_lprob(nm, m + 2);
+                a += geometric_lprob(m, nm + 2);
+            }
 
             return std::make_tuple(dS, a);
         }
 
-        void perform_move(size_t, int dm)
+        void perform_move(size_t, int64_t dm)
         {
             if (dm == 0)
                 return;

@@ -26,7 +26,7 @@
 #include "graph_tool.hh"
 #include "../../support/graph_state.hh"
 #include "dynamics.hh"
-#include "segment_sampler.hh"
+#include "../../support/segment_sampler.hh"
 #include "openmp.hh"
 
 #include "idx_map.hh"
@@ -344,7 +344,7 @@ struct MCMCTheta
         template <class VS>
         std::tuple<double, double> relabel_group(double r, VS& vs)
         {
-            BisectionSampler
+            BisectionSampler<>
                 sampler([&](auto nx)
                         {
                             return _state.update_nodes_dS(vs, r, nx, _entropy_args);

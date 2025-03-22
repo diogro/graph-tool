@@ -1,4 +1,3 @@
-
 // graph-tool -- a general graph modification and manipulation thingy
 //
 // Copyright (C) 2006-2025 Tiago de Paula Peixoto <tiago@skewed.de>

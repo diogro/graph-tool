@@ -25,7 +25,6 @@
 #include "../../blockmodel/graph_blockmodel.hh"
 
 #include "dynamics.hh"
-#include "segment_sampler.hh"
 
 using namespace boost;
 using namespace graph_tool;

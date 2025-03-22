@@ -195,7 +195,8 @@ class UncertainBaseState(EntropyState):
 
 
     @mcmc_sweep_wrap
-    def edge_mcmc_sweep(self, beta=1, niter=1, verbose=False, **kwargs):
+    def edge_mcmc_sweep(self, beta=1, niter=1, pedges=.25, puniform=.25,
+                        bisect=False, verbose=False, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC to sample latent edges.
 
@@ -205,6 +206,14 @@ class UncertainBaseState(EntropyState):
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps.
+        pedges : ``double`` (optional, default: ``.25``)
+            Probability of choosing an existing edge to update.
+        puniform : ``double`` (optional, default: ``.25``)
+            Probability of choosing uniformly at random an edge to update.
+        bisect : ``boolean`` (optional, default: ``False``)
+            If true, the edge multiplicity proposals will be sampled using
+            bisection approach. Otherwise, they will be sampled from a centered
+            geometric distribution.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -214,9 +223,9 @@ class UncertainBaseState(EntropyState):
             Entropy difference after the sweeps.
         nmoves : ``int``
             Number of variables moved.
+
         """
         kwargs = kwargs.copy()
-        edges_only = kwargs.pop("edges_only", False)
         slist = self.slist
         tlist = self.tlist
         entropy_args = kwargs.pop("entropy_args", {}).copy()
@@ -330,9 +339,9 @@ class UncertainBaseState(EntropyState):
             g.add_vertex(self.g.num_vertices())
 
         if "count" not in g.gp:
-            g.gp.count = g.new_gp("int", 0)
+            g.gp.count = g.new_gp("int64_t", 0)
         if "count" not in g.ep:
-            g.ep.count = g.new_ep("int")
+            g.ep.count = g.new_ep("int64_t")
         if "eprob" not in g.ep:
             g.ep.eprob = g.new_ep("double")
 
@@ -340,7 +349,7 @@ class UncertainBaseState(EntropyState):
         try:
             g.set_fast_edge_lookup(True)
             graph_merge(g, u, in_place=True, simple=True,
-                        props=dict(sum=[(g.ep.count, u.new_ep("int", val=1))]))
+                        props=dict(sum=[(g.ep.count, u.new_ep("int64_t", val=1))]))
         finally:
             g.gp.count += 1
             g.ep.eprob.fa = g.ep.count.fa
@@ -385,7 +394,7 @@ class UncertainBaseState(EntropyState):
             g.ep.wcount = g.new_ep("vector<int32_t>")
 
         if "wcount" not in g.gp:
-            g.gp.wcount = g.new_gp("int", 0)
+            g.gp.wcount = g.new_gp("int64_t", 0)
 
         try:
             g.set_fast_edge_lookup(True)
@@ -930,7 +939,7 @@ def marginal_multigraph_entropy(g, ecount):
 
 def marginal_multigraph_sample(g, ews, ecount):
 
-    w = g.new_ep("int")
+    w = g.new_ep("int64_t")
     libinference.marginal_multigraph_sample(g._Graph__graph,
                                                 _prop("e", g, ews),
                                                 _prop("e", g, ecount),
@@ -947,7 +956,7 @@ def marginal_multigraph_lprob(g, ews, ecount, ew):
     return L
 
 def marginal_graph_sample(g, ep):
-    w = g.new_ep("int")
+    w = g.new_ep("int64_t")
     libinference.marginal_graph_sample(g._Graph__graph,
                                        _prop("e", g, ep),
                                        _prop("e", g, w),

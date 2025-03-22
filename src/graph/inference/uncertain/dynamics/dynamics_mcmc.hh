@@ -26,7 +26,7 @@
 #include "graph_tool.hh"
 #include "../../support/graph_state.hh"
 #include "dynamics.hh"
-#include "segment_sampler.hh"
+#include "../../support/segment_sampler.hh"
 #include "../../../generation/sampler.hh"
 #include "openmp.hh"
 
@@ -146,7 +146,7 @@ struct MCMC
         std::vector<std::mutex> _vmutex;
 
         std::vector<std::tuple<xmove_t, size_t, xval_t, double, double,
-                               BisectionSampler>> _xcaches;
+                               BisectionSampler<>>> _xcaches;
 
         bool proposal_lock(std::tuple<size_t, size_t>& uv)
         {

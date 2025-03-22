@@ -1726,7 +1726,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                 graph_merge(g, g, in_place=True,
                             props=dict(idx_inc=[(count,
                                                  g.new_property(count.key_type(),
-                                                               "vector<int>",
+                                                               "vector<int32_t>",
                                                                 val=[-len(bins)+1, 0]))]))
             else:
                 nbins = np.concatenate((bins, np.cumsum(d) + bins[-1]))
