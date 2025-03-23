@@ -37,6 +37,7 @@ using namespace std;
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
+    ((l,, size_t, 0))                                                          \
     ((beta,, double, 0))                                                       \
     ((step,, double, 0))                                                       \
     ((pold,, double, 0))                                                       \
@@ -83,7 +84,7 @@ struct MCMCTDelta
 
         move_t node_state(size_t)
         {
-            return _state._tdelta;
+            return _state._tdelta[_l];
         }
 
         std::tuple<double, std::vector<double>> _temp, _next;
@@ -93,11 +94,11 @@ struct MCMCTDelta
         void push_state(XState& state)
         {
             auto& [delta, temp] = state;
-            delta = _state._tdelta;
+            delta = _state._tdelta[_l];
             temp.clear();
             for (auto v : _vertices)
             {
-                auto x = _state._theta[v];
+                auto x = _state._theta[v][_l];
                 temp.emplace_back(x);
             }
         }
@@ -107,13 +108,13 @@ struct MCMCTDelta
         {
             auto& delta = get<0>(state);
             auto& temp = get<1>(state);
-            _state._tdelta = delta;
+            _state._tdelta[_l] = delta;
             #pragma omp parallel for schedule(runtime)
             for (size_t i = 0; i < _vertices.size(); ++i)
             {
                 auto v = _vertices[i];
                 auto nx = temp[i];
-                _state.update_node(v, nx);
+                _state.update_node(v, _l, nx);
             }
         }
 
@@ -138,7 +139,7 @@ struct MCMCTDelta
                 {
                     //parallel
                     auto v = _vertices[j];
-                    auto x = _state._theta[v];
+                    auto x = _state._theta[v][_l];
                     auto [nx, ddS, xcache] = sample_nx(v, rng);
                     if constexpr (!forward)
                         nx = xstate[j];
@@ -149,14 +150,14 @@ struct MCMCTDelta
                     move_mutex.lock();
 
                     // serial
-                    ddS += _state.update_node_dS(v, nx, ea, false);
+                    ddS += _state.update_node_dS(v, _l, nx, ea, false);
 
                     double lb = 0;
                     if (!std::isinf(_beta))
                     {
-                        auto x_skip = _state.get_count(_state._thist, x) == 1 ?
+                        auto x_skip = _state.get_count(_state._thist[_l], x) == 1 ?
                             x : numeric_limits<double>::quiet_NaN();
-                        auto x_add = _state.get_count(_state._thist, nx) == 0 ?
+                        auto x_add = _state.get_count(_state._thist[_l], nx) == 0 ?
                             nx : numeric_limits<double>::quiet_NaN();
                         lb = sample_x_lprob(x, xcache, x_skip, x_add);
                     }
@@ -186,7 +187,7 @@ struct MCMCTDelta
                     lp += lf;
                     if (accept)
                     {
-                        _state.update_node(v, nx);
+                        _state.update_node(v, _l, nx);
 
                         dS += ddS;
                         lp += a;
@@ -204,7 +205,7 @@ struct MCMCTDelta
                 }
 
                 if constexpr (!soft)
-                    dS += get<0>(_state.tvals_sweep(_beta, 1, 1,
+                    dS += get<0>(_state.tvals_sweep(_l, _beta, 1, 1,
                                                     _entropy_args,
                                                     _bisect_args, rng));
             }
@@ -215,8 +216,8 @@ struct MCMCTDelta
         double stage(double ndelta, RNG& rng)
         {
             double dS = -_state.entropy(_entropy_args);
-            _state.requantize_all_theta(ndelta);
-            _state._tdelta = ndelta;
+            _state.requantize_all_theta(_l, ndelta);
+            _state._tdelta[_l] = ndelta;
             dS += _state.entropy(_entropy_args);
             auto [ddS, lp] = mcmc_sweep<true, false>(_intra_sweeps,
                                                      std::array<std::tuple<size_t,double>, 0>(),
@@ -250,9 +251,9 @@ struct MCMCTDelta
         template <class RNG>
         move_t move_proposal(size_t, RNG& rng)
         {
-            double a = std::max(log(_state._tdelta) - log(_step),
-                           log(_state._tdelta_min));
-            double b = log(_state._tdelta) + log(_step);
+            double a = std::max(log(_state._tdelta[_l]) - log(_step),
+                           log(_state._tdelta_min[_l]));
+            double b = log(_state._tdelta[_l]) + log(_step);
             std::uniform_real_distribution<> r(a, b);
             double ndelta = exp(r(rng));
 
@@ -262,14 +263,14 @@ struct MCMCTDelta
 
             push_state(_next);
 
-            _lb = rescale_prob(_state._tdelta, _temp, rng);
+            _lb = rescale_prob(_state._tdelta[_l], _temp, rng);
 
             _lf += -log(ndelta) - log(b - a);
 
-            a = std::max(log(ndelta) - log(_step), log(_state._tdelta_min));
+            a = std::max(log(ndelta) - log(_step), log(_state._tdelta_min[_l]));
             b = log(ndelta) + log(_step);
 
-            _lb += -log(_state._tdelta) - log(b - a);
+            _lb += -log(_state._tdelta[_l]) - log(b - a);
 
             apply_state(_temp);
 
@@ -285,7 +286,7 @@ struct MCMCTDelta
         virtual_move_dS(size_t, move_t ndelta)
         {
             if (_verbose)
-                cout << _state._tdelta << " " << ndelta << " "
+                cout << _state._tdelta[_l] << " " << ndelta << " "
                      << _dS << " " << _lf << " " << _lb << endl;
             return {_dS, _lb - _lf};
         }
@@ -300,12 +301,12 @@ struct MCMCTDelta
             bool xold = rold(rng);
 
             auto [nx, sampler] =
-                _state.sample_t(v, _beta, _entropy_args, _bisect_args, false,
+                _state.sample_t(v, _l, _beta, _entropy_args, _bisect_args, false,
                                 rng);
 
             if (xold)
             {
-                SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
+                SetBisectionSampler set_sampler(_state._tvals[_l], _ptu, sampler);
                 nx = set_sampler.sample(_beta, rng);
             }
 
@@ -320,7 +321,7 @@ struct MCMCTDelta
         template <class Sampler>
         double sample_new_x_lprob(double nx, Sampler& sampler)
         {
-            return sampler.lprob(nx, _beta, _state._tdelta);
+            return sampler.lprob(nx, _beta, _state._tdelta[_l]);
         }
 
         template <class Sampler>
@@ -328,7 +329,7 @@ struct MCMCTDelta
                                   double skip = numeric_limits<double>::quiet_NaN(),
                                   double add = numeric_limits<double>::quiet_NaN())
         {
-            SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
+            SetBisectionSampler set_sampler(_state._tvals[_l], _ptu, sampler);
             return set_sampler.lprob(nx, _beta, skip, add);
         }
 

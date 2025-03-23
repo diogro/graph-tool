@@ -1,6 +1,6 @@
 // graph-tool -- a general graph modification and manipulation thingy
 //
-// Copyright (C) 2006-2025 Tiago de Paula Peixoto <tiago@skewed.de>
+// Copyright (C) 2006-2024 Tiago de Paula Peixoto <tiago@skewed.de>
 //
 // This program is free software; you can redistribute it and/or modify it under
 // the terms of the GNU Lesser General Public License as published by the Free
@@ -35,21 +35,29 @@ using namespace std;
 
 template <class Base, bool keep_k, bool tshift>
 class ContinuousStateBase
-    : public NSumStateBase<Base, false, keep_k, tshift>
+    : public NSumStateBase<Base, double, false, keep_k, tshift>
 {
 public:
-    typedef NSumStateBase<Base, false, keep_k, tshift> base_t;
+    typedef NSumStateBase<Base, double, false, keep_k, tshift> base_t;
 
     template <class... Args>
     ContinuousStateBase(Args&&... s)
-        : NSumStateBase<Base, false, keep_k, tshift>(s...)
+        : NSumStateBase<Base, double, false, keep_k, tshift>(s...)
     {}
 
     template <class Val>
     constexpr Val transform_input(size_t, size_t, Val x) { return x; }
 
     template <class Val>
-    Val transform_theta(Val x, Val) { return x; }
+    void transform_theta(std::vector<Val>&, Val) {}
+
+    static constexpr double get_m_zero() { return 0; }
+
+    template <class Val>
+    void update_dm(double& dm, Val s, double dx)
+    {
+        dm += s * dx;
+    }
 };
 
 
@@ -66,9 +74,9 @@ inline double l2sinha(T x) // log((exp(x) - exp(-x))/x)
 class CIsingBaseState
 {
 public:
-    double log_P(double theta, double m, double s)
+    double log_P(const std::vector<double>& theta, double m, double s)
     {
-        double x = theta + m;
+        double x = theta[0] + m;
         return s * x - l2sinha(x);
     }
 };
@@ -96,7 +104,7 @@ public:
     CIsingGlauberState(python::dict, Args&&... s)
         : ContinuousStateBase<CIsingGlauberState, false, true>(s...) {}
 
-    double log_P(double theta, double m, double, double sn)
+    double log_P(const std::vector<double>& theta, double m, double, double sn)
     {
         return CIsingBaseState::log_P(theta, m, sn);
     }
@@ -122,20 +130,19 @@ public:
     }
 
     template <class Val>
-    Val transform_theta(Val theta, Val k)
+    void transform_theta(std::vector<Val>& theta, Val k)
     {
-        return (_positive && k > 0) ?
-            std::min(-std::log(k)/2 - _pslack, theta) :
-            theta;
+        if (_positive && k > 0)
+            theta[0] = std::min(-std::log(k)/2 - _pslack, theta[0]);
     }
 
     [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, double, double x)
+    double log_P(const std::vector<double>& theta, double m, double, double x)
     {
-        double lsigma = theta;
+        double lsigma = theta[0];
         double sigma = exp(lsigma);
         double a = exp(2*lsigma);
-        return norm_lpdf(x, -a * m, sigma, lsigma);
+        return norm_lpdf(x, theta[1] - a * m, sigma, lsigma);
     }
 
     bool _positive = true;
@@ -154,9 +161,9 @@ public:
     {};
 
     [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, double, double nx)
+    double log_P(const std::vector<double>& theta, double m, double, double nx)
     {
-        double lsigma = theta;
+        double lsigma = theta[0];
         double sigma = exp(lsigma);
         double a = exp(2*lsigma);
         return norm_lpdf(nx, -a * m, sigma, lsigma);
@@ -176,11 +183,11 @@ public:
     {};
 
     [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, double x, double nx)
+    double log_P(const std::vector<double>& theta, double m, double x, double nx)
     {
-        double sigma = exp(theta);
+        double sigma = exp(theta[0]);
         double a = x + m;
-        return norm_lpdf(nx, a, sigma, theta);
+        return norm_lpdf(nx, a, sigma, theta[0]);
     }
 };
 
@@ -204,9 +211,9 @@ public:
     }
 
     [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, double x, double nx)
+    double log_P(const std::vector<double>& theta, double m, double x, double nx)
     {
-        double diff = x * (theta + m);
+        double diff = x * (theta[0] + m);
         double sigma = _sigma * sqrt(x);
         return norm_lpdf(nx, x + diff, sigma, _lsigma + log(x)/2);
     }

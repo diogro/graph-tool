@@ -209,6 +209,9 @@ Reconstruction from dynamics and behavior
    CIsingGlauberBlockState
    PseudoIsingBlockState
    PseudoCIsingBlockState
+   PottsBlockStateBase
+   PottsGlauberBlockState
+   PseudoPottsBlockState
 
 
 Semiparametric stochastic block model inference
@@ -271,6 +274,9 @@ __all__ = ["minimize_blockmodel_dl",
            "PseudoIsingBlockState",
            "CIsingGlauberBlockState",
            "PseudoCIsingBlockState",
+           "PottsBlockStateBase",
+           "PottsGlauberBlockState",
+           "PseudoPottsBlockState",
            "PseudoNormalBlockState",
            "LinearNormalBlockState",
            "NormalGlauberBlockState",

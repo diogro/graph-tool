@@ -74,13 +74,16 @@ inline auto lbeta(T x, T y)
     return (std::lgamma(x) + std::lgamma(y)) - std::lgamma(x + y);
 }
 
-template <class T1, class T2>
+template <class T1, class T2, bool handle_inf=true>
 [[gnu::const]]
 inline auto log_sum_exp(T1 a, T2 b)
 {
-    if (a == b)  // handles infinity
-        return a + std::log(2);
-    else if (a > b)
+    if constexpr (handle_inf)
+    {
+        if (a == b)  // handles infinity
+            return a + std::log(2);
+    }
+    if (a > b)
         return a + std::log1p(std::exp(b-a));
     else
         return b + std::log1p(std::exp(a-b));
@@ -96,14 +99,14 @@ inline auto log_sum_exp(T1 a, T2 b, Ts... cs)
         return log_sum_exp(log_sum_exp(a, b), cs...);
 }
 
-template <class V>
+template <class V, bool handle_inf=true>
 [[gnu::const]]
 inline auto log_sum_exp(const V& v)
 {
     typedef decltype(*v.begin()) val_t;
     auto ret = -std::numeric_limits<val_t>::infinity();
     for (const auto& x : v)
-        ret = log_sum_exp(ret, x);
+        ret = log_sum_exp<val_t, val_t, handle_inf>(ret, x);
     return ret;
 }
 

@@ -108,7 +108,7 @@ public:
         return false;
     }
 
-    double bisect(double x, double delta)
+    double bisect(double x, double delta = 0)
     {
         _seg_sampler = SegmentSampler();
 
@@ -202,7 +202,7 @@ public:
         return quantize(val, delta);
     }
 
-    double lprob(Val x, double beta, double delta)
+    double lprob(Val x, double beta, double delta = 0)
     {
         auto& seg = get_seg_sampler(beta);
         if (delta == 0)

@@ -44,13 +44,13 @@ std::vector<typename Type::unchecked_t> from_list(python::object list)
     return v;
 };
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 class NSumStateBase
     : public DStateBase
 {
 public:
     typedef std::conditional_t<discrete, int32_t, double> value_t;
-    typedef double m_t;
+    typedef MT m_t;
 
     typedef vprop_map_t<std::vector<int32_t>> tmap_t;
     typedef vprop_map_t<std::vector<value_t>> smap_t;
@@ -189,13 +189,13 @@ public:
                      (in_or_out_neighbors_range(v, s._u), v,
                       [&](auto n, auto t, auto& su, size_t)
                       {
-                          m_t m = 0;
+                          m_t m = _spec.get_m_zero();
                           for (auto e : in_or_out_edges_range(v, s._u))
                           {
                               auto u = source(e, s._u);
                               if (u == v && !s._self_loops)
                                   continue;
-                              m += _spec.transform_input(v, u, su(u)) * xc[e];
+                              _spec.update_dm(m, _spec.transform_input(v, u, su(u)), xc[e]);
                           }
                           if (_t.empty() || t == 0 || m != get<1>(_m[n][v].back()))
                               _m[n][v].emplace_back(t, m);
@@ -204,9 +204,17 @@ public:
                  for (auto& m : _m)
                  {
                      if (m[v].empty())
-                         m[v].emplace_back(0, 0);
+                         m[v].emplace_back(0, _spec.get_m_zero());
                  }
              });
+
+        if constexpr (!std::is_same_v<double, m_t>)
+        {
+            for (auto& dms : _dms)
+                for (auto& dms_n : dms)
+                    for (auto& dms_t : dms_n)
+                        dms_t.resize(_spec.get_q());
+        }
     }
 
     // template <class State>
@@ -238,6 +246,7 @@ public:
     // }
 
     template <bool follow_m, bool follow_v, bool update_m, class F>
+    [[gnu::flatten]]
     void iter_time_uncompressed(size_t v, F&& f)
     {
         for (size_t n = 0; n < _s.size(); ++n)
@@ -247,7 +256,7 @@ public:
             auto& sn = _s[n];
             auto& active = _active.empty() ? _all_active : _active[n][v];
 
-            m_t zero = 0;
+            m_t zero = _spec.get_m_zero();
 
             for (size_t t = 0; t < snv.size() - int(tshift); ++t)
             {
@@ -304,7 +313,7 @@ public:
 
         auto& pos = _pos[tid];
 
-        m_t zero = 0;
+        m_t zero = _spec.get_m_zero();
 
         for (size_t n = 0; n < _s.size(); ++n)
         {
@@ -535,16 +544,13 @@ public:
 
         iter_time<true, false, true>
             (us, v,
-             [&](auto, auto, auto& su, auto& m, int)
+             [&](auto, auto, auto& su, auto&& m, int)
              {
-                 m_t dm = 0;
                  for (size_t i = 0; i < us.size(); ++i)
                  {
                      auto& u = us[i];
-                     dm += _spec.transform_input(v, u, su(u)) * dx[i];
+                     _spec.update_dm(m, _spec.transform_input(v, u, su(u)), dx[i]);
                  }
-                m += dm;
-                assert(!std::isinf(m) && !std::isnan(m));
              });
     }
 
@@ -630,8 +636,8 @@ public:
 
         auto theta = _theta[v];
         auto ntheta = theta;
-        theta = _spec.transform_theta(theta, k);
-        ntheta = _spec.transform_theta(ntheta, nk);
+        _spec.transform_theta(theta, k);
+        _spec.transform_theta(ntheta, nk);
 
         double La = 0;
         double Lb = 0;
@@ -639,17 +645,37 @@ public:
         auto tid = get_thread_num();
         auto& dms = _dms[tid];
 
+        constexpr bool m_scalar = std::is_same_v<double, m_t>;
+
+        size_t q = 1;
+        if constexpr (!m_scalar)
+            q = _spec.get_q();
+
+        auto set_m =
+            [&](auto& dm, auto&& m)
+            {
+                if constexpr (m_scalar)
+                {
+                    dm = m;
+                }
+                else
+                {
+                    for (size_t r = 0; r < q; ++r)
+                        dm[r] = m[r];
+                }
+            };
+
         if constexpr (m_offload)
         {
             auto f =
-                [&](auto n, auto t, auto&& su, auto, int, auto...)
+                [&](auto n, auto t, auto&& su, auto&& m, int, auto...)
                 {
                     auto& dm = dms[n][t];
-                    dm = 0;
+                    set_m(dm, m);
                     for (size_t i = 0; i < us.size(); ++i)
                     {
                         auto& u = us[i];
-                        dm += _spec.transform_input(v, u, su(u)) * dx[i];
+                        _spec.update_dm(dm, _spec.transform_input(v, u, su(u)), dx[i]);
                     }
                 };
 
@@ -659,32 +685,51 @@ public:
                 iter_time_compressed<true, true, false>(us, v, f);
         }
 
-        auto f =
-            [&](auto n, auto t, auto&& su, auto m, int w, auto... s_v)
+        auto get_nm =
+            [&](auto n, auto t, auto&& m)
+            [[gnu::always_inline]] -> std::conditional_t<!m_scalar, m_t&, m_t>
             {
-                m_t dm = 0;
-                if constexpr (m_offload)
+                if constexpr (!m_scalar)
                 {
-                    dm = dms[n][t];
+                    auto& nm = dms[n][t];
+                    if constexpr (!m_offload)
+                    {
+                        for (size_t r = 0; r < q; ++r)
+                            nm[r] = m[r];
+                    }
+                    return nm;
                 }
                 else
+                {
+                    if constexpr (!m_offload)
+                        return m;
+                    else
+                        return dms[n][t];
+                }
+            };
+
+        auto f =
+            [&](auto n, auto t, auto&& su, auto&& m, int w, auto... s_v)
+            {
+                auto&& nm = get_nm(n, t, m);
+                if constexpr (!m_offload)
                 {
                     for (size_t i = 0; i < us.size(); ++i)
                     {
                         auto& u = us[i];
-                        dm += _spec.transform_input(v, u, su(u)) * dx[i];
+                        _spec.update_dm(nm, _spec.transform_input(v, u, su(u)), dx[i]);
                     }
                 }
 
                 if constexpr (!keep_k)
                 {
                     Lb += _spec.log_P(theta, m, s_v...) * w;
-                    La += _spec.log_P(theta, m + dm, s_v...) * w;
+                    La += _spec.log_P(theta, nm, s_v...) * w;
                 }
                 else
                 {
                     Lb += _spec.log_P(theta, m, k, s_v...) * w;
-                    La += _spec.log_P(ntheta, m + dm, nk, s_v...) * w;
+                    La += _spec.log_P(ntheta, nm, nk, s_v...) * w;
                 }
             };
 
@@ -736,17 +781,29 @@ public:
         snvs.clear();
         ws.clear();
 
+        m_t dm;
         auto f =
-            [&](auto, auto, auto&& su, auto m, int w, auto s_v, auto... s_nv)
+            [&](auto, auto, auto&& su, auto&& m, int w, auto s_v, auto... s_nv)
             {
-                m_t dm = 0;
+                dm = _spec.get_m_zero();
                 for (size_t i = 0; i < us.size(); ++i)
                 {
                     auto& u = us[i];
-                    dm += _spec.transform_input(v, u, su(u)) * dx[i];
+                    _spec.update_dm(dm, _spec.transform_input(v, u, su(u)), dx[i]);
                 }
+
+                if constexpr (std::is_same_v<m_t, double>)
+                {
+                    dm += m;
+                }
+                else
+                {
+                    for (size_t i = 0; i < m.size(); ++i)
+                        dm[i] += m[i];
+                }
+
                 ms.push_back(m);
-                nms.push_back(m + dm);
+                nms.push_back(dm);
                 svs.push_back(s_v);
                 if constexpr (sizeof...(s_nv) > 0)
                     snvs.emplace_back(s_nv...);
@@ -760,13 +817,13 @@ public:
 
         auto theta = _theta[v];
         auto ntheta = theta;
-        theta = _spec.transform_theta(theta, k);
-        ntheta = _spec.transform_theta(ntheta, nk);
+        _spec.transform_theta(theta, k);
+        _spec.transform_theta(ntheta, nk);
 
         for (size_t i = 0; i < ws.size(); ++i)
         {
-            auto m = ms[i];
-            auto nm = nms[i];
+            auto&& m = ms[i];
+            auto& nm = nms[i];
             auto s_v = svs[i];
             auto w = ws[i];
             if constexpr (!tshift)
@@ -811,8 +868,8 @@ public:
     {
         // TODO: fix compressed!
         double L;
-        auto m = get<1>(_m[n][v][t]);
-        auto theta = _theta[v];
+        auto& m = get<1>(_m[n][v][t]);
+        auto& theta = _theta[v];
         if constexpr (!keep_k)
         {
             if constexpr (tshift)
@@ -823,38 +880,43 @@ public:
         else
         {
             auto k = _k[v];
-            theta = _spec.transform_theta(theta, k);
+            auto theta_t = theta;
+            _spec.transform_theta(theta_t, k);
             if constexpr (tshift)
-                L = _spec.log_P(theta, m, k, _s[n][v][t], s);
+                L = _spec.log_P(theta_t, m, k, _s[n][v][t], s);
             else
-                L = _spec.log_P(theta, m, k, s);
+                L = _spec.log_P(theta_t, m, k, s);
         }
         return L;
     }
 
-    double get_node_dS(size_t v, double t, double nt)
+    double get_node_dS(size_t v, size_t l, double t, double nt)
     {
         if (_t.empty())
-            return get_node_dS_uncompressed(v, t, nt);
+            return get_node_dS_uncompressed(v, l, t, nt);
         else
-            return get_node_dS_compressed(v, t, nt);
+            return get_node_dS_compressed(v, l, t, nt);
     }
 
-    double get_node_dS_compressed(size_t v, double t, double nt);
+    double get_node_dS_compressed(size_t v, size_t l, double t, double nt);
 
-    double get_node_dS_uncompressed(size_t v, double t, double nt);
+    double get_node_dS_uncompressed(size_t v, size_t l, double t, double nt);
 
     template <bool compressed>
-    double get_node_dS_dispatch(size_t v, double theta, double ntheta)
+    double get_node_dS_dispatch(size_t v, size_t l, double, double nt)
     {
         double La = 0;
         double Lb = 0;
         auto k = keep_k ? _k[v] : 0;
-        theta = _spec.transform_theta(theta, k);
-        ntheta = _spec.transform_theta(ntheta, k);
+
+        std::vector<double> theta = _theta[v];
+        std::vector<double> ntheta = theta;
+        ntheta[l] = nt;
+        _spec.transform_theta(theta, k);
+        _spec.transform_theta(ntheta, k);
 
         auto f =
-            [&](auto, auto, auto&&, auto m, int w, auto... s_v)
+            [&](auto, auto, auto&&, auto&& m, int w, auto... s_v)
             {
                 if constexpr (!keep_k)
                 {
@@ -881,9 +943,24 @@ public:
 
     double node_TE(size_t u, size_t v)
     {
-        return node_TE(u, v,
-                       [](auto x){return x;},
-                       [](auto x){return x;});
+        if constexpr (std::is_same_v<m_t, double>)
+        {
+            return node_TE(u, v,
+                           [](auto x){return x;},
+                           [](auto x){return x;});
+        }
+        else
+        {
+            auto get_m_bin =
+                [&](const m_t& m)
+                {
+                    double ret = 0;
+                    for (auto mx : m)
+                        ret += mx;
+                    return ret;
+                };
+            return node_TE(u, v, [](auto x){return x;}, get_m_bin);
+        }
     }
 
     template <class XB, class MB>
@@ -895,7 +972,7 @@ public:
 
         size_t N = 0;
 
-        auto f = [&](auto x_u_, auto x_v_, auto x_vt_, auto m, int w)
+        auto f = [&](auto x_u_, auto x_v_, auto x_vt_, auto&& m, int w)
             {
                 int x_u = get_x_bin(x_u_);
                 int x_v = get_x_bin(x_v_);
@@ -914,7 +991,7 @@ public:
         {
             iter_time<true, true, false>
                 (std::array<size_t, 1>({u}), v,
-                 [&](auto, auto, auto& su, auto m, int w, auto& s, auto& s_nv)
+                 [&](auto, auto, auto& su, auto&& m, int w, auto& s, auto& s_nv)
                  {
                      f(su(u), s, s_nv, m, w);
                  });
@@ -945,9 +1022,24 @@ public:
 
     double node_MI(size_t u, size_t v)
     {
-        return node_MI(u, v,
-                       [](auto x){return x;},
-                       [](auto x){return x;});
+        if constexpr (std::is_same_v<m_t, double>)
+        {
+            return node_MI(u, v,
+                           [](auto x){return x;},
+                           [](auto x){return x;});
+        }
+        else
+        {
+            auto get_m_bin =
+                [&](const m_t& m)
+                {
+                    double ret = 0;
+                    for (auto mx : m)
+                        ret += mx;
+                    return ret;
+                };
+            return node_MI(u, v, [](auto x){return x;}, get_m_bin);
+        }
     }
 
     template <class XB, class MB>
@@ -960,7 +1052,7 @@ public:
 
         size_t N = 0;
 
-        auto f = [&](auto x_u_, auto x_v_, double m, int w)
+        auto f = [&](auto x_u_, auto x_v_, auto&& m, int w)
             {
                 int x_u = get_x_bin(x_u_);
                 int x_v = get_x_bin(x_v_);
@@ -976,7 +1068,7 @@ public:
         {
             iter_time<true, true, false>
                 (std::array<size_t, 1>({u}), v,
-                 [&](auto, auto, auto& su, auto m, int w, auto& s,
+                 [&](auto, auto, auto& su, auto&& m, int w, auto& s,
                      auto&)
                  {
                      f(su(u), s, m, w);
@@ -986,7 +1078,7 @@ public:
         {
             iter_time<true, true, false>
                 (std::array<size_t,1>({u}), v,
-                 [&](auto, auto, auto& su, auto m, int w, auto& s)
+                 [&](auto, auto, auto& su, auto&& m, int w, auto& s)
                  {
                      f(su(u), s, m, w);
                  });
@@ -1082,7 +1174,7 @@ public:
             return (xy - ax * ay);
     }
 
-    typedef vprop_map_t<std::vector<std::tuple<size_t, m_t>>>::unchecked_t mmap_t;
+    typedef typename vprop_map_t<std::vector<std::tuple<size_t, m_t>>>::unchecked_t mmap_t;
 
 //protected:
     std::vector<tmap_t::unchecked_t> _t;
@@ -1099,7 +1191,7 @@ public:
 
     Spec& _spec;
 
-    vprop_map_t<double>::unchecked_t _theta;
+    vprop_map_t<std::vector<double>>::unchecked_t _theta;
 
     std::vector<int> _all_active;
 

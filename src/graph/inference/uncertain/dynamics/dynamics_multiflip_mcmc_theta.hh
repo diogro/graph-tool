@@ -40,6 +40,7 @@ using namespace std;
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
+    ((l,, size_t, 0))                                                          \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
     ((psplit,, double, 0))                                                     \
@@ -102,13 +103,13 @@ struct MCMCTheta
         template <class F>
         void iter_groups(F&& f)
         {
-            for (auto r : _state._tvals)
+            for (auto r : _state._tvals[_l])
                 f(r);
         }
 
         tval_t get_group(size_t v)
         {
-            return _state._theta[v];
+            return _state._theta[v][_l];
         }
 
 
@@ -117,23 +118,23 @@ struct MCMCTheta
         {
             std::bernoulli_distribution coin(_c);
             std::uniform_real_distribution<>
-                unif(std::max(_state._tvals.front() - 2 * _state._tdelta,
+                unif(std::max(_state._tvals[_l].front() - 2 * _state._tdelta[_l],
                               _bisect_args.min_bound),
-                     std::min(_state._tvals.back() + 2 * _state._tdelta,
+                     std::min(_state._tvals[_l].back() + 2 * _state._tdelta[_l],
                               _bisect_args.max_bound));
 
             auto [x, sampler] =
-                _state.sample_t(v, 1., _entropy_args,
+                _state.sample_t(v, _l, 1., _entropy_args,
                                 _bisect_args, false, rng);
             if (coin(rng))
-                x = _state.quantize_t(unif(rng));
-            while (_state.get_count(_state._thist, x) > 0 ||
+                x = _state.quantize_t(_l, unif(rng));
+            while (_state.get_count(_state._thist[_l], x) > 0 ||
                    std::find(except.begin(), except.end(), x) != except.end())
             {
                 if (coin(rng))
-                    x = _state.quantize_t(unif(rng));
+                    x = _state.quantize_t(_l, unif(rng));
                 else
-                    x = sampler.sample(1, _state._tdelta, rng);
+                    x = sampler.sample(1, _state._tdelta[_l], rng);
                 assert(x >= _bisect_args.min_bound && x <= _bisect_args.max_bound);
             }
 
@@ -149,17 +150,17 @@ struct MCMCTheta
             // if (std::find(except.begin(), except.end(), s) != except.end())
             //     return -numeric_limits<double>::infinity();
 
-            double d = (std::min(_state._tvals.back() + 2 * _state._tdelta,
+            double d = (std::min(_state._tvals[_l].back() + 2 * _state._tdelta[_l],
                                  _bisect_args.max_bound) -
-                        std::max(_state._tvals.front() - 2 * _state._tdelta,
+                        std::max(_state._tvals[_l].front() - 2 * _state._tdelta[_l],
                                  _bisect_args.min_bound));
 
-            auto [nx_, sampler] = _state.bisect_t(v,_entropy_args,
+            auto [nx_, sampler] = _state.bisect_t(v, _l, _entropy_args,
                                                   _bisect_args, false);
 
             SegmentSampler seg = sampler.get_seg_sampler(1);
 
-            if (_state._tdelta == 0)
+            if (_state._tdelta[_l] == 0)
                 return log_sum_exp(log1p(-_c) + seg.lprob(s),
                                    log(_c) - log(d));
 
@@ -171,7 +172,7 @@ struct MCMCTheta
 
             double l = get_lprob(s);
             double Z = -numeric_limits<double>::infinity();
-            for (auto x : _state._tvals)
+            for (auto x : _state._tvals[_l])
             {
                 if (std::find(except.begin(), except.end(), x) != except.end())
                     continue;
@@ -188,9 +189,9 @@ struct MCMCTheta
             l -= log1p(-exp(Z));
             assert(!std::isinf(l));
             return log_sum_exp(log1p(-_c) + l,
-                               log(_c) + log(_state._tdelta)
-                               - log(d - (_state._tvals.size() +
-                                          except.size() + 1) * _state._tdelta));
+                               log(_c) + log(_state._tdelta[_l])
+                               - log(d - (_state._tvals[_l].size() +
+                                          except.size() + 1) * _state._tdelta[_l]));
         }
 
         std::vector<std::array<std::tuple<double, double>,2>> _dS;
@@ -214,9 +215,9 @@ struct MCMCTheta
                 if (std::isinf(s[i]))
                     continue;
                 dS[i] = {s[i],
-                         _state.dstate_node_dS(v, r, s[i], _entropy_args) +
-                         (_state.node_x_S(s[i], _entropy_args) -
-                          _state.node_x_S(r, _entropy_args))};
+                         _state.dstate_node_dS(v, _l, r, s[i], _entropy_args) +
+                         (_state.node_x_S(s[i], _l, _entropy_args) -
+                          _state.node_x_S(r, _l, _entropy_args))};
             }
             _move_mutex.lock();
             _move_locked = true;
@@ -232,11 +233,11 @@ struct MCMCTheta
         {
             if (!_move_locked)
             {
-                _state.update_node(v, r);
+                _state.update_node(v, _l, r);
             }
             else
             {
-                _state.update_node(v, r);
+                _state.update_node(v, _l, r);
                 _move_mutex.unlock();
             }
         }
@@ -255,9 +256,9 @@ struct MCMCTheta
             auto& dSs = _dS[get_thread_num()];
             double dS = (get<0>(dSs[0]) == s) ? get<1>(dSs[0]) : get<1>(dSs[1]);
             auto ea = _entropy_args;
-            if (!ea.tdist)
-                ea.tl1 = 0;
-            dS += _state.update_node_dS(v, s, ea, false);
+            if (!ea.tdist[_l])
+                ea.tl1[_l] = 0;
+            dS += _state.update_node_dS(v, _l, s, ea, false);
             assert(!std::isinf(dS) && !std::isnan(dS));
             return dS;
         }
@@ -266,23 +267,23 @@ struct MCMCTheta
         double sample_group(size_t v, bool, //allow_empty,
                             RNG& rng)
         {
-            auto r = _state._theta[v];
+            auto r = _state._theta[v][_l];
 
             std::bernoulli_distribution coin(_c);
             if (coin(rng))
-                return uniform_sample(_state._tvals, rng);
+                return uniform_sample(_state._tvals[_l], rng);
 
             double xa = std::numeric_limits<double>::quiet_NaN();
             double xb = std::numeric_limits<double>::quiet_NaN();
 
-            auto iter = std::lower_bound(_state._tvals.begin(),
-                                         _state._tvals.end(), r);
+            auto iter = std::lower_bound(_state._tvals[_l].begin(),
+                                         _state._tvals[_l].end(), r);
 
             assert(*iter == r);
 
-            if (iter != _state._tvals.begin())
+            if (iter != _state._tvals[_l].begin())
                 xa = *(iter - 1);
-            if (iter + 1 != _state._tvals.end())
+            if (iter + 1 != _state._tvals[_l].end())
                 xb = *(iter + 1);
 
             if (!std::isnan(xa) && !std::isnan(xb))
@@ -304,19 +305,19 @@ struct MCMCTheta
                              bool)
         {
             double lr = log(_c);
-            lr += -log(_state._tvals.size());
+            lr += -log(_state._tvals[_l].size());
 
             double xa = std::numeric_limits<double>::quiet_NaN();
             double xb = std::numeric_limits<double>::quiet_NaN();
 
-            auto iter = std::lower_bound(_state._tvals.begin(),
-                                         _state._tvals.end(), r);
+            auto iter = std::lower_bound(_state._tvals[_l].begin(),
+                                         _state._tvals[_l].end(), r);
 
             assert(*iter == r);
 
-            if (iter != _state._tvals.begin())
+            if (iter != _state._tvals[_l].begin())
                 xa = *(iter - 1);
-            if (iter + 1 != _state._tvals.end())
+            if (iter + 1 != _state._tvals[_l].end())
                 xb = *(iter + 1);
 
             double l = -numeric_limits<double>::infinity();
@@ -347,9 +348,9 @@ struct MCMCTheta
             BisectionSampler<>
                 sampler([&](auto nx)
                         {
-                            return _state.update_nodes_dS(vs, r, nx, _entropy_args);
+                            return _state.update_nodes_dS(vs, _l, r, nx, _entropy_args);
                         }, _bisect_args);
-            double nx = sampler.bisect(r, _state._tdelta);
+            double nx = sampler.bisect(r, _state._tdelta[_l]);
             double dS = sampler.f(nx, false);
             return {nx, dS};
         }

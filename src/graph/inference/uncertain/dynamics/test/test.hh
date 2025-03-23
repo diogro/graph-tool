@@ -87,7 +87,7 @@ public:
     vmap_t _mu_v;
     vmap_t _sigma_v;
     bool _self_loops;
-    std::vector<double> _theta;
+    std::vector<std::vector<double>> _theta;
 
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
 
@@ -217,7 +217,7 @@ public:
         if (!is_directed(_g))
             L /= 2;
 
-        L += norm_lpmf(_state._theta[u], _mu_v[u], _sigma_v[u]);
+        L += norm_lpmf(_state._theta[u][0], _mu_v[u], _sigma_v[u]);
 
         return L;
     }
@@ -227,7 +227,7 @@ public:
         return 0;
     }
 
-    double get_node_dS(size_t v, double t, double nt)
+    double get_node_dS(size_t v, size_t, double t, double nt)
     {
         return -norm_lpmf(nt, _mu_v[v], _sigma_v[v]) +
             norm_lpmf(t, _mu_v[v], _sigma_v[v]);

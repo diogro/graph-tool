@@ -6,7 +6,7 @@ Network reconstruction from dynamics and behavior
 In some cases, direct measurements of the edges of a network are either
 impossible, or can be done only at significant experimental cost. In such
 situations, we need to infer the network of interactions from the observed
-functional behavior [peixoto-network-2024]_. In ``graph-tool`` this can be done
+functional behavior [peixoto-network-2025]_. In ``graph-tool`` this can be done
 for a variety of static and dynamical models, where the data :math:`\boldsymbol
 X` is a :math:`N\times M` matrix containing :math:`M` samples (or "features")
 for each node.
@@ -58,6 +58,8 @@ In ``graph-tool``, a variety of models are implemented, as given by the followin
    `Kinetic Ising model <https://en.wikipedia.org/wiki/Glauber_dynamics>`_ | :class:`~graph_tool.inference.IsingGlauberBlockState` | :math:`\{-1, +1\}` | Dynamic
    Continuous Ising model | :class:`~graph_tool.inference.PseudoCIsingBlockState` | :math:`[-1,1]` | Static
    Continuous kinetic Ising model | :class:`~graph_tool.inference.CIsingGlauberBlockState` | :math:`[-1,1]` | Dynamic
+   `Generalized Potts model <https://en.wikipedia.org/wiki/Potts_model>`_ | :class:`~graph_tool.inference.PseudoPottsBlockState` | :math:`\{0,\dots,q-1\}` | Static
+   Kinetic generalized Potts model | :class:`~graph_tool.inference.PottsGlauberBlockState` | :math:`\{0,\dots,q-1\}` | Dynamic
 
 
 Reconstruction with synthetic data
@@ -202,7 +204,7 @@ which outputs the networks below:
 
    The algorithm implemented is the one described in [peixoto-scalable-2024]_
    combined with the MDL regularization based on weight quantization from
-   [peixoto-network-2024]_, which includes also a SBM as part of the prior
+   [peixoto-network-2025]_, which includes also a SBM as part of the prior
    for the latent edges.
 
    The algorithm runs in time :math:`O(N\log^2 N)` in the typical case, where
@@ -215,7 +217,7 @@ which outputs the networks below:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The default reconstruction methods employs a nonparametric regularization scheme
-[peixoto-network-2024]_, but optionally :math:`L_1` can be used instead.
+[peixoto-network-2025]_, but optionally :math:`L_1` can be used instead.
 This is done by initializing the reconstruction state as
 
 
@@ -257,7 +259,7 @@ which produces the network:
    appropriate value of :math:`\lambda` is tricky to find, usually requiring
    cross-validation, which in the end makes it slower than MDL. It also
    introduces a shrinkage bias and tends to overfit when compared to MDL, which
-   in general should be preferred. See [peixoto-network-2024]_ for details.
+   in general should be preferred. See [peixoto-network-2025]_ for details.
 
 
 Reconstruction with empirical data
@@ -343,5 +345,9 @@ References
    (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
 .. [peixoto-scalable-2024] Tiago P. Peixoto, "Scalable network reconstruction in
    subquadratic time", :arxiv:`2401.01404`
-.. [peixoto-network-2024] Tiago P. Peixoto, "Network reconstruction via the
-   minimum description length principle", :arxiv:`2405.01015`
+.. [peixoto-network-2025] Tiago P. Peixoto, "Network reconstruction via
+   the minimum description length principle", Phys. Rev. X 15, 011065
+   (2025) :doi:`10.1103/PhysRevX.15.011065`, :arxiv:`2405.01015`
+.. [peixoto-uncertainty-2025] Tiago P. Peixoto, "Uncertainty
+   quantification and posterior sampling for network reconstruction"
+   :arxiv:`2503.07736`

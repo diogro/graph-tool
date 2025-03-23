@@ -26,7 +26,6 @@
 #include "random.hh"
 
 #include <boost/python.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include "bytesobject.h"
 
@@ -54,102 +53,6 @@ struct LibInfo
     }
 };
 
-
-template <class ValueType>
-struct vector_from_list
-{
-    vector_from_list()
-    {
-         boost::python::converter::registry::push_back
-            (&convertible, &construct,
-             boost::python::type_id<vector<ValueType> >());
-    }
-
-    static void* convertible(PyObject* obj_ptr)
-    {
-        // can't verify without potentially exhausting an iterator
-        return obj_ptr;
-    }
-
-    static void construct(PyObject* obj_ptr,
-                          boost::python::converter::rvalue_from_python_stage1_data* data)
-    {
-        python::handle<> x(python::borrowed(obj_ptr));
-        python::object o(x);
-        vector<ValueType> value;
-        auto init_iter =
-            [&]()
-            {
-                python::stl_input_iterator<ValueType> iter(o), end;
-                for (; iter != end; ++iter)
-                    value.push_back(*iter);
-            };
-        if constexpr (std::is_scalar_v<ValueType>)
-        {
-            if (PyType_IsSubtype(Py_TYPE(o.ptr()), &PyArray_Type))
-            {
-                try
-                {
-                    auto a = get_array<ValueType,1>(o);
-                    value.insert(value.end(), a.begin(), a.end());
-                }
-                catch (InvalidNumpyConversion&)
-                {
-                    init_iter();
-                }
-            }
-            else
-            {
-                init_iter();
-            }
-        }
-        else
-        {
-            init_iter();
-        }
-        void* storage =
-            ((boost::python::converter::rvalue_from_python_storage
-              <vector<ValueType> >*) data)->storage.bytes;
-        new (storage) vector<ValueType>(value);
-        data->convertible = storage;
-    }
-};
-
-template <class ValueType>
-bool vector_equal_compare(const vector<ValueType>& v1,
-                          const vector<ValueType>& v2)
-{
-    if (v1.size() != v2.size())
-        return false;
-    for (size_t i = 0; i < v1.size(); ++i)
-    {
-        if (v1[i] != v2[i])
-            return false;
-    }
-    return true;
-}
-
-template <class ValueType>
-bool vector_nequal_compare(const vector<ValueType>& v1,
-                           const vector<ValueType>& v2)
-{
-    return !vector_equal_compare(v1,v2);
-}
-
-template <class T>
-python::object get_vector_state(std::vector<T>& v)
-{
-    return wrap_vector_owned(v);
-}
-
-template <class T>
-void set_vector_state(std::vector<T>& v, python::object state)
-{
-    auto a = get_array<T,1>(state);
-    v.clear();
-    v.insert(v.end(), a.begin(), a.end());
-}
-
 namespace std
 {
 bool operator==(const std::any&, const std::any&)
@@ -157,65 +60,6 @@ bool operator==(const std::any&, const std::any&)
     throw ValueException("std::any comparison not implemented.");
 }
 }
-
-template <bool comparable=true, bool hashable=true>
-struct export_vector_types
-{
-    template <class ValueType>
-    void operator()(ValueType, std::string type_name = "") const
-    {
-        if (type_name.empty())
-            type_name = get_type_name<ValueType>();
-        std::replace(type_name.begin(), type_name.end(), ' ', '_');
-        string name = "Vector_" + type_name;
-        class_<vector<ValueType> > vc(name.c_str());
-        std::function<void(vector<ValueType>&, size_t size)> resize =
-            [] (vector<ValueType>& v, size_t n) { v.resize(n); };
-        std::function<void(vector<ValueType>&, size_t n)> reserve =
-            [] (vector<ValueType>& v, size_t n) { v.reserve(n); };
-        std::function<void(vector<ValueType>&)> shrink_to_fit =
-            [] (vector<ValueType>& v) { v.shrink_to_fit(); };
-        std::function<bool(vector<ValueType>&)> empty =
-            [] (vector<ValueType>& v) -> bool { return v.empty(); };
-        std::function<void(vector<ValueType>&)> clear =
-            [] (vector<ValueType>& v) { v.clear(); };
-        vc.def(vector_indexing_suite<vector<ValueType>>())
-            .def("resize", resize)
-            .def("shrink_to_fit", shrink_to_fit)
-            .def("clear", clear)
-            .def("empty", empty);
-
-        if constexpr (comparable)
-        {
-            vc.def("__eq__", &vector_equal_compare<ValueType>);
-            vc.def("__ne__", &vector_nequal_compare<ValueType>);
-        }
-        if constexpr (hashable)
-        {
-            std::function<size_t(const vector<ValueType>&)> hasher =
-                [] (const vector<ValueType>& v) -> size_t
-                { return std::hash<vector<ValueType>>()(v); };
-            vc.def("__hash__", hasher);
-        }
-
-        wrap_array(vc, typename boost::mpl::has_key<numpy_types,ValueType>::type());
-        vector_from_list<ValueType>();
-    }
-
-    template <class ValueType>
-    void wrap_array(class_<vector<ValueType> >& vc, boost::mpl::true_) const
-    {
-        vc.def("get_array", &wrap_vector_not_owned<ValueType>)
-            .def("__getstate__", &get_vector_state<ValueType>)
-            .def("__setstate__", &set_vector_state<ValueType>)
-            .enable_pickling();
-    }
-
-    template <class ValueType>
-    void wrap_array(class_<vector<ValueType> >&, boost::mpl::false_) const
-    {
-    }
-};
 
 // exception translation
 template <class Exception>
@@ -513,6 +357,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     export_vector_types<>()(std::vector<double>(), "Vector_double");
     export_vector_types<false,false>()(std::any(), "any");
     export_vector_types<>()(std::complex<double>(), "cdouble");
+    export_vector_types<>()(bool(), "bool");
 
     class_<GraphInterface>("GraphInterface", init<>())
         .def(init<GraphInterface,bool,boost::python::object,

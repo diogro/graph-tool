@@ -31,6 +31,17 @@
 #include "dynamics.hh"
 #include "openmp.hh"
 
+namespace std
+{
+
+template <class T>
+std::ostream& operator<<(std::ostream& os, const std::tuple<T, T>& vl)
+{
+    return os << std::get<0>(vl) << " " << std::get<1>(vl);
+}
+
+}
+
 namespace graph_tool
 {
 using namespace boost;
@@ -39,19 +50,19 @@ using namespace std;
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
     ((state, &, State&, 0))                                                    \
+    ((l,, size_t, 0))                                                          \
     ((beta,, double, 0))                                                       \
     ((pold,, double, 0))                                                       \
     ((pnew,, double, 0))                                                       \
     ((ptu,, double, 0))                                                        \
     ((entropy_args,, dentropy_args_t, 0))                                      \
-    ((bisect_args,, bisect_args_t, 0))                                         \
+    ((bisect_args,, std::vector<bisect_args_t>, 0))                            \
     ((verbose,, int, 0))                                                       \
     ((deterministic,, bool, 0))                                                \
     ((sequential,, bool, 0))                                                   \
     ((parallel,, bool, 0))                                                     \
     ((pseudo,, bool, 0))                                                       \
     ((niter,, size_t, 0))
-
 
 template <class State>
 struct MCMCTheta
@@ -79,7 +90,8 @@ struct MCMCTheta
             _vmutex(_vlist.size()),
             _tvals_mutex(_state._t_mutex)
         {
-            std::iota(_vlist.begin(), _vlist.end(), 0);
+            for (auto v : vertices_range(_state._u))
+                _vlist[v] = v;
             _xcaches.resize(get_num_threads());
 
             if (_state._disable_tdist)
@@ -188,7 +200,7 @@ struct MCMCTheta
 
         void perform_move(size_t v, move_t move)
         {
-            _state.update_node(v, move, _parallel);
+            _state.update_node(v, _l, move, _parallel);
 
             if (_parallel)
                 unlock_move();
@@ -197,7 +209,7 @@ struct MCMCTheta
         std::tuple<double, double>
         virtual_move_dS(size_t v, move_t nx)
         {
-            auto x = _state._theta[v];
+            auto x = _state._theta[v][_l];
             if (x == nx)
                 return {0., 0.};
 
@@ -206,10 +218,10 @@ struct MCMCTheta
             double lf = lf_;
 
             auto ea = _entropy_args;
-            if (!ea.tdist)
-                ea.tl1 = 0;
+            if (!ea.tdist[_l])
+                ea.tl1[_l] = 0;
 
-            dS += _state.update_node_dS(v, nx, ea, false);
+            dS += _state.update_node_dS(v, _l, nx, ea, false);
 
             double lb = 0;
             double a = 0;
@@ -220,8 +232,8 @@ struct MCMCTheta
                 do_slock
                     ([&]()
                      {
-                        is_new_nx = (_state.get_count(_state._thist, nx) == 0);
-                        is_last_x = (_state.get_count(_state._thist, x) == 1);
+                        is_new_nx = (_state.get_count(_state._thist[_l], nx) == 0);
+                        is_last_x = (_state.get_count(_state._thist[_l], x) == 1);
                      }, _tvals_mutex, _parallel && _pseudo);
 
                 auto nx_add = is_new_nx ?
@@ -251,7 +263,7 @@ struct MCMCTheta
             }
 
             if (_verbose)
-                cout << v << ", x: " << x << ", nx: "
+                cout << v << " " << _l <<  ", x: " << x << ", nx: "
                      << nx << ", dS: " << dS << ", lf: " << lf << ", lb: "
                      << lb << ", a: " << a << ", -dS + a: " << -dS + a << endl;
 
@@ -263,27 +275,28 @@ struct MCMCTheta
         {
             bool fb = told && std::isinf(_beta);
             std::vector<double> tvals_local;
-            std::vector<double>* tvals;
+            std::vector<double>* tvals = nullptr;
+
             if (_parallel && _pseudo)
             {
                 do_slock
                 ([&]()
                  {
-                     tvals_local = _state._tvals;
+                     tvals_local = _state._tvals[_l];
                  }, _tvals_mutex);
                 tvals = &tvals_local;
             }
             else
             {
-                tvals = &_state._tvals;
+                tvals = &_state._tvals[_l];
             }
 
             auto [nx, sampler] =
                 told ?
                 ((_pnew == 0 && _ptu == 1) ?
-                 _state.bisect_t_init(v, _entropy_args, _bisect_args) :
-                 _state.bisect_t_disp(v, _entropy_args, _bisect_args, fb, *tvals, rng)) :
-                _state.sample_t_disp(v, _beta, _entropy_args, _bisect_args, fb, *tvals, rng);
+                 _state.bisect_t_init(v, _l, _entropy_args, _bisect_args[_l]) :
+                 _state.bisect_t_disp(v, _l, _entropy_args, _bisect_args[_l], fb, *tvals, rng)) :
+                _state.sample_t_disp(v, _l, _beta, _entropy_args, _bisect_args[_l], fb, *tvals, rng);
 
             bool new_x = true;
             if (told)
@@ -293,7 +306,7 @@ struct MCMCTheta
                 do_slock
                     ([&]()
                      {
-                         SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler_);
+                         SetBisectionSampler set_sampler(_state._tvals[_l], _ptu, sampler_);
                          nx_ = set_sampler.sample(_beta, rng);
                      },
                      _tvals_mutex, _parallel && _pseudo);
@@ -305,7 +318,7 @@ struct MCMCTheta
                 do_slock
                     ([&]()
                      {
-                         new_x = (_state.get_count(_state._thist, nx_) == 0);
+                         new_x = (_state.get_count(_state._thist[_l], nx_) == 0);
                      },
                      _tvals_mutex, _parallel && _pseudo);
             }
@@ -321,7 +334,7 @@ struct MCMCTheta
         template <class Sampler>
         double sample_new_x_lprob(tval_t nx, Sampler& sampler)
         {
-            return sampler.lprob(nx, _beta, _state._tdelta);
+            return sampler.lprob(nx, _beta, _state._tdelta[_l]);
         }
 
         template <class Sampler>
@@ -330,7 +343,7 @@ struct MCMCTheta
         {
             slock<std::shared_mutex> lock(_tvals_mutex, _parallel && _pseudo);
 
-            SetBisectionSampler set_sampler(_state._tvals, _ptu, sampler);
+            SetBisectionSampler set_sampler(_state._tvals[_l], _ptu, sampler);
 
             return set_sampler.lprob(nx, _beta,
                                      numeric_limits<double>::quiet_NaN(),

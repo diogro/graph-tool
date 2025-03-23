@@ -65,6 +65,11 @@ python::object MAKE_STATE(BASE_NAME)(python::object odynamics_state,
 #define STRINGIFY_(X) #X
 #define STRINGIFY(X) STRINGIFY_(X)
 
+#ifndef EXPORT_DSTATE
+template <class DState, class DClass>
+void export_dstate(DClass&) {}
+#endif
+
 #define __MOD__ inference
 #include "module_registry.hh"
 REGISTER_MOD
@@ -76,6 +81,7 @@ REGISTER_MOD
     auto name = name_demangle(typeid(DState).name());
 
     class_<DState, bases<DStateBase>, std::shared_ptr<DState>,
-           boost::noncopyable>(name.c_str(), no_init);
+           boost::noncopyable> dclass(name.c_str(), no_init);
+    export_dstate<DState>(dclass);
 
 }, 6);

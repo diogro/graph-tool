@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import _prop, _get_rng, Vector_int32_t, group_vector_property
+from .. import _prop, _get_rng, Vector_int32_t, group_vector_property, \
+    ungroup_vector_property
 
 from .. spectral import adjacency
 from .. generation import complete_graph, generate_triadic_closure, \
@@ -54,9 +55,9 @@ def get_bisect_args(**kwargs):
 @entropy_state_signature
 class DynamicsBlockStateBase(UncertainBaseState):
     def __init__(self, s, g=None, directed=False, t=[], active=None, x=1,
-                 x_range=(-np.inf, np.inf), theta=0,
-                 theta_range=(-np.inf, np.inf), xdelta=1e-8, xdelta_min=1e-8,
-                 tdelta=1e-8, tdelta_min=1e-8, disable_xdist=False,
+                 x_range=(-np.inf, np.inf), theta=[0],
+                 theta_range=[(-np.inf, np.inf)], xdelta=1e-8, xdelta_min=1e-8,
+                 tdelta=[1e-8], tdelta_min=[1e-8], disable_xdist=False,
                  disable_tdist=False, nested=True, state_args={}, bstate=None,
                  self_loops=False, max_m=1 << 16, entropy_args={}, **kwargs):
         r"""Base state for network reconstruction based on dynamical or
@@ -118,20 +119,21 @@ class DynamicsBlockStateBase(UncertainBaseState):
             weights will be assumed to be the same for all edges.
         x_range : pair of ``float``s (optional, default: ``(-np.inf, np.inf)``)
             Determines the allowed range of edge weights.
-        theta : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``0.``)
-            Initial value of the node parameters (a.k.a. node bias). If a
+        theta : :class:`~graph_tool.VertexPropertyMap` or list of ``float`` (optional, default: ``[0.]``)
+            Initial value of the node parameters (a.k.a. node bias), which
+            should be a property map of type ``vector<double>``. If a list of
             ``float`` is given, the node biases will be assumed to be the same
-            for all edges.
-        theta_range : pair of ``float``s (optional, default: ``(-np.inf, np.inf)``)
+            for all nodes.
+        theta_range : list of pair of ``float``s (optional, default: ``[(-np.inf, np.inf)]``)
             Determines the allowed range of the node parameters.
         xdelta : ``float`` (optional, default: ``1e-8``)
             Initial value for the edge weight precision parameter.
         xdelta_min : ``float`` (optional, default: ``1e-8``)
             Minimal value for the edge weight precision parameter.
-        tdelta : ``float`` (optional, default: ``1e-8``)
-            Initial value for the node bias precision parameter.
-        tdelta_min : ``float`` (optional, default: ``1e-8``)
-            Minimal value for the node bias precision parameter.
+        tdelta : list of ``float`` (optional, default: ``[1e-8]``)
+            Initial values for the node bias precision parameters.
+        tdelta_min : ``float`` (optional, default: ``[1e-8]``)
+            Minimal value for the node bias precision parameters.
         disable_xdist : ``boolean`` (optional, default: ``False``)
             If ``True`` the, quantization of the edge weights will be turned off,
             and :math:`L_1` regularization will be used instead.
@@ -167,6 +169,19 @@ class DynamicsBlockStateBase(UncertainBaseState):
             g = Graph(s.shape[0], directed=directed)
         else:
             directed = g.is_directed()
+
+        self.q_t = kwargs.pop("q_t", 1)
+
+        entropy_args = dict(**entropy_args)
+        epms = inspect.signature(self._entropy).parameters
+        entropy_args["tdist"] = \
+            entropy_args.get("tdist",
+                             epms["tdist"].default * self.q_t)
+        entropy_args["tdist_uniform"] = \
+            entropy_args.get("tdist_uniform",
+                             epms["tdist_uniform"].default * self.q_t)
+        entropy_args["tl1"] = entropy_args.get("tl1",
+                                               epms["tl1"].default * self.q_t)
 
         UncertainBaseState.__init__(self, g, nested=nested,
                                     state_args=state_args, bstate=bstate,
@@ -210,16 +225,16 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self.xmax_bound = x_range[1]
 
         if theta is None:
-            theta = self.u.new_vp("double")
+            theta = self.u.new_vp("vector<double>")
         elif isinstance(theta, VertexPropertyMap):
             theta = self.u.copy_property(theta, g=theta.get_graph(),
-                                         value_type="double")
+                                         value_type="vector<double>")
         else:
-            theta = self.u.new_vp("double", val=theta)
+            theta = self.u.new_vp("vector<double>", val=theta)
 
         self.theta = theta
-        self.tmin_bound = theta_range[0]
-        self.tmax_bound = theta_range[1]
+        self.tmin_bound = [tr[0] for tr in theta_range]
+        self.tmax_bound = [tr[1] for tr in theta_range]
 
         self.xdelta = xdelta
         self.tdelta = tdelta
@@ -233,7 +248,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             self.update_entropy_args(xdist=False,
                                      sbm=entropy_args.get("sbm", False))
         if disable_tdist:
-            self.update_entropy_args(tdist=False)
+            self.update_entropy_args(tdist=[False] * self.q_t)
 
         kwargs = kwargs.copy()
         for k in kwargs.keys():
@@ -275,7 +290,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                     active=self.active, x=self.x,
                     x_range=(self.xmin_bound, self.xmax_bound),
                     theta=self.theta,
-                    theta_range=(self.tmin_bound, self.tmax_bound),
+                    theta_range=list(zip(self.tmin_bound, self.tmax_bound)),
                     xdelta=self.xdelta,
                     tdelta=self.tdelta,
                     disable_xdist=self.disable_xdist,
@@ -298,9 +313,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
     @copy_state_wrap
     def _entropy(self, latent_edges=True, density=False, aE=1, sbm=True,
-                 xdist=True, tdist=True, xdist_uniform=False,
-                 tdist_uniform=False, xl1=1, tl1=1, alpha=1, normal=False, mu=0,
-                 sigma=1, active=True, **kwargs):
+                 xdist=True, tdist=[True], xdist_uniform=False,
+                 tdist_uniform=[False], xl1=1., tl1=[1.], alpha=1, normal=False,
+                 mu=0, sigma=1, active=True, **kwargs):
         r"""Return the description length, i.e. the negative joint
         log-likelihood.
 
@@ -323,17 +338,17 @@ class DynamicsBlockStateBase(UncertainBaseState):
         xdist_uniform : ``boolean`` (optional, default: ``False``)
             If ``True``, a uniform prior for the edge weight distribution will
             be used.
-        tdist : ``boolean`` (optional, default: ``True``)
+        tdist : list of ``boolean`` (optional, default: ``True``)
             If ``True``, the quantized node parameter distribution description
             length will be included.
-        tdist_uniform : ``boolean`` (optional, default: ``False``)
+        tdist_uniform : list of ``boolean`` (optional, default: ``False``)
             If ``True``, a uniform prior for the node parameter distribution will
             be used.
         xl1 : ``float`` (optional, default: ``1``)
             Specifies the :math:`\lambda` parameter for :math:`L_1`
             regularization for the edge weights if ``xdist == False``, or the
             Laplace hyperprior for the discrete categories if ``xdist == True``.
-        tl1 : ``float`` (optional, default: ``1``)
+        tl1 : list of ``float`` (optional, default: ``1``)
             Specifies the :math:`\lambda` parameter for :math:`L_1`
             regularization for the node paraemters if ``tdist == False``, or the
             Laplace hyperprior for the discrete categories if ``tdist == True``.
@@ -376,33 +391,37 @@ class DynamicsBlockStateBase(UncertainBaseState):
         .. math::
 
            P(\boldsymbol X|\boldsymbol A,\lambda_x,\Delta) =
-           \frac{\prod_{k}m_{k}!\times \mathrm{e}^{-\lambda_x \sum_k |z_k|}(\mathrm{e}^{\lambda\Delta} - 1)^{K}}
-           {E!{E-1 \choose K-1}2^{K}\max(E,1)}
+           \left[\frac{\left(\prod_{k}m_{k}!\right) \mathrm{e}^{-\lambda (|z_1| + |z_K|)}(\mathrm{e}^{\lambda\Delta} - 1)^{2}(2-\delta_{z_1, z_K})}
+           {4\times E!{E-1 \choose K-1}{{(z_K - z_1)/\Delta - 1 - \mathbb{1}_{z_1z_K < 0}} \choose {K-2}} \left[(z_K - z_1)/\Delta + 1 - \mathbb{1}_{z_1z_K < 0}\right]} \right]^{1-\delta_{E(\boldsymbol A),0}}
+           \prod_{i<j}\delta_{W_{ij},0}^{\delta_{A_{ij}, 0}},
 
         where :math:`\boldsymbol z` are the :math:`K` discrete weight
         categories, and analogously
 
         .. math::
 
-             P(\boldsymbol\theta|\lambda_{\theta},\Delta)
-               =\frac{\prod_{k}n_{k}!\times
-                      \mathrm{e}^{-\lambda \sum_k |u_k|}
-                      \sinh(\lambda_{\theta}\Delta)^{K_{\theta}-\mathbb{1}_{0\in\boldsymbol u}}
-                      (1-\mathrm{e}^{-\lambda_{\theta}\Delta})^{\mathbb{1}_{0\in\boldsymbol u}}}
-                     {N!{N-1 \choose K_{\theta}-1}N},
+             P(\boldsymbol\theta|\lambda_{\theta},\Delta) =
+             \frac{\left(\prod_{k}n_{k}!\right) \mathrm{e}^{-\lambda (|u_1| + |u_{K_{\theta}}|)}(\mathrm{e}^{\lambda\Delta} - 1)^{2}(2-\delta_{u_1, u_{K_{\theta}}})}
+             {4\times N!{N-1 \choose {K_{\theta}}-1}{{(u_{K_{\theta}} - u_1)/\Delta - 1 - \mathbb{1}_{u_1u_{K_{\theta}} < 0}} \choose {{K_{\theta}}-2}}
+             \left[(u_{K_{\theta}} - u_1)/\Delta + 1 - \mathbb{1}_{u_1u_{K_{\theta}} < 0}\right]}
 
-        is the node parameter quantized distribution. For more details see
-        [peixoto-network-2024]_.
+
+        is the node parameter quantized distribution, with :math:`\boldsymbol u`
+        being the :math:`K_\theta` discrete node parameter catergories. For more
+        details see [peixoto-network-2025]_ and [peixoto-uncertainty-2025]_.
 
         References
         ----------
-        .. [peixoto-network-2024] Tiago P. Peixoto, "Network reconstruction via
-           the minimum description length principle", :arxiv:`2405.01015`
+        .. [peixoto-network-2025] Tiago P. Peixoto, "Network reconstruction via
+           the minimum description length principle", Phys. Rev. X 15, 011065
+           (2025) :doi:`10.1103/PhysRevX.15.011065`, :arxiv:`2405.01015`
         .. [peixoto-scalable-2024] Tiago P. Peixoto, "Scalable network
            reconstruction in subquadratic time", :arxiv:`2401.01404`
+        .. [peixoto-uncertainty-2025] Tiago P. Peixoto, "Uncertainty
+           quantification and posterior sampling for network reconstruction"
+           :arxiv:`2503.07736`
 
         """
-
         eargs = self._get_entropy_args(locals())
         S = self._state.entropy(eargs)
         if sbm:
@@ -526,30 +545,33 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         def theta_mcmc():
             nonlocal ret
-            if self.tmax_bound != self.tmin_bound:
+            if any(t_min != t_max for t_min, t_max in zip(self.tmin_bound, self.tmax_bound)):
                 if np.random.random() < theta:
                     if verbose:
                         print("theta_mcmc_sweep:")
-                    tret = self.theta_mcmc_sweep(**dict(dict(beta=beta, niter=niter,
-                                                             **kwargs), **theta_mcmc_args))
-                    ret = (sum(x) for x in zip(ret, tret))
+                    for l in range(self.q_t):
+                        tret = self.theta_mcmc_sweep(**dict(dict(l=l, beta=beta, niter=niter,
+                                                                 **kwargs), **theta_mcmc_args))
+                        ret = (sum(x) for x in zip(ret, tret))
                 if not self.disable_tdist:
                     if np.random.random() < theta_multiflip:
                         if verbose:
                             print("theta_multiflip_mcmc_sweep:")
-                        tret = self.theta_multiflip_mcmc_sweep(**dict(dict(beta=beta,
-                                                                           niter=10 * niter,
-                                                                           **kwargs),
-                                                                      **theta_multiflip_mcmc_args))
-                        ret = (sum(x) for x in zip(ret, tret))
+                        for l in range(self.q_t):
+                            tret = self.theta_multiflip_mcmc_sweep(**dict(dict(l=l, beta=beta,
+                                                                               niter=10 * niter,
+                                                                               **kwargs),
+                                                                          **theta_multiflip_mcmc_args))
+                            ret = (sum(x) for x in zip(ret, tret))
                     if np.random.random() < tvals:
                         if verbose:
                             print("tvals_sweep:")
-                        eret = self.tvals_sweep(**dict(dict(beta=beta,
-                                                            niter=10 * niter,
-                                                            **kwargs),
-                                                       **tvals_mcmc_args))
-                        ret = (sum(x) for x in zip(ret, eret))
+                        for l in range(self.q_t):
+                            eret = self.tvals_sweep(**dict(dict(l=l, beta=beta,
+                                                                niter=10 * niter,
+                                                                **kwargs),
+                                                           **tvals_mcmc_args))
+                            ret = (sum(x) for x in zip(ret, eret))
 
         if self.theta_first:
             theta_mcmc()
@@ -939,8 +961,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return np.histogram(self.get_x().fa, xvals)[0]
 
     @mcmc_sweep_wrap
-    def theta_mcmc_sweep(self, beta=1., niter=1, pold=1, pnew=1, ptu=.1,
-                         bisect_args={}, deterministic=False, sequential=True,
+    def theta_mcmc_sweep(self, l=0, beta=1., niter=1, pold=1, pnew=1, ptu=.1,
+                         bisect_args=None, deterministic=False, sequential=True,
                          parallel=True, pseudo=False, verbose=False,
                          entropy_args={}, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
@@ -948,6 +970,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         Parameters
         ----------
+        l : ``int`` (optional, default: ``0``)
+            Component of node parameters to be considered.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
@@ -961,9 +985,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
         ptu : ``float`` (optional, default: ``.1``)
             Probability of choosing from an existing category uniformly at
             random (instead of doing a bisection search).
-        bisect_args : ``dict`` (optional, default: ``{}``)
-            Parameter for the bisection search use to optimize/sample edge
-            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x`) for
+        bisect_args : list of ``dict`` (optional, default: ``None``)
+            Parameters for the bisection search use to optimize/sample node
+            paramters. See :meth:`~.DynamicsBlockStateBase.bisect_t`) for
             documentation.
         deterministic : ``boolean`` (optional, default: ``False``)
             If ``True``, the the order of node updates will be determinisitc,
@@ -991,10 +1015,12 @@ class DynamicsBlockStateBase(UncertainBaseState):
         """
 
         entropy_args = self._get_entropy_args(entropy_args)
-        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound,
-                                                  max_bound=self.tmax_bound,
-                                                  reversible=not np.isinf(beta)),
-                                             **bisect_args))
+        if bisect_args is None:
+            bisect_args = [{}] * self.q_t
+        bisect_args = [get_bisect_args(**dict(dict(min_bound=self.tmin_bound[l],
+                                                   max_bound=self.tmax_bound[l],
+                                                   reversible=not np.isinf(beta)),
+                                              **bisect_args[l])) for l in range(self.q_t)]
         state = self._state
         mcmc_state = DictState(dict(kwargs, **locals()))
         if len(kwargs) > 0:
@@ -1006,7 +1032,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             return self._state.mcmc_theta_sweep(mcmc_state, _get_rng())
 
     @mcmc_sweep_wrap
-    def theta_multiflip_mcmc_sweep(self, beta=1., niter=1, pmerge=1, psplit=1,
+    def theta_multiflip_mcmc_sweep(self, l=0, beta=1., niter=1, pmerge=1, psplit=1,
                                    pmergesplit=1, gibbs_sweeps=5, c=.1,
                                    bisect_args={}, accept_stats=None,
                                    verbose=False, entropy_args={}, **kwargs):
@@ -1015,6 +1041,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         Parameters
         ----------
+        l : ``int`` (optional, default: ``0``)
+            Component of node parameters to be considered.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
@@ -1055,8 +1083,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
         nproposal = Vector_size_t(4)
         nacceptance = Vector_size_t(4)
         force_move = kwargs.pop("force_move", False)
-        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound,
-                                                  max_bound=self.tmax_bound,
+        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound[l],
+                                                  max_bound=self.tmax_bound[l],
                                                   reversible=not np.isinf(beta)),
                                              **bisect_args))
         mcmc_state = DictState(locals())
@@ -1080,7 +1108,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return ret
 
     @mcmc_sweep_wrap
-    def tvals_sweep(self, beta=1., niter=100, min_size=1, bisect_args={},
+    def tvals_sweep(self, l=0, beta=1., niter=100, min_size=1, bisect_args={},
                     entropy_args={}):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
         merge-split MCMC to sample the node bias category values, based on a
@@ -1088,6 +1116,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         Parameters
         ----------
+        l : ``int`` (optional, default: ``0``)
+            Component of node parameters to be considered.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``100``)
@@ -1113,17 +1143,17 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         """
 
-        tvals = self.get_tvals()
+        tvals = self.get_tvals(l)
         r = min(niter/len(tvals), 1) if len(tvals) > 0 else 1
         niter = max(1, int(round(niter/len(tvals)))) if len(tvals) > 0 else 1
         ea = self._get_entropy_args(entropy_args)
-        ba = get_bisect_args(**dict(dict(min_bound=self.tmin_bound,
-                                         max_bound=self.tmax_bound,
+        ba = get_bisect_args(**dict(dict(min_bound=self.tmin_bound[l],
+                                         max_bound=self.tmax_bound[l],
                                          reversible=not np.isinf(beta)),
                                     **bisect_args))
         ret = (0, 0)
         for i in range(niter):
-            eret = self._state.tvals_sweep(beta, r, min_size, ea, ba,
+            eret = self._state.tvals_sweep(l, beta, r, min_size, ea, ba,
                                            _get_rng())
             ret = tuple(sum(x) for x in zip(ret, eret))
         return ret
@@ -1132,15 +1162,16 @@ class DynamicsBlockStateBase(UncertainBaseState):
         """Return latent node values."""
         return self.theta.copy()
 
-    def get_tvals(self):
-        """Return latent node categories."""
-        return self._state.get_tvals()
+    def get_tvals(self, l=0):
+        """Return latent node categories for component ``l``."""
+        return self._state.get_tvals(l)
 
-    def get_thist(self):
-        """Return histogram of node categories."""
-        tvals = self.get_tvals()
+    def get_thist(self, l=0):
+        """Return histogram of node categories for component ``l``."""
+        tvals = self.get_tvals(l)
         tvals = np.append(tvals, np.nextafter(tvals[-1], np.inf))
-        return np.histogram(self.get_theta().fa, tvals)[0]
+        return np.histogram(ungroup_vector_property(self.get_theta(),
+                                                    [l])[0].fa, tvals)[0]
 
     def get_edge_prob(self, u, v, x, entropy_args={}, epsilon=1e-8):
         r"""Return conditional posterior log-probability of edge :math:`(u,v)`."""
@@ -1306,12 +1337,12 @@ class DynamicsBlockStateBase(UncertainBaseState):
         entropy_args = self._get_entropy_args(entropy_args)
         return self._state.update_edge_dS(int(u), int(v), nx, entropy_args)
 
-    def virtual_update_node(self, v, nt, entropy_args={}):
+    def virtual_update_node(self, v, nt, l=0, entropy_args={}):
         """Return the difference in description length if node ``v``
-        would take a new value ``nt``.
+        would take a new value ``nt`` for component ``l``.
         """
         entropy_args = self._get_entropy_args(entropy_args)
-        return self._state.update_node_dS(int(v), nt, entropy_args)
+        return self._state.update_node_dS(int(v), l, nt, entropy_args)
 
     def remove_edge(self, u, v, dm=1):
         r"""Remove edge :math:`(u, v)` with multiplicity ``dm``."""
@@ -1325,9 +1356,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
         r"""update edge :math:`(u, v)` with weight ``nx``."""
         return self._state.update_edge(int(u), int(v), nx)
 
-    def update_node(self, v, nt):
-        r"""update node :math:`(u, v)` with value ``nt``."""
-        return self._state.update_node(int(v), nt)
+    def update_node(self, v, nt, l=0):
+        r"""update node :math:`(u, v)` with value ``nt`` for component ``l``."""
+        return self._state.update_node(int(v), l, nt)
 
     def bisect_x(self, u, v, entropy_args={}, bisect_args={}, fb=False,
                  ret_sampler=False):
@@ -1385,13 +1416,15 @@ class DynamicsBlockStateBase(UncertainBaseState):
             return ret
         return ret[0]
 
-    def bisect_t(self, v, entropy_args={}, bisect_args={}, fb=False, ret_sampler=False):
-        r"""Perform a bisection search to find the best bias value for node ``v``.
+    def bisect_t(self, v, l=0, entropy_args={}, bisect_args={}, fb=False, ret_sampler=False):
+        r"""Perform a bisection search to find the best bias component ``l`` value for node ``v``.
 
         Parameters
         ----------
         v : ``int`` or :class:`~graph_tool.Vertex`
             Vertex to consider.
+        l : ``int`` (optional, default: ``0``)
+            Component of node parameters to be considered.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`~.DynamicsBlockStateBase.entropy`.
@@ -1408,7 +1441,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         """
         entropy_args = self._get_entropy_args(entropy_args)
         bisect_args = get_bisect_args(**bisect_args)
-        ret = self._state.bisect_t(int(v), entropy_args, bisect_args,
+        ret = self._state.bisect_t(int(v), l, entropy_args, bisect_args,
                                    fb,  _get_rng())
         if ret_sampler:
             return ret
@@ -1469,7 +1502,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return ret
 
     @mcmc_sweep_wrap
-    def tdelta_mcmc_sweep(self, beta=1., niter=1, step=10, pold=.5, ptu=.1,
+    def tdelta_mcmc_sweep(self, l=0, beta=1., niter=1, step=10, pold=.5, ptu=.1,
                           intra_sweeps=10, verbose=False, entropy_args={},
                           bisect_args={}, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection
@@ -1477,6 +1510,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         Parameters
         ----------
+        l : ``int`` (optional, default: ``0``)
+            Component of node parameters to be considered.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
@@ -1508,8 +1543,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Number of variables moved.
         """
         entropy_args = self._get_entropy_args(entropy_args)
-        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound,
-                                                  max_bound=self.tmax_bound),
+        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound[l],
+                                                  max_bound=self.tmax_bound[l]),
                                              **bisect_args))
         state = self._state
         mcmc_state = DictState(dict(kwargs, **locals()))
@@ -1559,7 +1594,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             return ret
         return ret[0]
 
-    def sample_t(self, v, beta=1, entropy_args={}, bisect_args={}, fb=False,
+    def sample_t(self, v, l=0, beta=1, entropy_args={}, bisect_args={}, fb=False,
                  ret_sampler=False):
         r"""Sample a value for node ``v``.
 
@@ -1567,6 +1602,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
         ----------
         v : ``int`` or :class:`~graph_tool.Vertex`
             Node to be considered.
+        l : ``int`` (optional, default: ``0``)
+            Component of node parameters to be considered.
         beta : ``float`` (optional, default: ``1``)
             Inverse temperature.
         entropy_args : ``dict`` (optional, default: ``{}``)
@@ -1584,10 +1621,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
             (for debugging purposes).
         """
         entropy_args = self._get_entropy_args(entropy_args)
-        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound,
-                                                  max_bound=self.tmax_bound),
+        bisect_args = get_bisect_args(**dict(dict(min_bound=self.tmin_bound[0],
+                                                  max_bound=self.tmax_bound[0]),
                                              **bisect_args))
-        ret = self._state.sample_t(int(v), beta, entropy_args,
+        ret = self._state.sample_t(int(v), l, beta, entropy_args,
                                    bisect_args, fb, _get_rng())
         if ret_sampler:
             return ret
@@ -1598,9 +1635,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self._state.set_xdelta(delta)
         self.xdelta = delta
 
-    def set_tdelta(self, delta):
-        """Set node bias precision parameter."""
-        self._state.set_tdelta(delta)
+    def set_tdelta(self, delta, l=0):
+        """Set node bias precision parameter for component ``l``."""
+        self._state.set_tdelta(l, delta)
         self.tdelta = delta
 
     def collect_marginal(self, g=None, xbins=100, xslack=.2, expand_xbins=True,
@@ -1624,7 +1661,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             the current range of the bins, the bins are expanded in the
             corresponding direction by duplicating their size, using the same
             spacing.
-        tbins : :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
+        tbins : lsit of :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
             Bins to be used to obtain the marginal node bias distribution. If
             an integer is given, it will correspond to the number of equally
             spaced bins spanning the range of current bias values, increased in
@@ -1643,20 +1680,20 @@ class DynamicsBlockStateBase(UncertainBaseState):
         g : :class:`~graph_tool.Graph`
             New marginal graph, containing the following :ref:`internal properties <sec_internal_props>`:
 
-            ============ ====== ======================= ===========================================
-            Name         Key    Value type              Description
-            ============ ====== ======================= ===========================================
-            ``"eprob"``  Edge   ``double``              Marginal edge probabilities
-            ``"x"``      Edge   ``double``              Marginal edge weight mean
-            ``"xdev"``   Edge   ``double``              Marginal edge weight standard deviation
-            ``"t"``      Vertex ``double``              Marginal node bias mean
-            ``"tdev"``   Vertex ``double``              Marginal node bias standard deviation
-            ``"xbins"``  Graph  :class:`~numpy.ndarray` Edge weight bins
-            ``"xcount"`` Edge   ``vector<int>``         Marginal edge weight counts
-            ``"tbins"``  Graph  :class:`~numpy.ndarray` Node bias bins
-            ``"tcount"`` Vertex ``vector<int>``         Marginal node bias counts
-            ``"count"``  Graph  ``int``                 Total number of marginal samples collected
-            ============ ====== ======================= ===========================================
+            ============== ====== ======================= ==========================================================
+            Name           Key    Value type              Description
+            ============== ====== ======================= ==========================================================
+            ``"eprob"``    Edge   ``double``              Marginal edge probabilities.
+            ``"x"``        Edge   ``double``              Marginal edge weight mean.
+            ``"xdev"``     Edge   ``double``              Marginal edge weight standard deviation.
+            ``"t_l"``      Vertex ``double``              Marginal node bias mean for component ``l``.
+            ``"tdev_l"``   Vertex ``double``              Marginal node bias standard deviation for component ``l``.
+            ``"xbins"``    Graph  :class:`~numpy.ndarray` Edge weight bins.
+            ``"xcount"``   Edge   ``vector<int>``         Marginal edge weight counts.
+            ``"tbins_l"``  Graph  :class:`~numpy.ndarray` Node bias bins for component ``l``.
+            ``"tcount_l"`` Vertex ``vector<int>``         Marginal node bias counts for component ``l``.
+            ``"count"``    Graph  ``int``                 Total number of marginal samples collected.
+            ============== ====== ======================= ==========================================================
 
         Notes
         -----
@@ -1695,18 +1732,21 @@ class DynamicsBlockStateBase(UncertainBaseState):
             g.ep.x = g.new_ep("double")
             g.ep.xdev = g.new_ep("double")
 
-            g.vp.tsum = g.new_vp("double")
-            g.vp.t2sum = g.new_vp("double")
-            g.vp.t = g.new_vp("double")
-            g.vp.tdev = g.new_vp("double")
+            for l in range(self.q_t):
+                g.vp[f"tsum_{l}"] = g.new_vp("double")
+                g.vp[f"t2sum_{l}"] = g.new_vp("double")
+                g.vp[f"t_{l}"] = g.new_vp("double")
+                g.vp[f"tdev_{l}"] = g.new_vp("double")
 
         if "xbins" not in g.gp:
             g.gp.xbins = g.new_gp("object", xbins)
-            g.gp.tbins = g.new_gp("object", tbins)
+            for l in range(self.q_t):
+                g.gp[f"tbins_{l}"] = g.new_gp("object", tbins)
 
         if "xcount" not in g.ep:
             g.ep.xcount = g.new_ep("vector<int32_t>")
-            g.vp.tcount = g.new_vp("vector<int32_t>")
+            for l in range(self.q_t):
+                g.vp[f"tcount_{l}"] = g.new_vp("vector<int32_t>")
 
         def get_bins(bins, vals, slack):
             if isinstance(bins, Iterable) or len(vals) == 0:
@@ -1734,10 +1774,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         u = self.get_graph()
         x = self.get_x()
-        t = self.theta
+        t = ungroup_vector_property(self.theta)
 
         xbins = g.gp.xbins = get_bins(g.gp.xbins, x.fa, xslack)
-        tbins = g.gp.tbins = get_bins(g.gp.tbins, t.fa, tslack)
 
         if len(x.fa) > 0 and isinstance(xbins, Iterable):
             if expand_xbins:
@@ -1749,33 +1788,39 @@ class DynamicsBlockStateBase(UncertainBaseState):
         else:
             xd = g.new_ep("int", val=-1)
 
-        if isinstance(tbins, Iterable):
-            if expand_tbins:
-                while t.fa.min() < tbins[0] and not np.isinf(t.fa.min()):
-                    tbins = g.gp.tbins = expand_bins(tbins, g.vp.tcount, True)
-                while t.fa.max() >= tbins[-1] and not np.isinf(t.fa.max()):
-                    tbins = g.gp.tbins = expand_bins(tbins, g.vp.tcount, False)
-            td = t.t(lambda y: np.digitize(y, tbins), value_type="int")
-        else:
-            td = g.new_vp("int", val=-1)
+        tds = []
+        for l in range(self.q_t):
+            tbins = g.gp[f"tbins_{l}"] = get_bins(g.gp[f"tbins_{l}"], t[l].fa, tslack)
+
+            if isinstance(tbins, Iterable):
+                if expand_tbins:
+                    while t[l].fa.min() < tbins[0] and not np.isinf(t[l].fa.min()):
+                        tbins = g.gp[f"tbins_{l}"] = expand_bins(tbins, g.vp[f"tcount_{l}"], True)
+                    while t[l].fa.max() >= tbins[-1] and not np.isinf(t[l].fa.max()):
+                        tbins = g.gp[f"tbins_{l}"] = expand_bins(tbins, g.vp[f"tcount_{l}"], False)
+                td = t[l].t(lambda y: np.digitize(y, tbins), value_type="int")
+            else:
+                td = g.new_vp("int", val=-1)
+            tds.append(td)
 
         try:
             g.set_fast_edge_lookup(True)
             graph_merge(g, u, in_place=True, simple=True,
                         props=dict(sum=[(g.ep.count, u.new_ep("int", val=1)),
                                         (g.ep.xsum, x),
-                                        (g.ep.x2sum, x.t(lambda y: y ** 2)),
-                                        (g.vp.tsum, t),
-                                        (g.vp.t2sum, t.t(lambda y: y ** 2))],
-                                   idx_inc=[(g.ep.xcount, xd),
-                                            (g.vp.tcount, td)]))
+                                        (g.ep.x2sum, x.t(lambda y: y ** 2))] + \
+                                       [(g.vp[f"tsum_{l}"], t[l]) for l in range(self.q_t)] + \
+                                       [(g.vp[f"t2sum_{l}"], t[l].t(lambda y: y ** 2)) for l in range(self.q_t)],
+                                   idx_inc=[(g.ep.xcount, xd)] + \
+                                           [(g.vp[f"tcount_{l}"], tds[l]) for l in range(self.q_t)]))
         finally:
             g.gp.count += 1
             g.ep.eprob.fa = g.ep.count.fa / g.gp.count
             g.ep.x.fa = g.ep.xsum.fa / g.ep.count.fa
             g.ep.xdev.fa = np.sqrt(np.abs(g.ep.x2sum.fa / g.ep.count.fa - g.ep.x.fa ** 2))
-            g.vp.t.fa = g.vp.tsum.fa / g.gp.count
-            g.vp.tdev.fa = np.sqrt(np.abs(g.vp.t2sum.fa / g.gp.count - g.vp.t.fa ** 2))
+            for l in range(self.q_t):
+                g.vp[f"t_{l}"].fa = g.vp[f"tsum_{l}"].fa / g.gp.count
+                g.vp[f"tdev_{l}"].fa = np.sqrt(np.abs(g.vp[f"t2sum_{l}"].fa / g.gp.count - g.vp[f"t_{l}"].fa ** 2))
 
         return g
 
@@ -1812,7 +1857,7 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
         return ndiff
 
     def get_S(self):
-        """Get negative model likelihood according to pseudo-likelihood."""
+        """Get negative model likelihood according to pseudolikelihood."""
         return DynamicsBlockStateBase.entropy(self, sbm=False, tdist=False,
                                               xdist=False, density=False, xl1=0,
                                               tl1=0, alpha=1, test=False)
@@ -1863,15 +1908,19 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
            community detection from dynamics", Phys. Rev. Lett. 123 128301
            (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
-        .. [peixoto-network-2024] Tiago P. Peixoto, "Network reconstruction via
-           the minimum description length principle", :arxiv:`2405.01015`
+        .. [peixoto-network-2025] Tiago P. Peixoto, "Network reconstruction via
+           the minimum description length principle", Phys. Rev. X 15, 011065
+           (2025) :doi:`10.1103/PhysRevX.15.011065`, :arxiv:`2405.01015`
         .. [peixoto-scalable-2024] Tiago P. Peixoto, "Scalable network
            reconstruction in subquadratic time", :arxiv:`2401.01404`
+        .. [peixoto-uncertainty-2025] Tiago P. Peixoto, "Uncertainty
+           quantification and posterior sampling for network reconstruction"
+           :arxiv:`2503.07736`
 
         """
         DynamicsBlockStateBase.__init__(self, s, g=g, exposed=exposed,
                                         theta=theta, x_range=x_range,
-                                        theta_range=theta_range,
+                                        theta_range=[theta_range],
                                         directed=directed, discrete=True,
                                         **dict(dict(directed=True),
                                                **dmask(kwargs, ["discrete"])))
@@ -1936,10 +1985,14 @@ class IsingBlockStateBase(ABC):
         .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
            community detection from dynamics", Phys. Rev. Lett. 123 128301
            (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
-        .. [peixoto-network-2024] Tiago P. Peixoto, "Network reconstruction via
-           the minimum description length principle", :arxiv:`2405.01015`
+        .. [peixoto-network-2025] Tiago P. Peixoto, "Network reconstruction via
+           the minimum description length principle", Phys. Rev. X 15, 011065
+           (2025) :doi:`10.1103/PhysRevX.15.011065`, :arxiv:`2405.01015`
         .. [peixoto-scalable-2024] Tiago P. Peixoto, "Scalable network
            reconstruction in subquadratic time", :arxiv:`2401.01404`
+        .. [peixoto-uncertainty-2025] Tiago P. Peixoto, "Uncertainty
+           quantification and posterior sampling for network reconstruction"
+           :arxiv:`2503.07736`
 
         """
         pass
@@ -1950,13 +2003,14 @@ class IsingBlockStateBase(ABC):
         by ``s``."""
         if not self.params["has_zero"]:
             return IsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+        theta = ungroup_vector_property(self.theta)[0]
         return PottsGlauberState(self.u, f=[[ 1 , 0, -1],
                                             [ 0 , 0,  0],
                                             [-1,  0,  1]],
                                  w=self.x,
-                                 h=group_vector_property([self.theta.t(lambda x: -x),
+                                 h=group_vector_property([theta.t(lambda x: -x),
                                                           self.u.new_vp("double"),
-                                                          self.theta]),
+                                                          theta]),
                                  s=s,
                                  shift=-1)
 
@@ -2022,7 +2076,8 @@ class CIsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         """Return an :class:`~graph_tool.dynamics.CIsingGlauberState` instance
         corresponding to the inferred model, optionally with initial state given
         by ``s``."""
-        return CIsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+        return CIsingGlauberState(self.u, w=self.x,
+                                  h=ungroup_vector_property(self.theta)[0], s=s)
 
     def _make_state(self):
         return libinference.make_cising_glauber_state(self._state, self.ot,
@@ -2054,13 +2109,13 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
         intractable normalization constant.
 
         Instead of computing this likelihood exactly, this model makes use of
-        the pseudo-likelihood approximation [pseudo]_:
+        the pseudolikelihood approximation [pseudo]_:
 
         .. math::
 
            P(\boldsymbol s | \boldsymbol A,
                       \boldsymbol x, \boldsymbol \theta) =
-           \prod_{i<j}\frac{\exp(s_i\sum_{j\ne i}A_{ij}x_{ij}s_j + \theta_is_i)}
+           \prod_{i}\frac{\exp(s_i\sum_{j\ne i}A_{ij}x_{ij}s_j + \theta_is_i)}
            {2\cosh(\sum_{j\ne i}A_{ij}x_{ij}s_j + \theta_i)}.
 
         References
@@ -2076,7 +2131,7 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
         """Return an :class:`~graph_tool.dynamics.IsingBPState` instance
         corresponding to the inferred model."""
         return IsingBPState(self.u, x=self.x,
-                            theta=self.theta,
+                            theta=ungroup_vector_property(self.theta)[0],
                             has_zero=self.params.get("has_zero"), **kwargs)
 
     def _make_state(self):
@@ -2087,7 +2142,7 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
 class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
     def __init__(self, s, g=None, has_zero=False, **kwargs):
         r"""State for network reconstruction based on the equilibrium configurations of
-        the continuous Ising model, using the Pseudolikelihood approximation and
+        the continuous Ising model, using the pseudolikelihood approximation and
         the stochastic block model as a prior.
 
         See documentation for :class:`IsingBlockStateBase` for details.
@@ -2112,13 +2167,13 @@ class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         intractable normalization constant.
 
         Instead of computing this likelihood exactly, this model makes use of
-        the pseudo-likelihood approximation [pseudo]_:
+        the pseudolikelihood approximation [pseudo]_:
 
         .. math::
 
            P(\boldsymbol s | \boldsymbol A,
                       \boldsymbol x, \boldsymbol \theta) =
-           \prod_{i<j}\frac{\exp(s_i\sum_{j\ne i}A_{ij}x_{ij}s_j + \theta_is_i)}
+           \prod_{i}\frac{\exp(s_i\sum_{j\ne i}A_{ij}x_{ij}s_j + \theta_is_i)}
            {Z(\sum_{j\ne i}A_{ij}x_{ij}s_j + \theta_i)},
 
         with :math:`Z(x) = 2\sinh(x)/x`.
@@ -2140,7 +2195,8 @@ class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         """Return an :class:`~graph_tool.dynamics.CIsingGlauberState` instance
         corresponding to the inferred model, optionally with initial state given
         by ``s``."""
-        return CIsingGlauberState(self.u, w=self.x, h=self.theta, s=s)
+        return CIsingGlauberState(self.u, w=self.x,
+                                  h=ungroup_vector_property(self.theta), s=s)
 
 def zero_mean(s, g):
     if isinstance(s, np.ndarray):
@@ -2157,12 +2213,13 @@ def zero_mean(s, g):
                 sx[v].a -= sx[v].a.mean()
     return s
 
-
 class PseudoNormalBlockState(BPBlockStateBase):
-    def __init__(self, s, g=None, fix_mean=True, positive=True, pslack=1e-6,
-                 theta_range=(-200, 200), **kwargs):
+    def __init__(self, s, g=None, fix_mean=False, positive=True, pslack=1e-6,
+                 theta=[0, 0], theta_range=[(-200, 200), (-np.inf, np.inf)],
+                 tdelta=[1e-8, 1e-8], tdelta_min=[1e-8, 1e-8], entropy_args={},
+                 **kwargs):
         r"""State for network reconstruction based on the multivariate normal
-        distribution, using the Pseudolikelihood approximation and the
+        distribution, using the pseudolikelihood approximation and the
         stochastic block model as a prior.
 
         ``fix_mean == True`` means that ``s`` will be changed to become zero-mean.
@@ -2176,7 +2233,9 @@ class PseudoNormalBlockState(BPBlockStateBase):
         if fix_mean:
             s = zero_mean(s, g)
         BPBlockStateBase.__init__(self, s, g=g, positive=positive, pslack=pslack,
-                                  directed=False, theta_range=theta_range,
+                                  directed=False, theta_range=theta_range, q_t=2,
+                                  tdelta=tdelta, tdelta_min=tdelta_min,
+                                  entropy_args=entropy_args,
                                   **kwargs)
         self.theta_first = False
 
@@ -2185,23 +2244,34 @@ class PseudoNormalBlockState(BPBlockStateBase):
                                                      self.os, self.oactive,
                                                      self.params)
 
-    def get_dcov(self):
+    def get_dcov(self, empirical_mean=False):
         """Return data covariance matrix."""
         N = self.g.num_vertices()
         S = np.zeros((N, N))
+        if empirical_mean:
+            mu = self.g.new_vp("double")
+            for i in range(N):
+                M = 0
+                for m in range(len(self.s)):
+                    M += len(self.s[m][i])
+                    for m in range(N):
+                        mu[i] += self.s[m][i].a.sum()
+                mu[i] /= M
+        else:
+            mu = ungroup_vector_property(self.theta)[1]
         M = 0
         for m in range(len(self.s)):
             M += len(self.s[m][0])
             for i in range(N):
                 for j in range(N):
-                    S[i,j] += np.dot(self.s[0][i].a,
-                                     self.s[0][j].a)
+                    S[i,j] += np.dot(self.s[m][i].a - mu[i],
+                                     self.s[m][j].a - mu[j])
         S /= M
         return S
 
     def get_precision(self):
         """Return precision matrix."""
-        theta = self.theta.copy()
+        theta = ungroup_vector_property(self.theta)[0]
         w = self.x.copy()
         w.fa = abs(w.fa)
         pslack = self.params["pslack"]
@@ -2215,7 +2285,7 @@ class PseudoNormalBlockState(BPBlockStateBase):
 
     def get_theta_shifted(self):
         """Return shifted node values to ensure positive semi-definiteness."""
-        h = self.theta.copy()
+        h = ungroup_vector_property(self.theta)[0]
         w = self.x.copy()
         w.fa = np.abs(w.fa)
         k = self.u.degree_property_map("out", w)
@@ -2259,9 +2329,9 @@ class PseudoNormalBlockState(BPBlockStateBase):
 
 
 class NormalGlauberBlockState(DynamicsBlockStateBase):
-    def __init__(self, s, g=None, self_loops=False, fix_mean=True, **kwargs):
+    def __init__(self, s, g=None, self_loops=False, fix_mean=False, **kwargs):
         r"""State for network reconstruction based on the dynamical multivariate
-        normal distribution, using the Pseudolikelihood approximation and the
+        normal distribution, using the pseudolikelihood approximation and the
         stochastic block model as a prior.
 
         ``fix_mean == True`` means that ``s`` will be changed to become zero-mean.
@@ -2275,7 +2345,7 @@ class NormalGlauberBlockState(DynamicsBlockStateBase):
         if fix_mean:
             s = zero_mean(s, g)
         DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
-                                        **kwargs)
+                                        q_t=2, **kwargs)
         self.theta_first = False
 
     def _make_state(self):
@@ -2314,7 +2384,7 @@ class LinearNormalBlockState(DynamicsBlockStateBase):
         """Return an :class:`~graph_tool.dynamics.LinearNormalState` instance
         corresponding to the inferred model, optionally with initial state given
         by ``s``."""
-        h = self.theta.copy()
+        h = ungroup_vector_property(self.theta)[0]
         h.a = np.exp(h.a)
         return LinearNormalState(self.u, w=self.x, sigma=h, s=s)
 
@@ -2334,8 +2404,283 @@ class LVBlockState(DynamicsBlockStateBase):
         """Return an :class:`~graph_tool.dynamics.LVState` instance
         corresponding to the inferred model, optionally with initial state given
         by ``s``."""
-        r = self.theta.copy()
+        r = ungroup_vector_property(self.theta)[0]
         return LVState(self.u, w=self.x, r=r, sigma=self.params["sigma"], s=s)
+
+
+class PottsBlockStateBase(DynamicsBlockStateBase):
+
+    @abstractmethod
+    def __init__(self, s, f=None, g=None, **kwargs):
+        r"""Base state for network reconstruction based on the generalized Potts
+        model, using the stochastic block model as a prior.
+
+        This class is not supposed to be instantiated directly.
+
+        Instead one of its specialized subclasses must be used, which have the
+        same signature: :class:`PottsGlauberBlockState`,
+        :class:`PseudoPottsBlockState`.
+
+        Parameters
+        ----------
+        s : :class:`~numpy.ndarray` of shape ``(N,M)`` or ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap`
+            Time series or independent samples used for reconstruction.
+
+            If the type is :class:`~numpy.ndarray`, it should correspond to a
+            ``(N,M)`` data matrix with ``M`` samples for all ``N`` nodes.
+
+            The values must correspond to Ising states: ``-1`` or ``+1``
+
+            If the parameter ``g`` is provided, this can be optionally a list of
+            of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
+            in this list must be a :class:`~graph_tool.VertexPropertyMap` with
+            type ``vector<int>``. If a single property map is given, then a
+            single time series is assumed.
+
+            If the parameter ``t`` below is given, each property map value for a
+            given node should contain only the states for the same points in
+            time given by that parameter.
+        f : :class:`~numpy.ndarray` of shape ``(q,q)`` (optional, default: ``identity(q)``)
+            Interaction strengths between spin values.
+        q : ``int`` (optional, default: ``f.shape[0]``)
+            Number of spins.
+        g : :class:`~graph_tool.Graph` (optional, default: ``None``)
+            Initial graph state. If not provided, an empty graph will be assumed.
+        **kwargs : (optional)
+            Remaining parameters to be passed to :class:`~graph_tool.inference.DynamicsBlockStateBase`
+
+        References
+        ----------
+        .. [ising-model] https://en.wikipedia.org/wiki/Ising_model
+        .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
+           community detection from dynamics", Phys. Rev. Lett. 123 128301
+           (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
+        .. [peixoto-network-2025] Tiago P. Peixoto, "Network reconstruction via
+           the minimum description length principle", Phys. Rev. X 15, 011065
+           (2025) :doi:`10.1103/PhysRevX.15.011065`, :arxiv:`2405.01015`
+        .. [peixoto-scalable-2024] Tiago P. Peixoto, "Scalable network
+           reconstruction in subquadratic time", :arxiv:`2401.01404`
+        .. [peixoto-uncertainty-2025] Tiago P. Peixoto, "Uncertainty
+           quantification and posterior sampling for network reconstruction"
+           :arxiv:`2503.07736`
+        """
+        pass
+
+    def sample_f(self, r, s, beta=1, entropy_args={}, bisect_args={}, verbose=False):
+        r"""Sample the entry ``(r,s)`` of the iteraction matrix ``f``.
+
+        Parameters
+        ----------
+        r : ``int``
+            First entry.
+        s : ``int``
+            Second entry.
+        beta : ``float`` (optional, default: ``1``)
+            Inverse temperature.
+        entropy_args : ``dict`` (optional, default: ``{}``)
+            Entropy arguments, with the same meaning and defaults as in
+            :meth:`~.DynamicsBlockStateBase.entropy`.
+        bisect_args : ``dict`` (optional, default: ``{}``)
+            Parameter for the bisection search. See
+            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+        verbose : ``bool`` (optional, default: ``False``)
+            If ``True``, verbose information will be displayed.
+
+        Returns
+        -------
+        dS : ``float``
+            Entropy difference
+
+        """
+        entropy_args = self._get_entropy_args(entropy_args)
+        bisect_args = get_bisect_args(**dict(dict(min_bound=0,
+                                                  max_bound=100,
+                                                  tol=1e-3,
+                                                  ftol=1e-3),
+                                             **bisect_args))
+        dS = self._dstate.sample_f(r, s, beta, entropy_args, bisect_args,
+                                   verbose, _get_rng())
+        return dS
+
+    def mcmc_sweep(self, beta=1, f=1, f_mcmc_args={}, **kwargs):
+        ret = DynamicsBlockStateBase.mcmc_sweep(self, beta=beta, **kwargs)
+        if np.random.random() < f:
+            q = self.params["f"].shape[0]
+            for r in range(q):
+                for s in range(r if self.params["f_sym"] else 0, q):
+                    dS = self.sample_f(r, s, beta=beta, **f_mcmc_args)
+                    fret = (dS, 1)
+                    ret = (sum(x) for x in zip(ret, fret))
+            ret = tuple(ret)
+        return ret
+
+    def get_dyn_state(self, s=None):
+        """Return an :class:`~graph_tool.dynamics.PottsGlauberState` instance
+        corresponding to the inferred model, optionally with initial state given
+        by ``s``."""
+        return PottsGlauberState(self.u, f=self.params["f"], w=self.x,
+                                 h=self.theta, s=s)
+
+    def collect_marginal(self, g=None, **kwargs):
+        r"""Collect marginal inferred network during MCMC runs.
+
+        See :meth:`DynamicsBlockStateBase.collect_marginal` for documentation.
+
+        This version in addition also keeps the marginal estimate of the
+        interaction matrix ``f`` via an internal graph property map, as well as
+        its standard deviation ``fdev``.
+        """
+
+        g = DynamicsBlockStateBase.collect_marginal(self, g, **kwargs)
+
+        f = self.params["f"]
+        if "f" not in g.gp:
+            g.gp.fsum = g.new_gp("object", np.zeros(f.shape))
+            g.gp.f2sum = g.new_gp("object", np.zeros(f.shape))
+            g.gp.f = g.new_gp("object", None)
+            g.gp.fdev = g.new_gp("object", None)
+
+        g.gp.fsum += f
+        g.gp.f2sum += f ** 2
+        g.gp.f = g.gp.fsum / g.gp.count
+        g.gp.fdev = np.sqrt(np.abs(g.gp.f2sum / g.gp.count - g.gp.f ** 2))
+
+        return g
+
+
+class PottsGlauberBlockState(PottsBlockStateBase):
+
+    def __init__(self, s, f=None, f_sym=True, q=None, g=None, theta=None,
+                 theta_range=None, tdelta=None, tdelta_min=None, **kwargs):
+        r"""State for network reconstruction based on the Glauber dynamics of
+        the generalized Potts model, using the stochastic block model as a prior.
+
+        See documentation for :class:`PottsBlockStateBase` for details.
+
+        If ``f_sym is False``, the iteraction matrix will be assumed to be
+        asymmetric.
+
+        Notes
+        -----
+
+        This is a dynamical model with a transition likelihood for node
+        :math:`i` to state :math:`s_i(t+1) \in \{0,\dots,q-1\}` given by:
+
+        .. math::
+
+           P(s_i(t+1)|\boldsymbol s(t), \boldsymbol A,
+                      \boldsymbol x, \boldsymbol \theta) =
+           \frac{\exp(\sum_jA_{ij}x_{ij}f_{s_i(t+1),s_j(t)} + \theta^{i}_{s_i(t+1)})}
+           {\sum_{r=0}^{q-1}\exp(\sum_jA_{ij}x_{ij}f_{r,s_j(t)} + \theta^{i}_{r})}.
+
+        where :math:`\boldsymbol f = \{f_{rs}\}` is a :math:`q\times q`
+        interaction matrix.
+
+        """
+        if f is None:
+            f = np.identity(q)
+        else:
+            f = np.asarray(f, dtype="float")
+            q = f.shape[0]
+            self.f = f
+        if theta is None:
+            theta = [0] * q
+        if theta_range is None:
+            theta_range = [(-np.inf,  np.inf)] * q
+        if tdelta is None:
+            tdelta = [1e-8] * q
+        if tdelta_min is None:
+            tdelta_min = [1e-8] * q
+
+        DynamicsBlockStateBase.__init__(self, s, f=f, g=g, q_t=q,
+                                        discrete=True,
+                                        theta=theta, theta_range=theta_range,
+                                        tdelta=tdelta, tdelta_min=tdelta_min,
+                                        f_sym=f_sym,
+                                        **dict(dict(directed=True),
+                                               **dmask(kwargs, ["discrete"])))
+
+    def _make_state(self):
+        return libinference.make_glauber_potts_state(self._state, self.ot,
+                                                     self.os, self.oactive,
+                                                     self.params)
+
+
+class PseudoPottsBlockState(PottsBlockStateBase):
+
+    def __init__(self, s, f=None, q=None, g=None, theta=None, theta_range=None,
+                 tdelta=None, tdelta_min=None, **kwargs):
+        r"""State for network reconstruction based on the equilibrium
+        configurations of the generalized Potts model, using the pseudolikelihood
+        approximation and the stochastic block model as a prior.
+
+        See documentation for :class:`PottsBlockStateBase` for details.
+
+        Notes
+        -----
+
+        This is a equilibrium model with where the states :math:`\boldsymbol s`
+        are sampled with probability
+
+        .. math::
+
+           P(\boldsymbol s | \boldsymbol A,
+                      \boldsymbol x, \boldsymbol \theta) =
+           \frac{\exp(\sum_jA_{ij}x_{ij}f_{s_i,s_j} + \sum_i\theta^{(i)}_{s_i})}
+           {Z(\boldsymbol A, \boldsymbol x, \boldsymbol \theta)},
+
+        where :math:`\boldsymbol f = \{f_{rs}\}` is a :math:`q\times q`
+        interaction matrix, and :math:`Z(\boldsymbol A, \boldsymbol x,
+        \boldsymbol \theta)` is an intractable normalization constant.
+
+        Instead of computing this likelihood exactly, this model makes use of
+        the pseudolikelihood approximation [pseudo]_:
+
+        .. math::
+
+           P(\boldsymbol s | \boldsymbol A,
+                      \boldsymbol x, \boldsymbol \theta) =
+           \prod_{i}\frac{\exp(\sum_{j\ne i}A_{ij}x_{ij}f_{s_i,s_j} + \theta^{(i)}_{s_i})}
+           {\sum_{r=0}^{q-1}\exp(\sum_jA_{ij}x_{ij}f_{r,s_j} + \theta^{i}_{r})}.
+
+        References
+        ----------
+        .. [pseudo] https://en.wikipedia.org/wiki/Pseudolikelihood
+
+        """
+        if f is None:
+            f = np.identity(q)
+        else:
+            f = np.asarray(f, dtype="float")
+            q = f.shape[0]
+        self.f = f
+        if theta is None:
+            theta = [0] * q
+        if theta_range is None:
+            theta_range = [(-np.inf,  np.inf)] * q
+        if tdelta is None:
+            tdelta = [1e-8] * q
+        if tdelta_min is None:
+            tdelta_min = [1e-8] * q
+
+        BPBlockStateBase.__init__(self, s, g=g, f=f, q_t=q,
+                                  directed=False, discrete=True,
+                                  theta=theta, theta_range=theta_range,
+                                  tdelta=tdelta, tdelta_min=tdelta_min,
+                                  f_sym=True,
+                                  **dmask(kwargs, ["directed", "discrete",
+                                                   "f_sym"]))
+
+    def get_bp_state(self, **kwargs):
+        """Return an :class:`~graph_tool.dynamics.IsingBPState` instance
+        corresponding to the inferred model."""
+        return GepPottsBPState(self.u, f=self.f, x=self.x,
+                               theta=self.theta, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_pseudo_potts_state(self._state, self.ot,
+                                                    self.os, self.oactive,
+                                                    self.params)
 
 def pinit(val, g, ptype="v", vtype="double"):
     if isinstance(val, PropertyMap):

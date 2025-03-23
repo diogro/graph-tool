@@ -477,9 +477,11 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/linear_normal/state.cc \
 	src/graph/inference/uncertain/dynamics/lotka_volterra/state.cc \
 	src/graph/inference/uncertain/dynamics/normal_glauber/state.cc \
+	src/graph/inference/uncertain/dynamics/potts_glauber/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_cising/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_ising/state.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/state.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_potts/state.cc \
 	src/graph/inference/uncertain/dynamics/test/state.cc \
 	src/graph/inference/uncertain/latent_closure.cc \
 	src/graph/inference/uncertain/latent_closure_mcmc.cc \
@@ -503,14 +505,16 @@ noinst_LTLIBRARIES = libgraph_tool_inference_fast.la
 libgraph_tool_inference_fast_la_includedir = $(MOD_DIR)/include/inference
 libgraph_tool_inference_fast_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_inference_fast_la_LDFLAGS = $(MOD_LDFLAGS)
-libgraph_tool_inference_fast_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -funswitch-loops -fno-lto
+libgraph_tool_inference_fast_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -funswitch-loops -funroll-loops -fno-lto
 libgraph_tool_inference_fast_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/epidemics/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/cising_glauber/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/ising_glauber/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/potts_glauber/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_cising/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_ising/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/base_vec.cc \
+	src/graph/inference/uncertain/dynamics/pseudo_potts/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/linear_normal/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/lotka_volterra/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/normal_glauber/base_vec.cc
@@ -593,6 +597,7 @@ dist_graph_inference_uncertain_HEADERS = \
 	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_discrete.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_discrete_potts.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_elist_state.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_mcmc.hh \
 	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.hh \
@@ -618,9 +623,11 @@ noinst_HEADERS = \
 	src/graph/inference/uncertain/dynamics/ising_glauber/setup.hh \
 	src/graph/inference/uncertain/dynamics/linear_normal/setup.hh \
 	src/graph/inference/uncertain/dynamics/lotka_volterra/setup.hh \
+	src/graph/inference/uncertain/dynamics/potts_glauber/setup.hh \
 	src/graph/inference/uncertain/dynamics/pseudo_cising/setup.hh \
 	src/graph/inference/uncertain/dynamics/pseudo_ising/setup.hh \
 	src/graph/inference/uncertain/dynamics/pseudo_normal/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_potts/setup.hh \
 	src/graph/inference/uncertain/dynamics/normal_glauber/setup.hh
 
 graph_inference_loopsdir = $(MOD_DIR)/include/inference/loops

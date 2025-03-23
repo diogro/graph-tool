@@ -52,11 +52,11 @@ struct dentropy_args_t:
 
     double alpha = 1;
     bool xdist = true;
-    bool tdist = true;
+    std::vector<bool> tdist;
     bool xdist_uniform = false;
-    bool tdist_uniform = false;
+    std::vector<bool> tdist_uniform;
     double xl1 = 0;
-    double tl1 = 0;
+    std::vector<double> tl1;
     bool normal = false;
     double mu = 0;
     double sigma = 1;
@@ -64,22 +64,30 @@ struct dentropy_args_t:
 };
 
 typedef eprop_map_t<double> xmap_t;
-typedef vprop_map_t<double> tmap_t;
+typedef vprop_map_t<std::vector<double>> tmap_t;
 typedef vprop_map_t<double> smap_t;
 
 #define DYNAMICS_STATE_params                                                  \
     ((g, &, decltype(never_filtered_never_reversed), 1))                       \
     ((x,, xmap_t, 0))                                                          \
     ((params,, python::dict, 0))                                               \
+    ((q_t,, size_t, 0))                                                        \
     ((theta,, tmap_t, 0))                                                      \
     ((xdelta,, double, 0))                                                     \
     ((xdelta_min,, double, 0))                                                 \
-    ((tdelta,, double, 0))                                                     \
-    ((tdelta_min,, double, 0))                                                 \
+    ((tdelta,, std::vector<double>, 0))                                        \
+    ((tdelta_min,, std::vector<double>, 0))                                    \
     ((disable_xdist,, bool, 0))                                                \
     ((disable_tdist,, bool, 0))                                                \
     ((self_loops,, bool, 0))                                                   \
     ((max_m,, int64_t, 0))
+
+
+class DynBase
+{
+public:
+    virtual double entropy(const dentropy_args_t& ea) = 0;
+};
 
 class DStateBase
 {
@@ -93,7 +101,7 @@ public:
                                 const std::array<double,2>& x,
                                 const std::array<double,2>& nx) = 0;
 
-    virtual double get_node_dS(size_t v, double t, double nt) = 0;
+    virtual double get_node_dS(size_t v, size_t l, double t, double nt) = 0;
     virtual double get_node_prob(size_t v) = 0;
     virtual double get_active_prob(size_t v) = 0;
 
@@ -116,7 +124,8 @@ struct Dynamics
 
     template <class... Ts>
     class DynamicsState
-        : public DynamicsStateBase<Ts...>
+        : public DynamicsStateBase<Ts...>,
+          public DynBase
     {
     public:
         GET_PARAMS_USING(DynamicsStateBase<Ts...>,
@@ -124,7 +133,7 @@ struct Dynamics
         GET_PARAMS_TYPEDEF(Ts, DYNAMICS_STATE_params)
 
         typedef typename property_traits<x_t>::value_type xval_t;
-        typedef typename property_traits<theta_t>::value_type tval_t;
+        typedef typename property_traits<theta_t>::value_type::value_type tval_t;
 
         template <class... ATs,
                   typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
@@ -144,17 +153,25 @@ struct Dynamics
                 get_u_edge<true>(u, v) = e;
                 if (_self_loops || u != v)
                 {
-                    hist_add(_x[e], _xhist, _xvals);
                     if (!_disable_xdist)
+                        hist_add(_x[e], _xhist, _xvals);
                     _M++;
                 }
                 _E += _eweight[e];
             }
 
+            for (auto v : vertices_range(_u))
+                _theta[v].resize(_q_t);
+
+            _thist.resize(_q_t);
+            _tvals.resize(_q_t);
             if (!_disable_tdist)
             {
                 for (auto v : vertices_range(_u))
-                    hist_add(_theta[v], _thist, _tvals);
+                {
+                    for (size_t l = 0; l < _q_t; ++l)
+                        hist_add(_theta[v][l], _thist[l], _tvals[l]);
+                }
             }
         }
 
@@ -190,10 +207,10 @@ struct Dynamics
         typename x_t::checked_t _xc;
 
         std::vector<double> _xvals;
-        std::vector<double> _tvals;
+        std::vector<std::vector<double>> _tvals;
 
         gt_hash_map<double, size_t> _xhist;
-        gt_hash_map<double, size_t> _thist;
+        std::vector<gt_hash_map<double, size_t>> _thist;
 
         std::vector<std::shared_mutex> _e_mutex;
         std::vector<std::mutex> _v_mutex;
@@ -342,7 +359,7 @@ struct Dynamics
         template <class Hist, class Vals>
         double hist_move_dS(double r, double s, size_t N, Hist& h, Vals& vals,
                             bool uniform, double l1, double delta,
-                            bool nonzero, size_t dn=1)
+                            bool nonzero, size_t dn = 1)
         {
             if (r == s)
                 return 0;
@@ -422,7 +439,7 @@ struct Dynamics
         template <bool Add, class Hist, class Vals>
         double hist_modify_dS(double r, size_t N, Hist& h, Vals& vals,
                               bool uniform, double l1, double delta, bool nonzero,
-                              size_t dn=1)
+                              size_t dn = 1)
         {
             double Sa = 0;
             double Sb = 0;
@@ -507,9 +524,9 @@ struct Dynamics
             return quantize(x, _xdelta);
         }
 
-        double quantize_t(double x)
+        double quantize_t(size_t l, double x)
         {
-            return quantize(x, _tdelta);
+            return quantize(x, _tdelta[l]);
         }
 
         double entropy(const dentropy_args_t& ea)
@@ -565,16 +582,23 @@ struct Dynamics
                 S += hist_entropy(_M, _xhist, _xvals, ea.xdist_uniform,
                                   ea.xl1, _xdelta, true);
 
-            if (!_disable_tdist && ea.tdist)
-                S += hist_entropy(num_vertices(_u), _thist, _tvals,
-                                  ea.tdist_uniform, ea.tl1, _tdelta, false);
+            if (!_disable_tdist)
+            {
+                for (size_t l = 0; l < _q_t; ++l)
+                {
+                    if (ea.tdist[l])
+                        S += hist_entropy(num_vertices(_u), _thist[l], _tvals[l],
+                                          ea.tdist_uniform[l], ea.tl1[l], _tdelta[l], false);
+                }
+            }
 
             #pragma omp parallel reduction(+:S)
             parallel_vertex_loop_no_spawn
                 (_u,
                  [&](auto v)
                  {
-                    S += node_x_S(_theta[v], ea);
+                     for (size_t l = 0; l < _q_t; ++l)
+                         S += node_x_S(_theta[v][l], l, ea);
                  });
 
 // #ifndef NDEBUG
@@ -627,12 +651,12 @@ struct Dynamics
                                    std::vector<double>>(us, v, x, nx, ea);
         }
 
-        double dstate_node_dS(size_t v, double t, double nt,
+        double dstate_node_dS(size_t v, size_t l, double t, double nt,
                               const dentropy_args_t& ea)
         {
             if (!ea.latent_edges)
                 return 0;
-            double dS = _dstate->get_node_dS(v, t, nt);
+            double dS = _dstate->get_node_dS(v, l, t, nt);
             assert(!std::isinf(dS) && !std::isnan(dS));
             return dS * ea.alpha;
         }
@@ -660,17 +684,17 @@ struct Dynamics
             return S;
         }
 
-        double node_x_S(xval_t x, const dentropy_args_t& ea)
+        double node_x_S(xval_t x, size_t l, const dentropy_args_t& ea)
         {
-            if (ea.tdist)
+            if (ea.tdist[l])
                 return 0.;
             double S = 0;
-            if (ea.tl1 > 0)
+            if (ea.tl1[l] > 0)
             {
-                if (_tdelta == 0)
-                    S -= laplace_lpdf(x, ea.tl1);
+                if (_tdelta[l] == 0)
+                    S -= laplace_lpdf(x, ea.tl1[l]);
                 else
-                    S -= qlaplace_lprob(x, ea.tl1, _tdelta, false);
+                    S -= qlaplace_lprob(x, ea.tl1[l], _tdelta[l], false);
             }
             return S;
         }
@@ -728,7 +752,7 @@ struct Dynamics
                                                                  _xvals,
                                                                  ea.xdist_uniform,
                                                                  ea.xl1, _xdelta,
-                                                                 ea.sbm);
+                                                                 true);
                                  }, _x_mutex, lock);
                     }
                 }
@@ -799,7 +823,7 @@ struct Dynamics
                                                                 _xvals,
                                                                 ea.xdist_uniform,
                                                                 ea.xl1, _xdelta,
-                                                                ea.sbm);
+                                                                true);
                                      assert(!isinf(dS));
                                  }, _x_mutex, lock);
                     }
@@ -1151,34 +1175,36 @@ struct Dynamics
             }
         }
 
-        double update_node_dS(size_t v, double nt, const dentropy_args_t& ea,
-                              bool dstate = true, bool lock = true)
+        double update_node_dS(size_t v, size_t l, double nt,
+                              const dentropy_args_t& ea, bool dstate = true,
+                              bool lock = true)
         {
-            auto t = _theta[v];
+            auto t = _theta[v][l];
             if (nt == t)
                 return 0;
 
             double dS = 0;
             if (dstate)
-                dS += dstate_node_dS(v, t, nt, ea);
+                dS += dstate_node_dS(v, l, t, nt, ea);
 
-            if (ea.tdist && !_disable_tdist)
+            if (ea.tdist[l] && !_disable_tdist)
             {
                 do_slock([&]()
                          {
-                             dS += hist_move_dS(t, nt, num_vertices(_u), _thist,
-                                                _tvals, ea.tdist_uniform, ea.tl1,
-                                                _tdelta, false);
+                             dS += hist_move_dS(t, nt, num_vertices(_u),
+                                                _thist[l], _tvals[l],
+                                                ea.tdist_uniform[l], ea.tl1[l],
+                                                _tdelta[l], false);
                          }, _t_mutex, lock);
             }
 
-            dS += node_x_S(nt, ea) - node_x_S(t, ea);
+            dS += node_x_S(nt, l, ea) - node_x_S(t, l, ea);
 
             return dS;
         }
 
         template <class VS>
-        double update_nodes_dS(VS& vs_, double x, double nx,
+        double update_nodes_dS(VS& vs_, size_t l, double x, double nx,
                                const dentropy_args_t& ea)
         {
             if (nx == x)
@@ -1187,48 +1213,48 @@ struct Dynamics
             std::vector<size_t> vs(vs_.begin(), vs_.end());
             #pragma omp parallel for schedule(runtime) reduction(+:dS)
             for (size_t i = 0; i < vs.size(); ++i)
-                dS += dstate_node_dS(vs[i], x, nx, ea);
-            if (ea.tdist && !_disable_tdist)
-                dS += hist_move_dS(x, nx, num_vertices(_u), _thist, _tvals,
-                                   ea.tdist_uniform, ea.tl1, _tdelta, false,
-                                   vs.size());
-            dS += (node_x_S(nx, ea) - node_x_S(x, ea)) * vs.size();
+                dS += dstate_node_dS(vs[i], l, x, nx, ea);
+            if (ea.tdist[l] && !_disable_tdist)
+                dS += hist_move_dS(x, nx, num_vertices(_u), _thist[l], _tvals[l],
+                                   ea.tdist_uniform[l], ea.tl1[l], _tdelta[l],
+                                   false, vs.size());
+            dS += (node_x_S(nx, l, ea) - node_x_S(x, l, ea)) * vs.size();
             return dS;
         }
 
-        void update_node(size_t v, double nt, bool lock = true)
+        void update_node(size_t v, size_t l, double nt, bool lock = true)
         {
-            auto t = _theta[v];
+            auto t = _theta[v][l];
 
             if (nt == t)
                 return;
 
-            _theta[v] = nt;
+            _theta[v][l] = nt;
 
             if (!_disable_tdist)
             {
                 do_ulock
                     ([&]()
                      {
-                         hist_remove(t, _thist, _tvals);
-                         hist_add(nt, _thist, _tvals);
+                         hist_remove(t, _thist[l], _tvals[l]);
+                         hist_add(nt, _thist[l], _tvals[l]);
                      }, _t_mutex, lock);
             }
         }
 
         template <class VS>
-        void update_nodes(VS& vs, double x, double nx)
+        void update_nodes(VS& vs, size_t l, double x, double nx)
         {
             if (x == nx)
                 return;
 
             for (auto v : vs)
-                _theta[v] = nx;
+                _theta[v][l] = nx;
 
             if (!_disable_tdist)
             {
-                hist_remove(x, _thist, _tvals, vs.size());
-                hist_add(nx, _thist, _tvals, vs.size());
+                hist_remove(x, _thist[l], _tvals[l], vs.size());
+                hist_add(nx, _thist[l], _tvals[l], vs.size());
             }
         }
 
@@ -1541,14 +1567,15 @@ struct Dynamics
         }
 
         std::tuple<double, BisectionSampler<>>
-        bisect_t_init(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba)
+        bisect_t_init(size_t v, size_t l, const dentropy_args_t& ea,
+                      const bisect_args_t& ba)
         {
-            auto x = _theta[v];
+            auto x = _theta[v][l];
             auto f =
                 [=](auto nx)
                 {
-                    return dstate_node_dS(v, x, nx, ea) +
-                        (node_x_S(nx, ea) - node_x_S(x, ea));
+                    return dstate_node_dS(v, l, x, nx, ea) +
+                        (node_x_S(nx, l, ea) - node_x_S(x, l, ea));
                 };
 
             BisectionSampler<> sampler(f, ba);
@@ -1557,25 +1584,27 @@ struct Dynamics
 
         template <class... RNG>
         std::tuple<double, BisectionSampler<>>
-        bisect_t_disp(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
-                      bool fb, const std::vector<double>& tvals, RNG&... rng)
+        bisect_t_disp(size_t v, size_t l, const dentropy_args_t& ea,
+                      const bisect_args_t& ba, bool fb,
+                      const std::vector<double>& tvals, RNG&... rng)
         {
-            auto [x, sampler] = bisect_t_init(v, ea, ba);
+            auto [x, sampler] = bisect_t_init(v, l, ea, ba);
             double nx;
             if (ba.min_bound == ba.max_bound)
                 nx = ba.min_bound;
             else
-                nx = fb ? sampler.bisect_fb(tvals, rng...) : sampler.bisect(x, _tdelta);
+                nx = fb ? sampler.bisect_fb(tvals, rng...) :
+                    sampler.bisect(x, _tdelta[l]);
             sampler.f(nx, true);
             return {nx, sampler};
         }
 
         template <class... RNG>
         std::tuple<double, BisectionSampler<>>
-        bisect_t(size_t v, const dentropy_args_t& ea, const bisect_args_t& ba,
-                 bool fb, RNG&... rng)
+        bisect_t(size_t v, size_t l, const dentropy_args_t& ea,
+                 const bisect_args_t& ba, bool fb, RNG&... rng)
         {
-            return bisect_t_disp(v, ea, ba, fb, _tvals, rng...);
+            return bisect_t_disp(v, l, ea, ba, fb, _tvals[l], rng...);
         }
 
         std::tuple<double, BisectionSampler<>>
@@ -1597,7 +1626,7 @@ struct Dynamics
         }
 
         std::tuple<double, BisectionSampler<>>
-        bisect_tl1(const dentropy_args_t& ea, const bisect_args_t& ba)
+        bisect_tl1(size_t l, const dentropy_args_t& ea, const bisect_args_t& ba)
         {
             double S0 = entropy(ea);
 
@@ -1605,12 +1634,12 @@ struct Dynamics
                 [=](auto nx)
                 {
                     dentropy_args_t ea_ = ea;
-                    ea_.tl1 = nx;
+                    ea_.tl1[l] = nx;
                     return entropy(ea_) - S0;
                 };
 
             BisectionSampler<> sampler(f, ba);
-            double nx = sampler.bisect(ea.tl1, 0);
+            double nx = sampler.bisect(ea.tl1[l], 0);
             return {nx, sampler};
         }
 
@@ -1627,16 +1656,16 @@ struct Dynamics
             return get_dS(x - h, x + h) / (2 * h);
         }
 
-        double node_diff(size_t v, double h, const dentropy_args_t& ea)
+        double node_diff(size_t v, size_t l, double h, const dentropy_args_t& ea)
         {
             auto get_dS =
                 [&](auto x, auto nx)
                 {
-                    return (dstate_node_dS(v, x, nx, ea) +
-                            (node_x_S(nx, ea) - node_x_S(x, ea)));
+                    return (dstate_node_dS(v, l, x, nx, ea) +
+                            (node_x_S(nx, l, ea) - node_x_S(x, l, ea)));
                 };
 
-            auto x = _theta[v];
+            auto x = _theta[v][l];
             return get_dS(x - h, x + h) / (2 * h);
         }
 
@@ -1686,21 +1715,21 @@ struct Dynamics
             _xdelta = delta;
         }
 
-        void requantize_all_theta(double delta)
+        void requantize_all_theta(size_t l, double delta)
         {
-            if (delta == _tdelta)
+            if (delta == _tdelta[l])
                 return;
 
             parallel_vertex_loop
                 (_u,
                  [&](auto v)
                  {
-                     auto x = _theta[v];
+                     auto x = _theta[v][l];
                      double nx = quantize(x, delta);
-                     update_node(v, nx);
+                     update_node(v, l, nx);
                  });
 
-            _tdelta = delta;
+            _tdelta[l] = delta;
         }
 
         template <class RNG>
@@ -1723,20 +1752,20 @@ struct Dynamics
 
         template <class RNG>
         std::tuple<double, BisectionSampler<>>
-        sample_t_disp(size_t v, double beta, const dentropy_args_t& ea,
+        sample_t_disp(size_t v, size_t l, double beta, const dentropy_args_t& ea,
                       const bisect_args_t& ba, bool fb, std::vector<double>& tvals,
                       RNG& rng)
         {
-            auto [nx_, sampler] = bisect_t_disp(v, ea, ba, fb, tvals, rng);
-            return {sampler.sample(beta, _tdelta, rng), sampler};
+            auto [nx_, sampler] = bisect_t_disp(v, l, ea, ba, fb, tvals, rng);
+            return {sampler.sample(beta, _tdelta[l], rng), sampler};
         }
 
         template <class RNG>
         std::tuple<double, BisectionSampler<>>
-        sample_t(size_t v, double beta, const dentropy_args_t& ea,
+        sample_t(size_t v, size_t l, double beta, const dentropy_args_t& ea,
                  const bisect_args_t& ba, bool fb, RNG& rng)
         {
-            return sample_t_disp(v, beta, ea, ba, fb, _tvals, rng);
+            return sample_t_disp(v, l, beta, ea, ba, fb, _tvals[l], rng);
         }
 
         template <class RNG>
@@ -1750,10 +1779,10 @@ struct Dynamics
 
         template <class RNG>
         std::tuple<double, BisectionSampler<>>
-        sample_tl1(double beta, const dentropy_args_t& ea,
+        sample_tl1(size_t l, double beta, const dentropy_args_t& ea,
                    const bisect_args_t& ba, RNG& rng)
         {
-            auto [nx_, sampler] = bisect_tl1(ea, ba);
+            auto [nx_, sampler] = bisect_tl1(l, ea, ba);
             return {sampler.sample(beta, 0, rng), sampler};
         }
 
@@ -1916,11 +1945,11 @@ struct Dynamics
 
         template <class RNG>
         std::tuple<double, size_t>
-        tvals_sweep(double beta, double r, size_t min_size,
+        tvals_sweep(size_t l, double beta, double r, size_t min_size,
                     const dentropy_args_t& ea, const bisect_args_t& ba, RNG& rng)
         {
             std::vector<double> vals;
-            for (auto& [x, c] : _thist)
+            for (auto& [x, c] : _thist[l])
                 vals.push_back(x);
 
             std::shuffle(vals.begin(), vals.end(), rng);
@@ -1935,14 +1964,14 @@ struct Dynamics
             gt_hash_map<size_t, std::vector<size_t>> vertices;
             for (auto v : vertices_range(_u))
             {
-                auto x = _theta[v];
+                auto x = _theta[v][l];
                 vertices[vmap[x]].push_back(v);
             }
 
             auto f =
                 [&](size_t xi, auto x, auto nx)
                 {
-                    return update_nodes_dS(vertices[xi], x, nx, ea);
+                    return update_nodes_dS(vertices[xi], l, x, nx, ea);
                 };
 
             size_t nmoves = 0;
@@ -1951,12 +1980,13 @@ struct Dynamics
                 [&](size_t xi, double x, double nx)
                 {
                     auto& vs = vertices[xi];
-                    update_nodes(vs, x, nx);
+                    update_nodes(vs, l, x, nx);
                     nmoves += vs.size();
                 };
 
-            return {vals_sweep<false>(f, update_vertices, _thist, vals, _tdelta,
-                                      beta, r, min_size, ba, rng), nmoves};
+            return {vals_sweep<false>(f, update_vertices, _thist[l], vals,
+                                      _tdelta[l], beta, r, min_size, ba, rng),
+                    nmoves};
         }
 
         std::vector<double>& get_xvals()
@@ -1964,9 +1994,9 @@ struct Dynamics
             return _xvals;
         }
 
-        std::vector<double>& get_tvals()
+        std::vector<double>& get_tvals(size_t l)
         {
-            return _tvals;
+            return _tvals[l];
         }
 
         void set_params(boost::python::dict p)

@@ -29,6 +29,7 @@
 
 #include "../../support/util.hh"
 
+
 namespace graph_tool
 {
 using namespace boost;
@@ -36,21 +37,30 @@ using namespace std;
 
 template <class Spec, bool keep_k, bool tshift, int xmin>
 class DiscreteStateBase
-    : public NSumStateBase<Spec, true, keep_k, tshift>
+    : public NSumStateBase<Spec, double, true, keep_k, tshift>
 {
 public:
+    typedef NSumStateBase<Spec, double, true, keep_k, tshift> base_t;
+
     template <class... Args>
     DiscreteStateBase(Args&&... s)
-        : NSumStateBase<Spec, true, keep_k, tshift>(s...)
+        : NSumStateBase<Spec, double, true, keep_k, tshift>(s...)
     {}
 
     template <class Val>
     constexpr Val transform_input(size_t, size_t, Val x) { return x; }
 
     template <class Val>
-    Val transform_theta(Val x, Val) { return x; }
+    void transform_theta(std::vector<Val>&, Val) {}
 
-    typedef NSumStateBase<Spec, true, keep_k, tshift> base_t;
+    typedef double m_t;
+    static constexpr double get_m_zero() { return 0; }
+
+    template <class Val>
+    void update_dm(double& dm, Val s, double dx)
+    {
+        dm += s * dx;
+    }
 };
 
 class SIState: public DiscreteStateBase<SIState, false, true, 0>
@@ -76,9 +86,9 @@ public:
     int transform_input(size_t, size_t, int x) { return x == State::I; }
 
     [[gnu::pure]]
-    double log_P(double theta, double m, int s, int ns)
+    double log_P(const std::vector<double>& theta, double m, int s, int ns)
     {
-        double lr = theta;
+        double lr = theta[0];
         double xl = log1p(-exp(m)) + log1p(-exp(lr));
         double a = min(xl, lr);
         double b = max(xl, lr);
@@ -114,10 +124,6 @@ class IsingBaseState
 public:
     typedef vprop_map_t<int>::unchecked_t theta_t;
 
-    using double_int_t = typename std::conditional<sizeof(double) == sizeof(uint32_t), uint32_t,
-                         typename std::conditional<sizeof(double) == sizeof(uint64_t), uint64_t,
-                                                   void>::type>::type;
-
     IsingBaseState(python::dict params)
     {
         set_params(params);
@@ -138,9 +144,9 @@ public:
     }
 
     [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, int s)
+    double log_P(const std::vector<double>& theta, double m, int s)
     {
-        double x = theta + m;
+        double x = theta[0] + m;
         return s * x - get_l2cosh(x);
     }
 
@@ -174,7 +180,7 @@ public:
           IsingBaseState(params) {};
 
     [[gnu::pure]] [[gnu::flatten]] [[gnu::always_inline]]
-    double log_P(double theta, double m, int, int ns)
+    double log_P(const std::vector<double>& theta, double m, int, int ns)
     {
         return IsingBaseState::log_P(theta, m, ns);
     }

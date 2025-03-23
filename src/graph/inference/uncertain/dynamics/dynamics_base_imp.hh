@@ -23,17 +23,18 @@
 namespace graph_tool
 {
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_node_prob(size_t v)
 {
     double L = 0;
     auto k = keep_k ? _k[v] : 0;
-    auto theta = _spec.transform_theta(_theta[v], k);
+    auto theta = _theta[v];
+    _spec.transform_theta(theta, k);
     iter_time<true, true, false>
         (std::array<size_t,0>({}), v,
-         [&](auto, auto, auto&&, auto m, auto w, auto... s_v)
+         [&](auto, auto, auto&&, auto&& m, auto w, auto... s_v)
          {
              if constexpr (!keep_k)
                  L += _spec.log_P(theta, m, s_v...) * w;
@@ -45,9 +46,9 @@ get_node_prob(size_t v)
 
 template double DState::base_t::get_node_prob(size_t);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_active_prob(size_t v)
 {
     double L = 0;
@@ -65,9 +66,9 @@ get_active_prob(size_t v)
 
 template double DState::base_t::get_active_prob(size_t);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edge_dS_compressed(size_t u, size_t v, double x, double nx)
 {
     return get_edge_dS_dispatch_indirect<true>(std::array<size_t,1>{u}, v,
@@ -78,22 +79,24 @@ get_edge_dS_compressed(size_t u, size_t v, double x, double nx)
 template double DState::base_t::get_edge_dS_compressed(size_t u, size_t v,
                                                        double x, double nx);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edge_dS_uncompressed(size_t u, size_t v, double x, double nx)
 {
-    return get_edge_dS_dispatch_direct<false,false>(std::array<size_t,1>{u}, v,
-                                                    std::array<double,1>{x},
-                                                    std::array<double,1>{nx});
+    //constexpr bool m_offload = !std::is_same_v<m_t,double>;
+    constexpr bool m_offload = false;
+    return get_edge_dS_dispatch_direct<false,m_offload>(std::array<size_t,1>{u}, v,
+                                                        std::array<double,1>{x},
+                                                        std::array<double,1>{nx});
 };
 
 template double DState::base_t::get_edge_dS_uncompressed(size_t u, size_t v,
                                                          double x, double nx);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edges_dS_compressed(const std::vector<size_t>& us, size_t v,
                         const std::vector<double>& x, const std::vector<double>& nx)
 {
@@ -105,9 +108,9 @@ template double DState::base_t::get_edges_dS_compressed(const std::vector<size_t
                                                         const std::vector<double>& x,
                                                         const std::vector<double>& nx);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edges_dS_uncompressed(const std::vector<size_t>& us, size_t v,
                           const std::vector<double>& x, const std::vector<double>& nx)
 {
@@ -119,9 +122,9 @@ template double DState::base_t::get_edges_dS_uncompressed(const std::vector<size
                                                           const std::vector<double>& x,
                                                           const std::vector<double>& nx);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edges_dS_compressed(const std::array<size_t,2>& us, size_t v,
                         const std::array<double,2>& x, const std::array<double,2>& nx)
 {
@@ -133,9 +136,9 @@ template double DState::base_t::get_edges_dS_compressed(const std::array<size_t,
                                                         const std::array<double,2>& x,
                                                         const std::array<double,2>& nx);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edges_dS_uncompressed(const std::array<size_t,2>& us, size_t v,
                           const std::array<double,2>& x,
                           const std::array<double,2>& nx)
@@ -148,25 +151,25 @@ template double DState::base_t::get_edges_dS_uncompressed(const std::array<size_
                                                           const std::array<double,2>& x,
                                                           const std::array<double,2>& nx);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
-get_node_dS_compressed(size_t v, double t, double nt)
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
+get_node_dS_compressed(size_t v, size_t l, double t, double nt)
 {
-    return get_node_dS_dispatch<true>(v, t, nt);
+    return get_node_dS_dispatch<true>(v, l, t, nt);
 }
 
-template double DState::base_t::get_node_dS_compressed(size_t v, double t, double nt);
+template double DState::base_t::get_node_dS_compressed(size_t v, size_t l, double t, double nt);
 
-template <class Spec, bool discrete, bool keep_k, bool tshift>
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
-double NSumStateBase<Spec, discrete, keep_k, tshift>::
-get_node_dS_uncompressed(size_t v, double t, double nt)
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
+get_node_dS_uncompressed(size_t v, size_t l, double t, double nt)
 {
-    return get_node_dS_dispatch<false>(v, t, nt);
+    return get_node_dS_dispatch<false>(v, l, t, nt);
 }
 
-template double DState::base_t::get_node_dS_uncompressed(size_t v, double t, double nt);
+template double DState::base_t::get_node_dS_uncompressed(size_t v, size_t l, double t, double nt);
 
 
 }// graph_tool namespace
