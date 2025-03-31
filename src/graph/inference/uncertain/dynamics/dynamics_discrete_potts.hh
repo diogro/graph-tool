@@ -18,6 +18,10 @@
 #ifndef DYNAMICS_DISCRETE_POTTS_HH
 #define DYNAMICS_DISCRETE_POTTS_HH
 
+#define GCC_VERSION (__GNUC__ * 10000 \
+                     + __GNUC_MINOR__ * 100 \
+                     + __GNUC_PATCHLEVEL__)
+
 #include "dynamics_discrete.hh"
 
 namespace graph_tool
@@ -86,20 +90,26 @@ public:
     {
         double x = theta[r];
         auto&& f = _f[r];
+#if GCC_VERSION >= 140000
         #pragma GCC unroll q
+#endif
         for (size_t s = 0; s < q; ++s)
             x += f[s] * m[s];
 
         double vmax = std::numeric_limits<double>::lowest();
         std::array<double, q> vals;
 
+#if GCC_VERSION >= 140000
         #pragma GCC unroll q
+#endif
         for (size_t r = 0; r < q; ++r)
         {
             auto& val = vals[r];
             val = theta[r];
             auto&& f = _f[r];
-            #pragma GCC unroll q
+#if GCC_VERSION >= 140000
+        #pragma GCC unroll q
+#endif
             for (size_t s = 0; s < q; ++s)
                 val += f[s] * m[s];
             if (val > vmax)
@@ -107,7 +117,9 @@ public:
         }
 
         double tmp = 0;
+#if GCC_VERSION >= 140000
         #pragma GCC unroll q
+#endif
         for (size_t r = 0; r < q; ++r)
             tmp += exp(vals[r] - vmax);
 
