@@ -542,7 +542,7 @@ struct overlap_partition_stats_t
         }
         else
         {
-            for (size_t di = 0; di < min(_actual_B + abs(dB) + 1, _dhist.size()); ++di)
+            for (size_t di = 0; di < min(size_t(_actual_B + abs(dB) + 1), _dhist.size()); ++di)
             {
                 if (d != n_d)
                 {

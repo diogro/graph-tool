@@ -1476,7 +1476,7 @@ struct Dynamics
                     auto v = target(e, _u);
                     if (edge(u, v, g).second || edge(v, u, g).second)
                         continue;
-                    boost::add_edge(u, v, g).first;
+                    boost::add_edge(u, v, g);
                 }
             }
 

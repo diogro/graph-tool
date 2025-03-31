@@ -105,7 +105,9 @@ struct MCMC
         template <class RNG>
         int64_t move_proposal(size_t, RNG& rng)
         {
-            auto [u, v] = _e = _edge_sampler.sample(rng);
+            _e = _edge_sampler.sample(rng);
+            size_t u = get<0>(_e);
+            size_t v = get<1>(_e);
             int64_t m = node_state(u, v);
 
             if (_bisect)
