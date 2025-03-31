@@ -88,7 +88,7 @@ REGISTER_MOD
                  {
                      auto a = nr[r];
                      auto b = ns[s];
-                     for (int64_t m = max(1L, a + b - N); m <= min(a, b); ++m)
+                     for (int64_t m = max(int64_t(1), a + b - N); m <= min(a, b); ++m)
                      {
                          double T = (m * (safelog_fast(m) + safelog_fast(N) - safelog_fast(a) - safelog_fast(b))) / N;
                          double lT = lgamma_fast(a + 1) + lgamma_fast(b + 1);

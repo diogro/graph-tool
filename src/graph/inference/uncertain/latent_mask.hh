@@ -168,7 +168,7 @@ struct LatentMask
         {
             auto e = get_edge(u, v);
             if (e == _null_edge)
-                return std::make_tuple(0L, _f_default, _lf_default);
+                return std::make_tuple(int64_t(0), _f_default, _lf_default);
             return std::make_tuple(_ecount[e], _f[e], _lf[e]);
         }
 
