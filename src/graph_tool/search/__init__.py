@@ -1725,7 +1725,7 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
         gt.seed_rng(42)
 
     >>> g = gt.Graph(directed=False)
-    >>> state = g.new_vertex_property("vector<bool>")
+    >>> state = g.new_vertex_property("vector<int>")
     >>> v = g.add_vertex()
     >>> state[v] = [0] * 10
     >>> target = [1] * 10
