@@ -26,7 +26,7 @@
 #include "graph_tool.hh"
 #include "../../support/graph_state.hh"
 #include "dynamics.hh"
-#include "../../support/segment_sampler.hh"
+#include "samplers.hh"
 #include "openmp.hh"
 
 #include "idx_map.hh"

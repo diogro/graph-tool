@@ -27,8 +27,7 @@
 #include "../../support/graph_state.hh"
 #include "../../loops/mcmc_loop.hh"
 #include "dynamics.hh"
-#include "../../support/segment_sampler.hh"
-#include "../../../generation/sampler.hh"
+#include "samplers.hh"
 #include "openmp.hh"
 
 #include "dynamics_elist_state.hh"
@@ -106,10 +105,10 @@ struct MCMC
 
             std::vector<move_t> moves = {move_t::replace, move_t::swap};
             std::vector<double> probs = {_preplace, _pswap};
-            _move_sampler = Sampler<move_t, mpl::false_>(moves, probs);
+            _move_sampler = Sampler<move_t, false>(moves, probs);
         }
 
-        Sampler<move_t, mpl::false_> _move_sampler;
+        Sampler<move_t, false> _move_sampler;
 
         typedef typename State::xval_t xval_t;
 

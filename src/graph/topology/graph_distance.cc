@@ -23,7 +23,7 @@
 #include "numpy_bind.hh"
 #include "hash_map_wrap.hh"
 #include "coroutine.hh"
-#include "../generation/sampler.hh"
+#include "samplers.hh"
 
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>

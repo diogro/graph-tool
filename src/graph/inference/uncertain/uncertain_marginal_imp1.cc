@@ -17,7 +17,7 @@
 
 #include "graph_tool.hh"
 #include "parallel_rng.hh"
-#include "../../generation/sampler.hh"
+#include "samplers.hh"
 #include "../support/util.hh"
 
 using namespace boost;

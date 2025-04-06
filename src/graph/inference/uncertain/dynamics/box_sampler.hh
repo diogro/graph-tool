@@ -18,7 +18,7 @@
 #ifndef BOX_SAMPLER_HH
 #define BOX_SAMPLER_HH
 
-#include "zipf_sampler.hh"
+#include "samplers.hh"
 
 namespace graph_tool
 {
@@ -43,7 +43,7 @@ public:
             else
                 _cums.push_back(_probs.back() + _cums.back());
         }
-        _sampler = Sampler<size_t, mpl::false_>(_items, _probs);
+        _sampler = Sampler<size_t,false>(_items, _probs);
     }
 
     template <class RNG>

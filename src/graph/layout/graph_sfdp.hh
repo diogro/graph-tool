@@ -23,7 +23,7 @@
 
 #include "idx_map.hh"
 
-#include "../generation/sampler.hh"
+#include "samplers.hh"
 #include "../inference/support/util.hh"
 
 #include "quad_tree.hh"

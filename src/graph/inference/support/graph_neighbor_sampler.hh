@@ -21,6 +21,8 @@
 #include "config.h"
 
 #include "graph_tool.hh"
+#include "samplers.hh"
+#include "dynamic_sampler.hh"
 
 // Sample neighbors efficiently
 // =============================
@@ -183,8 +185,7 @@ private:
     typedef typename std::conditional<Weighted::value,
                                       typename std::conditional<Dynamic::value,
                                                                 DynamicSampler<item_t>,
-                                                                Sampler<item_t,
-                                                                        boost::mpl::false_>>::type,
+                                                                Sampler<item_t,false>>::type,
                                       std::vector<item_t>>::type
         sampler_t;
 

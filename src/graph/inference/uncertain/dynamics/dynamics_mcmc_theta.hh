@@ -27,7 +27,7 @@
 #include "../../support/graph_state.hh"
 #include "../../loops/mcmc_loop.hh"
 #include "../../support/fibonacci_search.hh"
-#include "../../support/segment_sampler.hh"
+#include "samplers.hh"
 #include "dynamics.hh"
 #include "openmp.hh"
 
@@ -101,10 +101,10 @@ struct MCMCTheta
                 = {xmove_t::x_old, xmove_t::x_new};
             std::vector<double> probs
                 = {_pold, _pnew};
-            _move_sampler = Sampler<xmove_t, mpl::false_>(moves, probs);
+            _move_sampler = Sampler<xmove_t, false>(moves, probs);
         }
 
-        Sampler<xmove_t, mpl::false_> _move_sampler;
+        Sampler<xmove_t, false> _move_sampler;
 
         typedef typename State::tval_t tval_t;
         typedef tval_t move_t;

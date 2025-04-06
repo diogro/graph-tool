@@ -25,7 +25,7 @@
 #include "parallel_rng.hh"
 
 #include "../inference/support/util.hh"
-#include "../generation/sampler.hh"
+#include "samplers.hh"
 
 namespace graph_tool
 {

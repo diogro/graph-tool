@@ -18,7 +18,7 @@
 #ifndef SEGMENT_SAMPLER_HH
 #define SEGMENT_SAMPLER_HH
 
-#include "../../generation/sampler.hh"
+#include "samplers.hh"
 #include "util.hh"
 
 namespace graph_tool

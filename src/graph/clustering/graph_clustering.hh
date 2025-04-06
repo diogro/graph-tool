@@ -21,7 +21,7 @@
 #include "config.h"
 
 #include "idx_map.hh"
-#include "../generation/sampler.hh"
+#include "samplers.hh"
 
 #ifdef _OPENMP
 #include "omp.h"

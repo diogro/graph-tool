@@ -25,7 +25,7 @@
 #include "graph_util.hh"
 #include "graph_filtering.hh"
 #include "graph_generation.hh"
-#include "sampler.hh"
+#include "samplers.hh"
 #include "dynamic_sampler.hh"
 #include <boost/python.hpp>
 
@@ -83,9 +83,9 @@ BOOST_PYTHON_MODULE(libgraph_tool_generation)
     docstring_options dopt(true, false);
     def("gen_graph", &generate_graph);
 
-    class_<Sampler<int, boost::mpl::false_>>("Sampler",
-                                             init<const vector<int>&, const vector<double>&>())
-        .def("sample", &Sampler<int, boost::mpl::false_>::sample<rng_t>,
+    class_<Sampler<int, false>>("Sampler", init<const vector<int>&,
+                                const vector<double>&>())
+        .def("sample", &Sampler<int, false>::sample<rng_t>,
              return_value_policy<copy_const_reference>());
 
     class_<DynamicSampler<int>>("DynamicSampler",

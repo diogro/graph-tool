@@ -24,7 +24,7 @@
 #include "graph_filtering.hh"
 #include "graph_util.hh"
 #include "hash_map_wrap.hh"
-#include "sampler.hh"
+#include "samplers.hh"
 
 namespace graph_tool
 {

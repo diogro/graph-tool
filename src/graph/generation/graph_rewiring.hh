@@ -24,7 +24,7 @@
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
-#include "sampler.hh"
+#include "samplers.hh"
 
 #include "random.hh"
 

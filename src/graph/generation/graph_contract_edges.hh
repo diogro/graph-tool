@@ -21,7 +21,7 @@
 #include "graph.hh"
 #include "graph_util.hh"
 #include "random.hh"
-#include "sampler.hh"
+#include "samplers.hh"
 #include "idx_map.hh"
 
 namespace graph_tool

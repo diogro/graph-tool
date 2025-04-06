@@ -116,12 +116,13 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/base64.hh \
 	src/graph/coroutine.hh \
 	src/graph/demangle.hh \
+	src/graph/dynamic_sampler.hh \
 	src/graph/fast_vector_property_map.hh \
-	src/graph/gml.hh \
 	src/graph/gil_release.hh \
+	src/graph/gml.hh \
 	src/graph/graph.hh \
-	src/graph/graph_adjacency.hh \
 	src/graph/graph_adaptor.hh \
+	src/graph/graph_adjacency.hh \
 	src/graph/graph_exceptions.hh \
 	src/graph/graph_filtered.hh \
 	src/graph/graph_filtering.hh \
@@ -139,18 +140,21 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/histogram.hh \
 	src/graph/idx_map.hh \
 	src/graph/module_registry.hh \
-	src/graph/numpy_bind.hh \
 	src/graph/npy_2_compat.h \
+	src/graph/numpy_bind.hh \
 	src/graph/openmp.hh \
 	src/graph/openmp_lock.hh \
-	src/graph/parallel_util.hh \
 	src/graph/parallel_rng.hh \
+	src/graph/parallel_util.hh \
 	src/graph/random.hh \
-	src/graph/str_repr.hh \
-	src/graph/shared_map.hh \
+	src/graph/samplers.hh \
 	src/graph/shared_heap.hh \
+	src/graph/shared_map.hh \
+	src/graph/str_repr.hh \
 	src/graph/transform_iterator.hh \
+	src/graph/urn_sampler.hh \
 	src/graph/value_convert.hh
+
 libgraph_tool_core_la_workarounddir = $(MOD_DIR)/include/boost-workaround/boost/graph/
 libgraph_tool_core_la_workaround_HEADERS = \
 	src/boost-workaround/boost/container/small_vector_old.hpp \
@@ -350,7 +354,6 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_triadic_closure.cc \
 	src/graph/generation/graph_triangulation.cc
 libgraph_tool_generation_la_include_HEADERS = \
-	src/graph/generation/dynamic_sampler.hh \
 	src/graph/generation/graph_bip_projection.hh \
 	src/graph/generation/graph_complete.hh \
 	src/graph/generation/graph_contract_edges.hh \
@@ -367,9 +370,7 @@ libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/graph_rewiring.hh \
 	src/graph/generation/graph_sbm.hh \
 	src/graph/generation/graph_triadic_closure.hh \
-	src/graph/generation/graph_triangulation.hh \
-	src/graph/generation/sampler.hh \
-	src/graph/generation/urn_sampler.hh
+	src/graph/generation/graph_triangulation.hh
 
 ########################
 # src/graph/inference/ #

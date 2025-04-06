@@ -23,7 +23,7 @@
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
-#include "../../generation/sampler.hh"
+#include "dynamic_sampler.hh"
 
 #include "random.hh"
 

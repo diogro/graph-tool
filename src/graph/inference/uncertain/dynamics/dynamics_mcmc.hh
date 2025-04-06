@@ -27,7 +27,7 @@
 #include "../../support/graph_state.hh"
 #include "dynamics.hh"
 #include "../../support/segment_sampler.hh"
-#include "../../../generation/sampler.hh"
+#include "samplers.hh"
 #include "openmp.hh"
 
 #include "dynamics_elist_state.hh"

@@ -19,7 +19,6 @@
 #define SAMPLER_HH
 
 #include "random.hh"
-#include <boost/mpl/if.hpp>
 
 namespace graph_tool
 {
@@ -31,7 +30,7 @@ using namespace boost;
 // See http://www.keithschwarz.com/darts-dice-coins/ for a very clear
 // explanation.
 
-template <class Value, class KeepReference = mpl::true_>
+template <class Value, bool keep_ref=true>
 class Sampler
 {
 public:
@@ -125,9 +124,9 @@ public:
 
 private:
 
-    typedef typename mpl::if_<KeepReference,
-                              const vector<Value>&,
-                              vector<Value> >::type items_t;
+    typedef std::conditional_t<keep_ref,
+                               const vector<Value>&,
+                               vector<Value>> items_t;
     items_t _items;
     vector<double> _probs;
     vector<size_t> _alias;

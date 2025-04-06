@@ -26,7 +26,7 @@
 #endif
 #include "random.hh"
 #include "parallel_rng.hh"
-#include "../generation/sampler.hh"
+#include "samplers.hh"
 #include "idx_map.hh"
 
 namespace graph_tool
