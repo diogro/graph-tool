@@ -265,7 +265,7 @@ class MCMCState(EntropyState):
         """
 
         mcmc_state = DictState(locals())
-        mcmc_state.oentropy_args = self._get_entropy_args(entropy_args)
+        mcmc_state.entropy_args = self._get_entropy_args(entropy_args)
         mcmc_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.vertex_index.copy().fa
@@ -371,7 +371,7 @@ class MultiflipMCMCState(EntropyState):
         nacceptance = Vector_size_t(4)
         force_move = kwargs.pop("force_move", False)
         mcmc_state = DictState(locals())
-        mcmc_state.oentropy_args = self._get_entropy_args(entropy_args)
+        mcmc_state.entropy_args = self._get_entropy_args(entropy_args)
         mcmc_state.state = self._state
 
         dispatch = kwargs.pop("dispatch", True)
@@ -523,7 +523,7 @@ class MultilevelMCMCState(EntropyState):
             b_max = self.g.new_vp("int64_t")
 
         mcmc_state = DictState(locals())
-        mcmc_state.oentropy_args = self._get_entropy_args(entropy_args)
+        mcmc_state.entropy_args = self._get_entropy_args(entropy_args)
         mcmc_state.state = self._state
 
         dispatch = kwargs.pop("dispatch", True)
@@ -594,7 +594,7 @@ class GibbsMCMCState(EntropyState):
         """
 
         gibbs_state = DictState(locals())
-        gibbs_state.oentropy_args = self._get_entropy_args(entropy_args)
+        gibbs_state.entropy_args = self._get_entropy_args(entropy_args)
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.get_vertices()
@@ -753,7 +753,7 @@ class ExhaustiveSweepState(EntropyState):
         """
 
         exhaustive_state = DictState(dict(max_iter=max_iter if max_iter is not None else 0))
-        exhaustive_state.oentropy_args = self._get_entropy_args(entropy_args)
+        exhaustive_state.entropy_args = self._get_entropy_args(entropy_args)
         exhaustive_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.vertex_index.copy().fa

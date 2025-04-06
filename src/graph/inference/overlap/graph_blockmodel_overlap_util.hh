@@ -62,7 +62,7 @@ public:
             size_t kin = in_degreeS()(v, g);
             size_t kout = out_degreeS()(v, g);
 
-            size_t r = b[v];
+            auto r = b[v];
             auto& bnodes = _block_nodes[r];
             auto& k = bnodes[vi];
             k.first += kin;
@@ -103,8 +103,8 @@ public:
                         auto w = _out_neighbors[u];
                         assert(w != _null);
 
-                        size_t r = b[u];
-                        size_t s = b[w];
+                        auto r = b[u];
+                        auto s = b[w];
                         if (!is_directed(g) && r > s)
                             std::swap(r, s);
                         bool is_loop = (!is_directed(g) &&
@@ -144,7 +144,7 @@ public:
         int64_t m = _mi[v];
         if (m != -1)
         {
-            size_t r, s;
+            group_t r, s;
             auto w = _out_neighbors[v];
             if (w == _null)
             {
@@ -186,7 +186,7 @@ public:
         int64_t m = _mi[v];
         if (m != -1)
         {
-            size_t r, s;
+            group_t r, s;
             auto w = _out_neighbors[v];
             if (w == _null)
             {
@@ -220,7 +220,7 @@ public:
         return _block_nodes[r].size();
     }
 
-    size_t virtual_remove_size(size_t v, size_t r, size_t in_deg = 0,
+    size_t virtual_remove_size(size_t v, group_t r, size_t in_deg = 0,
                                size_t out_deg = 0) const
     {
         size_t nr = _block_nodes[r].size();
@@ -236,7 +236,7 @@ public:
         return nr;
     }
 
-    size_t virtual_add_size(size_t v, size_t r) const
+    size_t virtual_add_size(size_t v, group_t r) const
     {
         size_t nr = _block_nodes[r].size();
         size_t u = _node_index[v];
@@ -247,7 +247,7 @@ public:
     }
 
     template <class Graph>
-    double virtual_move_deg_dS(size_t v, size_t r, size_t nr, Graph& g,
+    double virtual_move_deg_dS(size_t v, group_t r, group_t nr, Graph& g,
                                size_t in_deg = 0, size_t out_deg = 0) const
     {
         double dS = 0;
@@ -280,7 +280,7 @@ public:
     }
 
     template <class Graph, class VProp>
-    double virtual_move_parallel_dS(size_t v, size_t v_r, size_t v_nr, VProp& b,
+    double virtual_move_parallel_dS(size_t v, group_t v_r, group_t v_nr, VProp& b,
                                     Graph& g) const
     {
         int64_t m = _mi[v];
@@ -410,11 +410,11 @@ public:
     SingleEntrySet() : _pos(0), _mes_pos(0) {}
     SingleEntrySet(size_t) : SingleEntrySet() {}
 
-    void set_move(size_t r, size_t nr, size_t) { clear(); _rnr = std::make_pair(r, nr); }
-    const pair<size_t, size_t>& get_move() { return _rnr; }
+    void set_move(group_t r, group_t nr, size_t) { clear(); _rnr = std::make_pair(r, nr); }
+    const pair<group_t, group_t>& get_move() { return _rnr; }
 
     template <bool First, bool Source, bool Add, class... DVals>
-    void insert_delta_rnr(size_t t, size_t s, int64_t d, DVals... delta)
+    void insert_delta_rnr(group_t t, group_t s, int64_t d, DVals... delta)
     {
         if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -434,7 +434,7 @@ public:
         ++_pos;
     }
 
-    int64_t get_delta(size_t t, size_t s)
+    int64_t get_delta(group_t t, group_t s)
     {
         if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -476,7 +476,7 @@ public:
     }
 
     template <class Emat>
-    const bedge_t& get_me(size_t t, size_t s, Emat& emat)
+    const bedge_t& get_me(group_t t, group_t s, Emat& emat)
     {
         if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -498,14 +498,14 @@ public:
 
     std::tuple<EVals...> _self_eweight;
 
-    std::vector<std::tuple<size_t, size_t,
+    std::vector<std::tuple<group_t, group_t,
                            GraphInterface::edge_t, int64_t, std::vector<double>>>
         _p_entries;
 
 private:
-    pair<size_t, size_t> _rnr;
+    pair<group_t, group_t> _rnr;
     size_t _pos;
-    std::array<pair<size_t, size_t>, 2> _entries;
+    std::array<pair<group_t, group_t>, 2> _entries;
     std::array<int64_t, 2> _delta;
     std::array<std::tuple<EVals...>, 2> _edelta;
     std::array<bedge_t, 2> _mes;

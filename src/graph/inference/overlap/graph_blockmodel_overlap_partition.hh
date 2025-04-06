@@ -106,7 +106,7 @@ struct overlap_partition_stats_t
             auto nv = get_v(v);
 
             dmap_t in_hist, out_hist;
-            set<size_t> rs;
+            set<group_t> rs;
 
             get_bv_deg(v, b, eweight, g, rs, in_hist, out_hist);
 
@@ -138,7 +138,7 @@ struct overlap_partition_stats_t
 
             for (size_t i = 0; i < bv.size(); ++i)
             {
-                size_t r = bv[i];
+                group_t r = bv[i];
                 auto& deg = cdeg[i];
                 _emhist[r] += get<0>(deg);
                 _ephist[r] += get<1>(deg);
@@ -178,19 +178,19 @@ struct overlap_partition_stats_t
         return nv;
     }
 
-    size_t get_r(size_t r)
+    group_t get_r(group_t r)
     {
-        size_t nr;
+        group_t nr;
         #pragma omp critical (get_r)
         {
-            constexpr size_t null =
-                std::numeric_limits<size_t>::max();
-            if (r >= _bmap.size())
+            constexpr group_t null =
+                std::numeric_limits<group_t>::max();
+            if (size_t(r) >= _bmap.size())
                 _bmap.resize(r + 1, null);
             nr = _bmap[r];
             if (nr == null)
                 nr = _bmap[r] = _r_count.size();
-            if (nr >= _r_count.size())
+            if (size_t(nr) >= _r_count.size())
             {
                 _r_count.resize(nr + 1);
                 _dhist.resize(nr + 2);
@@ -203,7 +203,7 @@ struct overlap_partition_stats_t
 
 
     template <class Graph, class Vprop, class Eprop>
-    void get_bv_deg(size_t v, Vprop& b, Eprop&, Graph& g, set<size_t>& rs,
+    void get_bv_deg(size_t v, Vprop& b, Eprop&, Graph& g, set<group_t>& rs,
                     dmap_t& in_hist, dmap_t& out_hist)
     {
         auto& half_edges = _overlap_stats->get_half_edges(v);
@@ -357,7 +357,7 @@ struct overlap_partition_stats_t
     }
 
     template <class Graph>
-    bool get_n_bv(size_t v, size_t r, size_t nr, const bv_t& bv,
+    bool get_n_bv(size_t v, group_t r, group_t nr, const bv_t& bv,
                   const cdeg_t& deg, bv_t& n_bv, cdeg_t& n_deg, Graph& g,
                   size_t in_deg = 0, size_t out_deg = 0) const
     {
@@ -381,7 +381,7 @@ struct overlap_partition_stats_t
         bool has_r = false, has_nr = false;
         for (size_t i = 0; i < bv.size(); ++i)
         {
-            size_t s = bv[i];
+            group_t s = bv[i];
             auto k_s = deg[i];
 
             auto& d_s = deg_delta[s];
@@ -411,7 +411,7 @@ struct overlap_partition_stats_t
         if (!has_r || !has_nr)
         {
             is_same_bv = false;
-            std::array<size_t, 2> ss = {{r, nr}};
+            std::array<group_t, 2> ss = {{r, nr}};
             for (auto s : ss)
             {
                 auto& d_s = deg_delta[s];
@@ -461,14 +461,14 @@ struct overlap_partition_stats_t
     }
 
     template <class Graph>
-    double get_delta_partition_dl(size_t v, size_t r, size_t nr, const Graph& g,
+    double get_delta_partition_dl(size_t v, group_t r, group_t nr, const Graph& g,
                                   size_t in_deg = 0, size_t out_deg = 0)
     {
         if (r == nr)
             return 0;
 
-        size_t o_r = r;
-        size_t o_nr = nr;
+        group_t o_r = r;
+        group_t o_nr = nr;
         r = get_r(r);
         nr = get_r(nr);
 
@@ -585,7 +585,7 @@ struct overlap_partition_stats_t
     }
 
     template <class Graph>
-    double get_delta_edges_dl(size_t v, size_t r, size_t nr, size_t actual_B,
+    double get_delta_edges_dl(size_t v, group_t r, group_t nr, size_t actual_B,
                               const Graph& g)
     {
         if (r == nr)
@@ -618,7 +618,7 @@ struct overlap_partition_stats_t
 
 
     template <class Graph, class EWeight>
-    double get_delta_deg_dl(size_t v, size_t r, size_t nr, const EWeight&,
+    double get_delta_deg_dl(size_t v, group_t r, group_t nr, const EWeight&,
                             const Graph& g, size_t in_deg = 0,
                             size_t out_deg = 0)
     {
@@ -760,23 +760,23 @@ struct overlap_partition_stats_t
         S_b += get_S_deg(true,  0) + get_S_deg(false, 0);
         S_a += get_S_deg(true, -1) + get_S_deg(false, 1);
 
-        auto is_in = [&] (const bv_t& bv, size_t r) -> bool
+        auto is_in = [&] (const bv_t& bv, group_t r) -> bool
             {
                 auto iter = lower_bound(bv.begin(), bv.end(), r);
                 if (iter == bv.end())
                     return false;
-                if (size_t(*iter) != r)
+                if (*iter != r)
                     return false;
                 return true;
             };
 
-        for (size_t s : bv)
+        for (group_t s : bv)
         {
             S_b += lbinom_fast(_r_count[s] + _emhist[s] - 1, _emhist[s]);
             S_b += lbinom_fast(_r_count[s] + _ephist[s] - 1, _ephist[s]);
         }
 
-        for (size_t s : n_bv)
+        for (group_t s : n_bv)
         {
             if (is_in(bv, s))
                 continue;
@@ -816,7 +816,7 @@ struct overlap_partition_stats_t
             d_nr.second += kout;
         }
 
-        for (size_t s : bv)
+        for (group_t s : bv)
         {
             S_a += lbinom_fast(_r_count[s] + r_count_delta[s] + _emhist[s] + deg_delta[s].first - 1,
                                _emhist[s] + deg_delta[s].first);
@@ -824,7 +824,7 @@ struct overlap_partition_stats_t
                                _ephist[s] + deg_delta[s].second);
         }
 
-        for (size_t s : n_bv)
+        for (group_t s : n_bv)
         {
             if (!is_in(bv, s))
             {
@@ -900,7 +900,7 @@ struct overlap_partition_stats_t
     // }
 
     template <class Graph>
-    void move_vertex(size_t v, size_t r, size_t nr, Graph& g, size_t in_deg = 0,
+    void move_vertex(size_t v, group_t r, group_t nr, Graph& g, size_t in_deg = 0,
                      size_t out_deg = 0)
     {
         if (r == nr)
@@ -1034,7 +1034,7 @@ struct overlap_partition_stats_t
 
 private:
     overlap_stats_t* _overlap_stats;
-    vector<size_t> _bmap;
+    vector<group_t> _bmap;
     vector<size_t> _vmap;
     size_t _N;
     size_t _E;

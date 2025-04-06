@@ -47,9 +47,9 @@ REGISTER_MOD
         ([&](auto* s)
          {
              typedef typename std::remove_reference<decltype(*s)>::type state_t;
-             void (state_t::*move_vertex)(size_t, size_t) =
+             void (state_t::*move_vertex)(size_t, group_t) =
                  &state_t::move_vertex;
-             double (state_t::*virtual_move)(size_t, size_t, size_t,
+             double (state_t::*virtual_move)(size_t, group_t, group_t,
                                              const modularity_entropy_args_t& ea) =
                  &state_t::virtual_move;
 

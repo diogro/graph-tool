@@ -33,8 +33,8 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef multi_array_ref<int64_t,2> bs_t;
-typedef multi_array_ref<int64_t,1> b_t;
+typedef multi_array_ref<group_t,2> bs_t;
+typedef multi_array_ref<group_t,1> b_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(always_directed_never_reversed), 1))                      \
@@ -69,7 +69,7 @@ public:
     {
         GILRelease gil_release;
 
-        for (size_t r : _b)
+        for (group_t r : _b)
             _wr[r]++;
 
         for (size_t r = 0; r < _N; ++r)
@@ -99,18 +99,18 @@ public:
         bg_t;
     bg_t& _bg;
 
-    std::vector<gt_hash_map<std::tuple<size_t, size_t>, size_t>> _mrs;
-    std::vector<gt_hash_map<size_t, size_t>> _nr;
+    std::vector<gt_hash_map<std::tuple<group_t, group_t>, size_t>> _mrs;
+    std::vector<gt_hash_map<group_t, size_t>> _nr;
 
     size_t _N;
 
     std::vector<size_t> _wr;
 
-    idx_set<size_t> _empty_groups;
-    idx_set<size_t> _candidate_groups;
+    idx_set<group_t> _empty_groups;
+    idx_set<group_t> _candidate_groups;
 
-    std::vector<size_t> _bclabel;
-    std::vector<size_t> _pclabel;
+    std::vector<group_t> _bclabel;
+    std::vector<group_t> _pclabel;
 
     typedef char _entropy_args_t;
 
@@ -124,9 +124,9 @@ public:
     // State modification
     // =========================================================================
 
-    void move_vertex(size_t v, size_t nr)
+    void move_vertex(size_t v, group_t nr)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
         if (nr == r)
             return;
 
@@ -137,7 +137,7 @@ public:
         for (size_t i = 0; i < _mrs.size(); ++i)
         {
             auto& mrsi = _mrs[i];
-            size_t s = _bs[i][v];
+            group_t s = _bs[i][v];
             auto iter = mrsi.find({r, s});
             assert(iter != mrsi.end());
             iter->second--;
@@ -162,7 +162,7 @@ public:
     }
 
     template <class ME>
-    void move_vertex(size_t v, size_t nr, ME&)
+    void move_vertex(size_t v, group_t nr, ME&)
     {
         move_vertex(v, nr);
     }
@@ -176,7 +176,7 @@ public:
     {
     }
 
-    double virtual_move(size_t v, size_t r, size_t nr)
+    double virtual_move(size_t v, group_t r, group_t nr)
     {
         if (r == nr)
             return 0;
@@ -192,7 +192,7 @@ public:
         for (size_t i = 0; i < _mrs.size(); ++i)
         {
             auto& mrsi = _mrs[i];
-            size_t s = _bs[i][v];
+            group_t s = _bs[i][v];
 
             size_t mrs = mrsi[{r,s}];
             assert(mrs > 0);
@@ -205,12 +205,12 @@ public:
         return (Sa - Sb);
     }
 
-    size_t get_empty_block(size_t, bool=false)
+    group_t get_empty_block(size_t, bool=false)
     {
         return *(_empty_groups.end() - 1);
     }
 
-    size_t sample_block(size_t, double, double d, rng_t& rng)
+    group_t sample_block(size_t, double, double d, rng_t& rng)
     {
         std::bernoulli_distribution new_r(d);
         if (d > 0 && !_empty_groups.empty() && new_r(rng))
@@ -218,13 +218,13 @@ public:
         return uniform_sample(_candidate_groups, rng);
     }
 
-    size_t sample_block_local(size_t v, rng_t& rng)
+    group_t sample_block_local(size_t v, rng_t& rng)
     {
         return sample_block(v, 0, 0, rng);
     }
 
     // Computes the move proposal probability
-    double get_move_prob(size_t, size_t r, size_t s, double, double d,
+    double get_move_prob(size_t, group_t r, group_t s, double, double d,
                          bool reverse)
     {
         size_t B = _candidate_groups.size();
@@ -248,20 +248,20 @@ public:
     }
 
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse, MEntries&&)
     {
         return get_move_prob(v, r, s, c, d, reverse);
     }
 
     template <class EArgs>
-    double virtual_move(size_t v, size_t r, size_t nr, EArgs&&)
+    double virtual_move(size_t v, group_t r, group_t nr, EArgs&&)
     {
         return virtual_move(v, r, nr);
     }
 
     template <class EArgs, class MEntries>
-    double virtual_move(size_t v, size_t r, size_t nr, EArgs&&, MEntries&&)
+    double virtual_move(size_t v, group_t r, group_t nr, EArgs&&, MEntries&&)
     {
         return virtual_move(v, r, nr);
     }
@@ -305,7 +305,7 @@ public:
         return _wr[_b[v]] == 1;
     }
 
-    constexpr bool allow_move(size_t, size_t)
+    constexpr bool allow_move(group_t, group_t)
     {
         return true;
     }
@@ -318,13 +318,13 @@ public:
     void relax_update(bool) {}
 
     // owned by deep copy
-    std::shared_ptr<multi_array<int64_t,1>> _bp;
+    std::shared_ptr<multi_array<group_t,1>> _bp;
 
     template <size_t... Is>
     VICenterState* deep_copy(index_sequence<Is...>)
     {
-        multi_array<int64_t,1>* bp = new multi_array<int64_t,1>(_b);
-        multi_array_ref<int64_t,1> b(*bp);
+        multi_array<group_t,1>* bp = new multi_array<group_t,1>(_b);
+        multi_array_ref<group_t,1> b(*bp);
         auto args =
             dispatch_args(_args,
                           [&](std::string name, auto& a) -> decltype(auto)
@@ -341,7 +341,7 @@ public:
                           });
 
         auto state = new VICenterState(std::get<Is>(args)...);
-        state->_bp = std::shared_ptr<multi_array<int64_t,1>>(bp);
+        state->_bp = std::shared_ptr<multi_array<group_t,1>>(bp);
         return state;
     };
 

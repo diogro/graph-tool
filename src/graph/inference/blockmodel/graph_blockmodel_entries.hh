@@ -123,7 +123,7 @@ public:
         }
     }
 
-    void set_move(size_t r, size_t nr, size_t B)
+    void set_move(group_t r, group_t nr, size_t B)
     {
         clear();
         _rnr = make_pair(r, nr);
@@ -139,11 +139,11 @@ public:
         }
     }
 
-    const pair<size_t, size_t>& get_move() { return _rnr; }
+    const pair<group_t, group_t>& get_move() { return _rnr; }
 
     template <bool First, bool Source>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    size_t& get_field_rnr(size_t s, size_t t)
+    size_t& get_field_rnr(group_t s, group_t t)
     {
         auto get_out_field =
             [&]() -> auto&
@@ -182,7 +182,7 @@ public:
     }
 
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    size_t& get_field(size_t s, size_t t)
+    size_t& get_field(group_t s, group_t t)
     {
         if (s == _rnr.first)
             return get_field_rnr<true, true>(s, t);
@@ -197,7 +197,7 @@ public:
 
     template <bool Add, class... DVals>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    void insert_delta_dispatch(size_t s, size_t t, size_t& f, int64_t d, DVals&&... delta)
+    void insert_delta_dispatch(group_t s, group_t t, size_t& f, int64_t d, DVals&&... delta)
     {
         if (f == _null)
         {
@@ -226,7 +226,7 @@ public:
 
     template <bool First, bool Source, bool Add, class... DVals>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    void insert_delta_rnr(size_t s, size_t t, int64_t d, DVals&&... delta)
+    void insert_delta_rnr(group_t s, group_t t, int64_t d, DVals&&... delta)
     {
         auto& f = get_field_rnr<First, Source>(s, t);
         insert_delta_dispatch<Add>(s, t, f, d, std::forward<DVals>(delta)...);
@@ -234,14 +234,14 @@ public:
 
     template <bool Add, class... DVals>
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    void insert_delta(size_t s, size_t t, int64_t d, DVals&&... delta)
+    void insert_delta(group_t s, group_t t, int64_t d, DVals&&... delta)
     {
         auto& f = get_field(s, t);
         insert_delta_dispatch<Add>(s, t, f, d, std::forward<DVals>(delta)...);
     }
 
     [[gnu::always_inline]] [[gnu::flatten]] inline
-    int64_t get_delta(size_t r, size_t s)
+    int64_t get_delta(group_t r, group_t s)
     {
         size_t f = get_field(r, s);
         if (f == _null)
@@ -253,8 +253,8 @@ public:
     {
         for (const auto& rs : _entries)
         {
-            size_t r = rs.first;
-            size_t s = rs.second;
+            group_t r = rs.first;
+            group_t s = rs.second;
             auto& f = get_field(r, s);
             f = _null;
         }
@@ -265,7 +265,7 @@ public:
         _p_entries.clear();
     }
 
-    const vector<pair<size_t, size_t>>& get_entries() { return _entries; }
+    const vector<pair<group_t, group_t>>& get_entries() { return _entries; }
     const vector<int64_t>&                  get_delta()   { return _delta;   }
     const vector<std::tuple<EVals...>>& get_edelta()  { _edelta.resize(_delta.size()); return _edelta;  }
 
@@ -282,7 +282,7 @@ public:
     }
 
     template <class Emat>
-    const bedge_t& get_me(size_t r, size_t s, Emat& emat)
+    const bedge_t& get_me(group_t r, group_t s, Emat& emat)
     {
         size_t field = get_field(r, s);
         if (field >= _mes.size())
@@ -292,19 +292,19 @@ public:
 
     std::tuple<EVals...> _self_eweight;
 
-    std::vector<std::tuple<size_t, size_t,
+    std::vector<std::tuple<group_t, group_t,
                            GraphInterface::edge_t, int64_t, std::vector<double>>>
         _p_entries;
 
 private:
     static constexpr size_t _null = numeric_limits<size_t>::max();
 
-    pair<size_t, size_t> _rnr;
+    pair<group_t, group_t> _rnr;
     vector<size_t> _r_out_field;
     vector<size_t> _r_in_field;
     vector<size_t> _nr_out_field;
     vector<size_t> _nr_in_field;
-    vector<pair<size_t, size_t>> _entries;
+    vector<pair<group_t, group_t>> _entries;
     vector<int64_t> _delta;
     vector<std::tuple<EVals...>> _edelta;
     vector<bedge_t> _mes;
@@ -319,10 +319,10 @@ struct is_loop_nop
     bool operator()(size_t) const { return false; }
 };
 
-template <bool Remove, bool Add, class Vertex, class Graph, class Vprop,
+template <bool Remove, bool Add, class Graph, class Vprop,
           class Eprop, class MEntries, class Efilt, class IL, class... Eprops>
 [[gnu::always_inline]] [[gnu::flatten]] inline
-void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
+void modify_entries(size_t v, group_t r, [[maybe_unused]] group_t nr, Vprop& _b,
                     Graph& g, Eprop& eweights, MEntries& m_entries,
                     Efilt&& efilt, IL&& is_loop, Eprops&... eprops)
 {
@@ -343,9 +343,9 @@ void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
     {
         if (efilt(e))
             continue;
-        vertex_t u = target(e, g);
-        vertex_t s = _b[u];
-        int64_t ew = eweights[e];
+        auto u = target(e, g);
+        auto s = _b[u];
+        auto ew = eweights[e];
 
         if constexpr (Remove)
             m_entries.template insert_delta_rnr<true, true, false>
@@ -410,7 +410,7 @@ void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
             vertex_t u = source(e, g);
             if (u == v)
                 continue;
-            vertex_t s = _b[u];
+            auto s = _b[u];
             int64_t ew = eweights[e];
 
             if constexpr (Remove)
@@ -435,7 +435,7 @@ void modify_entries(Vertex v, Vertex r, [[maybe_unused]] Vertex nr, Vprop& _b,
 template <class Graph, class Vertex, class VProp, class Eprop,
           class MEntries, class EFilt, class IL, class... Eprops>
 [[gnu::always_inline]] [[gnu::flatten]] inline
-void move_entries(Vertex v, size_t r, size_t nr, VProp& _b, Graph& g,
+void move_entries(Vertex v, group_t r, group_t nr, VProp& _b, Graph& g,
                   Eprop& eweights, size_t B, MEntries& m_entries,
                   EFilt&& efilt, IL&& is_loop, Eprops&... eprops)
 {
@@ -539,7 +539,7 @@ void apply_delta(State& state, MEntries& m_entries)
 
                         if (Add && me == state._emat.get_null_edge())
                         {
-                            me = boost::add_edge(r, s, state._bg).first;
+                            me = boost::add_edge(size_t(r), size_t(s), state._bg).first;
                             state._emat.put_me(r, s, me);
                             state._mrs.get_checked()[me] = 0;
                             for (size_t i = 0; i < state._rec_types.size(); ++i)

@@ -78,19 +78,19 @@ REGISTER_MOD
                       typedef typename std::remove_reference<decltype(*s)>::type
                           state_t;
 
-                      double (state_t::*virtual_move)(size_t, size_t, size_t,
+                      double (state_t::*virtual_move)(size_t, group_t, group_t,
                                                       const entropy_args_t&) =
                           &state_t::virtual_move;
-                      size_t (state_t::*sample_block)(size_t, double, double,
+                      group_t (state_t::*sample_block)(size_t, double, double,
                                                       rng_t&)
                           = &state_t::sample_block;
-                      double (state_t::*get_move_prob)(size_t, size_t, size_t,
+                      double (state_t::*get_move_prob)(size_t, group_t, group_t,
                                                        double, double, bool)
                           = &state_t::get_move_prob;
                       void (state_t::*move_vertices)(python::object,
                                                      python::object) =
                           &state_t::move_vertices;
-                      void (state_t::*move_vertex)(size_t, size_t) =
+                      void (state_t::*move_vertex)(size_t, group_t) =
                           &state_t::move_vertex;
                       void (state_t::*couple_state)(LayeredBlockStateVirtualBase&,
                                                     const entropy_args_t&) =

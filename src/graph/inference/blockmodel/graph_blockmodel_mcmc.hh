@@ -40,7 +40,7 @@ using namespace std;
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
     ((d,, double, 0))                                                          \
-    ((oentropy_args,, python::object, 0))                                      \
+    ((entropy_args,, typename State::_entropy_args_t, 0))                      \
     ((allow_vacate,, bool, 0))                                                 \
     ((sequential,, bool, 0))                                                   \
     ((deterministic,, bool, 0))                                                \
@@ -69,8 +69,7 @@ struct MCMC
         MCMCBlockState(ATs&&... as)
            : MCMCBlockStateBase<Ts...>(as...),
             _g(_state._g),
-            _m_entries(num_vertices(_state._bg)),
-            _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+            _m_entries(num_vertices(_state._bg))
         {
             GILRelease gil_release;
             _state.init_mcmc(*this);
@@ -78,10 +77,9 @@ struct MCMC
 
         typename state_t::g_t& _g;
         typename state_t::m_entries_t _m_entries;
-        constexpr static size_t _null_move = null_group;
-        typename State::_entropy_args_t& _entropy_args;
+        constexpr static int64_t _null_move = null_group;
 
-        size_t node_state(size_t v)
+        group_t node_state(size_t v)
         {
             return _state._b[v];
         }
@@ -92,20 +90,20 @@ struct MCMC
         }
 
         template <class RNG>
-        size_t move_proposal(size_t v, RNG& rng)
+        group_t move_proposal(size_t v, RNG& rng)
         {
             if (!_allow_vacate && _state.is_last(v))
                 return _null_move;
-            size_t s = _state.sample_block(v, _c, _d, rng);
+            group_t s = _state.sample_block(v, _c, _d, rng);
             if (s == node_state(v))
                 return _null_move;
             return s;
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t v, size_t nr)
+        virtual_move_dS(size_t v, group_t nr)
         {
-            size_t r = _state._b[v];
+            group_t r = _state._b[v];
             if (r == nr)
                 return std::make_tuple(0., 0.);
 
@@ -123,7 +121,7 @@ struct MCMC
             return std::make_tuple(dS, a);
         }
 
-        void perform_move(size_t v, size_t nr)
+        void perform_move(size_t v, group_t nr)
         {
             _state.move_vertex(v, nr, _m_entries);
         }

@@ -36,7 +36,7 @@ using namespace std;
     ((state, &, State&, 0))                                                    \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
     ((beta,, double, 0))                                                       \
-    ((oentropy_args,, python::object, 0))                                      \
+    ((entropy_args,, typename State::_entropy_args_t, 0))                      \
     ((allow_new_group,, bool, 0))                                              \
     ((sequential,, bool, 0))                                                   \
     ((deterministic,, bool, 0))                                                \
@@ -62,18 +62,15 @@ struct Gibbs
                   typename std::enable_if_t<sizeof...(ATs) ==
                                             sizeof...(Ts)>* = nullptr>
         GibbsBlockState(ATs&&... as)
-           : GibbsBlockStateBase<Ts...>(as...),
-            _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+           : GibbsBlockStateBase<Ts...>(as...)
         {
             GILRelease gil_release;
             _state.init_mcmc(*this);
         }
 
-        typename State::_entropy_args_t& _entropy_args;
-
         double _c = numeric_limits<double>::infinity();
 
-        std::vector<size_t> _candidate_groups;
+        std::vector<group_t> _candidate_groups;
 
         auto& get_moves(size_t v)
         {
@@ -84,20 +81,20 @@ struct Gibbs
             return _candidate_groups;
         }
 
-        size_t node_state(size_t v)
+        group_t node_state(size_t v)
         {
             return _state._b[v];
         }
 
-        size_t node_weight(size_t v)
+        group_t node_weight(size_t v)
         {
             return _state.node_weight(v);
         }
 
-        size_t _nr;
-        double virtual_move_dS(size_t v, size_t nr, rng_t& rng)
+        group_t _nr;
+        double virtual_move_dS(size_t v, group_t nr, rng_t& rng)
         {
-            size_t r = _state._b[v];
+            group_t r = _state._b[v];
             if (!_allow_new_group && nr != r && _state.virtual_remove_size(v) == 0)
                 return numeric_limits<double>::infinity();
             if (nr == null_group)
@@ -117,7 +114,7 @@ struct Gibbs
             return _state.virtual_move(v, r, nr, _entropy_args);
         }
 
-        void perform_move(size_t v, size_t nr)
+        void perform_move(size_t v, group_t nr)
         {
             if (nr == null_group)
                 nr = _nr;

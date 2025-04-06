@@ -29,6 +29,10 @@ using namespace std;
 
 struct MergeSplitStateBase
 {
+    // optional
+
+    void reserve_empty_groups(size_t) {}
+
     template <class Group>
     bool can_swap(const Group&, const Group&) { return true; }
 
@@ -50,8 +54,8 @@ struct MergeSplitStateBase
     template <class Group, class VS>
     std::tuple<Group, double> relabel_group(const Group& r, VS&) { return {r, 0}; }
 
-    template <class V, class Rs>
-    void virtual_move_lock(V, V, Rs&&) {}
+    template <class V, class Group, class Rs>
+    void virtual_move_lock(V, Group&&, Rs&&) {}
 
     template <class V>
     void virtual_move_unlock(V) {}
@@ -101,13 +105,13 @@ struct MergeSplit:
         std::vector<double> probs
             = {State::_psingle, State::_psplit, State::_pmerge,
                State::_pmergesplit, State::_pmovelabel};
-        _move_sampler = Sampler<move_t, mpl::false_>(moves, probs);
+        _move_sampler = Sampler<move_t, false>(moves, probs);
 
         std::vector<stage_t> stages
             = {stage_t::random, stage_t::scatter, stage_t::coalesce};
         std::vector<double> sprobs
             = {State::_psrandom, State::_psscatter, State::_pscoalesce};
-        _stage_sampler = Sampler<stage_t, mpl::false_>(stages, sprobs);
+        _stage_sampler = Sampler<stage_t, false>(stages, sprobs);
     }
 
     VSet<Node> _nodes;
@@ -124,8 +128,8 @@ struct MergeSplit:
 
     std::vector<std::vector<std::tuple<Node,Group>>> _bstack;
 
-    Sampler<move_t, mpl::false_> _move_sampler;
-    Sampler<stage_t, mpl::false_> _stage_sampler;
+    Sampler<move_t, false> _move_sampler;
+    Sampler<stage_t, false> _stage_sampler;
 
     void _push_b_dispatch() {}
 

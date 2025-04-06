@@ -425,7 +425,7 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
 }
 
 template <class State, class Edge, class MEntries>
-void recs_propagate_insert(State& state, size_t r, size_t s, Edge& e, int64_t d,
+void recs_propagate_insert(State& state, group_t r, group_t s, Edge& e, int64_t d,
                            std::vector<double> dx, MEntries& m_entries)
 {
     assert(dx.size() == state._rec.size());

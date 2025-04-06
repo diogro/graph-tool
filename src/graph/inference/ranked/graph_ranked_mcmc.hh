@@ -39,7 +39,7 @@ using namespace std;
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
     ((d,, double, 0))                                                          \
-    ((oentropy_args,, python::object, 0))                                      \
+    ((entropy_args,, entropy_args_t, 0))                                       \
     ((allow_vacate,, bool, 0))                                                 \
     ((sequential,, bool, 0))                                                   \
     ((deterministic,, bool, 0))                                                \
@@ -67,8 +67,7 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCBlockState(ATs&&... as)
            : MCMCBlockStateBase<Ts...>(as...),
-            _m_entries(num_vertices(_state._ustate._bg)),
-            _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+            _m_entries(num_vertices(_state._ustate._bg))
         {
             GILRelease gil_release;
             _state.init_mcmc(*this);
@@ -76,7 +75,6 @@ struct MCMC
 
         constexpr static size_t _null_move = null_group;
         typename State::m_entries_t _m_entries;
-        typename State::_entropy_args_t& _entropy_args;
 
 
         size_t node_state(size_t v)

@@ -49,7 +49,7 @@ using namespace std;
     ((nproposal, &, vector<size_t>&, 0))                                       \
     ((nacceptance, &, vector<size_t>&, 0))                                     \
     ((gibbs_sweeps,, size_t, 0))                                               \
-    ((oentropy_args,, python::object, 0))                                      \
+    ((entropy_args,, typename State::_entropy_args_t, 0))                      \
     ((verbose,, int, 0))                                                       \
     ((force_move,, bool, 0))                                                   \
     ((niter,, double, 0))
@@ -73,16 +73,13 @@ struct MCMC
                   typename std::enable_if_t<sizeof...(ATs) ==
                                             sizeof...(Ts)>* = nullptr>
         MCMCBlockStateImp(ATs&&... as)
-           : MCMCBlockStateBase<Ts...>(as...),
-             _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+           : MCMCBlockStateBase<Ts...>(as...)
         {
             GILRelease gil_release;
             _state.init_mcmc(*this);
         }
 
-        typename State::_entropy_args_t& _entropy_args;
-
-        constexpr static size_t _null_group = null_group;
+        constexpr static group_t _null_group = null_group;
 
         constexpr static double _pmovelabel = 0;
 
@@ -114,13 +111,13 @@ struct MCMC
             }
         }
 
-        size_t get_group(size_t v)
+        auto get_group(size_t v)
         {
             return _state._b[v];
         }
 
-        template <bool sample_branch=true, class RNG, class VS = std::array<size_t,0>>
-        size_t sample_new_group(size_t v, RNG& rng, VS&& except = VS())
+        template <bool sample_branch=true, class RNG, class VS = std::array<group_t,0>>
+        group_t sample_new_group(size_t v, RNG& rng, VS&& except = VS())
         {
             for (auto r : except)
             {
@@ -160,7 +157,7 @@ struct MCMC
             return t;
         }
 
-        void move_node(size_t v, size_t r, bool cache)
+        void move_node(size_t v, group_t r, bool cache)
         {
             if (cache)
                 _state.move_vertex(v, r, _m_entries);
@@ -174,29 +171,29 @@ struct MCMC
                 _state.add_block(nB - _state._empty_groups.size());
         }
 
-        bool allow_move(size_t r, size_t s)
+        bool allow_move(group_t r, group_t s)
         {
             return _state.allow_move(r, s);
         }
 
-        double virtual_move(size_t v, size_t r, size_t s)
+        double virtual_move(size_t v, group_t r, group_t s)
         {
             return _state.virtual_move(v, r, s, _entropy_args, _m_entries);
         }
 
         template <class RNG>
-        size_t sample_group(size_t v, bool allow_empty, RNG& rng)
+        group_t sample_group(size_t v, bool allow_empty, RNG& rng)
         {
             return _state.sample_block(v, _c, allow_empty ? _d : 0, rng);
         }
 
-        double get_move_prob(size_t v, size_t r, size_t s, bool allow_empty,
+        double get_move_prob(size_t v, group_t r, group_t s, bool allow_empty,
                              bool reverse)
         {
             return _state.get_move_prob(v, r, s, _c, allow_empty ? _d : 0, reverse);
         }
 
-        bool can_swap(size_t r, size_t s)
+        bool can_swap(group_t r, group_t s)
         {
             auto cstate = _state._coupled_state;
             if (cstate == nullptr)
@@ -212,7 +209,7 @@ struct MCMC
             _state.relax_update(relax);
         }
 
-        void store_next_state(size_t v)
+        void store_next_state(group_t v)
         {
             _state.store_next_state(v);
         }
@@ -235,7 +232,7 @@ struct MCMC
         }
    };
 
-    using gmap_t = idx_map<size_t, idx_set<size_t, true>, false, true, true>;
+    using gmap_t = idx_map<group_t, idx_set<size_t, true>, false, true, true>;
 
     template <class T>
     using iset = idx_set<T>;
@@ -247,7 +244,7 @@ struct MCMC
     class MCMCBlockState:
         public MergeSplit<MCMCBlockStateImp<Ts...>,
                           size_t,
-                          size_t,
+                          group_t,
                           iset,
                           imap,
                           iset,
@@ -260,7 +257,7 @@ struct MCMC
         MCMCBlockState(ATs&&... as)
            : MergeSplit<MCMCBlockStateImp<Ts...>,
                         size_t,
-                        size_t,
+                        group_t,
                         iset,
                         imap,
                         iset,

@@ -116,11 +116,11 @@ public:
     size_t _N;
     w_t _E;
 
-    idx_set<size_t> _empty_groups;
-    idx_set<size_t> _candidate_groups;
+    idx_set<group_t> _empty_groups;
+    idx_set<group_t> _candidate_groups;
 
-    std::vector<size_t> _bclabel;
-    std::vector<size_t> _pclabel;
+    std::vector<group_t> _bclabel;
+    std::vector<group_t> _pclabel;
     std::vector<size_t> _wr;
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
@@ -138,9 +138,9 @@ public:
     // State modification
     // =========================================================================
 
-    void move_vertex(size_t v, size_t nr)
+    void move_vertex(size_t v, group_t nr)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
         if (nr == r)
             return;
 
@@ -156,7 +156,7 @@ public:
                 m += ew;
                 continue;
             }
-            size_t s = _b[u];
+            group_t s = _b[u];
             if (s == r)
                 _err[r] -= 2 * ew;
             else if (s == nr)
@@ -188,7 +188,7 @@ public:
     }
 
     template <class ME>
-    void move_vertex(size_t v, size_t nr, ME&)
+    void move_vertex(size_t v, group_t nr, ME&)
     {
         move_vertex(v, nr);
     }
@@ -198,7 +198,7 @@ public:
         return _wr[_b[v]] - 1;
     }
 
-    size_t add_block(size_t n = 1)
+    group_t add_block(size_t n = 1)
     {
         size_t N = num_vertices(_bg);
         assert(_wr.size() == N);
@@ -214,7 +214,7 @@ public:
         return N;
     }
 
-    double virtual_move(size_t v, size_t r, size_t nr,
+    double virtual_move(size_t v, group_t r, group_t nr,
                         const modularity_entropy_args_t& ea)
     {
         if (r == nr)
@@ -233,7 +233,7 @@ public:
                 m += ew;
                 continue;
             }
-            size_t s = _b[u];
+            group_t s = _b[u];
             if (s == r)
                 derr[0] -= 2 * ew;
             else if (s == nr)
@@ -257,14 +257,14 @@ public:
         return dS;
     }
 
-    size_t get_empty_block(size_t, bool force_add = false)
+    group_t get_empty_block(size_t, bool force_add = false)
     {
         if (_empty_groups.empty() || force_add)
             return add_block();
         return *(_empty_groups.end() - 1);
     }
 
-    size_t sample_block(size_t v, double c, double d, rng_t& rng)
+    group_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
         std::bernoulli_distribution new_r(d);
         if (d > 0 && !_empty_groups.empty() && new_r(rng))
@@ -280,13 +280,13 @@ public:
         return uniform_sample(_candidate_groups, rng);
     }
 
-    size_t sample_block_local(size_t v, rng_t& rng)
+    group_t sample_block_local(size_t v, rng_t& rng)
     {
         return sample_block(v, 0, 0, rng);
     }
 
     // Computes the move proposal probability
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse)
     {
         size_t B = _candidate_groups.size();
@@ -307,7 +307,7 @@ public:
         size_t k = 0;
         for (auto w : out_neighbors_range(v, _g))
         {
-            if (size_t(_b[w]) == s)
+            if (_b[w] == s)
                 k_s++;
             k++;
         }
@@ -328,14 +328,14 @@ public:
     }
 
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse, MEntries&&)
     {
         return get_move_prob(v, r, s, c, d, reverse);
     }
 
     template <class EArgs, class MEntries>
-    double virtual_move(size_t v, size_t r, size_t nr, EArgs&& ea, MEntries&&)
+    double virtual_move(size_t v, group_t r, group_t nr, EArgs&& ea, MEntries&&)
     {
         return virtual_move(v, r, nr, ea);
     }
@@ -369,7 +369,7 @@ public:
         return _wr[_b[v]] == 1;
     }
 
-    constexpr bool allow_move(size_t, size_t)
+    constexpr bool allow_move(group_t, group_t)
     {
         return true;
     }

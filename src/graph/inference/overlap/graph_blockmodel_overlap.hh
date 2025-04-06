@@ -171,7 +171,7 @@ public:
     }
 
     template <bool Add>
-    void modify_vertex(size_t v, size_t r)
+    void modify_vertex(size_t v, group_t r)
     {
         if (Add && _wr[r] == 0)
         {
@@ -220,12 +220,12 @@ public:
         modify_vertex<false>(v, _b[v]);
     }
 
-    void add_vertex(size_t v, size_t r)
+    void add_vertex(size_t v, group_t r)
     {
         modify_vertex<true>(v, r);
     }
 
-    bool allow_move(size_t r, size_t nr)
+    bool allow_move(group_t r, group_t nr)
     {
         if (_coupled_state != nullptr)
         {
@@ -239,9 +239,9 @@ public:
     }
 
     // move a vertex from its current block to block nr
-    void move_vertex(size_t v, size_t nr)
+    void move_vertex(size_t v, group_t nr)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
 
         if (r == nr)
             return;
@@ -276,7 +276,7 @@ public:
     }
 
     template <class ME>
-    void move_vertex(size_t v, size_t nr, ME&)
+    void move_vertex(size_t v, group_t nr, ME&)
     {
         move_vertex(v, nr);
     }
@@ -324,7 +324,7 @@ public:
     }
 
     template <class MEntries>
-    void get_move_entries(size_t v, size_t r, size_t nr, MEntries& m_entries)
+    void get_move_entries(size_t v, group_t r, group_t nr, MEntries& m_entries)
     {
         auto mv_entries = [&](auto&&... args)
             {
@@ -349,10 +349,10 @@ public:
 
     // compute the entropy difference of a virtual move of vertex from block r to nr
     template <bool exact, class MEntries>
-    double virtual_move_sparse(size_t v, size_t nr, bool multigraph,
+    double virtual_move_sparse(size_t v, group_t nr, bool multigraph,
                                MEntries& m_entries) const
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
 
         if (r == nr)
             return 0.;
@@ -390,24 +390,24 @@ public:
     }
 
     template <bool exact>
-    double virtual_move_sparse(size_t v, size_t nr, bool multigraph)
+    double virtual_move_sparse(size_t v, group_t nr, bool multigraph)
     {
         return virtual_move_sparse<exact>(v, nr, multigraph, _m_entries);
     }
 
     template <class MEntries>
-    double virtual_move_dense(size_t, size_t, bool, MEntries&) const
+    double virtual_move_dense(size_t, group_t, bool, MEntries&) const
     {
         throw GraphException("Dense entropy for overlapping model not implemented!");
     }
 
-    double virtual_move_dense(size_t v, size_t nr, bool multigraph)
+    double virtual_move_dense(size_t v, group_t nr, bool multigraph)
     {
         return virtual_move_dense(v, nr, multigraph, _m_entries);
     }
 
     template <class MEntries>
-    double virtual_move(size_t v, size_t r, size_t nr, const entropy_args_t& ea,
+    double virtual_move(size_t v, group_t r, group_t nr, const entropy_args_t& ea,
                         MEntries& m_entries)
     {
         if (r == nr)
@@ -498,12 +498,12 @@ public:
         return dS + ea.beta_dl * dS_dl;
     }
 
-    double virtual_move(size_t v, size_t r, size_t nr, const entropy_args_t& ea)
+    double virtual_move(size_t v, group_t r, group_t nr, const entropy_args_t& ea)
     {
         return virtual_move(v, r, nr, ea, _m_entries);
     }
 
-    double get_delta_partition_dl(size_t v, size_t r, size_t nr,
+    double get_delta_partition_dl(size_t v, group_t r, group_t nr,
                                   const entropy_args_t& ea)
     {
         if (r == nr)
@@ -540,7 +540,7 @@ public:
         return dS;
     }
 
-    size_t get_empty_block(size_t v, bool force_add = true)
+    group_t get_empty_block(size_t v, bool force_add = true)
     {
         if (_empty_groups.empty() || force_add)
         {
@@ -559,7 +559,7 @@ public:
 
     // Sample node placement
     template <class RNG>
-    size_t sample_block(size_t v, double c, double d, RNG& rng)
+    group_t sample_block(size_t v, double c, double d, RNG& rng)
     {
         // attempt new block
         std::bernoulli_distribution new_r(d);
@@ -575,7 +575,7 @@ public:
         }
 
         // attempt random block
-        size_t s = uniform_sample(_candidate_groups, rng);
+        group_t s = uniform_sample(_candidate_groups, rng);
 
         if (!std::isinf(c))
         {
@@ -585,7 +585,7 @@ public:
             if (u >= num_vertices(_g))
                 u = _overlap_stats.get_in_neighbor(w);
 
-            size_t t = _b[u];
+            group_t t = _b[u];
             double p_rand = 0;
             if (c > 0)
             {
@@ -608,12 +608,12 @@ public:
         return s;
     }
 
-    size_t sample_block(size_t v, double c, double d, rng_t& rng)
+    group_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
         return sample_block<rng_t>(v, c, d, rng);
     }
 
-    size_t sample_block_local(size_t v, rng_t& rng)
+    group_t sample_block_local(size_t v, rng_t& rng)
     {
         v = get_lateral_half_edge(v, rng);
         auto u = graph_tool::random_neighbor(v, _g, rng);
@@ -648,7 +648,7 @@ public:
 
     // Computes the move proposal probability
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse, MEntries& m_entries)
     {
         size_t B = _candidate_groups.size();
@@ -692,7 +692,7 @@ public:
                 vertex_t u = target(e, _g);
                 if (is_directed(_g) && u == v)
                     u = source(e, _g);
-                vertex_t t = _b[u];
+                auto t = _b[u];
                 if (u == v)
                     t = r;
                 w++;
@@ -755,15 +755,15 @@ public:
             return log(1. - d) - safelog_fast(B);
     }
 
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse)
     {
         return get_move_prob(v, r, s, c, d, reverse, _m_entries);
     }
 
-    double get_move_prob(size_t, size_t, size_t, double, double,
+    double get_move_prob(size_t, group_t, group_t, double, double,
                          bool,
-                         std::vector<std::tuple<size_t, size_t, int64_t>>&)
+                         std::vector<std::tuple<group_t, group_t, int64_t>>&)
     {
         return 0;
     }
@@ -928,7 +928,7 @@ public:
     }
 
     double propagate_entries_dS(size_t, size_t, int64_t, int64_t,
-                                std::vector<std::tuple<size_t, size_t,
+                                std::vector<std::tuple<group_t, group_t,
                                                        GraphInterface::edge_t, int64_t,
                                                        std::vector<double>>>&,
                                 const entropy_args_t&, std::vector<double>&, int)
@@ -937,7 +937,7 @@ public:
     }
 
     void propagate_delta(size_t, size_t,
-                         std::vector<std::tuple<size_t, size_t,
+                         std::vector<std::tuple<group_t, group_t,
                                                 GraphInterface::edge_t, int64_t,
                                                 std::vector<double>>>&)
     {
@@ -1085,7 +1085,7 @@ public:
         hist_in.resize(num_vertices(g));
         hist_out.resize(num_vertices(g));
 
-        set<size_t> rs;
+        set<group_t> rs;
         for (auto i : vertices_range(g))
         {
             rs.clear();
@@ -1095,7 +1095,7 @@ public:
                 rs.insert(iter->first);
             // if (rs.empty())
             //     throw GraphException("Cannot have empty overlapping block membership!");
-            for (size_t r : rs)
+            for (group_t r : rs)
             {
                 bv[i].push_back(r);
 
@@ -1132,13 +1132,13 @@ public:
         }
     }
 
-    size_t add_block(size_t n = 1)
+    group_t add_block(size_t n = 1)
     {
         _wr.resize(num_vertices(_bg) + n);
         _mrm.resize(num_vertices(_bg) + n);
         _mrp.resize(num_vertices(_bg) + n);
         _bclabel.resize(num_vertices(_bg) + n);
-        size_t r = null_group;
+        group_t r = null_group;
         for (size_t i = 0; i < n; ++i)
         {
             r = boost::add_vertex(_bg);
@@ -1208,11 +1208,11 @@ public:
 
     bool check_edge_counts(bool emat=true)
     {
-        gt_hash_map<std::pair<size_t, size_t>, size_t> mrs;
+        gt_hash_map<std::pair<group_t, group_t>, size_t> mrs;
         for (auto e : edges_range(_g))
         {
-            size_t r = _b[source(e, _g)];
-            size_t s = _b[target(e, _g)];
+            group_t r = _b[source(e, _g)];
+            group_t s = _b[target(e, _g)];
             if (!is_directed(_g) && s < r)
                 std::swap(r, s);
             mrs[std::make_pair(r, s)] += _eweight[e];
@@ -1236,7 +1236,7 @@ public:
             }
             else
             {
-                auto ret = boost::edge(r, s, _bg);
+                auto ret = boost::edge(size_t(r), size_t(s), _bg);
                 assert(ret.second);
                 if (!ret.second)
                     return false;
@@ -1260,8 +1260,8 @@ public:
             _coupled_state->check_node_counts();
     }
 
-    void add_partition_node(size_t, size_t) { }
-    void remove_partition_node(size_t, size_t) { }
+    void add_partition_node(size_t, group_t) { }
+    void remove_partition_node(size_t, group_t) { }
     void set_vertex_weight(size_t, int64_t) { }
     void coupled_resize_vertex(size_t) { }
     void update_block_edge(const GraphInterface::edge_t&,
@@ -1437,8 +1437,8 @@ public:
         bg_t;
     bg_t& _bg;
 
-    idx_set<size_t> _candidate_groups;
-    idx_set<size_t> _empty_groups;
+    idx_set<group_t> _candidate_groups;
+    idx_set<group_t> _empty_groups;
 
     std::vector<double> _recsum;
     std::vector<double> _recx2;

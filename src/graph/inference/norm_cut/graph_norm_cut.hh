@@ -37,11 +37,11 @@ struct norm_cut_entropy_args_t
 };
 
 
-typedef vprop_map_t<int64_t> vmap_t;
+typedef vprop_map_t<group_t> vmap_t;
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, decltype(never_directed), 1))                                      \
-    ((_abg, &, std::any&, 0))                                                \
+    ((_abg, &, std::any&, 0))                                                  \
     ((b,, vmap_t, 0))                                                          \
     ((er, &, vector<size_t>&, 0))                                              \
     ((err, &, vector<size_t>&, 0))
@@ -117,12 +117,12 @@ public:
     size_t _N;
     size_t _E;
 
-    idx_set<size_t> _empty_groups;
-    idx_set<size_t> _candidate_groups;
+    idx_set<group_t> _empty_groups;
+    idx_set<group_t> _candidate_groups;
 
-    std::vector<size_t> _bclabel;
-    std::vector<size_t> _pclabel;
-    std::vector<size_t> _wr;
+    std::vector<group_t> _bclabel;
+    std::vector<group_t> _pclabel;
+    std::vector<group_t> _wr;
 
     constexpr static BlockStateVirtualBase* _coupled_state = nullptr;
 
@@ -140,9 +140,9 @@ public:
     // State modification
     // =========================================================================
 
-    void move_vertex(size_t v, size_t nr)
+    void move_vertex(size_t v, group_t nr)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
         if (nr == r)
             return;
 
@@ -157,7 +157,7 @@ public:
                 ++m;
                 continue;
             }
-            size_t s = _b[u];
+            group_t s = _b[u];
             if (s == r)
                 _err[r] -= 2;
             else if (s == nr)
@@ -189,7 +189,7 @@ public:
     }
 
     template <class ME>
-    void move_vertex(size_t v, size_t nr, ME&)
+    void move_vertex(size_t v, group_t nr, ME&)
     {
         move_vertex(v, nr);
     }
@@ -199,11 +199,11 @@ public:
         return _wr[_b[v]] - 1;
     }
 
-    constexpr void add_block(size_t)
+    constexpr void add_block(group_t)
     {
     }
 
-    double virtual_move(size_t v, size_t r, size_t nr,
+    double virtual_move(size_t v, group_t r, group_t nr,
                         const norm_cut_entropy_args_t&)
     {
         if (r == nr)
@@ -221,7 +221,7 @@ public:
                 ++m;
                 continue;
             }
-            size_t s = _b[u];
+            group_t s = _b[u];
             if (s == r)
                 derr[0] -= 2;
             else if (s == nr)
@@ -252,12 +252,12 @@ public:
         return dS;
     }
 
-    size_t get_empty_block(size_t, bool=false)
+    group_t get_empty_block(size_t, bool=false)
     {
         return *(_empty_groups.end() - 1);
     }
 
-    size_t sample_block(size_t v, double c, double d, rng_t& rng)
+    group_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
         std::bernoulli_distribution new_r(d);
         if (d > 0 && !_empty_groups.empty() && new_r(rng))
@@ -273,13 +273,13 @@ public:
         return uniform_sample(_candidate_groups, rng);
     }
 
-    size_t sample_block_local(size_t v, rng_t& rng)
+    group_t sample_block_local(size_t v, rng_t& rng)
     {
         return sample_block(v, 0, 0, rng);
     }
 
     // Computes the move proposal probability
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse)
     {
         size_t B = _candidate_groups.size();
@@ -300,7 +300,7 @@ public:
         size_t k = 0;
         for (auto w : out_neighbors_range(v, _g))
         {
-            if (size_t(_b[w]) == s)
+            if (_b[w] == s)
                 k_s++;
             k++;
         }
@@ -321,14 +321,14 @@ public:
     }
 
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse, MEntries&&)
     {
         return get_move_prob(v, r, s, c, d, reverse);
     }
 
     template <class EArgs, class MEntries>
-    double virtual_move(size_t v, size_t r, size_t nr, EArgs&& ea, MEntries&&)
+    double virtual_move(size_t v, group_t r, group_t nr, EArgs&& ea, MEntries&&)
     {
         return virtual_move(v, r, nr, ea);
     }
@@ -362,7 +362,7 @@ public:
         return _wr[_b[v]] == 1;
     }
 
-    constexpr bool allow_move(size_t, size_t)
+    constexpr bool allow_move(group_t, group_t)
     {
         return true;
     }

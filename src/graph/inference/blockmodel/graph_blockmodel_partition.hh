@@ -32,7 +32,8 @@ namespace graph_tool
 // Partition stats
 // ===============
 
-constexpr size_t null_group = std::numeric_limits<size_t>::max();
+typedef int64_t group_t;
+constexpr group_t null_group = std::numeric_limits<group_t>::max();
 
 typedef vprop_map_t<std::tuple<size_t, size_t>> degs_map_t;
 
@@ -105,25 +106,24 @@ public:
     }
 
     template <bool out>
-    map_t& get_hist(size_t r)
+    map_t& get_hist(group_t r)
     {
         return (out) ? _hist_out[r] : _hist_in[r];
     };
 
-    size_t get_r(size_t r)
+    group_t get_r(group_t r)
     {
         if constexpr (use_rmap)
         {
-            constexpr size_t null =
-                std::numeric_limits<size_t>::max();
-            if (r >= _bmap.size())
-                _bmap.resize(r + 1, null);
-            size_t nr = _bmap[r];
-            if (nr == null)
+            if (size_t(r) >= _bmap.size())
+                _bmap.resize(r + 1, null_group);
+            group_t nr = _bmap[r];
+            if (nr == null_group)
                 nr = _bmap[r] = _hist_out.size();
             r = nr;
         }
-        if (r >= _hist_out.size())
+
+        if (size_t(r) >= _hist_out.size())
         {
             if (_directed)
                 _hist_in.resize(r + 1);
@@ -769,7 +769,7 @@ public:
 
 private:
     bool _directed;
-    vector<size_t> _bmap;
+    vector<group_t> _bmap;
     size_t _N;
     size_t _E;
     size_t _actual_B;

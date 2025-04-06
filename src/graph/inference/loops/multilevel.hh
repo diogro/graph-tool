@@ -33,6 +33,37 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
+struct MultivelStateBase
+{
+    //optional
+
+    template <class VS>
+    size_t get_Bmin(VS& vs)
+    {
+        return 1;
+    }
+
+    template <class RNG>
+    double sample_group_label(size_t, RNG& rng) { return 0; }
+
+    template <class Group, class Label>
+    double relabel_group_dS(Group, Label) { return 0; }
+
+    template <class Group, class Label>
+    void relabel_group(Group, Label) {}
+
+    void relax_update(bool) {}
+
+    template <class V>
+    void push_state(V&& vs) {}
+
+    void pop_state() {}
+
+    void split_parallel() {}
+    void unsplit_parallel() {}
+};
+
+
 template <class State, class Node, class Group,
           template <class> class VSet,
           template <class, class> class VMap,
@@ -90,7 +121,7 @@ struct Multilevel:
 
     std::vector<std::vector<std::tuple<Node,Group>>> _bstack;
 
-    Sampler<move_t, mpl::false_> _move_sampler;
+    Sampler<move_t, false> _move_sampler;
 
     template <class Vs>
     void push_b(Vs& vs)

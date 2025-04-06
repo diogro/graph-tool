@@ -87,7 +87,7 @@ struct Multicanonical
             return _state.skip_node(v);
         }
 
-        size_t node_state(size_t v)
+        auto node_state(size_t v)
         {
             return _state.node_state(v);
         }

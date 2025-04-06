@@ -36,8 +36,8 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int64_t> vmap_t;
-typedef eprop_map_t<int64_t> emap_t;
+typedef vprop_map_t<group_t> vmap_t;
+typedef eprop_map_t<group_t> emap_t;
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
@@ -214,7 +214,7 @@ public:
     // =========================================================================
 
     template <class MEntries, class EFilt>
-    void get_move_entries(size_t v, size_t r, size_t nr, MEntries& m_entries,
+    void get_move_entries(size_t v, group_t r, group_t nr, MEntries& m_entries,
                           EFilt&& efilt)
     {
         auto mv_entries = [&](auto&&... args)
@@ -239,14 +239,14 @@ public:
     }
 
     template <class MEntries>
-    void get_move_entries(size_t v, size_t r, size_t nr, MEntries& m_entries)
+    void get_move_entries(size_t v, group_t r, group_t nr, MEntries& m_entries)
     {
         get_move_entries(v, r, nr, m_entries, [](auto) {return false;});
     }
 
 
     template <bool Add, class EFilt>
-    void modify_vertex(size_t v, size_t r, EFilt&& efilt)
+    void modify_vertex(size_t v, group_t r, EFilt&& efilt)
     {
         if constexpr (Add)
             get_move_entries(v, null_group, r, _m_entries,
@@ -263,7 +263,7 @@ public:
             BlockState::remove_partition_node(v, r);
     }
 
-    bool allow_move(size_t r, size_t nr)
+    bool allow_move(group_t r, group_t nr)
     {
         if (_coupled_state != nullptr)
         {
@@ -277,7 +277,7 @@ public:
     }
 
     template <class MEntries>
-    void move_vertex(size_t v, size_t r, size_t nr, MEntries& m_entries)
+    void move_vertex(size_t v, group_t r, group_t nr, MEntries& m_entries)
     {
         if (r == nr)
             return;
@@ -289,14 +289,14 @@ public:
     }
 
     template <class MEntries>
-    void move_vertex(size_t v, size_t nr, MEntries& m_entries)
+    void move_vertex(size_t v, group_t nr, MEntries& m_entries)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
         move_vertex(v, r, nr, m_entries);
     }
 
     // move a vertex from its current block to block nr
-    void move_vertex(size_t v, size_t r, size_t nr)
+    void move_vertex(size_t v, group_t r, group_t nr)
     {
         if (r == nr)
             return;
@@ -310,19 +310,19 @@ public:
         move_vertex(v, r, nr, _m_entries);
     }
 
-    void move_vertex(size_t v, size_t nr)
+    void move_vertex(size_t v, group_t nr)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
         move_vertex(v, r, nr);
     }
 
     void propagate_delta(size_t u, size_t v,
-                         std::vector<std::tuple<size_t, size_t,
+                         std::vector<std::tuple<group_t, group_t,
                                                 GraphInterface::edge_t, int64_t,
                                                 std::vector<double>>>& entries)
     {
-        size_t r = _b[u];
-        size_t s = _b[v];
+        auto r = _b[u];
+        auto s = _b[v];
         _m_entries.set_move(r, s, num_vertices(_bg));
 
         if (_rt == weight_type::NONE)
@@ -354,12 +354,12 @@ public:
             _drec[i].get_checked()[e] = 0;
         }
 
-        size_t r = _b[source(e, _g)];
-        size_t s = _b[target(e, _g)];
+        group_t r = _b[source(e, _g)];
+        group_t s = _b[target(e, _g)];
         auto me = _emat.get_me(r, s);
         if (me == _emat.get_null_edge())
         {
-            me = boost::add_edge(r, s, _bg).first;
+            me = boost::add_edge(size_t(r), size_t(s), _bg).first;
             _emat.put_me(r, s, me);
             _mrs.get_checked()[me] = 0;
             for (size_t i = 0; i < _rec_types.size(); ++i)
@@ -374,8 +374,8 @@ public:
 
     void remove_edge(const GraphInterface::edge_t& e)
     {
-        size_t r = _b[source(e, _g)];
-        size_t s = _b[target(e, _g)];
+        group_t r = _b[source(e, _g)];
+        group_t s = _b[target(e, _g)];
         auto me = _emat.get_me(r, s);
         if (me != _emat.get_null_edge() && _mrs[me] == 0)
         {
@@ -427,7 +427,7 @@ public:
         }
     }
 
-    void remove_partition_node(size_t v, size_t r)
+    void remove_partition_node(size_t v, group_t r)
     {
         assert(size_t(_b[v]) == r);
 
@@ -451,7 +451,7 @@ public:
                                              _degs);
     }
 
-    void add_partition_node(size_t v, size_t r)
+    void add_partition_node(size_t v, group_t r)
     {
         _b[v] = r;
 
@@ -475,19 +475,19 @@ public:
     }
 
     template <class EFilt>
-    void remove_vertex(size_t v, size_t r, EFilt&& efilt)
+    void remove_vertex(size_t v, group_t r, EFilt&& efilt)
     {
         modify_vertex<false>(v, r, std::forward<EFilt>(efilt));
     }
 
-    void remove_vertex(size_t v, size_t r)
+    void remove_vertex(size_t v, group_t r)
     {
         remove_vertex(v, r, [](auto&) { return false; });
     }
 
     void remove_vertex(size_t v)
     {
-        size_t r = _b[v];
+        group_t r = _b[v];
         remove_vertex(v, r);
     }
 
@@ -561,12 +561,12 @@ public:
     }
 
     template <class EFilt>
-    void add_vertex(size_t v, size_t r, EFilt&& efilt)
+    void add_vertex(size_t v, group_t r, EFilt&& efilt)
     {
         modify_vertex<true>(v, r, std::forward<EFilt>(efilt));
     }
 
-    void add_vertex(size_t v, size_t r)
+    void add_vertex(size_t v, group_t r)
     {
         add_vertex(v, r, [](auto&){ return false; });
     }
@@ -579,7 +579,7 @@ public:
 
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
 
-        gt_hash_map<vertex_t, size_t> vset;
+        gt_hash_map<vertex_t, group_t> vset;
         for (size_t i = 0; i < vs.size(); ++i)
             vset[vs[i]] = rs[i];
 
@@ -660,8 +660,8 @@ public:
         if (dm == 0)
             return;
 
-        size_t r = _b[u];
-        size_t s = _b[v];
+        group_t r = _b[u];
+        group_t s = _b[v];
 
         get_partition_stats(u).remove_vertex(u, r, _deg_corr, _g,
                                              _vweight, _eweight,
@@ -676,7 +676,7 @@ public:
         {
             if (me == _emat.get_null_edge())
             {
-                me = boost::add_edge(r, s, _bg).first;
+                me = boost::add_edge(size_t(r), size_t(s), _bg).first;
                 _emat.put_me(r, s, me);
                 _mrs.get_checked()[me] = 0;
                 for (size_t i = 0; i < _rec_types.size(); ++i)
@@ -868,8 +868,8 @@ public:
 
         for (auto v : vertices_range(_g))
         {
-            size_t r = b[v];
-            while (r >= num_vertices(_bg))
+            group_t r = b[v];
+            while (size_t(r) >= num_vertices(_bg))
                 add_block();
             if (_wr[r] == 0)
             {
@@ -905,14 +905,14 @@ public:
     {
     }
 
-    size_t add_block(size_t n = 1)
+    group_t add_block(size_t n = 1)
     {
         _wr.resize(num_vertices(_bg) + n);
         _mrm.resize(num_vertices(_bg) + n);
         _mrp.resize(num_vertices(_bg) + n);
         _bclabel.resize(num_vertices(_bg) + n);
         _brecsum.resize(num_vertices(_bg) + n);
-        size_t r = null_group;
+        group_t r = null_group;
         for (size_t i = 0; i < n; ++i)
         {
             r = boost::add_vertex(_bg);
@@ -952,7 +952,7 @@ public:
     // compute the entropy difference of a virtual move of vertex from block r
     // to nr
     template <bool exact, class MEntries>
-    double virtual_move_sparse(size_t v, size_t r, size_t nr,
+    double virtual_move_sparse(size_t v, group_t r, group_t nr,
                                MEntries& m_entries)
     {
         if (r == nr)
@@ -999,12 +999,12 @@ public:
     }
 
     template <bool exact>
-    double virtual_move_sparse(size_t v, size_t r, size_t nr)
+    double virtual_move_sparse(size_t v, group_t r, group_t nr)
     {
         return virtual_move_sparse<exact>(v, r, nr);
     }
 
-    double virtual_move_dense(size_t v, size_t r, size_t nr, bool multigraph)
+    double virtual_move_dense(size_t v, group_t r, group_t nr, bool multigraph)
     {
         if (_deg_corr)
             throw GraphException("Dense entropy for degree corrected model not implemented!");
@@ -1057,7 +1057,7 @@ public:
         }
 
         double Si = 0, Sf = 0;
-        for (vertex_t s = 0; s < num_vertices(_bg); ++s)
+        for (group_t s = 0; size_t(s) < num_vertices(_bg); ++s)
         {
             if (_wr[s] == 0 && s != r && s != nr)
                 continue;
@@ -1156,10 +1156,10 @@ public:
 
     template <class MEntries>
     [[gnu::hot]]
-    double virtual_move(size_t v, size_t r, size_t nr, const entropy_args_t& ea,
+    double virtual_move(size_t v, group_t r, group_t nr, const entropy_args_t& ea,
                         MEntries& m_entries)
     {
-        assert(size_t(_b[v]) == r || r == null_group);
+        assert(_b[v] == r || r == null_group);
 
         if (r == nr || _vweight[v] == 0)
             return 0;
@@ -1276,13 +1276,13 @@ public:
     }
 
     double propagate_entries_dS(size_t u, size_t v, int64_t du, int64_t dv,
-                                std::vector<std::tuple<size_t, size_t, GraphInterface::edge_t, int64_t,
+                                std::vector<std::tuple<group_t, group_t, GraphInterface::edge_t, int64_t,
                                                        std::vector<double>>>& entries,
                                 const entropy_args_t& ea, std::vector<double>& dBdx,
                                 int dL)
     {
-        size_t r = _b[u];
-        size_t s = _b[v];
+        group_t r = _b[u];
+        group_t s = _b[v];
 
         if (u == v)
         {
@@ -1450,12 +1450,12 @@ public:
     }
 
     [[gnu::hot]]
-    double virtual_move(size_t v, size_t r, size_t nr, const entropy_args_t& ea)
+    double virtual_move(size_t v, group_t r, group_t nr, const entropy_args_t& ea)
     {
         return virtual_move(v, r, nr, ea, _m_entries);
     }
 
-    double get_delta_partition_dl(size_t v, size_t r, size_t nr,
+    double get_delta_partition_dl(size_t v, group_t r, group_t nr,
                                   const entropy_args_t& ea)
     {
         if (r == nr)
@@ -1467,9 +1467,9 @@ public:
         if (!f.empty())
         {
             if (nr != null_group)
-                dS -= (nr < f.size()) ? f[nr] : f.back();
+                dS -= (size_t(nr) < f.size()) ? f[nr] : f.back();
             if (r != null_group)
-                dS += (r < f.size()) ? f[r] : f.back();
+                dS += (size_t(r) < f.size()) ? f[r] : f.back();
         }
 
         if (ea.partition_dl)
@@ -1506,7 +1506,7 @@ public:
     // Move proposals
     // =========================================================================
 
-    size_t get_empty_block(size_t v, bool force_add = false)
+    group_t get_empty_block(size_t v, bool force_add = false)
     {
         if (_empty_groups.empty() || force_add)
         {
@@ -1530,7 +1530,7 @@ public:
 
     void sample_branch(size_t v, size_t u, rng_t& rng)
     {
-        size_t s;
+        group_t s;
         auto r = _b[u];
 
         auto& candidate_groups = _candidate_groups[_bclabel[r]];
@@ -1556,7 +1556,7 @@ public:
     }
 
     // Sample node placement
-    size_t sample_block(size_t v, double c, double d, rng_t& rng)
+    group_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
         auto r = _b[v];
 
@@ -1578,11 +1578,11 @@ public:
             return s;
         }
 
-        size_t s;
+        group_t s;
         if (!std::isinf(c) && total_degreeS()(v, _g) > 0)
         {
             auto u = graph_tool::random_neighbor(v, _g, rng);
-            size_t t = _b[u];
+            group_t t = _b[u];
             double p_rand = 0;
             if (c > 0)
             {
@@ -1619,7 +1619,7 @@ public:
         return graph_tool::random_neighbor(v, _g, rng);
     }
 
-    size_t sample_block_local(size_t v, rng_t& rng)
+    group_t sample_block_local(size_t v, rng_t& rng)
     {
         if (total_degreeS()(v, _g) > 0)
         {
@@ -1635,7 +1635,7 @@ public:
 
     // Computes the move proposal probability
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse, MEntries& m_entries)
     {
         size_t B = _candidate_groups[_bclabel[r]].size();
@@ -1675,7 +1675,7 @@ public:
             {
                 for (auto u : range)
                 {
-                    size_t t = _b[u];
+                    group_t t = _b[u];
                     if (u == v)
                         t = r;
                     w++;
@@ -1744,7 +1744,7 @@ public:
             return log(1. - d) - safelog_fast(B);
     }
 
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse,
                          std::vector<std::tuple<size_t, size_t, int64_t>>& p_entries)
     {
@@ -1755,7 +1755,7 @@ public:
         return get_move_prob(v, r, s, c, d, reverse);
     }
 
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+    double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                          bool reverse)
     {
         get_move_entries(v, _b[v], (reverse) ? r : s, _m_entries);
@@ -2004,8 +2004,8 @@ public:
             return 0;
 
         double S = 0, S_dl = 0;
-        size_t r = _b[u];
-        size_t s = _b[v];
+        group_t r = _b[u];
+        group_t s = _b[v];
 
         if (ea.degree_dl && _deg_corr)
         {
@@ -2043,7 +2043,7 @@ public:
                 auto& psu = get_partition_stats(u);
 
                 S_dl -= psu.get_deg_dl(ea.degree_dl_kind,
-                                       std::array<size_t,1>({r}),
+                                       std::array<group_t,1>({r}),
                                        kins, kouts);
 
                 if constexpr (is_directed_::apply<g_t>::type::value)
@@ -2054,7 +2054,7 @@ public:
                 get<1>(kouts[1]) += 1;
 
                 S_dl += psu.get_deg_dl(ea.degree_dl_kind,
-                                       std::array<size_t,1>({r}),
+                                       std::array<group_t,1>({r}),
                                        kins, kouts);
 
                 if (u != v) // r != s
@@ -2078,7 +2078,7 @@ public:
                     auto& psv = get_partition_stats(v);
 
                     S_dl -= psv.get_deg_dl(ea.degree_dl_kind,
-                                           std::array<size_t,1>({s}),
+                                           std::array<group_t,1>({s}),
                                            kins, kouts);
 
                     if constexpr (is_directed_::apply<g_t>::type::value)
@@ -2089,7 +2089,7 @@ public:
                     get<1>(kouts[1]) += 1;
 
                     S_dl += psv.get_deg_dl(ea.degree_dl_kind,
-                                           std::array<size_t,1>({s}),
+                                           std::array<group_t,1>({s}),
                                            kins, kouts);
                 }
             }
@@ -2130,13 +2130,13 @@ public:
                     }
 
                     S_dl += psu.get_deg_dl(ea.degree_dl_kind,
-                                           std::array<size_t,1>({r}),
+                                           std::array<group_t,1>({r}),
                                            kins, kouts);
                     for (size_t i = 0; i < 4; ++i)
                         get<1>(kouts[i]) = 0;
 
                     S_dl -= psu.get_deg_dl(ea.degree_dl_kind,
-                                           std::array<size_t,1>({r}),
+                                           std::array<group_t,1>({r}),
                                            kins, kouts);
                 }
                 else
@@ -2153,13 +2153,13 @@ public:
                     kins = {make_tuple(kin, -1), make_tuple(kin + dm, 1)};
 
                     S_dl += psu.get_deg_dl(ea.degree_dl_kind,
-                                           std::array<size_t,1>({r}),
+                                           std::array<group_t,1>({r}),
                                            kins, kouts);
                     for (size_t i = 0; i < 2; ++i)
                         get<1>(kins[i]) = get<1>(kouts[i]) = 0;
 
                     S_dl -= psu.get_deg_dl(ea.degree_dl_kind,
-                                           std::array<size_t,1>({r}),
+                                           std::array<group_t,1>({r}),
                                            kins, kouts);
 
                 }
@@ -2335,7 +2335,7 @@ public:
         size_t C = _pclabel[*vi] + 1;
 
         vector<vector<size_t>> vcs(C);
-        vector<size_t> rc(num_vertices(_bg));
+        vector<group_t> rc(num_vertices(_bg));
         for (auto v : vertices_range(_g))
         {
             vcs[_pclabel[v]].push_back(v);
@@ -2444,13 +2444,13 @@ public:
 
     bool check_edge_counts(bool emat=true)
     {
-        gt_hash_map<std::pair<size_t, size_t>, size_t> mrs;
+        gt_hash_map<std::pair<group_t, group_t>, size_t> mrs;
         for (auto e : edges_range(_g))
         {
             assert(std::max(source(e, _g),
                             target(e, _g)) < _b.get_storage().size());
-            size_t r = _b[source(e, _g)];
-            size_t s = _b[target(e, _g)];
+            group_t r = _b[source(e, _g)];
+            group_t s = _b[target(e, _g)];
             if (!is_directed_::apply<g_t>::type::value && s < r)
                 std::swap(r, s);
             mrs[std::make_pair(r, s)] += _eweight[e];
@@ -2470,7 +2470,7 @@ public:
             }
             else
             {
-                auto ret = boost::edge(r, s, _bg);
+                auto ret = boost::edge(size_t(r), size_t(s), _bg);
                 me = ret.first;
                 if (ret.second)
                     m_rs = _mrs[me];
@@ -2728,8 +2728,8 @@ public:
         bg_t;
     bg_t& _bg;
 
-    idx_map<size_t, idx_set<size_t, true>, false, true, true> _candidate_groups;
-    idx_set<size_t> _empty_groups;
+    idx_map<group_t, idx_set<group_t, true>, false, true, true> _candidate_groups;
+    idx_set<group_t> _empty_groups;
 
     std::vector<double> _recsum;
     std::vector<double> _recx2;

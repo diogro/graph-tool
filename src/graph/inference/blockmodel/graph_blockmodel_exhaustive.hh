@@ -38,7 +38,7 @@ typedef vprop_map_t<int64_t> vmap_t;
     ((state, &, State&, 0))                                                    \
     ((S, , double, 0))                                                         \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
-    ((oentropy_args,, python::object, 0))                                      \
+    ((entropy_args,, entropy_args_t, 0))                                       \
     ((b_min,, vmap_t, 0))                                                      \
     ((max_iter,, size_t, 0))
 
@@ -63,15 +63,13 @@ struct Exhaustive
                                             sizeof...(Ts)>* = nullptr>
         ExhaustiveBlockState(ATs&&... as)
           : ExhaustiveBlockStateBase<Ts...>(as...),
-            _g(_state._g), _S_min(_S),
-            _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+            _g(_state._g), _S_min(_S)
         {
             _state.init_mcmc(*this);
         }
 
         typename State::g_t& _g;
         double _S_min;
-        typename State::_entropy_args_t& _entropy_args;
 
         double _c = numeric_limits<double>::infinity();
 
@@ -80,17 +78,17 @@ struct Exhaustive
             return num_vertices(_state._bg);
         }
 
-        size_t node_state(size_t v)
+        group_t node_state(size_t v)
         {
             return _state._b[v];
         }
 
-        double virtual_move_dS(size_t v, size_t nr)
+        double virtual_move_dS(size_t v, group_t nr)
         {
             return _state.virtual_move(v, _state._b[v], nr, _entropy_args);
         }
 
-        void perform_move(size_t v, size_t nr)
+        void perform_move(size_t v, group_t nr)
         {
             _state.move_vertex(v, nr);
         }

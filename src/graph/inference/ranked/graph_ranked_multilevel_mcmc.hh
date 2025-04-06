@@ -36,7 +36,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<int64_t> vmap_t;
+typedef vprop_map_t<group_t> vmap_t;
 
 #define MCMC_BLOCK_STATE_params(State)                                         \
     ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
@@ -61,7 +61,7 @@ typedef vprop_map_t<int64_t> vmap_t;
     ((b_min,, vmap_t, 0))                                                      \
     ((b_max,, vmap_t, 0))                                                      \
     ((force_accept,, bool, 0))                                                 \
-    ((oentropy_args,, python::object, 0))                                      \
+    ((entropy_args,, entropy_args_t, 0))                                       \
     ((verbose,, int, 0))                                                       \
     ((niter,, size_t, 0))
 
@@ -84,8 +84,7 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCBlockStateImp(ATs&&... as)
            : MCMCBlockStateBase<Ts...>(as...),
-             _m_entries(num_vertices(_state._ustate._bg)),
-             _entropy_args(python::extract<typename State::_entropy_args_t&>(_oentropy_args))
+             _m_entries(num_vertices(_state._ustate._bg))
         {
             GILRelease gil_release;
 
@@ -97,7 +96,7 @@ struct MCMC
 
             if (_global_moves)
             {
-                idx_set<size_t> rs_min, rs_max;
+                idx_set<group_t> rs_min, rs_max;
                 for (auto v : vertices_range(_state._g))
                 {
                     rs_min.insert(_b_min[v]);
@@ -130,14 +129,13 @@ struct MCMC
 
         std::vector<typename State::m_entries_t> _m_entries;
         std::vector<State*> _pstates;
-        typename State::_entropy_args_t& _entropy_args;
 
         vprop_map_t<int64_t>::unchecked_t _bh;
         vprop_map_t<int64_t>::unchecked_t _hpclabel;
 
-        idx_set<size_t> _rs;
+        idx_set<group_t> _rs;
 
-        constexpr static size_t _null_group = null_group;
+        constexpr static group_t _null_group = null_group;
 
         template <class F>
         void iter_nodes(F&& f)
@@ -161,7 +159,7 @@ struct MCMC
             }
         }
 
-        size_t get_group(size_t v)
+        group_t get_group(size_t v)
         {
             return _state._b[v];
         }
@@ -185,9 +183,9 @@ struct MCMC
         }
 
         template <class RNG>
-        size_t get_new_group(size_t v, bool inherit, RNG& rng)
+        group_t get_new_group(size_t v, bool inherit, RNG& rng)
         {
-            size_t t = 0;
+            group_t t = 0;
             if (_state._ustate._empty_groups.empty())
                 t =_state._ustate.get_empty_block(v);
             else
@@ -209,7 +207,7 @@ struct MCMC
             return t;
         }
 
-        void move_node(size_t v, size_t r, bool cache)
+        void move_node(size_t v, group_t r, bool cache)
         {
             auto& state = (_pstates[0] == nullptr) ?
                 _state : *_pstates[get_thread_num()];
@@ -220,7 +218,7 @@ struct MCMC
                 state.move_vertex(v, r);
         }
 
-        double virtual_move(size_t v, size_t r, size_t s)
+        double virtual_move(size_t v, group_t r, group_t s)
         {
             auto& state = (_pstates[0] == nullptr) ?
                 _state : *_pstates[get_thread_num()];
@@ -247,19 +245,19 @@ struct MCMC
             return 1;
         }
 
-        size_t get_b_min(size_t v)
+        group_t get_b_min(size_t v)
         {
             return _b_min[v];
         }
 
-        size_t get_b_max(size_t v)
+        group_t get_b_max(size_t v)
         {
             return _b_max[v];
         }
 
         template <class RNG>
-        size_t sample_group(size_t v, bool allow_random, bool allow_empty,
-                            bool init_heuristic, RNG& rng)
+        group_t sample_group(size_t v, bool allow_random, bool allow_empty,
+                             bool init_heuristic, RNG& rng)
         {
             auto& state = (_pstates[0] == nullptr) ?
                 _state : *_pstates[get_thread_num()];
@@ -272,7 +270,7 @@ struct MCMC
                 return state.sample_block_local(v, rng);
         }
 
-        double get_move_prob(size_t v, size_t r, size_t s, bool allow_random,
+        double get_move_prob(size_t v, group_t r, group_t s, bool allow_random,
                              bool allow_empty, bool reverse)
         {
             return _state.get_move_prob(v, r, s,
@@ -287,19 +285,19 @@ struct MCMC
         }
 
         template <class RNG>
-        double sample_group_label(size_t, RNG& rng)
+        double sample_group_label(group_t, RNG& rng)
         {
             return _state.sample_u(rng);
         }
 
-        double relabel_group_dS(size_t r, double nu)
+        double relabel_group_dS(group_t r, double nu)
         {
             auto& state = (_pstates[0] == nullptr) ?
                 _state : *_pstates[get_thread_num()];
             return state.reorder_group_dS(r, nu);
         }
 
-        void relabel_group(size_t r, double nu)
+        void relabel_group(group_t r, double nu)
         {
             _state.reorder_group(r, nu);
         }
@@ -324,7 +322,7 @@ struct MCMC
 
     };
 
-    using gmap_t = idx_map<size_t, idx_set<size_t, true>, false, true, true>;
+    using gmap_t = idx_map<group_t, idx_set<size_t, true>, false, true, true>;
 
     template <class T>
     using iset = idx_set<T>;
@@ -336,7 +334,7 @@ struct MCMC
     class MCMCBlockState:
         public Multilevel<MCMCBlockStateImp<Ts...>,
                           size_t,
-                          size_t,
+                          group_t,
                           iset,
                           imap,
                           iset,
@@ -350,7 +348,7 @@ struct MCMC
         MCMCBlockState(ATs&&... as)
            : Multilevel<MCMCBlockStateImp<Ts...>,
                         size_t,
-                        size_t,
+                        group_t,
                         iset,
                         imap,
                         iset,

@@ -37,7 +37,7 @@ using namespace std;
 typedef eprop_map_t<int64_t> emap_t;
 typedef vprop_map_t<std::vector<int64_t>> vcvmap_t;
 
-typedef gt_hash_map<size_t, size_t> bmap_t;
+typedef gt_hash_map<group_t, group_t> bmap_t;
 typedef std::vector<bmap_t> vbmap_t;
 
 #define LAYERED_BLOCK_STATE_params                                             \
@@ -56,13 +56,13 @@ class LayeredBlockStateVirtualBase
 {
 public:
     virtual BlockStateVirtualBase& get_layer(size_t l) = 0;
-    virtual size_t get_block(size_t l, size_t v) = 0;
-    virtual void set_block(size_t l, size_t v, size_t r) = 0;
+    virtual group_t get_block(size_t l, size_t v) = 0;
+    virtual void set_block(size_t l, size_t v, group_t r) = 0;
     virtual size_t get_vweight(size_t l, size_t v) = 0;
     virtual void add_layer_node(size_t l, size_t v, size_t u) = 0;
     virtual void remove_layer_node(size_t l, size_t v, size_t u) = 0;
     virtual size_t get_layer_node(size_t l, size_t v) = 0;
-    virtual size_t get_block_map(size_t l, size_t r, bool put_new=true) = 0;
+    virtual group_t get_block_map(size_t l, group_t r, bool put_new=true) = 0;
     virtual bool check_layers() = 0;
 };
 
@@ -124,11 +124,11 @@ struct Layers
 
             std::shared_ptr<std::mutex> _bmap_mutex;
 
-            size_t get_block_map(size_t r, bool put_new=true)
+            group_t get_block_map(group_t r, bool put_new=true)
             {
                 std::lock_guard lock(*_bmap_mutex);
 
-                size_t r_u;
+                group_t r_u;
                 auto iter = _block_map.find(r);
                 if (iter == _block_map.end())
                 {
@@ -335,7 +335,7 @@ struct Layers
 
         std::shared_ptr<block_map_t> _block_map_p;
 
-        void move_vertex(size_t v, size_t s)
+        void move_vertex(size_t v, group_t s)
         {
             // assert(check_layers());
             // assert(check_edge_counts());
@@ -346,7 +346,7 @@ struct Layers
                 return;
             }
 
-            size_t r = _b[v];
+            group_t r = _b[v];
 
             if (r == s)
                 return;
@@ -373,7 +373,7 @@ struct Layers
                 assert(_lcoupled_state == nullptr ||
                        _lcoupled_state->get_vweight(l, state._b[u]) > 0);
                 assert(state._wr[state._b[u]] > 0);
-                size_t s_u = state.get_block_map(s);
+                group_t s_u = state.get_block_map(s);
 
                 assert(size_t(state._b[u]) != s_u);
 
@@ -407,7 +407,7 @@ struct Layers
                     if (state._vweight[u] == 0)
                         continue;
 
-                    size_t r_u = state._b[u];
+                    group_t r_u = state._b[u];
                     assert(r_u == state.get_block_map(s));
                     assert(state._wr[r_u] > 0);
 
@@ -425,7 +425,7 @@ struct Layers
         }
 
         template <class ME>
-        void move_vertex(size_t v, size_t nr, ME&)
+        void move_vertex(size_t v, group_t nr, ME&)
         {
             move_vertex(v, nr);
         }
@@ -448,7 +448,7 @@ struct Layers
 
         void remove_vertex(size_t v)
         {
-            size_t r = _b[v];
+            group_t r = _b[v];
             auto& ls = _vc[v];
             auto& vs = _vmap[v];
             for (size_t j = 0; j < ls.size(); ++j)
@@ -467,7 +467,7 @@ struct Layers
         void remove_vertices(Vec& vs)
         {
             gt_hash_map<size_t, vector<size_t>> lvs;
-            gt_hash_set<size_t> rs;
+            gt_hash_set<group_t> rs;
             for (auto v : vs)
             {
                 for (auto l : _vc[v])
@@ -484,8 +484,8 @@ struct Layers
                 {
                     auto u = _vmap[v][l];
                     us.push_back(u);
-                    size_t r = _b[v];
-                    size_t r_u = state._b[u];
+                    group_t r = _b[v];
+                    group_t r_u = state._b[u];
                     rus[r] = r_u;
                 }
                 state.remove_vertices(us);
@@ -510,7 +510,7 @@ struct Layers
             remove_vertices(vs);
         }
 
-        void add_vertex(size_t v, size_t r)
+        void add_vertex(size_t v, group_t r)
         {
             auto& ls = _vc[v];
             auto& vs = _vmap[v];
@@ -519,7 +519,7 @@ struct Layers
                 int64_t l = ls[j];
                 size_t u = vs[j];
                 auto& state = _layers[l];
-                size_t r_u = state.get_block_map(r);
+                group_t r_u = state.get_block_map(r);
                 state.add_vertex(u, r_u);
             }
             if (_wr[r] == 0)
@@ -585,13 +585,13 @@ struct Layers
             set_partition(b.get_unchecked());
         }
 
-        bool allow_move(size_t r, size_t nr)
+        bool allow_move(group_t r, group_t nr)
         {
             return BaseState::allow_move(r, nr);
         }
 
         template <class MEntries>
-        double virtual_move(size_t v, size_t r, size_t s,
+        double virtual_move(size_t v, group_t r, group_t s,
                             const entropy_args_t& ea, MEntries& m_entries)
         {
             if (s == r)
@@ -654,9 +654,9 @@ struct Layers
                     if (state._vweight[u] == 0)
                         continue;
 
-                    size_t s_u = (s != null_group) ?
+                    group_t s_u = (s != null_group) ?
                         state.get_block_map(s, false) : null_group;
-                    size_t r_u = (r != null_group) ?
+                    group_t r_u = (r != null_group) ?
                         state._b[u] : null_group;
 
                     assert(r == null_group || state.has_block_map(r));
@@ -675,14 +675,14 @@ struct Layers
             return dS;
         }
 
-        double virtual_move(size_t v, size_t r, size_t s,
+        double virtual_move(size_t v, group_t r, group_t s,
                             const entropy_args_t& ea)
         {
             return virtual_move(v, r, s, ea, _m_entries);
         }
 
         template <class MEntries>
-        double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+        double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                              bool reverse, MEntries& m_entries)
         {
             // m_entries may include entries from different levels
@@ -691,25 +691,25 @@ struct Layers
             return BaseState::get_move_prob(v, r, s, c, d, reverse, m_entries);
         }
 
-        double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+        double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                              bool reverse,
-                             std::vector<std::tuple<size_t, size_t, int64_t>>& p_entries)
+                             std::vector<std::tuple<group_t, group_t, int64_t>>& p_entries)
         {
             return BaseState::get_move_prob(v, r, s, c, d, reverse, p_entries);
         }
 
-        double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+        double get_move_prob(size_t v, group_t r, group_t s, double c, double d,
                              bool reverse)
         {
             return BaseState::get_move_prob(v, r, s, c, d, reverse);
         }
 
-        size_t sample_block(size_t v, double c, double d, rng_t& rng)
+        group_t sample_block(size_t v, double c, double d, rng_t& rng)
         {
             return BaseState::sample_block(v, c, d, rng);
         }
 
-        size_t sample_block_local(size_t v, rng_t& rng)
+        group_t sample_block_local(size_t v, rng_t& rng)
         {
             return BaseState::sample_block_local(v, rng);
         }
@@ -793,7 +793,7 @@ struct Layers
             return S + S_dl * ea.beta_dl;
         }
 
-        double get_delta_edges_dl(size_t v, size_t r, size_t s)
+        double get_delta_edges_dl(size_t v, group_t r, group_t s)
         {
             if (r == s)
                 return 0;
@@ -862,12 +862,12 @@ struct Layers
             return _layers[l];
         }
 
-        size_t get_block(size_t l, size_t v)
+        group_t get_block(size_t l, size_t v)
         {
             return _layers[l]._b[v];
         }
 
-        void set_block(size_t l, size_t v, size_t r)
+        void set_block(size_t l, size_t v, group_t r)
         {
             _layers[l]._b[v] = r;
         }
@@ -919,14 +919,14 @@ struct Layers
             BaseState::couple_state(s, ea);
         }
 
-        void add_partition_node(size_t v, size_t r)
+        void add_partition_node(size_t v, group_t r)
         {
             if (_wr[r] == 0 && BaseState::_vweight[v] > 0)
                 _actual_B++;
             BaseState::add_partition_node(v, r);
         }
 
-        void remove_partition_node(size_t v, size_t r)
+        void remove_partition_node(size_t v, group_t r)
         {
             BaseState::remove_partition_node(v, r);
             if (_wr[r] == 0 && BaseState::_vweight[v] > 0)
@@ -976,7 +976,7 @@ struct Layers
             ls.erase(pos);
         }
 
-        size_t get_block_map(size_t l, size_t r, bool put_new=true)
+        group_t get_block_map(size_t l, group_t r, bool put_new=true)
         {
             return _layers[l].get_block_map(r, put_new);
         }
@@ -990,7 +990,7 @@ struct Layers
             BaseState::set_vertex_weight(v, w);
         }
 
-        size_t add_block(size_t n = 1)
+        group_t add_block(size_t n = 1)
         {
             return BaseState::add_block(n);
             // for (size_t l = 0; l < _layers.size(); ++l)
@@ -1052,7 +1052,7 @@ struct Layers
         }
 
         double propagate_entries_dS(size_t u, size_t v, int64_t du, int64_t dv,
-                                    std::vector<std::tuple<size_t, size_t, GraphInterface::edge_t, int64_t,
+                                    std::vector<std::tuple<group_t, group_t, GraphInterface::edge_t, int64_t,
                                                            std::vector<double>>>& entries,
                                     const entropy_args_t& ea, std::vector<double>& dBdx,
                                     int dL)
@@ -1068,14 +1068,14 @@ struct Layers
         }
 
         void propagate_delta(size_t u, size_t v,
-                             std::vector<std::tuple<size_t, size_t,
+                             std::vector<std::tuple<group_t, group_t,
                                                     GraphInterface::edge_t, int64_t,
                                                     std::vector<double>>>& entries)
         {
             return BaseState::propagate_delta(u, v, entries);
         }
 
-        double get_delta_partition_dl(size_t v, size_t r, size_t nr,
+        double get_delta_partition_dl(size_t v, group_t r, group_t nr,
                                       const entropy_args_t& ea)
         {
             return BaseState::get_delta_partition_dl(v, r, nr, ea);
@@ -1175,7 +1175,7 @@ struct Layers
 
                     assert(BaseState::_vweight[v] > 0);
 
-                    size_t r_u = state._b[u];
+                    group_t r_u = state._b[u];
                     assert(r == state._block_rmap[r_u]);
                     if (r != state._block_rmap[r_u])
                         return false;
@@ -1217,7 +1217,7 @@ struct Layers
 
                     if (state._vweight[u] == 0)
                         continue;
-                    size_t r_u = state._b[u];
+                    group_t r_u = state._b[u];
                     assert(r == state._block_rmap[r_u]);
                     if (r != state._block_rmap[r_u])
                         return false;
@@ -1225,7 +1225,7 @@ struct Layers
                     if (r_u != state.get_block_map(r, false))
                         return false;
                     assert(r_u == _lcoupled_state->get_layer_node(l, r));
-                    if (r_u != _lcoupled_state->get_layer_node(l, r))
+                    if (size_t(r_u) != _lcoupled_state->get_layer_node(l, r))
                         return false;
                     assert(_lcoupled_state->get_vweight(l, r_u) == (state._wr[r_u] > 0));
                     if (_lcoupled_state->get_vweight(l, r_u) != (state._wr[r_u] > 0))
@@ -1236,7 +1236,7 @@ struct Layers
             for (size_t l = 0; l < _layers.size(); ++l)
             {
                 auto& state = _layers[l];
-                for (auto r_u : vertices_range(state._bg))
+                for (group_t r_u : vertices_range(state._bg))
                 {
                     assert(_lcoupled_state->get_vweight(l, r_u) == (state._wr[r_u] > 0));
                     if (state._wr[r_u] == 0)
@@ -1246,7 +1246,7 @@ struct Layers
                     if (r_u != state.get_block_map(r, false))
                         return false;
                     assert(r_u == _lcoupled_state->get_layer_node(l, r));
-                    if (r_u != _lcoupled_state->get_layer_node(l, r))
+                    if (size_t(r_u) != _lcoupled_state->get_layer_node(l, r))
                         return false;
                 }
             }

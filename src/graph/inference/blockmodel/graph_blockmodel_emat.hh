@@ -168,7 +168,7 @@ public:
     const edge_t& get_null_edge() const { return _null_edge; }
 
 private:
-    typedef gt_hash_map<size_t, edge_t> ehash_t;
+    typedef gt_hash_map<group_t, edge_t> ehash_t;
     ehash_t _h;
     size_t _L;
     static const edge_t _null_edge;
