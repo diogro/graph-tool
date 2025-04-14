@@ -58,7 +58,7 @@ Example network
 In this module, most documentation examples will make use of the network
 :download:`search_example.xml <search_example.xml>`, shown below.
 
->>> g = gt.load_graph("search_example.xml")
+>>> g = gt.load_graph("../search_example.xml")
 >>> name = g.vp["name"]
 >>> weight = g.ep["weight"]
 >>> pos = g.vp["pos"]
