@@ -6,8 +6,11 @@ job_gcc_amd64:
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
     - cd doc
+    - ls *rst autosummary/*rst *md | sed "/GraphArtist/d" | parallel -m --halt-on-error 2 --jobs 16 sphinx-build -E -d envs/{#} -b doctest . builds/{#} {};
+    - (ls demos/*/[^_]*md | parallel -m --halt-on-error 0 --jobs 16 sphinx-build -E -d envs/demos{#} -b doctest . builds/demos{#} {};) || true
     - sphinx-build -E -b html . build/html || true
-    - ls *rst autosummary/*rst | sed "/GraphArtist/d" | parallel -m --halt-on-error 2 --jobs 16 sphinx-build -E -d envs/{#} -b doctest . builds/{#} {};
+    - rm -rf /srv/http/graph-tool-doc-dev/*
+    - cp -arv build/html/* /srv/http/graph-tool-doc-dev/
   tags:
     - amd64
   except:
@@ -22,7 +25,7 @@ job_clang_amd64:
     - export PYTHONPATH=$PWD/install/site-packages
     - cd doc
     - sphinx-build -E -b html . build/html || true
-    - ls *rst autosummary/*rst | sed "/GraphArtist/d" | parallel -m --halt-on-error 2 --jobs 16 sphinx-build -E -d envs/{#} -b doctest . builds/{#} {};
+    - ls *rst autosummary/*rst *md | sed "/GraphArtist/d" | parallel -m --halt-on-error 2 --jobs 16 sphinx-build -E -d envs/{#} -b doctest . builds/{#} {};
   tags:
     - amd64
   except:
