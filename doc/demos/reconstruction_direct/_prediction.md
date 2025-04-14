@@ -5,7 +5,7 @@ formulates it as a supervised [binary classification
 task](https://en.wikipedia.org/wiki/Binary_classification), where the
 edge/non-edge scores are computed by fitting a generative model to the observed
 data, and computing their probabilities under that model
-{cite}`pred-clauset-hierarchical-2008` {cite}`pred-guimera_missing_2009`. In
+{cite}`pred-clauset_hierarchical_2008` {cite}`pred-guimera_missing_2009`. In
 this setting, one typically omits any explicit model of the measurement process
 (hence intrinsically assuming it to be uniform), and as a consequence of the
 overall setup, only *relative probabilities* between individual missing and
@@ -19,7 +19,7 @@ We set up the classification task by dividing the edges/non-edges into two sets
 $\boldsymbol A$ and $\delta \boldsymbol A$, where the former corresponds to the
 observed network and the latter either to the missing or spurious edges. We may
 compute the posterior of $\delta \boldsymbol A$ as
-{cite}`pred-valles_catala_consistencies_2018`
+{cite}`pred-valles-catala_consistencies_2018`
 
 $$
 P(\delta \boldsymbol A | \boldsymbol A) \propto
