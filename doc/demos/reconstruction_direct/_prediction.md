@@ -141,7 +141,7 @@ The prediction using the non-nested model can be performed in an
 entirely analogous fashion.
 
 
-[^prediction-posterior]: Note that the posterior of Eq. {eq}`posterior-missing`
+[^prediction_posterior]: Note that the posterior of Eq. {eq}`posterior-missing`
     cannot be used to sample the reconstruction $\delta \boldsymbol
     G$, as it is not informative of the overall network density
     (i.e. absolute number of missing and spurious edges). It can,
