@@ -25,8 +25,18 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/demos/cppextensions/kcore.py \
 	doc/demos/index.md \
 	doc/demos/inference/inference.md \
+	doc/demos/inference/_assortative.md \
+	doc/demos/inference/_background.md \
+	doc/demos/inference/_edge_weights.md \
+	doc/demos/inference/_layers.md \
+	doc/demos/inference/_minimization.md \
+	doc/demos/inference/_model_class_selection.md \
+	doc/demos/inference/_model_selection.md \
+	doc/demos/inference/_ranked.md \
+	doc/demos/inference/_sampling.md \
 	doc/demos/matplotlib/matplotlib.md \
     doc/demos/reconstruction_direct/reconstruction.md \
+    doc/demos/reconstruction_direct/_prediction.md \
     doc/demos/reconstruction_indirect/reconstruction.md \
 	doc/draw.rst \
 	doc/flow.rst \
