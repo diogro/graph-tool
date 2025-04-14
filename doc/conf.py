@@ -1,18 +1,26 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# graph-tool documentation build configuration file, created by
-# sphinx-quickstart on Sun Oct 26 18:29:16 2008.
+# graph_tool -- a general graph manipulation python module
 #
-# This file is execfile()d with the current directory set to its containing dir.
+# Copyright (C) 2006-2025 Tiago de Paula Peixoto <tiago@skewed.de>
 #
-# The contents of this file are pickled, so don't put values in the namespace
-# that aren't pickleable (module imports are okay, they're removed
-# automatically).
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation; either version 3 of the License, or (at your option) any
+# later version.
 #
-# All configuration values have a default; values that are commented out
-# serve to show the default.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import sys, os
+import sys
+import os
+import datetime
 
 # For OMP performance
 os.environ["OMP_WAIT_POLICY"] = "passive"
@@ -27,19 +35,42 @@ sys.path.append(os.path.abspath('.'))
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
-              'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
-              'sphinx.ext.autosummary',
-              'numpydoc',
-              'sphinx.ext.extlinks',
-              'sphinx.ext.viewcode',
-              'extlinks_fancy',
-              'sphinxext.opengraph',
-              'sphinx_copybutton',
-              "sphinx_favicon"
-              #'sphinx.ext.linkcode'
-              #'matplotlib.sphinxext.plot_directive'
-              ]
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.autosummary',
+    'numpydoc',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.viewcode',
+    'extlinks_fancy',
+    'sphinxext.opengraph',
+    'sphinx_copybutton',
+    'sphinx_favicon',
+    'myst_parser',
+    'sphinxcontrib.bibtex',
+    'sphinxcontrib.video'
+]
+
+myst_enable_extensions = [
+    "amsmath",
+    "attrs_inline",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "fieldlist",
+    "html_admonition",
+    "html_image",
+    "linkify",
+    "replacements",
+    "smartquotes",
+    "strikethrough",
+    "substitution",
+    "tasklist",
+]
+
+bibtex_bibfiles = ['refs.bib']
 
 mathjax_path = "MathJax/es5/tex-chtml-full.js"
 
@@ -47,7 +78,7 @@ mathjax_path = "MathJax/es5/tex-chtml-full.js"
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = {'.rst': 'restructuredtext'}
 
 # The encoding of source files.
 source_encoding = 'utf-8'
@@ -57,7 +88,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'graph-tool'
-copyright = u'2006-2025, Tiago de Paula Peixoto <tiago@skewed.de>'
+year = datetime.datetime.now().year
+copyright = f'2006-{year}, Tiago de Paula Peixoto <tiago@skewed.de>'
 author = 'Tiago de Paula Peixoto'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -87,7 +119,7 @@ release = gt_version.split()[0]
 # for source files.
 exclude_trees = ['.build']
 
-exclude_patterns = ['**/_*.rst']
+exclude_patterns = ['**/_*.rst', '**/_*.md', 'build/html/_static/*/*.md']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -108,7 +140,9 @@ pygments_style = 'sphinx'
 
 # doctest
 
-doctest_global_setup = open("pyenv.py").read()
+import os
+doctest_global_setup = open("pyenv.py").read().replace("___DOCDIR___",
+                                                       os.getcwd())
 #doctest_global_setup += "os.chdir('%s')\n" % os.getcwd()
 
 # Options for HTML outputs
@@ -120,8 +154,12 @@ doctest_global_setup = open("pyenv.py").read()
 # html_style = 'default.css'
 
 html_theme = "sphinx_book_theme"
-#html_theme = "gt_theme"
-#html_theme_path = ["."]
+
+# Set up the version switcher.
+if "dev" in version:
+    switcher_version = "dev"
+else:
+    switcher_version = f"{version}"
 
 html_theme_options = {
     "gitlab_url": "https://git.skewed.de/count0/graph-tool",
@@ -130,6 +168,11 @@ html_theme_options = {
             "name": "Mastodon",
             "url": "https://social.skewed.de/@graph_tool",
             "icon": "fa-brands fa-mastodon",
+        },
+        {
+            "name": "Bluesky",
+            "url": "https://bsky.app/profile/graph-tool.skewed.de",
+            "icon": "fa-brands fa-bluesky",
         },
         {
             "name": "Discourse",
@@ -148,12 +191,17 @@ html_theme_options = {
     "home_page_in_toc": True,
     "show_navbar_depth": 2,
     "show_toc_level": 4,
-    'use_sidenotes': True,
+    'use_sidenotes': False,
     "logo": {
         "image_light": "_static/graph-tool-logo-circle.svg",
         "image_dark": "_static/graph-tool-logo-circle.svg",
         "text": f"""graph-tool documentation<br/>({version})"""
-    }
+    },
+    "switcher": {
+        "version_match": switcher_version,
+        "json_url": "https://graph-tool.skewed.de/static/docs/versions.json",
+    },
+    "show_version_warning_banner": True,
 }
 
 html_static_path = ["_static"]
@@ -203,6 +251,11 @@ html_last_updated_fmt = '%b %d, %Y'
 # Custom sidebar templates, maps document names to template names.
 #html_sidebars = {}
 
+html_sidebars = {
+    "**": ["navbar-logo.html", "version-switcher", "icon-links.html",
+           "search-button-field.html", "sbt-sidebar-nav.html"]
+}
+
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #html_additional_pages = {}
@@ -222,7 +275,7 @@ html_copy_source = True
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
 # base URL from which the finished HTML is served.
-html_use_opensearch = 'http://graph-tool.skewed.de/doc/'
+html_use_opensearch = 'http://graph-tool.skewed.de/docs/'
 
 # If nonempty, this is the file name suffix for HTML files (e.g. ".xhtml").
 #html_file_suffix = ''
@@ -236,25 +289,21 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'numpy': ('https://numpy.org/doc/stable/', None),
                        'scipy': ('https://docs.scipy.org/doc/scipy/', None),
                        'matplotlib': ('https://matplotlib.org/stable/', None),
-                       'cairo': ('https://www.cairographics.org/documentation/pycairo/3', None),
+                       'cairo': ('https://pycairo.readthedocs.io/en/latest/', None),
                        'ipython': ('https://ipython.org/ipython-doc/stable/', None),
-                       'panda': ('https://pandas.pydata.org/pandas-docs/stable/', None),
-                       'basemap': ('https://matplotlib.org/basemap/stable/', None)}
+                       'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+                       'basemap': ('https://matplotlib.org/basemap/stable/', None),
+                       'myst': ('https://myst-parser.readthedocs.io/en/latest/', None)
+                       }
 
 extlinks_fancy = {'issue': (['https://git.skewed.de/count0/graph-tool/issues/{0}'],
                              ['issue #{0}']),
                   'doi': (['https://dx.doi.org/{0}',
                            'https://sci-hub.ru/{0}',
-                           'https://scihub22266oqcxt.onion.link/{0}'],
+                           'https://scihub22266oqcxt.onion/{0}'],
                           ['DOI: {0}', "sci-hub", "@tor"]),
                   'arxiv': (['https://arxiv.org/abs/{0}'], ['arXiv: {0}']),
                   'ns': (['https://networks.skewed.de/net/{0}'], ['{0}'])}
-
-# plot directive
-import pyenv
-plot_rcparams = pyenv.rcParams
-#plot_pre_code = open("pyenv.py").read()
-
 
 autodoc_default_options = {
     'members': False,
@@ -273,7 +322,7 @@ imported_members = True
 add_module_names = True
 toc_object_entries_show_parents = "hide"
 
-ogp_site_url = "https://graph-tool.skewed.de/static/doc/index.html"
+ogp_site_url = "https://graph-tool.skewed.de/static/docs/stable/index.html"
 ogp_image = "https://graph-tool.skewed.de/static/img/graph-tool-logo.png"
 ogp_description_length = 300
 ogp_enable_meta_description = True
@@ -295,3 +344,44 @@ def skip(app, what, name, obj, would_skip, options):
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
+
+import pybtex.plugin
+from pybtex.style.formatting.unsrt import Style as UnsrtStyle
+from pybtex.style.template import (
+    field, first_of, href, join, names, optional, optional_field, sentence,
+    tag, together, words
+)
+
+class MyStyle(UnsrtStyle):
+    def format_doi(self, e):
+        # based on urlbst format.doi
+        return join[href[
+            join[
+                'https://doi.org/',
+                field('doi', raw=True)
+                ],
+            join[
+                'doi:',
+                field('doi', raw=True)
+                ]
+            ], ", ", href[
+            join[
+                'https://sci-hub.ru/',
+                field('doi', raw=True)
+                ],
+            '[sci-hub]'
+            ]]
+
+    def format_web_refs(self, e):
+        return sentence[
+            optional[self.format_url(e)],
+            optional[self.format_eprint(e)],
+            optional[self.format_pubmed(e)],
+            optional[self.format_doi(e)]]
+
+    def format_url(self, e):
+        return ""
+
+pybtex.plugin.register_plugin('pybtex.style.formatting', 'mystyle', MyStyle)
+
+bibtex_default_style = 'mystyle'

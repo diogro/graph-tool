@@ -67,7 +67,7 @@ In this module, most documentation examples will make use of the network
 ...               edge_pen_width=weight, output="search_example.svg")
 <...>
 
-.. figure:: search_example.*
+.. figure:: autosummary/search_example.*
    :alt: search example
    :align: center
 

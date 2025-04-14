@@ -1,8 +1,9 @@
-from __future__ import division, absolute_import, print_function
 import sys
 import os
 from matplotlib import rc
 from matplotlib import rcParams
+
+DOC_DIR = "___DOCDIR___"
 
 font_size=14
 rcParams["backend"] = "PDF"
@@ -59,3 +60,9 @@ np.random.seed(42)
 gt.seed_rng(42)
 
 is_done = False
+
+def mkchdir(dname):
+    os.makedirs(dname, exist_ok=True)
+    os.chdir(dname)
+
+mkchdir(DOC_DIR + "/autosummary")

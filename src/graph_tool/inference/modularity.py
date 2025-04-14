@@ -126,6 +126,14 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     entropy_args: ``dict`` (optional, default: ``{}``)
         Override default arguments for :meth:`~ModularityState.entropy()`
         method and releated operations.
+
+    References
+    ----------
+    .. [peixoto-descriptive-2023] Tiago P. Peixoto, "Descriptive vs.
+       inferential community detection in networks: pitfalls, myths and
+       half-truths", Elements in the Structure and Dynamics of Complex Networks,
+       Cambridge University Press (2023), :doi:`10.1017/9781009118897`
+       :arxiv:`2112.00183`
     """
 
     def __init__(self, g, b=None, eweight=None, entropy_args={}):

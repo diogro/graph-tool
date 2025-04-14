@@ -71,7 +71,7 @@ The following network will be used as an example throughout the documentation.
 
    conv_png("flow-example.pdf")
 
-.. figure:: flow-example.png
+.. figure:: autosummary/flow-example.png
    :align: center
    :width: 80%
 
@@ -380,7 +380,7 @@ def min_st_cut(g, source, capacity, residual):
 
     Examples
     --------
-    >>> g = gt.load_graph("mincut-st-example.xml.gz")
+    >>> g = gt.load_graph("../mincut-st-example.xml.gz")
     >>> cap = g.edge_properties["weight"]
     >>> src, tgt = g.vertex(0), g.vertex(7)
     >>> res = gt.boykov_kolmogorov_max_flow(g, src, tgt, cap)
@@ -458,7 +458,7 @@ def min_cut(g, weight):
 
     Examples
     --------
-    >>> g = gt.load_graph("mincut-example.xml.gz")
+    >>> g = gt.load_graph("../mincut-example.xml.gz")
     >>> weight = g.edge_properties["weight"]
     >>> mc, part = gt.min_cut(g, weight)
     >>> print(mc)

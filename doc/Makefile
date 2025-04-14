@@ -17,7 +17,7 @@ test:
 	sphinx-build -j auto -b doctest . build/test
 
 test-noninteractive:
-	sphinx-build -b doctest . build/test-ni *.rst demos/inference/inference.rst
+	sphinx-build -b doctest . build/test-ni *.rst *.md demos/inference/inference.md
 
 clean:
 	rm -rf build

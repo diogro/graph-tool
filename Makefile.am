@@ -17,29 +17,29 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/clustering.rst \
 	doc/conf.py \
 	doc/correlations.rst \
-	doc/demos/animation/animation.rst \
+	doc/demos/animation/animation.md \
 	doc/demos/cppextensions/Makefile \
-	doc/demos/cppextensions/cppextensions.rst \
+	doc/demos/cppextensions/cppextensions.md \
 	doc/demos/cppextensions/kcore.cc \
 	doc/demos/cppextensions/kcore.hh \
 	doc/demos/cppextensions/kcore.py \
-	doc/demos/index.rst \
-	doc/demos/inference/inference.rst \
-	doc/demos/matplotlib/matplotlib.rst \
-    doc/demos/reconstruction_direct/reconstruction.rst \
-    doc/demos/reconstruction_indirect/reconstruction.rst \
+	doc/demos/index.md \
+	doc/demos/inference/inference.md \
+	doc/demos/matplotlib/matplotlib.md \
+    doc/demos/reconstruction_direct/reconstruction.md \
+    doc/demos/reconstruction_indirect/reconstruction.md \
 	doc/draw.rst \
 	doc/flow.rst \
 	doc/generation.rst \
 	doc/graph_tool.rst \
-    doc/gt_format.rst \
-	doc/index.rst \
+    doc/gt_format.md \
+	doc/index.md \
 	doc/inference.rst  \
-	doc/modules.rst \
-	doc/parallel.rst \
+	doc/modules.md \
+	doc/parallel.md \
 	doc/price.py \
 	doc/pyenv.py \
-	doc/quickstart.rst \
+	doc/quickstart.md \
 	doc/search_example.xml \
 	doc/search_module.rst \
 	doc/spectral.rst \
