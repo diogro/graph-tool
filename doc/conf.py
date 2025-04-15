@@ -72,7 +72,7 @@ myst_enable_extensions = [
 
 bibtex_bibfiles = ['refs.bib']
 
-mathjax_path = "MathJax/es5/tex-chtml-full.js"
+mathjax_path = "node_modules/mathjax/es5/tex-chtml-full.js"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

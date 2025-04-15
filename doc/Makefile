@@ -4,13 +4,10 @@ all: html test
 
 check: test-noninteractive test
 
-_static/MathJax:
-	cd _static; \
-	curl -L https://github.com/mathjax/MathJax-src/archive/refs/tags/3.2.2.tar.gz -o MathJax-3.2.2.tar.gz; \
-	zcat MathJax-3.2.2.tar.gz | tar -xv; \
-	ln -s MathJax-src-3.2.2 MathJax
+_static/node_modules/mathjax:
+	cd _static; npm install mathjax@3
 
-html: _static/MathJax
+html: _static/node_modules/mathjax
 	sphinx-build -j auto -E -b html . build/html
 
 update:
