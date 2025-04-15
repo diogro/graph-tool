@@ -13,6 +13,14 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/Makefile \
 	doc/_static/graph-tool-logo-circle.svg \
 	doc/_static/graph-tool-logo.svg \
+	doc/_static/custom.css \
+	doc/_static/fonts.css \
+	doc/_static/fonts/6NUO8FuJNQ2MbkrZ5-J8lKFrp7pRef2r.woff2 \
+	doc/_static/fonts/tDbK2oqRg1oM3QBjjcaDkOr4nAfcHg.woff2 \
+	doc/_static/fonts/SlGVmQWMvZQIdix7AFxXkHNSbQ.woff2 \
+	doc/_static/fonts/tDbV2oqRg1oM3QBjjcaDkOJGiRD7OwE.woff2 \
+	doc/_static/fonts/tDbI2oqRg1oM3QBjjcaDkOr9rAU.woff2 \
+	doc/_static/fonts/tDbX2oqRg1oM3QBjjcaDkOr4lLz5CwOnSA.woff2 \
 	doc/centrality.rst \
 	doc/clustering.rst \
 	doc/conf.py \
