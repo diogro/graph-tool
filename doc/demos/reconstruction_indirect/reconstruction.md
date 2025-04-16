@@ -44,8 +44,7 @@ where the prior $P(\boldsymbol W,\boldsymbol\theta)$ implements regularization.
 In `graph-tool`, a variety of models are implemented, as given by the following table:
 
 ```{csv-table}
-:header: >
-:   Name | State | Data domain | Kind
+:header: Name | State | Data domain | Kind
 :widths: 10, 5, 5, 5
 :delim: "|"
 :align: center

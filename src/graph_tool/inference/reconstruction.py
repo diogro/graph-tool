@@ -1394,7 +1394,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
                 max_bound : ``float`` (default: ``np.inf``)
                     Maximum bound for bisection search.
                 min_init : ``float`` (default: ``-np.inf``)
-                    Iniital minimum bound for bisection search.
+                    Initial minimum bound for bisection search.
                 max_init : ``float`` (default: ``np.inf``)
                     Initial maximum bound for bisection search.
                 reversible : ``boolean`` (default: ``True``)
@@ -2431,7 +2431,7 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
             ``(N,M)`` data matrix with ``M`` samples for all ``N`` nodes.
 
             The values must correspond to states in the discrete range
-            :math:`{0,\dots,q-1}`.
+            :math:`\{0,\dots,q-1\}`.
 
             If the parameter ``g`` is provided, this can be optionally a list of
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
