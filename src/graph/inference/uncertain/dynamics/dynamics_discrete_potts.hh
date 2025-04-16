@@ -44,6 +44,21 @@ public:
           _q(_f.shape()[0]),
           _state(state)
     {
+        for (auto& sn : base_t::_s)
+        {
+            for (auto v : vertices_range(state._u))
+            {
+                for (auto s : sn[v])
+                {
+                    if (s < 0 || s > int(_q) - 1)
+                    {
+                        throw ValueException("Expected state values in the range {0, ..., "
+                                             + std::to_string(_q - 1)
+                                             + "}, got: " + std::to_string(s));
+                    }
+                }
+            }
+        }
         norm_f();
         base_t::reset_m(state);
     }

@@ -25,7 +25,8 @@ from .. spectral import adjacency
 from .. generation import complete_graph, generate_triadic_closure, \
     remove_parallel_edges, graph_union, graph_merge
 from .. dynamics import IsingGlauberState, NormalState, IsingBPState, \
-    NormalBPState, LinearNormalState, LVState, PottsGlauberState
+    NormalBPState, LinearNormalState, LVState, PottsGlauberState, \
+    GenPottsBPState
 
 from . uncertain_blockmodel import *
 from . util import pmap
@@ -2429,7 +2430,8 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
             If the type is :class:`~numpy.ndarray`, it should correspond to a
             ``(N,M)`` data matrix with ``M`` samples for all ``N`` nodes.
 
-            The values must correspond to Ising states: ``-1`` or ``+1``
+            The values must correspond to states in the discrete range
+            :math:`{0,\dots,q-1}`.
 
             If the parameter ``g`` is provided, this can be optionally a list of
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
@@ -2463,8 +2465,8 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
         .. [peixoto-uncertainty-2025] Tiago P. Peixoto, "Uncertainty
            quantification and posterior sampling for network reconstruction"
            :arxiv:`2503.07736`
+
         """
-        pass
 
     def sample_f(self, r, s, beta=1, entropy_args={}, bisect_args={}, verbose=False):
         r"""Sample the entry ``(r,s)`` of the iteraction matrix ``f``.
@@ -2606,7 +2608,7 @@ class PottsGlauberBlockState(PottsBlockStateBase):
                                                      self.params)
 
 
-class PseudoPottsBlockState(PottsBlockStateBase):
+class PseudoPottsBlockState(PottsBlockStateBase, BPBlockStateBase):
 
     def __init__(self, s, f=None, q=None, g=None, theta=None, theta_range=None,
                  tdelta=None, tdelta_min=None, **kwargs):
@@ -2674,7 +2676,7 @@ class PseudoPottsBlockState(PottsBlockStateBase):
     def get_bp_state(self, **kwargs):
         """Return an :class:`~graph_tool.dynamics.IsingBPState` instance
         corresponding to the inferred model."""
-        return GepPottsBPState(self.u, f=self.f, x=self.x,
+        return GenPottsBPState(self.u, f=self.f, x=self.x,
                                theta=self.theta, **kwargs)
 
     def _make_state(self):
