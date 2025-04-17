@@ -686,7 +686,7 @@ class OverlapBlockState(BlockState):
             pie_fractions = bc_total.copy("vector<double>")
         else:
             pie_fractions = self.base_g.new_vp("vector<double>",
-                                               vals=[ones(len(bv[v])) for v
+                                               vals=[np.ones(len(bv[v])) for v
                                                      in self.base_g.vertices()])
 
         gradient = kwargs.get("edge_gradient",
