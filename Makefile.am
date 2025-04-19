@@ -455,6 +455,10 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/overlap/graph_blockmodel_overlap_multiflip_mcmc.cc \
 	src/graph/inference/overlap/graph_blockmodel_overlap_multilevel_mcmc.cc \
 	src/graph/inference/overlap/graph_blockmodel_overlap_vacate.cc \
+	src/graph/inference/potts/graph_potts.cc \
+	src/graph/inference/potts/graph_potts_mcmc.cc \
+	src/graph/inference/potts/graph_potts_gibbs.cc \
+	src/graph/inference/potts/graph_potts_multiflip_mcmc.cc \
 	src/graph/inference/layers/graph_blockmodel_layers.cc \
 	src/graph/inference/layers/graph_blockmodel_layers_exhaustive.cc \
 	src/graph/inference/layers/graph_blockmodel_layers_gibbs.cc \
@@ -602,6 +606,13 @@ dist_graph_inference_overlap_HEADERS = \
 	src/graph/inference/overlap/graph_blockmodel_overlap_util.hh \
 	src/graph/inference/overlap/graph_blockmodel_overlap_vacate.hh \
 	src/graph/inference/overlap/graph_blockmodel_overlap_partition.hh
+
+graph_inference_pottsdir = $(MOD_DIR)/include/inference/potts
+dist_graph_inference_potts_HEADERS = \
+	src/graph/inference/potts/graph_potts.hh \
+	src/graph/inference/potts/graph_potts_mcmc.hh \
+	src/graph/inference/potts/graph_potts_gibbs.hh \
+	src/graph/inference/potts/graph_potts_multiflip_mcmc.hh
 
 graph_inference_layersdir = $(MOD_DIR)/include/inference/layers
 dist_graph_inference_layers_HEADERS = \
@@ -919,6 +930,7 @@ graph_tool_inference_PYTHON = \
 	src/graph_tool/inference/partition_centroid.py \
 	src/graph_tool/inference/partition_modes.py \
 	src/graph_tool/inference/planted_partition.py \
+	src/graph_tool/inference/potts.py \
 	src/graph_tool/inference/ranked.py \
 	src/graph_tool/inference/latent_multigraph.py \
 	src/graph_tool/inference/latent_layers.py \

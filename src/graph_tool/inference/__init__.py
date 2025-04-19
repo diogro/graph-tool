@@ -213,6 +213,15 @@ Reconstruction from dynamics and behavior
    PottsGlauberBlockState
    PseudoPottsBlockState
 
+Spin models
+===========
+
+.. autosummary::
+   :nosignatures:
+   :toctree: autosummary
+   :template: class.rst
+
+   PottsState
 
 Semiparametric stochastic block model inference
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -276,6 +285,7 @@ __all__ = ["minimize_blockmodel_dl",
            "PseudoCIsingBlockState",
            "PottsBlockStateBase",
            "PottsGlauberBlockState",
+           "PottsState",
            "PseudoPottsBlockState",
            "PseudoNormalBlockState",
            "LinearNormalBlockState",
@@ -352,6 +362,7 @@ from . latent_multigraph import *
 from . partition_centroid import *
 from . partition_modes import *
 from . planted_partition import *
+from . potts import *
 from . ranked import *
 from . latent_layers import *
 from . histogram import *

@@ -63,6 +63,8 @@ struct MergeSplitStateBase
     template <class Node, class Group, class Except = std::array<Group,0>>
     double sample_new_group_lprob(const Node&, Group&, Except&& = Except()) { return 0; }
 
+    constexpr size_t get_max_B() { return std::numeric_limits<size_t>::max(); }
+
     constexpr static bool _parallel = false;
     constexpr static bool _relabel = false;
 };
@@ -1006,6 +1008,9 @@ struct MergeSplit:
 
         check_rlist();
         auto move = _move_sampler.sample(rng);
+
+        if (_groups.size() == State::get_max_B() && move == move_t::split)
+            move = move_t::single;
 
         switch (move)
         {
