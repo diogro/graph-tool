@@ -2504,6 +2504,14 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
                                    verbose, _get_rng())
         return dS
 
+    def __repr__(self):
+        return "<%s object with %s, %d edge categories and %s node categories, at 0x%x>" % \
+            (self.__class__.__name__,
+             self.nbstate if self.nbstate is not None else self.bstate,
+             len(self.get_xvals()),
+             str([len(self.get_tvals(r)) for r in range(self.q_t)]),
+             id(self))
+
     def mcmc_sweep(self, beta=1, f=1, f_mcmc_args={}, **kwargs):
         ret = DynamicsBlockStateBase.mcmc_sweep(self, beta=beta, **kwargs)
         if np.random.random() < f:

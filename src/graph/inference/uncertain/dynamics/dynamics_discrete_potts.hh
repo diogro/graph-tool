@@ -123,7 +123,7 @@ public:
             val = theta[r];
             auto&& f = _f[r];
 #if GCC_VERSION >= 140000
-        #pragma GCC unroll q
+            #pragma GCC unroll q
 #endif
             for (size_t s = 0; s < q; ++s)
                 val += f[s] * m[s];
