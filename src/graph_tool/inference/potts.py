@@ -106,7 +106,7 @@ class PottsState(MCMCState, MultiflipMCMCState,
 
         .. math::
 
-             = -\sum_{i<j}w_{ij}A_{ij}f_{b_i,b_j} - \sum_i\theta^{(i)}_{b_i}.
+            H = -\sum_{i<j}w_{ij}A_{ij}f_{b_i,b_j} - \sum_i\theta^{(i)}_{b_i}.
 
         """
 
