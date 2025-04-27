@@ -92,10 +92,11 @@ class BPBaseState(ABC):
         return self._state.update_marginals(self.g._Graph__graph)
 
     def log_Z(self):
-        """Obtains the log-partition function from the current messages."""
+        """Obtains the log-partition function (a.k.a. free entropy) from the
+        current messages."""
         return self._state.log_Z(self.g._Graph__graph)
 
-    def energy(self, s):
+    def sample_energy(self, s):
         """Obtains the energy (Hamiltonean) of state ``s`` (a
         :class:`~graph_tool.VertexPropertyMap`).
 
@@ -104,12 +105,12 @@ class BPBaseState(ABC):
         """
         if "vector" in s.value_type():
             _check_prop_vector(s, scalar=True)
-            return self._state.energies(self.g._Graph__graph,
-                                        _prop("v", self.g, s))
+            return self._state.sample_energies(self.g._Graph__graph,
+                                               _prop("v", self.g, s))
         else:
             _check_prop_scalar(s)
-            return self._state.energy(self.g._Graph__graph,
-                                      _prop("v", self.g, s))
+            return self._state.sample_energy(self.g._Graph__graph,
+                                             _prop("v", self.g, s))
 
     def log_prob(self, s):
         """Obtains the log-probability of state ``s`` (a
@@ -142,7 +143,7 @@ class BPBaseState(ABC):
             return self._state.marginal_lprob(self.g._Graph__graph,
                                               _prop("v", self.g, s))
 
-    def sample(self, update_marginals=True, val_type="int"):
+    def marginal_sample(self, update_marginals=True, val_type="int"):
         """Samples a state from the marignal distribution. This functio returns
         a :class:`~graph_tool.VertexPropertyMap` of type given by ``val_type``.
 
@@ -152,13 +153,13 @@ class BPBaseState(ABC):
         if update_marginals:
             self.update_marginals()
         s = self.g.new_vp(val_type)
-        self._state.sample(self.g._Graph__graph, _prop("v", self.g, s),
-                           _get_rng())
+        self._state.marginal_sample(self.g._Graph__graph, _prop("v", self.g, s),
+                                    _get_rng())
         return s
 
 class GenPottsBPState(BPBaseState):
-    def __init__(self, g, f, x=1, theta=0, em=None, vm=None, marginal_init=False,
-                 frozen=None, converge=True):
+    def __init__(self, g, f, x=1, theta=0, m=None, em=None, vm=None,
+                 marginal_init=False, frozen=None, converge=True):
         r"""Belief-propagtion equations for a genralized Potts model.
 
         Parameters
@@ -166,7 +167,7 @@ class GenPottsBPState(BPBaseState):
         g : :class:`~graph_tool.Graph`
            Graph to be used for the dynamics.
         f : :class:`~numpy.ndarray` or list of list
-           :math:`q\times q` 2D symmetric with iteraction energies between the
+           :math:`q\times q` 2D symmetric with iteraction strengths between the
            :math:`q` spin values.
         x : ``float`` or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``1``)
             Edge coupling weights. If a :class:`~graph_tool.EdgePropertyMap` is
@@ -178,9 +179,12 @@ class GenPottsBPState(BPBaseState):
             for every node. If it's an iterable, it should contains :math:`q`
             field values, which are the same for every node. If a scalar is
             given, this will be determine the value for every field and vertex.
-        em : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap`
             of type ``vector<double>``, containing the edge messages.
+        em : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+            If provided, it should be an :class:`~graph_tool.EdgePropertyMap`
+            of type ``vector<double>``, containing the edge marginals.
         vm : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
             of type ``vector<double>``, containing the node marginals.
@@ -222,15 +226,24 @@ class GenPottsBPState(BPBaseState):
         .. math::
 
            P_{i\to j}(s_i) = \frac{e^{\theta_{i,s_i}}}{Z_{i\to j}}
-           \prod_{k\in \partial i\setminus j}\sum_{s_k=1}^{q}P_{k\to i}(s_k)e^{x_{ik}f_{x_i,x_k}},
+           \prod_{k\in \partial i\setminus j}\sum_{s_k=1}^{q}P_{k\to i}(s_k)e^{x_{ik}f_{s_i,s_k}},
 
         where :math:`Z_{i\to j}` is a normalization constant. From these
         equations, the marginal node probabilities are similarly obtained:
 
         .. math::
 
-           P_i(s_i) = \frac{e^{\theta_{i,s_i}}}{Z_i}
-           \prod_{j\in \partial i}\sum_{s_j=1}^{q}P_{j\to i}(s_j)e^{x_{ij}f_{x_i,x_j}},
+           P_i(s_i) = \frac{e^{\theta_{i,s_i}}}{z_i}
+           \prod_{j\in \partial i}\sum_{s_j=1}^{q}P_{j\to i}(s_j)e^{x_{ij}f_{s_i,s_j}},
+
+        with :math:`z_i` being another normalization constant. Likewise, the
+        edge marginals are
+
+        .. math::
+
+           P_i(s_i, s_j) = \frac{1}{z_{ij}}e^{x_{ij}f_{s_i,s_j}}P_{i\to j}(s_i)P_{j\to i}(s_j),
+
+        with :math:`z_{ij}` being a normalization constant.
 
         Examples
         --------
@@ -245,9 +258,9 @@ class GenPottsBPState(BPBaseState):
            >>> g = gt.GraphView(gt.collection.data["polblogs"].copy(), directed=False)
            >>> gt.remove_parallel_edges(g)
            >>> g = gt.extract_largest_component(g, prune=True)
-           >>> state = gt.GenPottsBPState(g, f=array([[-1,  0,  1],
-           ...                                        [ 0, -1,  1],
-           ...                                        [ 1,  1, -1.25]])/20)
+           >>> state = gt.GenPottsBPState(g, f=array([[ 1,  0, -1],
+           ...                                        [ 0,  1, -1],
+           ...                                        [-1, -1,  1.25]])/20)
            >>> s = state.sample()
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=s,
            ...               output="bp-potts.svg")
@@ -282,6 +295,9 @@ class GenPottsBPState(BPBaseState):
         elif theta.value_type() != "vector<double>":
             theta = theta.copy("vector<double>")
         self.theta = self.g.own_property(theta)
+        if m is None:
+            m = g.new_ep("vector<double>")
+        self.m = m
         if em is None:
             em = g.new_ep("vector<double>")
         self.em = em
@@ -297,6 +313,7 @@ class GenPottsBPState(BPBaseState):
                                                        self.f,
                                                        _prop("e", g, self.x),
                                                        _prop("v", g, self.theta),
+                                                       _prop("e", g, self.m),
                                                        _prop("e", g, self.em),
                                                        _prop("v", g, self.vm),
                                                        marginal_init,
@@ -306,11 +323,66 @@ class GenPottsBPState(BPBaseState):
             self.converge()
 
     def __getstate__(self):
-        return dict(g=self.g, f=self.f, x=self.x, theta=self.theta, em=self.em,
-                    vm=self.vm, frozen=self.frozen)
+        return dict(g=self.g, f=self.f, x=self.x, theta=self.theta, m=self.m,
+                    em=self.em, vm=self.vm, frozen=self.frozen)
+
+    def energy(self):
+        r"""Obtains the average energy from the current messages.
+
+        This is given by
+
+        .. math::
+
+           U = -\sum_{i<j}A_{ij}\sum_{s_i,s_j}x_{ij}f_{s_i,s_j}P(s_i,s_j)
+               -\sum_i\sum_{s_i}P(s_i)\theta_i(s_i)
+
+        with :math:`P(s_i,s_j)` and :math:`P(s_i)` being the marginal edge and
+        node distributions, respectively.
+        """
+        return self._state.energy(self.g._Graph__graph)
+
+    def entropy(self):
+        r"""Obtains the entropy from the current messages.
+
+        This is given by
+
+        .. math::
+
+           S = -\sum_{i<j}A_{ij}\sum_{s_i,s_j}P(s_i,s_j)\ln P(s_i,s_j)
+               -\sum_i(1-k_i)\sum_{s_i}P(s_i)\ln P(s_i)
+
+        with :math:`P(s_i,s_j)` and :math:`P(s_i)` being the marginal edge and
+        node distributions, respectively, and :math:`k_i` is the degree of node
+        i.
+        """
+        return self._state.entropy(self.g._Graph__graph)
+
+    def marginal_entropy(self):
+        """Obtains the marginal entropy from the current messages."""
+        return self._state.marginal_entropy(self.g._Graph__graph)
+
+    def sample(self, vorder=None, parallel=True, max_niter=1000, epsilon=1e-8):
+        """Sample from the joint distribution by repeatedly conditioning and
+        marginalizing using the BP equations.
+
+        The optional parameter ``vorder`` is a list of vertices giving the
+        marginalization order.
+
+        The remaining parameters control the BP convergence; see
+        :meth:`GenPottsBPState.converge`.
+        """
+        s = self.g.new_vp("int")
+        if vorder is None:
+            vorder = self.g.vertex_index.copy("int64_t").fa
+        vorder = numpy.asarray(vorder, dtype="uint64")
+        self._state.sample(self.g._Graph__graph, vorder,
+                           _prop("v", self.g, s), parallel, max_niter,
+                           epsilon, _get_rng())
+        return s
+
 
 class IsingBPState(GenPottsBPState):
-    def __init__(self, g, x=1, theta=0, em=None, vm=None, marginal_init=False,
+    def __init__(self, g, x=1, theta=0, m=None, em=None, vm=None, marginal_init=False,
                  frozen=None, has_zero=False, converge=True):
         r"""Belief-propagation equations for the Ising model.
 
@@ -326,9 +398,12 @@ class IsingBPState(GenPottsBPState):
             Vertex fields. If :class:`~graph_tool.VertexPropertyMap`, this needs
             to be of type ``double``. If a scalar is given, this will be
             determine the value for every vertex.
-        em : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap`
             of type ``vector<double>``, containing the edge messages.
+        em : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+            If provided, it should be an :class:`~graph_tool.EdgePropertyMap`
+            of type ``vector<double>``, containing the edge marginals.
         vm : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
             of type ``vector<double>``, containing the node marginals.
@@ -396,12 +471,12 @@ class IsingBPState(GenPottsBPState):
 
         """
         if not has_zero:
-            f = [[-1,  1],
-                 [ 1, -1]]
+            f = [[1,  -1],
+                 [-1,  1]]
         else:
-            f = [[-1,  0,  1],
+            f = [[ 1,  0, -1],
                  [ 0,  0,  0],
-                 [ 1,  0, -1]]
+                 [-1,  0,  1]]
         if not isinstance(theta, VertexPropertyMap):
             if not has_zero:
                 theta = g.new_vp("vector<double>", val=[theta, -theta])
@@ -418,13 +493,14 @@ class IsingBPState(GenPottsBPState):
         elif theta.value_type() != "vector<double>":
             theta = theta.copy("vector<double>")
         self.has_zero = has_zero
-        super().__init__(g=g, f=f, x=x, theta=theta, em=em, vm=vm,
+        super().__init__(g=g, f=f, x=x, theta=theta, m=m, em=em, vm=vm,
                          marginal_init=marginal_init, frozen=frozen,
                          converge=converge)
 
     def __getstate__(self):
-        return dict(g=self.g, x=self.x, theta=self.theta, em=self.em,
-                    vm=self.vm, frozen=self.frozen, has_zero=self.has_zero)
+        return dict(g=self.g, x=self.x, theta=self.theta, m=self.m,
+                    em=self.em, vm=self.vm, frozen=self.frozen,
+                    has_zero=self.has_zero)
 
     def from_spin(self, s):
         s = s.copy()
@@ -446,8 +522,8 @@ class IsingBPState(GenPottsBPState):
             s.fa = f * s.fa - 1
         return s
 
-    def energy(self, s):
-        return GenPottsBPState.energy(self, self.from_spin(s))
+    def sample_energy(self, s):
+        return GenPottsBPState.sample_energy(self, self.from_spin(s))
 
     def log_prob(self, s):
         return GenPottsBPState.log_prob(self, self.from_spin(s))
@@ -455,13 +531,17 @@ class IsingBPState(GenPottsBPState):
     def marginal_log_prob(self, s):
         return GenPottsBPState.marginal_log_prob(self, self.from_spin(s))
 
-    def sample(self, update_marginals=True, val_type="int"):
-        s = GenPottsBPState.sample(self, update_marginals=update_marginals,
-                                   val_type=val_type)
+    def marginal_sample(self, update_marginals=True, val_type="int"):
+        s = GenPottsBPState.marginal_sample(self, update_marginals=update_marginals,
+                                            val_type=val_type)
+        return self.to_spin(s)
+
+    def sample(self, **kwargs):
+        s = GenPottsBPState.sample(self, **kwargs)
         return self.to_spin(s)
 
 class NormalBPState(BPBaseState):
-    def __init__(self, g, x=1, mu=0, theta=1, em_m=None, em_s=None, vm_m=None,
+    def __init__(self, g, x=1, mu=0, theta=1, m_m=None, m_s=None, vm_m=None,
                  vm_s=None, marginal_init=False, frozen=None, converge=True):
         r"""Belief-propagation equations for the multivariate Normal distribution.
 
@@ -482,10 +562,10 @@ class NormalBPState(BPBaseState):
             :class:`~graph_tool.VertexPropertyMap`, this needs to be of type
             ``double``. If a scalar is given, this will be determine the value
             for every vertex.
-        em_m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        m_m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap` of
             type ``vector<double>``, containing the edge messages for the means.
-        em_s : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        m_s : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap` of
             type ``vector<double>``, containing the edge messages for the
             variances.
@@ -617,12 +697,12 @@ class NormalBPState(BPBaseState):
         elif theta.value_type() != "double":
             theta = theta.copy("double")
         self.theta = self.g.own_property(theta)
-        if em_m is None:
-            em_m = g.new_ep("vector<double>")
-        if em_s is None:
-            em_s = g.new_ep("vector<double>")
-        self.em_m = self.g.own_property(em_m)
-        self.em_s = self.g.own_property(em_s)
+        if m_m is None:
+            m_m = g.new_ep("vector<double>")
+        if m_s is None:
+            m_s = g.new_ep("vector<double>")
+        self.m_m = self.g.own_property(m_m)
+        self.m_s = self.g.own_property(m_s)
         if vm_m is None:
             vm_m = g.new_vp("double")
         if vm_s is None:
@@ -638,8 +718,8 @@ class NormalBPState(BPBaseState):
                                                         _prop("e", g, self.x),
                                                         _prop("v", g, self.mu),
                                                         _prop("v", g, self.theta),
-                                                        _prop("e", g, self.em_m),
-                                                        _prop("e", g, self.em_s),
+                                                        _prop("e", g, self.m_m),
+                                                        _prop("e", g, self.m_s),
                                                         _prop("v", g, self.vm_m),
                                                         _prop("v", g, self.vm_s),
                                                         marginal_init,
@@ -650,7 +730,7 @@ class NormalBPState(BPBaseState):
 
     def __getstate__(self):
         return dict(g=self.g, x=self.x, mu=self.mu, theta=self.theta,
-                    em_m=self.em_m, em_s=self.em_s, vm_m=self.vm_m,
+                    m_m=self.m_m, m_s=self.m_s, vm_m=self.vm_m,
                     vm_s=self.vm_s, frozen=self.frozen)
 
     def sample(self, update_marginals=True):

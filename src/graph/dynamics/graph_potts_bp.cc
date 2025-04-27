@@ -34,14 +34,16 @@ using namespace boost;
 using namespace graph_tool;
 
 python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
-                                   std::any ax, std::any atheta, std::any aem,
-                                   std::any avm, bool marginal_init,
+                                   std::any ax, std::any atheta, std::any am,
+                                   std::any aem, std::any avm, bool marginal_init,
                                    std::any afrozen, rng_t& rng)
 {
     PottsBPState::emap_t x =
         std::any_cast<PottsBPState::emap_t::checked_t>(ax).get_unchecked();
     PottsBPState::vmap_t theta =
         std::any_cast<PottsBPState::vmap_t::checked_t>(atheta).get_unchecked();
+    PottsBPState::emmap_t m =
+        std::any_cast<PottsBPState::emmap_t::checked_t>(am).get_unchecked();
     PottsBPState::emmap_t em =
         std::any_cast<PottsBPState::emmap_t::checked_t>(aem).get_unchecked();
     PottsBPState::vmmap_t vm =
@@ -57,7 +59,8 @@ python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
          [&](auto& g)
          {
              GILRelease gil_release;
-             PottsBPState pstate(g, f, x, theta, em, vm, marginal_init, frozen, rng);
+             PottsBPState pstate(g, f, x, theta, m, em, vm, marginal_init,
+                                 frozen, rng);
              gil_release.restore();
              state = python::object(pstate);
          })();
@@ -117,6 +120,42 @@ REGISTER_MOD
                   return lZ;
               })
          .def("energy",
+              +[](PottsBPState& state, GraphInterface& gi)
+              {
+                  double U = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           U = state.energy(g);
+                       })();
+                  return U;
+              })
+         .def("entropy",
+              +[](PottsBPState& state, GraphInterface& gi)
+              {
+                  double S = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           S = state.entropy(g);
+                       })();
+                  return S;
+              })
+         .def("marginal_entropy",
+              +[](PottsBPState& state, GraphInterface& gi)
+              {
+                  double S = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           S = state.marginal_entropy(g);
+                       })();
+                  return S;
+              })
+         .def("sample_energy",
               +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
                   double H = 0;
@@ -124,11 +163,11 @@ REGISTER_MOD
                       (gi,
                        [&](auto& g, auto s)
                        {
-                           H = state.energy(g, s);
+                           H = state.sample_energy(g, s);
                        }, vertex_scalar_properties)(as);
                   return H;
               })
-         .def("energies",
+         .def("sample_energies",
               +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
                   double H = 0;
@@ -136,7 +175,7 @@ REGISTER_MOD
                       (gi,
                        [&](auto& g, auto s)
                        {
-                           H = state.energies(g, s);
+                           H = state.sample_energies(g, s);
                        }, vertex_scalar_vector_properties)(as);
                   return H;
               })
@@ -165,13 +204,27 @@ REGISTER_MOD
                   return L;
               })
          .def("sample",
+              +[](PottsBPState& state, GraphInterface& gi, python::object ovorder,
+                  std::any as, bool parallel, size_t maxint, double epsilon,
+                  rng_t& rng)
+              {
+                  auto vorder = get_array<uint64_t,1>(ovorder);
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto s)
+                       {
+                           state.sample(g, vorder, s, parallel, maxint, epsilon,
+                                        rng);
+                       }, writable_vertex_scalar_properties)(as);
+              })
+         .def("marginal_sample",
               +[](PottsBPState& state, GraphInterface& gi, std::any as, rng_t& rng)
               {
                   run_action<>()
                       (gi,
                        [&](auto& g, auto s)
                        {
-                           state.sample(g, s, rng);
+                           state.marginal_sample(g, s, rng);
                        }, writable_vertex_scalar_properties)(as);
               });
 

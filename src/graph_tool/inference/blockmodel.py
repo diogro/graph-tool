@@ -1658,7 +1658,7 @@ def bethe_entropy(g, p):
 
     .. math::
 
-        H = -\sum_{ij}A_{ij}\sum_{rs}\pi_{ij}(r,s)\ln\pi_{ij}(r,s) - \sum_i(1-k_i)\sum_r\pi_i(r)\ln\pi_i(r),
+        H = -\sum_{i<j}A_{ij}\sum_{rs}\pi_{ij}(r,s)\ln\pi_{ij}(r,s) - \sum_i(1-k_i)\sum_r\pi_i(r)\ln\pi_i(r),
 
     where :math:`\pi_{ij}(r,s)` is the marginal probability that vertices
     :math:`i` and :math:`j` belong to blocks :math:`r` and :math:`s`,

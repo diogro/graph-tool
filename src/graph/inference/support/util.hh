@@ -103,7 +103,7 @@ template <class V, bool handle_inf=true>
 [[gnu::const]]
 inline auto log_sum_exp(const V& v)
 {
-    typedef decltype(*v.begin()) val_t;
+    typedef std::remove_reference_t<decltype(*v.begin())> val_t;
     auto ret = -std::numeric_limits<val_t>::infinity();
     for (const auto& x : v)
         ret = log_sum_exp<val_t, val_t, handle_inf>(ret, x);
