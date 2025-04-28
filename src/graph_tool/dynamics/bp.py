@@ -261,7 +261,7 @@ class GenPottsBPState(BPBaseState):
            >>> state = gt.GenPottsBPState(g, f=array([[ 1,  0, -1],
            ...                                        [ 0,  1, -1],
            ...                                        [-1, -1,  1.25]])/20)
-           >>> s = state.sample()
+           >>> s = state.marginal_sample()
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=s,
            ...               output="bp-potts.svg")
            <...>
@@ -662,7 +662,7 @@ class NormalBPState(BPBaseState):
            >>> gt.remove_parallel_edges(g)
            >>> g = gt.extract_largest_component(g, prune=True)
            >>> state = gt.NormalBPState(g, x=1/200, mu=g.vp.value.t(lambda x: arctanh((2*x-1)*.9)))
-           >>> s = state.sample()
+           >>> s = state.marginal_sample()
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=s,
            ...               output="bp-normal.svg")
            <...>
@@ -733,6 +733,7 @@ class NormalBPState(BPBaseState):
                     m_m=self.m_m, m_s=self.m_s, vm_m=self.vm_m,
                     vm_s=self.vm_s, frozen=self.frozen)
 
-    def sample(self, update_marginals=True):
-        return BPBaseState.sample(self, update_marginals=update_marginals,
-                                  val_type="double")
+    def marginal_sample(self, update_marginals=True):
+        return BPBaseState.marginal_sample(self,
+                                           update_marginals=update_marginals,
+                                           val_type="double")

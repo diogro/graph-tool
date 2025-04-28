@@ -171,14 +171,14 @@ REGISTER_MOD
                        }, vertex_scalar_vector_properties)(as);
                   return L;
               })
-         .def("sample",
+         .def("marginal_sample",
               +[](NormalBPState& state, GraphInterface& gi, std::any as, rng_t& rng)
               {
                   run_action<>()
                       (gi,
                        [&](auto& g, auto s)
                        {
-                           state.sample(g, s, rng);
+                           state.marginal_sample(g, s, rng);
                        }, writable_vertex_scalar_properties)(as);
               });
 

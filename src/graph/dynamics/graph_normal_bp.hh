@@ -363,7 +363,7 @@ public:
     }
 
     template <class Graph, class VMap, class RNG>
-    void sample(Graph& g, VMap s, RNG& rng_)
+    void marginal_sample(Graph& g, VMap s, RNG& rng_)
     {
         parallel_rng<rng_t> prng(rng_);
         parallel_vertex_loop
