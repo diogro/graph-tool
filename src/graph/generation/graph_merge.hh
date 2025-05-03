@@ -129,7 +129,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                     (get_num_threads() > 1));
 
         auto lock
-            = [&](auto&& f, bool shared) [[gnu::always_inline]]
+            = [&](auto&& f, bool shared)
               {
                   if (parallel)
                   {
