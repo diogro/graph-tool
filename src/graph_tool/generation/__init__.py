@@ -890,7 +890,7 @@ def random_rewire(g, model="configuration", n_iter=10, edge_sweep=True,
     return pcount
 
 def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
-                 micro_ers=False, micro_degs=False):
+                 micro_ers=False, micro_degs=False, condensed=False):
     r"""Generate a random graph by sampling from the Poisson or microcanonical
     stochastic block model.
 
@@ -914,21 +914,26 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     directed : ``bool`` (optional, default: ``False``)
         Whether the graph is directed.
     micro_ers : ``bool`` (optional, default: ``False``)
-        If true, the `microcanonical` version of the model will be evoked, where
+        If ``True``, the `microcanonical` version of the model will be evoked, where
         the numbers of edges between groups will be given `exactly` by the
         parameter ``probs``, and this will not fluctuate between samples.
     micro_degs : ``bool`` (optional, default: ``False``)
-        If true, the `microcanonical` version of the degree-corrected model will
+        If ``True``, the `microcanonical` version of the degree-corrected model will
         be evoked, where the degrees of vertices will be given `exactly` by the
         parameters ``out_degs`` and ``in_degs``, and they will not fluctuate
         between samples. (If ``micro_degs == True`` it implies ``micro_ers ==
         True``.)
+    condensed : ``bool`` (optional, default: ``False``)
+        If ``True``, the graph returned will be a simple graph, with the edge
+        multiplicites returned as a property map.
 
 
     Returns
     -------
     g : :class:`~graph_tool.Graph`
         The generated graph.
+    w : :class:`~graph_tool.EdgePropertyMap` (only if ``condensed == True``)
+        Edge property map with edge multiplicities.
 
     See Also
     --------
@@ -1076,7 +1081,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
 
     g = Graph()
     g.add_vertex(len(b))
-    b = g.new_vp("int", b)
+    b = g.new_vp("int64_t", b)
 
     if micro_degs:
         if (out_degs is not None and
@@ -1119,6 +1124,11 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
 
     g.set_directed(directed)
 
+    w = None
+    if condensed:
+        w = g.new_ep("int64_t")
+        g.set_fast_edge_lookup(True)
+
     libgraph_tool_generation.gen_sbm(g._Graph__graph,
                                      _prop("v", g, b),
                                      numpy.asarray(r, dtype="int64"),
@@ -1128,8 +1138,13 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
                                      _prop("v", g, out_degs),
                                      micro_ers,
                                      micro_degs,
+                                     _prop("e", g, w),
                                      _get_rng())
-    return g
+    if w is None:
+        return g
+    else:
+        g.set_fast_edge_lookup(False)
+        return g, w
 
 def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
                          self_loops=False, epsilon=1e-8, iter_solve=True,
@@ -1335,8 +1350,9 @@ def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
     else:
         return mrs, out_theta
 
+
 def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
-                        multigraph=False, self_loops=False):
+                        multigraph=False, self_loops=False, condensed=False):
     r"""Generate a random graph by sampling from the maximum-entropy "canonical"
     stochastic block model.
 
@@ -1356,11 +1372,16 @@ def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
         Whether parallel edges are allowed.
     self_loops : ``bool`` (optional, default: ``False``)
         Whether self-loops are allowed.
+    condensed : ``bool`` (optional, default: ``False``)
+        If ``True``, and ``multigraph == True`` the graph returned will be a
+        simple graph, with the edge multiplicites returned as a property map.
 
     Returns
     -------
     g : :class:`~graph_tool.Graph`
         The generated graph.
+    w : :class:`~graph_tool.EdgePropertyMap` (only if ``multigraph == True and condensed == True``)
+        Edge property map with edge multiplicities.
 
     See Also
     --------
@@ -1464,11 +1485,21 @@ def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
     if len(mrs.shape) == 0: # B == 1 special case
         mrs = numpy.array([mrs], dtype="double")
 
+    w = None
+    if multigraph and condensed:
+        w = g.new_ep("int64_t")
+        g.set_fast_edge_lookup(True)
+
     libgraph_tool_generation.\
         gen_maxent_sbm(g._Graph__graph, _prop("v", g, b), r, s, mrs,
                        _prop("v", g, in_theta), _prop("v", g, out_theta),
-                       multigraph, self_loops, _get_rng())
-    return g
+                       multigraph, self_loops, _prop("e", g, w), _get_rng())
+
+    if w is None:
+        return g
+    else:
+        g.set_fast_edge_lookup(False)
+        return g, w
 
 
 def add_random_edges(g, M, parallel=False, self_loops=False, weight=None):

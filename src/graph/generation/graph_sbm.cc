@@ -25,13 +25,18 @@ using namespace graph_tool;
 void generate_sbm(GraphInterface& gi, std::any ab, boost::python::object ors,
                   boost::python::object oss, boost::python::object oprobs,
                   std::any ain_deg, std::any aout_deg, bool micro_ers,
-                  bool micro_degs, rng_t& rng)
+                  bool micro_degs, std::any aw, rng_t& rng)
 {
     auto rs = get_array<int64_t, 1>(ors);
     auto ss = get_array<int64_t, 1>(oss);
 
-    typedef vprop_map_t<int32_t> bmap_t;
+    typedef vprop_map_t<int64_t> bmap_t;
     auto b = std::any_cast<bmap_t>(ab).get_unchecked();
+
+    if (!aw.has_value())
+        aw = no_weight_t();
+
+    auto eweights = hana::tuple_t<eprop_map_t<int64_t>, no_weight_t>;
 
     if (micro_degs)
     {
@@ -40,8 +45,12 @@ void generate_sbm(GraphInterface& gi, std::any ab, boost::python::object ors,
         auto in_deg = std::any_cast<dmap_t>(ain_deg).get_unchecked();
         auto out_deg = std::any_cast<dmap_t>(aout_deg).get_unchecked();
         run_action<>()
-            (gi, [&](auto& g) { gen_sbm<true>(g, b, rs, ss, probs, in_deg,
-                                              out_deg, true, rng); })();
+            (gi,
+             [&](auto& g, auto w)
+             {
+                 gen_sbm<true>(g, b, rs, ss, probs, in_deg,
+                               out_deg, true, w, rng);
+             }, eweights)(aw);
     }
     else
     {
@@ -50,8 +59,12 @@ void generate_sbm(GraphInterface& gi, std::any ab, boost::python::object ors,
         auto in_deg = std::any_cast<dmap_t>(ain_deg).get_unchecked();
         auto out_deg = std::any_cast<dmap_t>(aout_deg).get_unchecked();
         run_action<>()
-            (gi, [&](auto& g) { gen_sbm<false>(g, b, rs, ss, probs, in_deg,
-                                               out_deg, micro_ers, rng); })();
+            (gi,
+             [&](auto& g, auto w)
+             {
+                 gen_sbm<false>(g, b, rs, ss, probs, in_deg,
+                                out_deg, micro_ers, w, rng);
+             }, eweights)(aw);
     }
 }
 

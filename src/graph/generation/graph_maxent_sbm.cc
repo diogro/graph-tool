@@ -26,6 +26,7 @@ void generate_maxent_sbm(GraphInterface& gi, std::any ab,
                          boost::python::object ors, boost::python::object oss,
                          boost::python::object omrs, std::any ain_theta,
                          std::any aout_theta, bool multi, bool self_loops,
+                         std::any aw,
                          rng_t& rng)
 {
     auto rs = get_array<int64_t, 1>(ors);
@@ -38,18 +39,31 @@ void generate_maxent_sbm(GraphInterface& gi, std::any ab,
     typedef vprop_map_t<double> dmap_t;
     auto in_theta = std::any_cast<dmap_t>(ain_theta).get_unchecked();
     auto out_theta = std::any_cast<dmap_t>(aout_theta).get_unchecked();
-
     if (multi)
     {
+        auto eweights = hana::tuple_t<eprop_map_t<int64_t>, no_weight_t>;
+
+        if (!aw.has_value())
+            aw = no_weight_t();
+
         run_action<>()
-            (gi, [&](auto& g) { gen_maxent_sbm<true>(g, b, rs, ss, mrs, in_theta,
-                                                     out_theta, self_loops, rng); })();
+            (gi,
+             [&](auto& g, auto w)
+             {
+                 gen_maxent_sbm<true>(g, b, rs, ss, mrs, in_theta,
+                                      out_theta, self_loops, w, rng);
+             }, eweights)(aw);
     }
     else
     {
         run_action<>()
-            (gi, [&](auto& g) { gen_maxent_sbm<false>(g, b, rs, ss, mrs, in_theta,
-                                                      out_theta, self_loops, rng); })();
+            (gi,
+             [&](auto& g)
+             {
+                 gen_maxent_sbm<false>(g, b, rs, ss, mrs, in_theta,
+                                       out_theta, self_loops,
+                                       no_weight_t(), rng);
+             })();
     }
 }
 

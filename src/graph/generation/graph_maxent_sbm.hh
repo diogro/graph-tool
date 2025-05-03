@@ -525,11 +525,13 @@ private:
     std::vector<gt_hash_map<size_t, double>> _ers, _mrs, _msr;
 };
 
+struct no_weight_t {};
+
 template <bool multigraph, class Graph, class VProp, class IVec, class MVec,
-          class VDProp, class RNG>
+          class VDProp, class ECount, class RNG>
 void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                     VDProp theta_in, VDProp theta_out, bool self_loops,
-                    RNG& rng)
+                    ECount w, RNG& rng)
 {
     size_t B = std::max(*std::max_element(rs.begin(), rs.end()),
                         *std::max_element(ss.begin(), ss.end())) + 1;
@@ -599,13 +601,21 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                     while ((u == v && !self_loops) ||
                            sampled.find({u,v}) != sampled.end());
 
-                    add_edge(u, v, g);
+                    auto e = add_edge(u, v, g).first;
 
-                    if (multigraph)
+                    if constexpr (multigraph)
                     {
-                        std::bernoulli_distribution coin(p);
-                        while (coin(rng))
-                            add_edge(u, v, g);
+                        if constexpr (std::is_same_v<ECount, no_weight_t>)
+                        {
+                            std::bernoulli_distribution coin(p);
+                            while (coin(rng))
+                                add_edge(u, v, g);
+                        }
+                        else
+                        {
+                            std::geometric_distribution<int64_t> samp(1.-p);
+                            w.get_checked()[e] = 1 + samp(rng);
+                        }
                     }
                     sampled.insert({u,v});
                 }

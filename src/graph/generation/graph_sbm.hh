@@ -33,10 +33,12 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
+struct no_weight_t {};
+
 template <bool micro_deg, class Graph, class VProp, class IVec, class FVec,
-          class VDProp, class RNG>
+          class VDProp, class ECount, class RNG>
 void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
-             VDProp out_deg, bool micro_ers, RNG& rng)
+             VDProp out_deg, bool micro_ers, ECount w, RNG& rng)
 {
     typedef typename std::conditional_t<micro_deg,size_t,double> dtype;
     vector<vector<size_t>> rvs;
@@ -104,7 +106,23 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         {
             size_t u = r_sampler.sample(rng);
             size_t v = s_sampler.sample(rng);
-            add_edge(u, v, g);
+            if constexpr (std::is_same_v<ECount, no_weight_t>)
+            {
+                add_edge(u, v, g);
+            }
+            else
+            {
+                auto [e, exists] = edge(u, v, g);
+                if (!exists)
+                {
+                    e = add_edge(u, v, g).first;
+                    w.get_checked()[e]++;
+                }
+                else
+                {
+                    w[e]++;
+                }
+            }
         }
     }
 }
