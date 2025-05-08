@@ -436,9 +436,14 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                                 "beta": np.nan}
             elif rt == libinference.rec_type.discrete_binomial:
                 if rec_params[i] != "microcanonical":
-                    defaults = {"N": self.rec[i].fa.max(),
-                                "alpha": 1,
-                                "beta": 1}
+                    if "N" in rec_params[i] and len(rec_params[i]) == 1:
+                        defaults = {"N" : rec_params[i]["N"],
+                                    "alpha": np.nan,
+                                    "beta": np.nan}
+                    else:
+                        defaults = {"N": self.rec[i].fa.max(),
+                                    "alpha": 1,
+                                    "beta": 1}
                 else:
                     defaults = {"N": self.rec[i].fa.max(),
                                 "alpha": np.nan,
