@@ -200,6 +200,8 @@ public:
                 _degs[v] = {in_degreeS()(v, _g, _eweight),
                             out_degreeS()(v, _g, _eweight)};
             }
+            if (total_degreeS()(v, _g, _eweight) > 0 && _vweight[v] == 0)
+                throw ValueException("Invalid graph: vweight cannot be zero if total degree is non-zero!");
         }
 
         _E = 0;
@@ -429,7 +431,7 @@ public:
 
     void remove_partition_node(size_t v, group_t r)
     {
-        assert(size_t(_b[v]) == r);
+        assert(_b[v] == r);
 
         if (_vweight[v] > 0 && _wr[r] == _vweight[v])
         {
@@ -821,6 +823,7 @@ public:
     template <class VMap>
     void set_vertex_weight(size_t v, int64_t w, VMap&& vweight)
     {
+        assert(total_degreeS()(v, _g, _eweight) == 0 || w > 0);
         auto r = _b[v];
         _N[_bclabel[r]] -= vweight[v];
         vweight[v] = w;
@@ -2444,6 +2447,24 @@ public:
 
     bool check_edge_counts(bool emat=true)
     {
+        for (auto r : _empty_groups)
+        {
+           if (_wr[r] != 0)
+           {
+               assert(false);
+               return false;
+           }
+        }
+
+        for (auto v : vertices_range(_g))
+        {
+            if (total_degreeS()(v, _g, _eweight) > 0 && _vweight[v] == 0)
+            {
+                assert(false);
+                return false;
+            }
+        }
+
         gt_hash_map<std::pair<group_t, group_t>, size_t> mrs;
         for (auto e : edges_range(_g))
         {
