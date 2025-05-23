@@ -37,9 +37,11 @@ class BPBaseState(ABC):
     def __init__(self):
         pass
 
-    def copy(self):
-        """Return a copy of the state."""
-        return type(self)(**self.__getstate__())
+    def copy(self, **kwargs):
+        """Return a copy of the state. The keyword arguments override the
+        constructor parameters."""
+        return type(self)(**dict(dict(self.__getstate__(), converge=False),
+                                 **kwargs))
 
     @abstractmethod
     def __getstate__(self):
@@ -47,7 +49,6 @@ class BPBaseState(ABC):
 
     def __setstate__(self, state):
         self.__init__(**state, converge=False)
-
 
     @_parallel
     def iterate(self, niter=1, parallel=True, update_marginals=True):
@@ -295,14 +296,26 @@ class GenPottsBPState(BPBaseState):
         elif theta.value_type() != "vector<double>":
             theta = theta.copy("vector<double>")
         self.theta = self.g.own_property(theta)
+        init_m = True
         if m is None:
             m = g.new_ep("vector<double>")
+        else:
+            init_m = False
+            m = m.copy("vector<double>")
         self.m = m
+        init_em = True
         if em is None:
             em = g.new_ep("vector<double>")
+        else:
+            em = em.copy("vector<double>")
+            init_em = False
         self.em = em
+        init_vm = True
         if vm is None:
             vm = g.new_vp("vector<double>")
+        else:
+            vm = vm.copy("vector<double>")
+            init_vm = False
         self.vm = self.g.own_property(vm)
         if frozen is None:
             frozen = g.new_vp("bool")
@@ -318,6 +331,7 @@ class GenPottsBPState(BPBaseState):
                                                        _prop("v", g, self.vm),
                                                        marginal_init,
                                                        _prop("v", g, self.frozen),
+                                                       init_vm, init_em, init_m,
                                                        _get_rng())
         if converge:
             self.converge()
@@ -360,6 +374,10 @@ class GenPottsBPState(BPBaseState):
     def marginal_entropy(self):
         """Obtains the marginal entropy from the current messages."""
         return self._state.marginal_entropy(self.g._Graph__graph)
+
+    def marginal_mean(self):
+        """Obtains the marginal mean from the current messages."""
+        return self._state.marginal_mean(self.g._Graph__graph)
 
     def sample(self, vorder=None, parallel=True, max_niter=1000, epsilon=1e-8):
         """Sample from the joint distribution by repeatedly conditioning and
@@ -521,6 +539,10 @@ class IsingBPState(GenPottsBPState):
         else:
             s.fa = f * s.fa - 1
         return s
+
+    def mag(self):
+        """Obtains the average magnetization from the current messages."""
+        return 2 * self.marginal_mean() - 1
 
     def sample_energy(self, s):
         return GenPottsBPState.sample_energy(self, self.from_spin(s))

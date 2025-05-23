@@ -36,7 +36,8 @@ using namespace graph_tool;
 python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
                                    std::any ax, std::any atheta, std::any am,
                                    std::any aem, std::any avm, bool marginal_init,
-                                   std::any afrozen, rng_t& rng)
+                                   std::any afrozen, bool init_vm, bool init_em,
+                                   bool init_m, rng_t& rng)
 {
     PottsBPState::emap_t x =
         std::any_cast<PottsBPState::emap_t::checked_t>(ax).get_unchecked();
@@ -60,7 +61,7 @@ python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
          {
              GILRelease gil_release;
              PottsBPState pstate(g, f, x, theta, m, em, vm, marginal_init,
-                                 frozen, rng);
+                                 frozen, init_vm, init_em, init_m, rng);
              gil_release.restore();
              state = python::object(pstate);
          })();
@@ -154,6 +155,18 @@ REGISTER_MOD
                            S = state.marginal_entropy(g);
                        })();
                   return S;
+              })
+         .def("marginal_mean",
+              +[](PottsBPState& state, GraphInterface& gi)
+              {
+                  double M = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           M = state.marginal_mean(g);
+                       })();
+                  return M;
               })
          .def("sample_energy",
               +[](PottsBPState& state, GraphInterface& gi, std::any as)

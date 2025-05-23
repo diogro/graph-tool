@@ -43,75 +43,77 @@ public:
     template <class Graph, class RNG>
     PottsBPState(Graph& g, boost::multi_array_ref<double, 2> f, emap_t x,
                  vmap_t theta, emmap_t m, emmap_t em, vmmap_t vm,
-                 bool marginal_init, vfmap_t frozen, RNG& rng)
+                 bool marginal_init, vfmap_t frozen, bool init_vm, bool init_em,
+                 bool init_m, RNG& rng)
         : _f(f), _x(x), _theta(theta), _m(m), _em(em), _vm(vm), _q(f.shape()[0]),
           _frozen(frozen)
     {
         std::uniform_real_distribution<> rand;
 
-        for (auto v : vertices_range(g))
+        if (init_vm)
         {
-            if (_vm[v].empty())
+            for (auto v : vertices_range(g))
             {
+                if (_vm[v].empty())
+                {
+                    for (size_t r = 0; r < _q; ++r)
+                        _vm[v].push_back(log(rand(rng)));
+                }
+                _vm[v].resize(_q + 1);
+                double lZ = _vm[v][_q] = log_Zm(_vm[v].begin());
                 for (size_t r = 0; r < _q; ++r)
-                    _vm[v].push_back(log(rand(rng)));
+                    _vm[v][r] -= lZ;
             }
-            _vm[v].resize(_q + 1);
-            double lZ = _vm[v][_q] = log_Zm(_vm[v].begin());
-            for (size_t r = 0; r < _q; ++r)
-                _vm[v][r] -= lZ;
         }
 
-        for (auto e : edges_range(g))
+        if (init_em || init_m)
         {
-            _em[e].resize(_q * _q);
-            _m[e].resize(2 * (_q + 1));
-
-            if (marginal_init)
+            for (auto e : edges_range(g))
             {
-                auto u = source(e, g);
-                auto v = target(e, g);
-                auto m_uv = get_message(g, e, _m, u);
-                auto m_vu = get_message(g, e, _m, v);
-                for (size_t r = 0; r < _q + 1; ++r)
-                {
-                    m_uv[r] = _vm[u][r];
-                    m_vu[r] = _vm[v][r];
-                }
-            }
-            else
-            {
-                for (size_t r = 0; r < _q; ++r)
-                {
-                    _m[e][r] = log(rand(rng));
-                    _m[e][r + _q + 1] = log(rand(rng));
-                }
-                double lZ;
-                lZ = _m[e][_q] = log_Zm(_m[e].begin());
-                for (size_t r = 0; r < _q; ++r)
-                    _m[e][r] -= lZ;
-                lZ = _m[e][2 * _q + 1] = log_Zm(_m[e].begin() + _q);
-                for (size_t r = 0; r < _q; ++r)
-                    _m[e][r + _q] -= lZ;
+                if (init_em)
+                    _em[e].resize(_q * _q);
 
-                auto u = source(e, g);
-                auto v = target(e, g);
-
-                if (_frozen[u])
+                if (init_m)
                 {
+                    _m[e].resize(2 * (_q + 1));
+
+                    auto u = source(e, g);
+                    auto v = target(e, g);
                     auto m_uv = get_message(g, e, _m, u);
-                    for (size_t r = 0; r < _q + 1; ++r)
-                        m_uv[r] = _vm[u][r];
-                }
-
-                if (_frozen[v])
-                {
                     auto m_vu = get_message(g, e, _m, v);
-                    for (size_t r = 0; r < _q + 1; ++r)
-                        m_vu[r] = _vm[v][r];
+
+                    if (marginal_init)
+                    {
+                        for (size_t r = 0; r < _q + 1; ++r)
+                        {
+                            m_uv[r] = _vm[u][r];
+                            m_vu[r] = _vm[v][r];
+                        }
+                    }
+                    else
+                    {
+                        for (size_t r = 0; r < _q; ++r)
+                        {
+                            m_uv[r] = log(rand(rng));
+                            m_vu[r] = log(rand(rng));
+                        }
+                        m_uv[_q] = log_Zm(m_uv);
+                        m_vu[_q] = log_Zm(m_vu);
+
+                        if (_frozen[u])
+                        {
+                            for (size_t r = 0; r < _q + 1; ++r)
+                                m_uv[r] = _vm[u][r];
+                        }
+
+                        if (_frozen[v])
+                        {
+                            for (size_t r = 0; r < _q + 1; ++r)
+                                m_vu[r] = _vm[v][r];
+                        }
+                    }
                 }
             }
-
         }
 
         _temp = _m.copy();
@@ -366,6 +368,25 @@ public:
              });
 
         return S;
+    }
+
+    template <class Graph>
+    double marginal_mean(Graph& g)
+    {
+        double M = 0;
+        size_t N = 0;
+
+        #pragma omp parallel reduction(+:M, N)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&] (auto v)
+             {
+                 for (size_t r = 0; r < _q; ++r)
+                     M += r * exp(_vm[v][r]);
+                 N++;
+             });
+
+        return M / N;
     }
 
     template <class Graph, class VMap>
