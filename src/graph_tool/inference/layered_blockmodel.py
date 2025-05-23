@@ -111,6 +111,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         if eweight is None:
             eweight = g.new_ep("int64_t", 1)
+        elif eweight.value_type() != "int64_t":
+            eweight = g.own_property(eweight).copy(value_type="int64_t")
+        else:
+            eweight = g.own_property(eweight)
 
         self.Lrecdx = kwargs.pop("Lrecdx", [])
         while len(self.Lrecdx) < self.C + 1:
