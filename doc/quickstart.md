@@ -973,7 +973,7 @@ edges with higher betweeness values were removed. We can do this by a
 {class}`~graph_tool.GraphView` object and passing the `efilt` paramter:
 
 ```{doctest} gview
->>> u = GraphView(g, vfilt=eb.fa < 1e-6)
+>>> u = GraphView(g, efilt=eb.fa < 1e-6)
 ``` 
 
 :::{note}
