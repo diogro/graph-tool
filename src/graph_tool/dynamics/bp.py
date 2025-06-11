@@ -115,12 +115,14 @@ class BPBaseState(ABC):
 
     def log_prob(self, s):
         """Obtains the log-probability of state ``s`` (a
-        :class:`~graph_tool.VertexPropertyMap`).
+        :class:`~graph_tool.VertexPropertyMap`), computed as the negative energy
+        of ``s``` minus the logarithm of the partition function.
 
         If ``s`` is vector valued, it's assumed to correspond to multiple
         states, and the total log-probability sum is returned.
+
         """
-        H = BPBaseState.energy(self, s)
+        H = self.sample_energy(s)
         lZ = self.log_Z()
         if "vector" in s.value_type():
             _check_prop_vector(s, scalar=True)
@@ -202,8 +204,8 @@ class GenPottsBPState(BPBaseState):
         Notes
         -----
 
-        This implements BP equations [mezard_information_2009]_, for a
-        generalized Potts model given by
+        This implements belief-propagation (BP) equations
+        [mezard_information_2009]_ for a generalized Potts model given by
 
         .. math::
 
@@ -242,7 +244,7 @@ class GenPottsBPState(BPBaseState):
 
         .. math::
 
-           P_i(s_i, s_j) = \frac{1}{z_{ij}}e^{x_{ij}f_{s_i,s_j}}P_{i\to j}(s_i)P_{j\to i}(s_j),
+           P_{ij}(s_i, s_j) = \frac{1}{z_{ij}}e^{x_{ij}f_{s_i,s_j}}P_{i\to j}(s_i)P_{j\to i}(s_j),
 
         with :math:`z_{ij}` being a normalization constant.
 
@@ -347,11 +349,12 @@ class GenPottsBPState(BPBaseState):
 
         .. math::
 
-           U = -\sum_{i<j}A_{ij}\sum_{s_i,s_j}x_{ij}f_{s_i,s_j}P(s_i,s_j)
-               -\sum_i\sum_{s_i}P(s_i)\theta_i(s_i)
+           U = -\sum_{i<j}A_{ij}\sum_{s_i,s_j}x_{ij}f_{s_i,s_j}P_{ij}(s_i,s_j)
+               -\sum_i\sum_{s_i}P_i(s_i)\theta_{i,s_i}
 
-        with :math:`P(s_i,s_j)` and :math:`P(s_i)` being the marginal edge and
-        node distributions, respectively.
+        with :math:`P_{ij}(s_i,s_j)` and :math:`P_i(s_i)` being the marginal
+        edge and node distributions, respectively.
+
         """
         return self._state.energy(self.g._Graph__graph)
 
@@ -362,14 +365,46 @@ class GenPottsBPState(BPBaseState):
 
         .. math::
 
-           S = -\sum_{i<j}A_{ij}\sum_{s_i,s_j}P(s_i,s_j)\ln P(s_i,s_j)
-               -\sum_i(1-k_i)\sum_{s_i}P(s_i)\ln P(s_i)
+           S = -\sum_i(1-k_i)\sum_{s_i}P_i(s_i)\ln P_i(s_i)
+               -\sum_{i<j}A_{ij}\sum_{s_i,s_j}P_{ij}(s_i,s_j)\ln P_{ij}(s_i,s_j)
 
-        with :math:`P(s_i,s_j)` and :math:`P(s_i)` being the marginal edge and
-        node distributions, respectively, and :math:`k_i` is the degree of node
-        i.
+        with :math:`P_i(s_i)` and :math:`P_{ij}(s_i,s_j)` being the marginal
+        node and edge distributions, respectively, and :math:`k_i` is the degree
+        of node i.
         """
         return self._state.entropy(self.g._Graph__graph)
+
+    def bethe_log_prob(self, s):
+        r"""Obtains the Bethe approximation of the log-probability of state ``s``
+        (a :class:`~graph_tool.VertexPropertyMap`), based on node and edge
+        marginals, i.e.
+
+        .. math::
+
+            \ln P(\boldsymbol s | \boldsymbol A, \boldsymbol x) =
+            \sum_i(1-k_i)\ln P_i(s_i) + \sum_{i<j}A_{ij}\ln P_{ij}(s_i,s_j)
+
+        where the node and edge marginals are obtained from the messages, and
+        :math:`k_i` is the degree of node :math:`i`.
+
+        .. warning::
+
+           The results of :meth:`~GenPottsBPState.bethe_log_prob` and
+           :meth:`~GenPottsBPState.log_prob` will be the same only for trees.
+           The value of :meth:`~GenPottsBPState.bethe_log_prob`, even when
+           approximate (i.e. for loopy graphs), is nevertheless more consistent
+           with the BP ansatz.
+
+        """
+        return self._state.bethe_lprob(self.g._Graph__graph,
+                                       _prop("v", self.g, s))
+
+    def marginal_pair_log_prob(self, u, v, r, s):
+        r"""Obtains the marginal joint log-probability of node pairs :math:`u`
+        and :math:`v` with values :math:`s_u = r` and :math:`s_v = s`.
+        """
+        return self._state.marginal_pair_lprob(self.g._Graph__graph,
+                                               int(u), int(v), int(r), int(s))
 
     def marginal_entropy(self):
         """Obtains the marginal entropy from the current messages."""
@@ -388,6 +423,13 @@ class GenPottsBPState(BPBaseState):
 
         The remaining parameters control the BP convergence; see
         :meth:`GenPottsBPState.converge`.
+
+        .. warning::
+
+           This algorithm has a quadratic complexity :math:`O(NE)`, where
+           :math:`N` and :math:`E` are the number of nodes and edges,
+           respectively.
+
         """
         s = self.g.new_vp("int")
         if vorder is None:
@@ -550,8 +592,16 @@ class IsingBPState(GenPottsBPState):
     def log_prob(self, s):
         return GenPottsBPState.log_prob(self, self.from_spin(s))
 
+    def bethe_log_prob(self, s):
+        return GenPottsBPState.bethe_log_prob(self, self.from_spin(s))
+
     def marginal_log_prob(self, s):
         return GenPottsBPState.marginal_log_prob(self, self.from_spin(s))
+
+    def marginal_pair_log_prob(self, u, v, r, s):
+        return GenPottsBPState.marginal_pair_log_prob(self, u, v,
+                                                      (r + 1)/2,
+                                                      (s + 1)/2)
 
     def marginal_sample(self, update_marginals=True, val_type="int"):
         s = GenPottsBPState.marginal_sample(self, update_marginals=update_marginals,

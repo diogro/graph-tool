@@ -120,8 +120,8 @@ public:
     };
 
     template <class Graph, class Edge, class ME>
-    std::vector<double>::iterator get_message(Graph& g, const Edge& e, ME& me,
-                                              size_t s)
+    std::vector<double>::iterator
+    get_message(Graph& g, const Edge& e, ME& me, size_t s)
     {
         auto u = source(e, g);
         auto v = target(e, g);
@@ -211,6 +211,8 @@ public:
              {
                  auto u = source(e, g);
                  auto v = target(e, g);
+                 if (u > v)
+                     std::swap(u, v);
 
                  auto m_uv = get_message(g, e, _m, v);
                  auto m_vu = get_message(g, e, _m, u);
@@ -220,6 +222,7 @@ public:
                  for (size_t r = 0; r < _q; ++r)
                      for (size_t s = 0; s < _q; ++s)
                          m[r + s * _q] = x * _f[r][s] + m_uv[r] + m_vu[s];
+
                  auto lZ = log_sum_exp(m);
                  for (auto& x : m)
                      x -= lZ;
@@ -255,8 +258,7 @@ public:
                      delta += update_edge(g, e, _temp);
                  });
 
-            #pragma omp parallel reduction(+:delta)
-            parallel_edge_loop_no_spawn
+            parallel_edge_loop
                 (g,
                  [&] (const auto& e)
                  {
@@ -354,6 +356,46 @@ public:
     }
 
     template <class Graph>
+    double marginal_pair_lprob(Graph& g, size_t u, size_t v, size_t r, size_t s)
+    {
+        auto [e, has_edge] = edge(u, v, g);
+
+        if (!has_edge)
+            return _vm[u][r] + _vm[v][s];
+        if (u > v)
+            std::swap(s, r);
+        return _em[e][r + s * _q];
+    }
+
+    template <class Graph, class VMap>
+    double bethe_lprob(Graph& g, VMap s)
+    {
+        double L = 0;
+
+        #pragma omp parallel reduction(+:L)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&] (auto v)
+             {
+                 L += (1. - out_degree(v, g)) * _vm[v][s[v]];
+             });
+
+        #pragma omp parallel reduction(+:L)
+        parallel_edge_loop_no_spawn
+            (g,
+             [&] (const auto& e)
+             {
+                 auto u = source(e, g);
+                 auto v = target(e, g);
+                 if (u > v)
+                     std::swap(u, v);
+                 L += _em[e][s[u] + s[v] * _q];
+             });
+
+        return L;
+    }
+
+    template <class Graph>
     double marginal_entropy(Graph& g)
     {
         double S = 0;
@@ -400,7 +442,7 @@ public:
              {
                  if (_frozen[v])
                      return;
-                 H += _theta[v][s[v]];
+                 H -= _theta[v][s[v]];
              });
 
         #pragma omp parallel reduction(+:H)
@@ -412,7 +454,7 @@ public:
                  auto v = target(e, g);
                  if (_frozen[u] && _frozen[v])
                      return;
-                 H += _x[e] * _f[s[u]][s[v]];
+                 H -= _x[e] * _f[s[u]][s[v]];
              });
 
         return H;

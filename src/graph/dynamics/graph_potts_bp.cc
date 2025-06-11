@@ -192,6 +192,18 @@ REGISTER_MOD
                        }, vertex_scalar_vector_properties)(as);
                   return H;
               })
+         .def("bethe_lprob",
+              +[](PottsBPState& state, GraphInterface& gi, std::any as)
+              {
+                  double L = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g, auto s)
+                       {
+                           L = state.bethe_lprob(g, s);
+                       }, vertex_scalar_properties)(as);
+                  return L;
+              })
          .def("marginal_lprob",
               +[](PottsBPState& state, GraphInterface& gi, std::any as)
               {
@@ -214,6 +226,19 @@ REGISTER_MOD
                        {
                            L = state.marginal_lprobs(g, s);
                        }, vertex_scalar_vector_properties)(as);
+                  return L;
+              })
+         .def("marginal_pair_lprob",
+              +[](PottsBPState& state, GraphInterface& gi, size_t u, size_t v,
+                  size_t r, size_t s)
+              {
+                  double L = 0;
+                  run_action<>()
+                      (gi,
+                       [&](auto& g)
+                       {
+                           L = state.marginal_pair_lprob(g, u, v, r, s);
+                       })();
                   return L;
               })
          .def("sample",
