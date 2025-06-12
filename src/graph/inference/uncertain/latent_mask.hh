@@ -80,7 +80,7 @@ struct LatentMask
                 if (_f[e] == 0)
                 {
                     if (_ecount[e] > 0)
-                        throw ValueException("positive edge counts incosistent with f_ij = 0!");
+                        throw ValueException("positive edge counts inconsistent with f_ij = 0!");
                 }
                 else if (_f[e] == 1)
                 {
