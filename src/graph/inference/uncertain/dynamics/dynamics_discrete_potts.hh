@@ -94,7 +94,7 @@ public:
             auto&& f = _f[r];
             for (size_t s = 0; s < _q; ++s)
                 val += f[s] * m[s];
-            Z = log_sum_exp<double, double, false>(Z, val);
+            Z = log_sum_exp<double, false>(Z, val);
         }
         return x - Z;
     }
