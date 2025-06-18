@@ -214,8 +214,8 @@ public:
                  if (u > v)
                      std::swap(u, v);
 
-                 auto m_uv = get_message(g, e, _m, v);
-                 auto m_vu = get_message(g, e, _m, u);
+                 auto m_vu = get_message(g, e, _m, v);
+                 auto m_uv = get_message(g, e, _m, u);
 
                  auto& m = _em[e];
                  auto x = _x[e];
