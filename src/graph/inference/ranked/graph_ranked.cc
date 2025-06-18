@@ -82,6 +82,22 @@ REGISTER_MOD
                      c.def("move_vertex", move_vertex)
                          .def("virtual_move", virtual_move)
                          .def("entropy", &state_t::entropy)
+                         .def("modify_edge",
+                              +[](state_t& state, size_t u, size_t v, int64_t dm)
+                               {
+                                   auto e = edge(u, v, state._g).first;
+                                   if (dm > 0)
+                                       state.template modify_edge<true>(u, v, e, dm);
+                                   else
+                                       state.template modify_edge<false>(u, v, e, -dm);
+                               })
+                         .def("modify_edge_dS",
+                              +[](state_t& state, size_t u, size_t v, int64_t dm,
+                                  const entropy_args_t& ea)
+                               {
+                                   auto e = edge(u, v, state._g).first;
+                                   return state.modify_edge_dS(u, v, e, dm, ea);
+                               })
                          .def("couple_state", &state_t::couple_state)
                          .def("decouple_state", &state_t::decouple_state)
                          .def("get_Es",

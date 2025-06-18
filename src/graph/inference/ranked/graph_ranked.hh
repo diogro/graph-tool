@@ -327,7 +327,8 @@ public:
             return _ustate.get_move_prob(v, r, s, c, d, reverse);
         }
 
-        double get_edges_dl(const std::array<int64_t,3>& dE, int64_t dB)
+        double get_edges_dl(const std::array<int64_t,3>& dE, int64_t dB,
+                            int dE_tot = 0)
         {
             size_t B = 0;
             for (auto& ps : _ustate._partition_stats)
@@ -337,8 +338,8 @@ public:
             double S = 0;
 
             if (_ustate._coupled_state == nullptr)
-                S += lbinom_fast<false>((B * (B + 1)) / 2 + _ustate._E - 1,
-                                        _ustate._E);
+                S += lbinom_fast<false>((B * (B + 1)) / 2 + _ustate._E + dE_tot - 1,
+                                        _ustate._E + dE_tot);
 
             std::array<size_t, 3> E;
             for (int i = 0; i < 3; ++i)
@@ -380,6 +381,42 @@ public:
             S += _ustate.entropy(ea, propagate);
 
             return S;
+        }
+
+        double modify_edge_dS(size_t u, size_t v, const GraphInterface::edge_t& e,
+                              int64_t dm, entropy_args_t ea)
+        {
+            double dS = 0;
+
+            if (ea.edges_dl || _ustate._coupled_state != nullptr)
+            {
+                auto r = _b[u];
+                auto s = _b[v];
+
+                std::array<int64_t, 3> dE = {0, 0, 0};
+                dS -= get_edges_dl(dE, 0);
+                dE[stream_dir(r, s)] += dm;
+                dS += get_edges_dl(dE, 0, dm);
+
+                if (r != s)
+                {
+                    size_t ers = get_beprop(r, s, _ustate._mrs, _ustate._emat);
+                    size_t esr = get_beprop(s, r, _ustate._mrs, _ustate._emat);
+                    dS += lbinom_fast(ers + esr, ers);
+                    dS -= lbinom_fast(ers + esr + dm, ers + dm);
+                }
+            }
+
+            ea.edges_dl = false;
+            dS += _ustate.modify_edge_dS(u, v, e, dm, ea);
+            return dS;
+        }
+
+        template <bool Add, bool Deplete=true>
+        void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e, int64_t dm)
+        {
+            _ustate.template modify_edge<Add, Deplete>(u, v, e, dm);
+            _E[stream_dir(_b[u], _b[v])] += (Add) ? dm : -dm;
         }
 
         template <class MCMCState>

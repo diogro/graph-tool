@@ -80,6 +80,22 @@ REGISTER_MOD
                  .def("get_partition_dl", &state_t::get_partition_dl)
                  .def("get_deg_dl", &state_t::get_deg_dl)
                  .def("get_move_prob", get_move_prob)
+                 .def("modify_edge",
+                      +[](state_t& state, size_t u, size_t v, int64_t dm)
+                      {
+                          auto e = edge(u, v, state._g).first;
+                          if (dm > 0)
+                              state.template modify_edge<true>(u, v, e, dm);
+                          else
+                              state.template modify_edge<false>(u, v, e, -dm);
+                      })
+                 .def("modify_edge_dS",
+                      +[](state_t& state, size_t u, size_t v, int64_t dm,
+                          const entropy_args_t& ea)
+                      {
+                          auto e = edge(u, v, state._g).first;
+                          return state.modify_edge_dS(u, v, e, dm, ea);
+                      })
                  .def("reset_partition_stats",
                       &state_t::reset_partition_stats)
                  .def("init_partition_stats",

@@ -249,6 +249,20 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         r"""Move vertex ``v`` to block ``s``."""
         self._state.move_vertex(int(v), int(s))
 
+    def modify_edge_dS(self, u, v, dm, entropy_args={}):
+        """Computes the difference in the description length if edge :math:`(u,
+        v)` would have its multiplicity changed by an integer difference ``dm``,
+        taking into account the ``entropy_args`` parameters as described in
+        :meth:`~RankedBlockState.entropy`.
+        """
+        ea = self._get_entropy_args(dict(self._entropy_args, **entropy_args))
+        return self._state.modify_edge_dS(u, v, dm, ea)
+
+    def modify_edge(self, u, v, dm):
+        """Changes the multiplicity of edge ;math:`(u, v)` by a integer
+        difference ``dm``."""
+        return self._state.modify_edge(u, v, dm)
+
     @copy_state_wrap
     def _entropy(self, adjacency=True, dl=True, partition_dl=True,
                  degree_dl=True, degree_dl_kind="distributed", edges_dl=True,

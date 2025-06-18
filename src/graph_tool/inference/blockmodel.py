@@ -1277,6 +1277,20 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         return L
 
+    def modify_edge_dS(self, u, v, dm, entropy_args={}):
+        """Computes the difference in the description length if edge :math:`(u,
+        v)` would have its multiplicity changed by an integer difference ``dm``,
+        taking into account the ``entropy_args`` parameters as described in
+        :meth:`~BlockState.entropy`.
+        """
+        ea = self._get_entropy_args(dict(self._entropy_args, **entropy_args))
+        return self._state.modify_edge_dS(u, v, dm, ea)
+
+    def modify_edge(self, u, v, dm):
+        """Changes the multiplicity of edge ;math:`(u, v)` by a integer
+        difference ``dm``."""
+        return self._state.modify_edge(u, v, dm)
+
     def _clear_egroups(self):
         self._state.clear_egroups()
 
@@ -1343,7 +1357,9 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
 
     def collect_edge_marginals(self, p=None, update=1):
-        r"""Collect the edge marginal histogram, which counts the number of times
+        r
+
+        """Collect the edge marginal histogram, which counts the number of times
         the endpoints of each node have been assigned to a given block pair.
 
         This should be called multiple times, e.g. after repeated runs of the
