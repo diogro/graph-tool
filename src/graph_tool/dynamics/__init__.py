@@ -129,7 +129,7 @@ class DiscreteStateBase(object):
         return type(self)(self.__getstate__())
 
     def __getstate__(self):
-        return dict(g=self.g, s=self.s, params=self.params)
+        return dict(g=self.g, s=self.s, **self.params)
 
     def __setstate__(self, state):
         self.__init__(**state)
