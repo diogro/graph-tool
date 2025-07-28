@@ -62,6 +62,9 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     """
 
     def __init__(self, g, b=None, u=None, entropy_args={}, **kwargs):
+        if not g.is_directed():
+            raise ValueError("RankedBlockState can only be used with directed graphs")
+
         EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = g
         self.ustate = BlockState(self.g, b=b, **kwargs)
