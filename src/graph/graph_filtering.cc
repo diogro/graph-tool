@@ -73,8 +73,7 @@ std::any GraphInterface::get_graph_view() const
                 if (pos >= gviews.size())
                     gviews.resize(pos + 1);
                 auto& a = gviews[pos];
-                if (!a.has_value())
-                    a = std::make_shared<fg_t>(*u, e_filter, v_filter);
+                a = std::make_shared<fg_t>(*u, e_filter, v_filter);
                 return a;
             }
             else
