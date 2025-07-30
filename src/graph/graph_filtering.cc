@@ -73,7 +73,8 @@ std::any GraphInterface::get_graph_view() const
                 if (pos >= gviews.size())
                     gviews.resize(pos + 1);
                 auto& a = gviews[pos];
-                a = std::make_shared<fg_t>(*u, e_filter, v_filter);
+                if (!a.has_value())
+                    a = std::make_shared<fg_t>(*u, e_filter, v_filter);
                 return a;
             }
             else
@@ -195,6 +196,7 @@ void GraphInterface::set_vertex_filter_property(std::any property)
             throw GraphException("Invalid vertex filter property!");
         _vertex_filter_active = false;
     }
+    _gviews.clear();
 }
 
 void GraphInterface::set_edge_filter_property(std::any property)
@@ -211,4 +213,5 @@ void GraphInterface::set_edge_filter_property(std::any property)
             throw GraphException("Invalid edge filter property!");
         _edge_filter_active = false;
     }
+    _gviews.clear();
 }
