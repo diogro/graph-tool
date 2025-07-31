@@ -378,7 +378,6 @@ class NestedBlockState(object):
     def move_vertex(self, v, s):
         r"""Move vertex ``v`` to block ``s``."""
         self.levels[0].move_vertex(v, s)
-        self._regen_levels()
 
     def remove_vertex(self, v):
         r"""Remove vertex ``v`` from its current group.
@@ -392,7 +391,6 @@ class NestedBlockState(object):
            twice.
         """
         self.levels[0].remove_vertex(v)
-        self._regen_levels()
 
     def add_vertex(self, v, r):
         r"""Add vertex ``v`` to block ``r``.
@@ -405,7 +403,6 @@ class NestedBlockState(object):
            added twice to the same group.
         """
         self.levels[0].add_vertex(v, r)
-        self._regen_levels()
 
     def get_edges_prob(self, missing, spurious=[], entropy_args={}):
         r"""Compute the joint log-probability of the missing and spurious edges given by
