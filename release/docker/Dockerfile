@@ -5,7 +5,8 @@ LABEL org.opencontainers.image.authors="Tiago de Paula Peixoto <tiago@skewed.de>
 
 RUN pacman -Sy
 RUN pacman -S pacman-contrib --noconfirm --disable-download-timeout
-RUN curl -s "https://archlinux.org/mirrorlist/?country=DE&protocol=https&use_mirror_status=on" | sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - > /etc/pacman.d/mirrorlist
+RUN echo "Server=https://archive.archlinux.org/repos/`date -d 'yesterday 13:00' +%Y/%m/%d`/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+#RUN curl -s "https://archlinux.org/mirrorlist/?country=DE&protocol=https&use_mirror_status=on" | sed -e 's/^#Server/Server/' -e '/^#/d' | rankmirrors -n 5 - > /etc/pacman.d/mirrorlist
 
 RUN pacman -Syu --noconfirm --disable-download-timeout
 RUN pacman -S binutils make gcc fakeroot libtool --noconfirm --needed
@@ -29,7 +30,7 @@ RUN mkdir -p ${MAKEPKG_ROOT}; chown mkpkg:mkpkg ${MAKEPKG_ROOT}
 USER ${MAKEPKG_USER}
 WORKDIR ${MAKEPKG_ROOT}
 ADD PKGBUILD PKGBUILD
-RUN nice -n 19 makepkg PKGBUILD --needed GIT_REF=$GIT_REF CXXFLAGS="-mtune=generic -O3 -pipe -ffunction-sections -fdata-sections" LDFLAGS="-Wl,--gc-sections"
+RUN nice -n 19 makepkg PKGBUILD --needed GIT_REF=$GIT_REF CXXFLAGS="-mtune=generic -O3 -flto=jobserver" LDFLAGS="-flto=jobserver"
 
 USER root
 RUN mv -v "${MAKEPKG_ROOT}/"python-graph-tool-git-1-x86_64.pkg.tar.zst /tmp/python-graph-tool.pkg.tar.zst
