@@ -323,16 +323,17 @@ public:
                                                 GraphInterface::edge_t, int64_t,
                                                 std::vector<double>>>& entries)
     {
-        auto r = _b[u];
-        auto s = _b[v];
-        _m_entries.set_move(r, s, num_vertices(_bg));
+        auto get_b =
+            [&](auto v) { return (v != null_group) ? _b[v] : null_group; };
+
+        _m_entries.set_move(get_b(u), get_b(v), num_vertices(_bg));
 
         if (_rt == weight_type::NONE)
         {
             for (auto& rsd : entries)
             {
-                _m_entries.template insert_delta<true>(_b[get<0>(rsd)],
-                                                       _b[get<1>(rsd)],
+                _m_entries.template insert_delta<true>(get_b(get<0>(rsd)),
+                                                       get_b(get<1>(rsd)),
                                                        get<3>(rsd));
             }
         }
@@ -340,7 +341,7 @@ public:
         {
             for (auto& rsd : entries)
             {
-                recs_propagate_insert(*this, _b[get<0>(rsd)], _b[get<1>(rsd)],
+                recs_propagate_insert(*this, get_b(get<0>(rsd)), get_b(get<1>(rsd)),
                                       get<2>(rsd), get<3>(rsd), get<4>(rsd),
                                       _m_entries);
             }
