@@ -219,12 +219,12 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
         First partition.
     y : iterable of ``int`` values
         Second partition.
-    norm : (optional, default: ``True``)
+    norm : ``bool`` (optional, default: ``True``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
-    adjusted : (optional, default: ``False``)
+    adjusted : ``bool`` (optional, default: ``False``)
         If ``True``, the adjusted mutual information will be computed. Note that
         if ``adjusted == True``, the parameter ``norm`` is ignored.
-    avg_method : (optional, default: ``"arithmetic"``)
+    avg_method : ``bool`` (optional, default: ``"arithmetic"``)
         Determines how the adjusted normalization average should be
         computed. Must be one of: ``"min"``, ``"max"``, ``"arithmethic"``, or
         ``"geometric"``. This option has an effect only if ``adjusted == True``.
@@ -341,7 +341,8 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
         MI /= (Hx + Hy)/2
     return float(MI)
 
-def reduced_mutual_information(x, y, norm=False):
+@_limit_args({"norm_method": ["symmetric", "asymmetric"]})
+def reduced_mutual_information(x, y, norm=False, norm_method="asymmetric"):
     r"""Returns the reduced mutual information between two partitions.
 
     Parameters
@@ -350,9 +351,11 @@ def reduced_mutual_information(x, y, norm=False):
         First partition.
     y : iterable of ``int`` values
         Second partition.
-    norm : (optional, default: ``True``)
-        If ``True``, the result will be normalized such that the maximum
-        possible value is one.
+    norm : ``bool`` (optional, default: ``False``)
+        If ``True``, the result will be pseudo-normalized such that returned
+        value is one if the two partitions are identical.
+    norm_method : ``"symmetric"`` or ``"asymmetric"`` (optional, default: ``"asymmetric"``)
+        Method used for pseudo-normalization.
 
     Returns
     -------
@@ -366,7 +369,7 @@ def reduced_mutual_information(x, y, norm=False):
 
     .. math::
 
-        \text{RMI}(\boldsymbol x,\boldsymbol y) =
+        \text{RMI}(\boldsymbol x, \boldsymbol y) =
         \frac{1}{N}\left[\ln \frac{N!\prod_{rs}m_{rs}!}{\prod_rn_r!\prod_sn_s'!}
         -\ln\Omega(\boldsymbol n, \boldsymbol n')\right],
 
@@ -376,19 +379,27 @@ def reduced_mutual_information(x, y, norm=False):
     in both partitions, and :math:`\Omega(\boldsymbol n, \boldsymbol n')` is the
     total number of contingency tables with fixed row and column sums.
 
-    If ``norm == True``, the normalized value is returned:
+    If ``norm == True``, the pseudo-normalized value is returned:
 
     .. math::
 
-        \frac{2\ln \frac{N!\prod_{rs}m_{rs}!}{\prod_rn_r!\prod_sn_s'!}
-        -2\ln\Omega(\boldsymbol n, \boldsymbol n')}
-        {\ln\frac{N!}{\prod_rn_r!} + \ln\frac{N!}{\prod_rn'_r!}
-         -\ln\Omega(\boldsymbol n, \boldsymbol n)
-         -\ln\Omega(\boldsymbol n', \boldsymbol n')}
+        \frac{\text{RMI}(\boldsymbol x, \boldsymbol y)}{\text{RMI}(\boldsymbol x, \boldsymbol x)}
 
-    which can take a maximum value of one.
+    if ``norm_method == "asymmetric"``, or
 
-    Note that both the normalized and unormalized RMI values can be negative.
+    .. math::
+
+        \frac{2\text{RMI}(\boldsymbol x, \boldsymbol y)}{\text{RMI}(\boldsymbol x, \boldsymbol x) + \text{RMI}(\boldsymbol y, \boldsymbol y)}
+
+    if ``norm_method == "symmetric"``. In both cases the pseudo-normalized value
+    will be unity if the two partitions are identical.
+
+    .. warning::
+
+        Note that both the pseudo-normalized and unormalized RMI values can be
+        negative. In addition, the pseudo-normalized RMI can take values larger
+        than unity for different partitions. These are issues with the
+        definition of RMI, not bugs in this particular implementation.
 
     This algorithm runs in time :math:`O(N)` where :math:`N` is
     the length of :math:`\boldsymbol x` and :math:`\boldsymbol y`.
@@ -399,6 +410,25 @@ def reduced_mutual_information(x, y, norm=False):
     >>> y = np.random.randint(0, 10, 1000)
     >>> gt.reduced_mutual_information(x, y)
     -0.069938...
+    >>> x = [0, 1, 2, 3, 4, 5, 6]
+    >>> y = [0, 0, 1, 0, 2, 3, 4]
+    >>> gt.reduced_mutual_information(x, y, norm=True, norm_method="asymmetric")
+    0.535938...
+    >>> # Pseudo-normalized values larger than one are possible!
+    >>> gt.reduced_mutual_information(x, y, norm=True, norm_method="symmetric")
+    82.227299...
+    >>> gt.reduced_mutual_information(x, x, norm=False)
+    -0.162538...
+    >>> gt.reduced_mutual_information(y, y, norm=False)
+    0.160420...
+    >>> gt.reduced_mutual_information(x, x, norm=True, norm_method="asymmetric")
+    1.0
+    >>> gt.reduced_mutual_information(x, x, norm=True, norm_method="symmetric")
+    1.0
+    >>> gt.reduced_mutual_information(y, y, norm=True, norm_method="asymmetric")
+    1.0
+    >>> gt.reduced_mutual_information(y, y, norm=True, norm_method="symmetric")
+    1.0
 
     References
     ----------
@@ -417,14 +447,14 @@ def reduced_mutual_information(x, y, norm=False):
     mrs = mrs[mrs > 0]
     N = mrs.sum()
     RMI = gammaln(N + 1) + gammaln(mrs + 1).sum() - gammaln(nr + 1).sum()
-    RMI -= libinference.log_omega(nr[part == 0], nr[part == 1])
+    lomega = libinference.log_omega(nr[part == 0], nr[part == 1])
+    RMI -= lomega
+    RMI /= N
+    RMI = float(RMI)
     if norm:
-        RMI *= 2
-        aRMI = 2 * gammaln(N + 1)
-        aRMI -= gammaln(nr + 1).sum()
-        aRMI -= libinference.log_omega(nr[part == 0], nr[part == 0])
-        aRMI -= libinference.log_omega(nr[part == 1], nr[part == 1])
-        RMI /= aRMI
-    else:
-        RMI /= N
-    return float(RMI)
+        if norm_method == "asymmetric":
+            RMI /= reduced_mutual_information(x, x, norm=False)
+        else:
+            RMI /= (reduced_mutual_information(x, x, norm=False) +
+                    reduced_mutual_information(y, y, norm=False)) / 2
+    return RMI
