@@ -352,7 +352,7 @@ def reduced_mutual_information(x, y, norm=False, norm_method="asymmetric"):
     y : iterable of ``int`` values
         Second partition.
     norm : ``bool`` (optional, default: ``False``)
-        If ``True``, the result will be pseudo-normalized such that returned
+        If ``True``, the result will be pseudo-normalized such that the returned
         value is one if the two partitions are identical.
     norm_method : ``"symmetric"`` or ``"asymmetric"`` (optional, default: ``"asymmetric"``)
         Method used for pseudo-normalization.
