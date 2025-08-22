@@ -284,6 +284,61 @@ build_bullseye_git:
     BASE: debian:bullseye
     PLATFORM: amd64
 
+build_forky:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:forky
+    PLATFORM: amd64
+
+build_forky_opt2:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:forky
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_forky_opt3:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:forky
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_forky_opt4:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:forky
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
+  before_script:
+    - sed -i "s/ac_cgal=no/ac_cgal=yes/" m4/ax_lib_cgal_core.m4
+
+build_forky_arm:
+  extends: .build_deb
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:forky
+    PLATFORM: arm64
+    MARCH: "armv8-a"
+  needs: ["build_forky"]
+
+build_forky_git:
+  extends: .build_deb_git
+  before_script:
+    - sed -i 's/DEB_CONFIGURE_EXTRA_FLAGS +=/DEB_CONFIGURE_EXTRA_FLAGS += --with-python-module-path=\/usr\/lib\/python3\/dist-packages/' release/debian/debian/rules
+  variables:
+    BASE: debian:forky
+    PLATFORM: amd64
+
 build_jammy:
   extends: .build_deb
   variables:
