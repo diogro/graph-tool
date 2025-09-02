@@ -696,7 +696,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
         groups = [numpy.asarray(groups.a.copy(), dtype="int32")]
     elif groups is not None:
         if isinstance(groups[0], VertexPropertyMap):
-            groups = [groups[0].a.copy()] + list(groups[1:])
+            groups = [numpy.asarray(groups[0].a.copy(), dtype="int32")] + list(groups[1:])
         groups = nested_contiguous_map(groups)
 
     if groups is None:
