@@ -1859,9 +1859,9 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
 
     def get_S(self):
         """Get negative model likelihood according to pseudolikelihood."""
-        return DynamicsBlockStateBase.entropy(self, sbm=False, tdist=False,
+        return DynamicsBlockStateBase.entropy(self, sbm=False, tdist=[False],
                                               xdist=False, density=False, xl1=0,
-                                              tl1=0, alpha=1, test=False)
+                                              tl1=[0], alpha=1, test=False)
 
     @abstractmethod
     def get_bp_state(**kwargs):
