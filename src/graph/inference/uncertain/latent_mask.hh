@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "../support/graph_state.hh"
-#include "../blockmodel/graph_blockmodel_util.hh"
 #include "uncertain.hh"
 
 namespace graph_tool
@@ -32,12 +31,12 @@ using namespace boost;
 using namespace std;
 
 #define LATENT_MASK_STATE_params                                               \
-    ((g, &, decltype(all_graph_views), 1))                                     \
-    ((ecount,, eprop_map_t<int64_t>, 0))                                           \
-    ((f,, eprop_map_t<double>, 0))                                             \
-    ((f_default,, double, 0))                                                  \
-    ((max_m,, int64_t, 0))                                                         \
-    ((init,, double, 0))
+    ((g, decltype(all_graph_views), 1))                                        \
+    ((ecount, eprop_map_t<int64_t>, 0))                                        \
+    ((f, eprop_map_t<double>, 0))                                              \
+    ((f_default, double, 0))                                                   \
+    ((max_m, int64_t, 0))                                                      \
+    ((init, double, 0))
 
 template <class BlockState>
 struct LatentMask

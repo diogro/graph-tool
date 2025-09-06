@@ -208,7 +208,7 @@ public:
         auto x = _f[r][s];
 
         auto set_x =
-            [=](auto x)
+            [=,this](auto x)
             {
                 _f = f_temp;
                 if (_f_sym)
@@ -219,7 +219,7 @@ public:
             };
 
         auto f =
-            [=](auto x)
+            [=,this](auto x)
             {
                 set_x(x);
                 double S = _state.entropy(ea);

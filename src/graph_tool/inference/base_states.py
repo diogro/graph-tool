@@ -18,14 +18,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Vector_size_t, group_vector_property, _parallel
+from .. import Vector_size_t, group_vector_property, _parallel, _get_rng
 
 from . util import *
 
 import functools
 from abc import ABC, abstractmethod
 import inspect
-import functools
+import warnings
 import textwrap
 import math
 import numpy
@@ -84,21 +84,28 @@ def mcmc_sweep_wrap(func):
             dS = ret[0]
             Sf = self.entropy(**entropy_args)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
+                "inconsistent entropy delta (reported: %.3g, actual: %.3g, diff: %g), eargs: %s" % \
+                (dS, Sf - Si, (dS - (Sf - Si)), str(entropy_args))
         return ret
     return wrapper
 
 def entropy_state_signature(cls):
     def entropy(self, **kwargs):
         return self._entropy(**dict(self.get_entropy_args(), **kwargs))
-    entropy.__signature__ = inspect.signature(cls._entropy)
+    sig = inspect.signature(cls._entropy)
+    for base in cls.__bases__:
+        if hasattr(base, "entropy"):
+            ps = inspect.signature(base.entropy).parameters
+            nps = [p for p in ps.values() if p.kind != p.VAR_KEYWORD] + \
+                [p for p in sig.parameters.values() if p.name not in ps]
+            sig = inspect.Signature(parameters=nps)
+    entropy.__signature__ = sig
     intro, br, rest = cls._entropy.__doc__.partition("\n\n")
     warn = f"""\
-    The default arguments of this function are overriden by those
-    obtained from :meth:`~{cls.__name__}.get_entropy_args`. To update the
-    defaults in a stateful way, :meth:`~{cls.__name__}.update_entropy_args`
-    should be called."""
+    The default arguments of this function are overriden by
+    those obtained from :meth:`~{cls.__name__}.get_entropy_args`.
+    To update the  defaults in a stateful way,
+    :meth:`~{cls.__name__}.update_entropy_args` should be called."""
     warn = textwrap.dedent(warn)
     warn = " ".join(warn.splitlines())
     warn = textwrap.fill(warn, width=60, break_long_words=False,
@@ -123,6 +130,42 @@ def entropy_state_signature(cls):
         cls.reset_entropy_args.__doc__.replace("{entropy}",
                                                f":meth:`~{cls.__name__}.entropy`")
     return cls
+
+
+def kwargs_wrap(func):
+    sig = inspect.signature(func)
+    kw = set(k for k, p in sig.parameters.items())
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        unknown = kwargs.get("__unknown", None)
+        known = kwargs.get("__known", None)
+        if unknown is None:
+            unknown = kwargs["__unknown"] = {}
+        if known is None:
+            known = kwargs["__known"] = set()
+        for k in kw:
+            known.add(k)
+        warn = kwargs.pop("__kw_warn", True)
+        for k, v in kwargs.items():
+            if k not in known:
+                unknown[k] = v
+        for k in known:
+            if k in unknown:
+                del unknown[k]
+        ret = func(self, *args, **dict(kwargs, __kw_warn=False))
+        if warn and len(unknown) > 2:
+            warnings.warn("unrecognized keyword arguments: " +
+                          str([k for k in unknown if k not in ["__known",
+                                                               "__unknown"]]))
+        return ret
+    return wrapper
+
+
+def kw_pop(kwargs, key, default):
+    kwargs["__unknown"].pop(key, None)
+    return kwargs.pop(key, default)
+
 
 class EntropyState(ABC):
     r"""Base state that implements entropy arguments."""
@@ -155,36 +198,76 @@ class EntropyState(ABC):
         """Reset the current default values for the parameters of the function
         {entropy}, together with other operations that depend on them.
         """
-        sig = inspect.signature(self._entropy)
+        sig = inspect.signature(self.entropy)
         for k, v in sig.parameters.items():
             if k in ["self", "kwargs"]:
                 continue
             self._entropy_args[k] = v.default
 
     def __getstate__(self):
+        init_args = {}
+        for c in inspect.getmro(type(self)):
+            sig = inspect.signature(c.__init__)
+            for k, v in sig.parameters.items():
+                if k in ["self", "args", "kwargs", "entropy_args"]:
+                    continue
+                init_args[k] = getattr(self, k)
         eargs = self.get_entropy_args()
         sig = inspect.signature(self.entropy)
         for k, v in sig.parameters.items():
             if k in eargs and eargs[k] == v:
                 eargs.pop(k)
-        return dict(entropy_args=eargs)
+        return dict(entropy_args=eargs, **init_args)
+
+    def __setstate__(self, state):
+        self.__init__(**state)
+
+    def __copy__(self):
+        return self.copy()
+
+    def copy(self, **kwargs):
+        r"""Copies the block state. The parameters override the state
+         properties, and have the same meaning as in the constructor.
+        """
+        init_args = {k: v.copy() if isinstance(v, PropertyMap) else v
+                     for k, v in self.__getstate__().items()}
+        init_args.update(kwargs)
+        return self.__class__(**init_args)
 
     @abstractmethod
     def _entropy(self, **kwargs):
         pass
 
-    @abstractmethod
-    def _gen_eargs(self, args):
-        pass
+    def _entropy_dispatch(self, **kwargs):
+        eargs = self._get_entropy_args(kwargs, consume=True)
+        S = self._state.entropy(eargs)
+        for k in ["self", "test", "__class__"]:
+            kwargs.pop(k, None)
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
+        return S
+
+
+    def _gen_eargs(self):
+        return self._state.gen_eargs()
 
     def _get_entropy_args(self, eargs, consume=False):
         if not consume:
             eargs = dict(self._entropy_args, **eargs)
-        ea = self._gen_eargs(eargs)
+        ea = self._gen_eargs()
+        dl = eargs.pop("dl", self._entropy_args.get("dl", True))
         for arg in list(eargs.keys()):
             if arg not in self._entropy_args:
                 continue
-            setattr(ea, arg, eargs.pop(arg, self._entropy_args[arg]))
+            val = eargs.pop(arg, self._entropy_args[arg])
+            if not dl and arg.endswith("_dl"):
+                val = False
+            else:
+                x = getattr(ea, arg)
+                if hasattr(x, "names"):
+                    val = x.names[val]
+            setattr(ea, arg, val)
         for k in ["self", "kwargs"]:
             eargs.pop(k, None)
         if len(eargs) > 0 and not consume:
@@ -192,13 +275,23 @@ class EntropyState(ABC):
                              str(list(eargs.keys())))
         return ea
 
+    def _get_vertices(self, vals=None):
+        if vals is None:
+            if getattr(self, "is_weighted", False):
+                # ignore vertices with zero weight
+                vw = self.vweight.fa
+                vertices = vertices[vw > 0]
+            elif hasattr(self, "g"):
+                vertices = self.g.vertex_index.copy().fa
+            else:
+                vertices = []
+        else:
+            vertices = vals
+        return Vector_size_t(init=vertices)
+
 
 class MCMCState(EntropyState):
     r"""Base state that implements single-flip MCMC sweeps."""
-
-    @abstractmethod
-    def _mcmc_sweep_dispatch(self, mcmc_state):
-        pass
 
     @mcmc_sweep_wrap
     def mcmc_sweep(self, beta=1., c=.5, d=.01, niter=1, entropy_args={},
@@ -266,15 +359,7 @@ class MCMCState(EntropyState):
 
         mcmc_state = DictState(locals())
         mcmc_state.entropy_args = self._get_entropy_args(entropy_args)
-        mcmc_state.vlist = Vector_size_t()
-        if vertices is None:
-            vertices = self.g.vertex_index.copy().fa
-            if getattr(self, "is_weighted", False):
-                # ignore vertices with zero weight
-                vw = self.vweight.fa
-                vertices = vertices[vw > 0]
-        mcmc_state.vlist.resize(len(vertices))
-        mcmc_state.vlist.a = vertices
+        mcmc_state.vertices = self._get_vertices(vals=vertices)
         mcmc_state.state = self._state
 
         dispatch = kwargs.pop("dispatch", True)
@@ -283,28 +368,29 @@ class MCMCState(EntropyState):
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
         if dispatch:
-            return self._mcmc_sweep_dispatch(mcmc_state)
+            return self._state.mcmc_sweep(mcmc_state, _get_rng())
         else:
             return mcmc_state
+
 
 class MultiflipMCMCState(EntropyState):
     r"""Base state that implements multiflip (merge-split) MCMC sweeps."""
 
-    @abstractmethod
-    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        pass
-
     @mcmc_sweep_wrap
-    def multiflip_mcmc_sweep(self, beta=1., c=.5, psingle=None, psplit=1,
+    def multiflip_mcmc_sweep(self, niter=1, beta=1., c=.5, psingle=None, psplit=1,
                              pmerge=1, pmergesplit=1, pmovelabel=0, d=0.01,
-                             gibbs_sweeps=10, niter=1, entropy_args={},
-                             accept_stats=None, verbose=False, **kwargs):
+                             gibbs_sweeps=10, vertices=None, parallel_thres=1000,
+                             entropy_args={}, accept_stats=None, verbose=False,
+                             **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection MCMC
         with multiple simultaneous moves (i.e. merges and splits) to sample
         network partitions.
 
         Parameters
         ----------
+        niter : ``int`` (optional, default: ``1``)
+            Number of sweeps to perform. During each sweep, a move attempt is
+            made for each node, on average.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature.
         c : ``float`` (optional, default: ``.5``)
@@ -330,9 +416,13 @@ class MultiflipMCMCState(EntropyState):
         gibbs_sweeps : ``int`` (optional, default: ``10``)
             Number of sweeps of Gibbs sampling to be performed (i.e. each node
             is attempted once per sweep) to refine a split proposal.
-        niter : ``int`` (optional, default: ``1``)
-            Number of sweeps to perform. During each sweep, a move attempt is
-            made for each node, on average.
+        vertices : iterable of ``int``` (optional, default: ``None``):
+            If provided, this specified the list of vertices to be considerd.
+            Otherwise, all vertices are considered.
+        parallel_thres : ``int`` (optional, default: ``1000``)
+            If the number of nodes to be moved fall below this thershold, the
+            operation is performed serially. Otherwise, the moves are done in
+            parallel.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
@@ -364,8 +454,11 @@ class MultiflipMCMCState(EntropyState):
 
         """
 
+        if vertices is None:
+            vertices = []
+        vertices = self._get_vertices(vals=vertices)
         if psingle is None:
-            psingle = self.g.num_vertices()
+            psingle = self.get_N()
         gibbs_sweeps = max((gibbs_sweeps, 1))
         nproposal = Vector_size_t(4)
         nacceptance = Vector_size_t(4)
@@ -380,7 +473,8 @@ class MultiflipMCMCState(EntropyState):
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
         if dispatch:
-            dS, nattempts, nmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
+            dS, nattempts, nmoves = self._state.multiflip_mcmc_sweep(mcmc_state,
+                                                                     _get_rng())
         else:
             return mcmc_state
 
@@ -389,29 +483,30 @@ class MultiflipMCMCState(EntropyState):
                 if key not in accept_stats:
                     accept_stats[key] = numpy.zeros(len(nproposal),
                                                     dtype="uint64")
-            accept_stats["proposal"] += nproposal.a
-            accept_stats["acceptance"] += nacceptance.a
+                    accept_stats["proposal"] += nproposal.a
+                    accept_stats["acceptance"] += nacceptance.a
 
         return dS, nattempts, nmoves
 
 class MultilevelMCMCState(EntropyState):
     r"""Base state that implements multilevel agglomerative MCMC sweeps."""
 
-    @abstractmethod
-    def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        pass
-
     def _get_bclabel(self):
         return None
 
     @mcmc_sweep_wrap
-    def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, c=.5, d=0.01, r=0.9,
+    @_parallel
+    def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, fibonacci=True,
+                              refine=False, c=.5, d=0.01, r=0.9, dB_epsilon=.01,
                               random_bisect=True, merge_sweeps=10, mh_sweeps=10,
-                              init_r=0.99, init_min_iter=5, init_beta=1.,
-                              gibbs=False, B_min=1,
-                              B_max=numpy.iinfo(numpy.uint64).max, b_min=None,
-                              b_max=None, M=None, cache_states=True,
-                              force_accept=False, parallel=False,
+                              init_r=0.99, init_min_iter=8,
+                              init_min_iter_beta=4, init_beta=1., gibbs=False,
+                              B_min=1, B_max=numpy.iinfo(numpy.uint64).max,
+                              b_min=None, b_max=None, M=None,
+                              sample_group_thres=1000, cache_states=True,
+                              force_accept=False, parallel=True,
+                              parallel_thres=1000, parallel_merge=True,
+                              vertices=None,
                               entropy_args={}, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a multilevel agglomerative
         acceptance-rejection pseudo-MCMC (i.e. detailed balance is not
@@ -450,11 +545,14 @@ class MultilevelMCMCState(EntropyState):
             bisection search. A number of single-node Metropolis-Hastings sweeps
             is done until the number of groups is shrunk by a factor that is
             larger than this parameter.
-        init_min_iter : ``int`` (optional, default: ``5``)
+        init_min_iter : ``int`` (optional, default: ``8``)
             Minimum number of iterations at the intialization phase.
+        init_min_iter_beta : ``int`` (optional, default: ``4``)
+            Minimum number of iterations at the intialization phase with beta
+            given by ``init_beta``.
         init_beta : ``float`` (optional, default: ``1.``)
-            Inverse temperature to be used for the very first sweep of the
-            initialization phase.
+            Inverse temperature to be used for the first ``init_min_iter_beta``
+            sweeps of the initialization phase.
         gibbs : ``bool`` (optional, default: ``False``)
             If ``True``, the single node moves use (slower) Gibbs sampling,
             rather than Metropolis-Hastings.
@@ -475,9 +573,16 @@ class MultilevelMCMCState(EntropyState):
         force_accept : ``bool`` (optional, default: ``False``)
             If ``True``, new state will be accepted even if it does not improve
             the objective function.
-        parallel : ``bool`` (optional, default: ``False``)
+        parallel : ``bool`` (optional, default: ``True``)
             If ``True``, the algorithm will run in parallel (if enabled during
             compilation).
+        parallel_thres : ``int`` (optional, default: ``1000``)
+            If the number of nodes to be moved fall below this thershold, the
+            operation is performed serially. Otherwise, the moves are done in
+            parallel.
+        vertices : iterable of ``int``` (optional, default: ``None``):
+            If provided, this specified the list of vertices to be considerd.
+            Otherwise, all vertices are considered.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
@@ -508,19 +613,28 @@ class MultilevelMCMCState(EntropyState):
 
         """
 
+        if vertices is None:
+            vertices = []
+
+        vertices = self._get_vertices(vals=vertices)
+
         merge_sweeps = max((merge_sweeps, 1))
+
         if M is None:
-            M = self.g.num_vertices()
+            M = self.get_N()
             global_moves = True
         else:
             global_moves = False
+
         bclabel = self._get_bclabel()
         if bclabel is not None:
             B_min = max((len(numpy.unique(bclabel.fa)), B_min))
+
         if b_min is None:
-            b_min = self.g.vertex_index.copy("int64_t")
+            b_min = self._get_b_min()
+
         if b_max is None:
-            b_max = self.g.new_vp("int64_t")
+            b_max = self._get_b_max()
 
         mcmc_state = DictState(locals())
         mcmc_state.entropy_args = self._get_entropy_args(entropy_args)
@@ -532,16 +646,28 @@ class MultilevelMCMCState(EntropyState):
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
         if dispatch:
-            return self._multilevel_mcmc_sweep_dispatch(mcmc_state)
+            return self._state.multilevel_mcmc_sweep(mcmc_state, _get_rng())
         else:
             return mcmc_state
 
+    def get_N(self):
+        return self._state.get_N()
+
+    def _get_b_max(self):
+        if hasattr(self, "g"):
+            return self.g.new_vp("int64_t")
+        else:
+            return np.zeros(self.get_N(), dtype="int64")
+
+    def _get_b_min(self):
+        if hasattr(self, "g"):
+            return self.g.vertex_index.copy("int64_t")
+        else:
+            return np.arange(0, self.get_N(), dtype="int64")
+
+
 class GibbsMCMCState(EntropyState):
     r"""Base state that implements single flip MCMC sweeps."""
-
-    @abstractmethod
-    def _gibbs_sweep_dispatch(self, gibbs_state):
-        pass
 
     @mcmc_sweep_wrap
     def gibbs_sweep(self, beta=1., niter=1, entropy_args={},
@@ -595,110 +721,20 @@ class GibbsMCMCState(EntropyState):
 
         gibbs_state = DictState(locals())
         gibbs_state.entropy_args = self._get_entropy_args(entropy_args)
-        gibbs_state.vlist = Vector_size_t()
-        if vertices is None:
-            vertices = self.g.get_vertices()
-        gibbs_state.vlist.resize(len(vertices))
-        gibbs_state.vlist.a = vertices
-        gibbs_state.state = self._state
+        gibbs_state.vlist = self._get_vertices(vals=vertices)
+        mcmc_state.state = self._state
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
 
-        dS, nattempts, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
+        dS, nattempts, nmoves = self._state.gibbs_sweep(gibbs_state, _get_rng())
 
         return dS, nattempts, nmoves
 
-class MulticanonicalMCMCState(EntropyState):
-    r"""Base state that implements multicanonical MCMC sweeps."""
-
-    @abstractmethod
-    def _multicanonical_sweep_dispatch(self, multicanonical_state):
-        pass
-
-    @mcmc_sweep_wrap
-    def multicanonical_sweep(self, m_state, multiflip=False, **kwargs):
-        r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
-        Wang-Landau algorithm.
-
-        Parameters
-        ----------
-        m_state : :class:`~graph_tool.inference.MulticanonicalState`
-            :class:`~graph_tool.inference.MulticanonicalState` instance
-            containing the current state of the Wang-Landau run.
-        multiflip : ``bool`` (optional, default: ``False``)
-            If ``True``, ``multiflip_mcmc_sweep()`` will be used, otherwise
-            ``mcmc_sweep()``.
-        **kwargs : Keyword parameter list
-            The remaining parameters will be passed to
-            ``multiflip_mcmc_sweep()`` or ``mcmc_sweep()``.
-
-        Returns
-        -------
-        dS : ``float``
-            Entropy difference after the sweeps.
-        nattempts : ``int``
-            Number of vertex moves attempted.
-        nmoves : ``int``
-            Number of vertices moved.
-
-        Notes
-        -----
-        This algorithm has an :math:`O(E)` complexity, where :math:`E` is the
-        number of edges (independent of the number of groups).
-
-        References
-        ----------
-        .. [wang-efficient-2001] Fugao Wang, D. P. Landau, "An efficient, multiple
-           range random walk algorithm to calculate the density of states", Phys.
-           Rev. Lett. 86, 2050 (2001), :doi:`10.1103/PhysRevLett.86.2050`,
-           :arxiv:`cond-mat/0011174`
-        """
-
-        if not multiflip:
-            kwargs["sequential"] = False
-        kwargs["beta"] = 1
-
-        args = dmask(locals(), ["self", "kwargs"])
-        multi_state = DictState(args)
-
-        entropy_args = kwargs.get("entropy_args", {})
-        entropy_offset = kwargs.pop("entropy_offset", 0)
-
-        if multiflip:
-            mcmc_state = self.multiflip_mcmc_sweep(dispatch=False, **kwargs)
-        else:
-            mcmc_state = self.mcmc_sweep(dispatch=False, **kwargs)
-
-        multi_state.update(mcmc_state)
-        multi_state.multiflip = multiflip
-
-        multi_state.S = self.entropy(**entropy_args) + entropy_offset
-        multi_state.state = self._state
-
-        multi_state.f = m_state._f
-        multi_state.S_min = m_state._S_min
-        multi_state.S_max = m_state._S_max
-        multi_state.hist = m_state._hist
-        multi_state.dens = m_state._density
-
-        if (multi_state.S < multi_state.S_min or
-            multi_state.S > multi_state.S_max):
-            raise ValueError("initial entropy %g out of bounds (%g, %g)" %
-                             (multi_state.S, multi_state.S_min,
-                              multi_state.S_max))
-
-        S, nattempts, nmoves = self._multicanonical_sweep_dispatch(multi_state)
-
-        return S, nattempts, nmoves
 
 class ExhaustiveSweepState(EntropyState):
     r"""Base state that implements exhaustive enumerative sweeps."""
-
-    @abstractmethod
-    def _exhaustive_sweep_dispatch(self, exhaustive_state):
-        pass
 
     def exhaustive_sweep(self, entropy_args={}, callback=None, density=None,
                          vertices=None, initial_partition=None, max_iter=None):
@@ -754,13 +790,7 @@ class ExhaustiveSweepState(EntropyState):
 
         exhaustive_state = DictState(dict(max_iter=max_iter if max_iter is not None else 0))
         exhaustive_state.entropy_args = self._get_entropy_args(entropy_args)
-        exhaustive_state.vlist = Vector_size_t()
-        if vertices is None:
-            vertices = self.g.vertex_index.copy().fa
-            if getattr(self, "is_weighted", False):
-                # ignore vertices with zero weight
-                vw = self.vweight.fa
-                vertices = vertices[vw > 0]
+        exhaustive_state.vlist = self._get_vertices(vals=vertices)
         if initial_partition is None:
             initial_partition = zeros(len(vertices), dtype="uint64")
         self.move_vertex(vertices, initial_partition)
@@ -769,6 +799,7 @@ class ExhaustiveSweepState(EntropyState):
         exhaustive_state.S = self.entropy(**entropy_args)
         exhaustive_state.state = self._state
         exhaustive_state.b_min = b_min = self.g.new_vp("int32_t")
+        exhaustive_state.state = self._state
 
         if density is not None:
             density = (density[0], density[1],
@@ -777,8 +808,15 @@ class ExhaustiveSweepState(EntropyState):
             _callback = lambda S, S_min: callback(S, S_min, b_min)
         else:
             _callback = None
-        ret = self._exhaustive_sweep_dispatch(exhaustive_state, _callback,
-                                              density)
+        if _callback is not None:
+            ret = self._state.exhaustive_sweep(exhaustive_state, _callback)
+        else:
+            if density is None:
+                ret = self._state.exhaustive_sweep_iter(exhaustive_state)
+            else:
+                ret = self._state.exhaustive_sweep_dens(exhaustive_state,
+                                                        density[0], density[1],
+                                                        density[2])
         if _callback is None:
             if density is None:
                 return ((S, S_min, b_min) for S, S_min in ret)
@@ -787,6 +825,7 @@ class ExhaustiveSweepState(EntropyState):
                 return (Ss, density[2]), b_min
         else:
             return b_min
+
 
 class DrawBlockState(ABC):
     r"""Base state that implements group-based drawing."""

@@ -20,7 +20,6 @@
 
 from .. import Graph, GraphView, _get_rng, _prop, PropertyMap, \
     perfect_prop_hash, Vector_size_t, group_vector_property
-from . blockmodel import DictState
 from . util import *
 import numpy as np
 
@@ -122,7 +121,10 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         Initial partition. If not supplied, a partition into a single group will
         be used.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
-        Edge multiplicities (for multigraphs).
+        Edge weights.
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Constraint labels on the vertices. If supplied, vertices with different
+        label values will not be clustered in the same group.
     entropy_args: ``dict`` (optional, default: ``{}``)
         Override default arguments for :meth:`~ModularityState.entropy()`
         method and releated operations.
@@ -136,7 +138,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
        :arxiv:`2112.00183`
     """
 
-    def __init__(self, g, b=None, eweight=None, entropy_args={}):
+    def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = GraphView(g, directed=False)
         if b is None:
@@ -152,32 +154,17 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             eweight = g.own_property(eweight)
         self.eweight = eweight
 
-        self.bg = Graph(g.num_vertices(), directed=False)
-        self._abg = self.bg._get_any()
+        if clabel is None:
+            clabel = g.new_vp("int64_t")
+        else:
+            clabel = g.own_property(clabel)
+        self.clabel = clabel
+
         self._state = libinference.make_modularity_state(self)
-
-    def __copy__(self):
-        return self.copy()
-
-    def copy(self, g=None, b=None):
-        r"""Copies the state. The parameters override the state properties, and
-         have the same meaning as in the constructor."""
-        return ModularityState(g=g if g is not None else self.g,
-                               b=b if b is not None else self.b)
-
-    def __getstate__(self):
-        state = EntropyState.__getstate__(self)
-        return dict(state, g=self.g, b=self.b)
-
-    def __setstate__(self, state):
-        self.__init__(**state)
 
     def __repr__(self):
         return "<ModularityState object with %d blocks, for graph %s, at 0x%x>" % \
             (self.get_B(), str(self.g), id(self))
-
-    def _gen_eargs(self, args):
-        return libinference.modularity_entropy_args()
 
     def get_B(self):
         r"Returns the total number of blocks."
@@ -196,7 +183,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return np.exp(-(w*np.log(w)).sum())
 
     @copy_state_wrap
-    def _entropy(self, gamma=1.):
+    def _entropy(self, gamma=1., **kwargs):
         r"""Return the unnormalized negative generalized modularity.
 
         Notes
@@ -213,22 +200,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
         """
 
-        eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
-
-        return self._state.entropy(eargs)
-
-    def _get_entropy_args(self, kwargs, ignore=None):
-        kwargs = dict(self._entropy_args, **kwargs)
-        if ignore is not None:
-            for a in ignore:
-                kwargs.pop(a, None)
-        ea = libinference.modularity_entropy_args()
-        ea.gamma = kwargs["gamma"]
-        del kwargs["gamma"]
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized entropy arguments: " +
-                             str(list(kwargs.keys())))
-        return ea
+        return EntropyState._entropy_dispatch(**dict(locals(), **kwargs))
 
     def modularity(self, gamma=1):
         r"""Return the generalized modularity.
@@ -248,22 +220,5 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         """
 
         Q = self.entropy(gamma=gamma)
-        return -Q / (2 * self.g.num_edges())
-
-    def _mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.modularity_mcmc_sweep(mcmc_state, self._state,
-                                                  _get_rng())
-
-    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.modularity_multiflip_mcmc_sweep(mcmc_state,
-                                                            self._state,
-                                                            _get_rng())
-
-    def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.modularity_multilevel_mcmc_sweep(mcmc_state,
-                                                             self._state,
-                                                             _get_rng())
-    def _gibbs_sweep_dispatch(self, gibbs_state):
-        return libinference.modularity_gibbs_sweep(gibbs_state, self._state,
-                                                   _get_rng())
+        return -Q / (2 * self.eweight.fa.sum())
 

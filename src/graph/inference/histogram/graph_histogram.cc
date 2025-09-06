@@ -78,8 +78,8 @@ void dispatch_state_def(State*)
 {
     using namespace boost::python;
 
-    class_<State, bases<>, std::shared_ptr<State>>
-        c(name_demangle(typeid(State).name()).c_str(),
+    class_<State, bases<>, std::shared_ptr<State>, boost::noncopyable>
+        c(get_type_name<State>().c_str(),
           no_init);
     c.def("entropy", &State::entropy)
         .def("get_x",

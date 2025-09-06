@@ -145,7 +145,7 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
             if (state._verbose > 1)
             {
                 auto&& r = state.node_state(v);
-                cout << v << ": " << r;
+                std::print("{}: {}", v, r);
             }
 
             auto&& ret = state.move_proposal(v, rng);
@@ -169,7 +169,7 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
             if (s == state._null_move)
             {
                 if (state._verbose > 1)
-                    cout << " (null proposal)" << endl;
+                    std::println(" (null proposal)");
                 continue;
             }
 
@@ -190,7 +190,8 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
             state.step(v, s);
 
             if (state._verbose > 1)
-                cout << " -> " << s << " " << accept << " " << dS << " " << mP << " " << -dS * beta + mP << " " << S << endl;
+                std::println(" -> {} accept: {}, dS: {}, mP: {}, a: {}, S: {}",
+                             s, accept, dS, mP, -dS * beta + mP, S);
         }
 
         if (state.is_sequential() && state.is_deterministic())

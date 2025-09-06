@@ -34,23 +34,22 @@ using namespace std;
 typedef eprop_map_t<int64_t> emap_t;
 
 #define LATENT_LAYERS_STATE_params                                             \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((og,, python::object, 0))                                                 \
-    ((eweight,, emap_t, 0))                                                    \
-    ((self_loops,, bool, 0))                                                   \
-    ((measured,, bool, 0))                                                     \
-    ((ag_orig, &, std::any, 0))                                                \
-    ((n,, eprop_map_t<int64_t>, 0))                                            \
-    ((x,, eprop_map_t<int64_t>, 0))                                            \
-    ((n_default,, int64_t, 0))                                                 \
-    ((x_default,, int64_t, 0))                                                 \
-    ((alpha,, long double, 0))                                                 \
-    ((beta,, long double, 0))                                                  \
-    ((mu,, long double, 0))                                                    \
-    ((nu,, long double, 0))                                                    \
-    ((lp,, long double, 0))                                                    \
-    ((lq,, long double, 0))                                                    \
-    ((max_w,, int64_t, 0))
+    ((og, python::object, 0))                                                  \
+    ((eweight, emap_t, 0))                                                     \
+    ((self_loops, bool, 0))                                                    \
+    ((measured, bool, 0))                                                      \
+    ((ag_orig, std::any&, 0))                                                  \
+    ((n, eprop_map_t<int64_t>, 0))                                             \
+    ((x, eprop_map_t<int64_t>, 0))                                             \
+    ((n_default, int64_t, 0))                                                  \
+    ((x_default, int64_t, 0))                                                  \
+    ((alpha, long double, 0))                                                  \
+    ((beta, long double, 0))                                                   \
+    ((mu, long double, 0))                                                     \
+    ((nu, long double, 0))                                                     \
+    ((lp, long double, 0))                                                     \
+    ((lq, long double, 0))                                                     \
+    ((max_w, int64_t, 0))
 
 
 template <class Graph, class EW>
@@ -95,8 +94,7 @@ struct LatentLayers
         typedef BlockState block_state_t;
         typedef typename BlockState::g_t g_t;
 
-        template <class... ATs,
-                  typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
+        template <class... ATs>
         LatentLayersState(std::vector<std::reference_wrapper<BlockState>> block_state, ATs&&... args)
             : LatentLayersStateBase<Ts...>(std::forward<ATs>(args)...),
               _g(*std::any_cast<std::shared_ptr<g_t>>(python::extract<std::any&>(_og)())),
@@ -134,10 +132,10 @@ struct LatentLayers
             {
                 gil_release.restore();
                 _dummy = std::make_shared<DummyBlockState<g_t, eweight_t>>(_g, _eweight);
-                _mstate.emplace_back(*_dummy, _g_orig, _n.get_checked(),
-                                     _x.get_checked(), _n_default, _x_default,
-                                     _alpha, _beta, _mu, _nu, _lp, _lq,
-                                     _max_w, _self_loops);
+                _mstate.push_back(std::make_unique<mstate_t>(*_dummy, _g_orig, _n.get_checked(),
+                                                             _x.get_checked(), _n_default, _x_default,
+                                                             _alpha, _beta, _mu, _nu, _lp, _lq,
+                                                             _max_w, _self_loops));
             }
         }
 
@@ -156,8 +154,9 @@ struct LatentLayers
 
         g_t& _g_orig;
         std::shared_ptr<DummyBlockState<g_t, eweight_t>> _dummy;
-        std::vector<typename Measured<DummyBlockState<g_t, eweight_t>>::template MeasuredState<g_t, GET_COMMA_LIST(GET_PARAMS_TYPES(MEASURED_STATE_params))>> _mstate;
-        uentropy_args_t _uea = entropy_args_t();
+        typedef typename Measured<DummyBlockState<g_t, eweight_t>>::template MeasuredState<g_t, BOOST_PP_SEQ_ENUM(GET_PARAMS_TYPES(MEASURED_STATE_params))> mstate_t;
+        std::vector<std::unique_ptr<mstate_t>> _mstate;
+        uentropy_args_t _uea = BlockStateSpec::entropy_args_t();
 
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
@@ -196,7 +195,7 @@ struct LatentLayers
             if (_measured)
             {
                 ea.density = false;
-                L -= _mstate[0].entropy(ea);
+                L -= _mstate[0]->entropy(ea);
             }
 
             return -L;
@@ -217,7 +216,7 @@ struct LatentLayers
             }
 
             if (_measured && !std::isinf(dS))
-                dS += _mstate[0].remove_edge_dS(u, v, 1, _uea);
+                dS += _mstate[0]->remove_edge_dS(u, v, 1, _uea);
 
             return dS;
         }
@@ -234,7 +233,7 @@ struct LatentLayers
             }
 
             if (_measured && !std::isinf(dS))
-                dS += _mstate[0].add_edge_dS(u, v, 1, _uea);
+                dS += _mstate[0]->add_edge_dS(u, v, 1, _uea);
 
             return dS;
         }
@@ -242,7 +241,7 @@ struct LatentLayers
         void remove_edge(size_t l, size_t u, size_t v)
         {
             if (_measured)
-                _mstate[0].remove_edge(u, v, 1);
+                _mstate[0]->remove_edge(u, v, 1);
 
             auto& bstate = _block_state[l].get();
             auto& e = get_u_edge(l, u, v);
@@ -255,7 +254,7 @@ struct LatentLayers
                 boost::remove_edge(ge, _g);
                 ge = _null_edge;
                 if (_measured)
-                    _mstate[0].get_u_edge(u, v) = _null_edge;
+                    _mstate[0]->get_u_edge(u, v) = _null_edge;
             }
             _E--;
             _Es[l]--;
@@ -264,7 +263,7 @@ struct LatentLayers
         void add_edge(size_t l, size_t u, size_t v)
         {
             if (_measured)
-                _mstate[0].add_edge(u, v, 1);
+                _mstate[0]->add_edge(u, v, 1);
 
             auto& bstate = _block_state[l].get();
             auto& e = get_u_edge<true>(l, u, v);
@@ -276,7 +275,7 @@ struct LatentLayers
                 ge = boost::add_edge(u, v, _g).first;
                 _eweight_c[ge] = 0;
                 if (_measured)
-                    _mstate[0].template get_u_edge<true>(u, v) = ge;
+                    _mstate[0]->template get_u_edge<true>(u, v) = ge;
 
             }
             _eweight[ge]++;
@@ -288,17 +287,17 @@ struct LatentLayers
         {
             if (_measured)
             {
-                _mstate[0]._alpha = alpha;
-                _mstate[0]._beta = beta;
-                _mstate[0]._mu = mu;
-                _mstate[0]._nu = nu;
+                _mstate[0]->_alpha = alpha;
+                _mstate[0]->_beta = beta;
+                _mstate[0]->_mu = mu;
+                _mstate[0]->_nu = nu;
             }
         }
 
-        uint64_t get_N() { return _mstate[0]._N; }
-        uint64_t get_X() { return _mstate[0]._X; }
-        uint64_t get_T() { return _mstate[0]._T; }
-        uint64_t get_M() { return _mstate[0]._M; }
+        uint64_t get_N() { return _mstate[0]->_N; }
+        uint64_t get_X() { return _mstate[0]->_X; }
+        uint64_t get_T() { return _mstate[0]->_T; }
+        uint64_t get_M() { return _mstate[0]->_M; }
     };
 };
 

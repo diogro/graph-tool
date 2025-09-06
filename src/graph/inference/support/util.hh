@@ -28,32 +28,32 @@ namespace graph_tool
 {
 using namespace boost;
 
-template <class T1, class T2>
-[[gnu::const]]
-inline double lbinom(T1 N, T2 k)
+template <Scalar T1, Scalar T2>
+//[[gnu::const]]
+double lbinom(T1 N, T2 k)
 {
-    if (N == 0 || k == 0 || k >= N)
+    if (N == 0 || k == 0 || T1(k) >= N)
         return 0;
-    return ((std::lgamma(N + 1) - std::lgamma(k + 1)) - std::lgamma((N - k) + 1));
+    return ((boost::math::lgamma(N + 1) - boost::math::lgamma(k + 1)) - boost::math::lgamma((N - k) + 1));
 }
 
-template <bool Init=true, class T1, class T2>
-[[gnu::const]]
+template <Scalar T1, Scalar T2>
+//[[gnu::const]] [[gnu::always_inline]]
 inline double lbinom_fast(T1 N, T2 k)
 {
-    if (N == 0 || k == 0 || k >= N)
+    if (N == 0 || k == 0 || std::cmp_greater_equal(k, N))
         return 0;
-    return ((lgamma_fast<Init>(N + 1) - lgamma_fast<Init>(k + 1)) - lgamma_fast<Init>((N - k) + 1));
+    return ((lgamma_fast(N + 1) - lgamma_fast(k + 1)) - lgamma_fast((N - k) + 1));
 }
 
-template <class T1, class T2>
-[[gnu::const]]
-inline double lbinom_careful(T1 N, T2 k)
+template <Scalar T1, Scalar T2>
+//[[gnu::const]]
+double lbinom_careful(T1 N, T2 k)
 {
-    if (N == 0 || k == 0 || k >= N)
+    if (N == 0 || k == 0 || T1(k) >= N)
         return 0;
-    double lgN = std::lgamma(N + 1);
-    double lgk = std::lgamma(k + 1);
+    double lgN = boost::math::lgamma(N + 1);
+    double lgk = boost::math::lgamma(k + 1);
     if (lgN - lgk > 1e8)
     {
         // We have N >> k. Use Stirling's approximation: ln N! ~ N ln N - N
@@ -63,20 +63,20 @@ inline double lbinom_careful(T1 N, T2 k)
     }
     else
     {
-        return lgN - std::lgamma(N - k + 1) - lgk;
+        return lgN - boost::math::lgamma(N - k + 1) - lgk;
     }
 }
 
-template <class T>
-[[gnu::const]]
-inline auto lbeta(T x, T y)
+template <Scalar T>
+//[[gnu::const]]
+auto lbeta(T x, T y)
 {
-    return (std::lgamma(x) + std::lgamma(y)) - std::lgamma(x + y);
+    return (boost::math::lgamma(x) + boost::math::lgamma(y)) - boost::math::lgamma(x + y);
 }
 
-template <class T, bool handle_inf=true>
-[[gnu::const]]
-inline auto log_sum_exp(T a, T b)
+template <Scalar T, bool handle_inf=true>
+//[[gnu::const]]
+auto log_sum_exp(T a, T b)
 {
     if constexpr (handle_inf)
     {
@@ -89,9 +89,9 @@ inline auto log_sum_exp(T a, T b)
         return b + std::log1p(std::exp(a-b));
 }
 
-template <class T, class... Ts>
-[[gnu::const]]
-inline auto log_sum_exp(T a, T b, Ts... cs)
+template <Scalar T, Scalar... Ts>
+//[[gnu::const]]
+auto log_sum_exp(T a, T b, Ts... cs)
 {
     if constexpr (sizeof...(Ts) == 0)
         return log_sum_exp(a, b);
@@ -100,31 +100,14 @@ inline auto log_sum_exp(T a, T b, Ts... cs)
 }
 
 template <class V, bool handle_inf=true>
-[[gnu::const]]
-inline auto log_sum_exp(const V& v)
+//[[gnu::const]]
+auto log_sum_exp(const V& v)
 {
     typedef std::remove_reference_t<decltype(*v.begin())> val_t;
     auto ret = -std::numeric_limits<val_t>::infinity();
     for (const auto& x : v)
         ret = log_sum_exp<val_t, handle_inf>(ret, x);
     return ret;
-}
-
-namespace detail {
-   template <class F, class Tuple, std::size_t... I>
-   constexpr decltype(auto) tuple_apply_impl(F&& f, Tuple&& t,
-                                             std::index_sequence<I...>)
-   {
-       return f(std::get<I>(std::forward<Tuple>(t))...);
-   }
-} // namespace detail
-
-template <class F, class Tuple>
-constexpr decltype(auto) tuple_apply(F&& f, Tuple&& t)
-{
-    return detail::tuple_apply_impl
-        (std::forward<F>(f), std::forward<Tuple>(t),
-         std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>{}>{});
 }
 
 } // namespace graph_tool

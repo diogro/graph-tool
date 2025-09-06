@@ -64,7 +64,7 @@ double q_rec(int n, int k)
         k = n;
     if (n == 0 && k == 0)
         return 1;
-    if (n < 0 || k < 0)
+    if (n < 0 || k <= 0)
         return 0;
     if (k == 1)
         return 1;
@@ -79,7 +79,7 @@ double q_rec_memo(int n, int k)
         k = n;
     if (n == 0 && k == 0)
         return 1;
-    if (n < 0 || k < 0)
+    if (n < 0 || k <= 0)
         return 0;
     if (k == 1)
         return 1;

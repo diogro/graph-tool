@@ -22,14 +22,13 @@
 #include "random.hh"
 
 #define GRAPH_VIEWS decltype(never_filtered_never_reversed)
-#include "../../blockmodel/graph_blockmodel.hh"
+#include "../../blockmodel/state.hh"
 
 #include "dynamics.hh"
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 struct Dyn : Dynamics<BaseState> {};
@@ -55,7 +54,7 @@ python::object make_dynamics_state(boost::python::object oblock_state,
                  },
                  block_state);
         };
-    block_state::dispatch(oblock_state, dispatch);
+    graph_tool::block_model::block_model::dispatch(oblock_state, dispatch);
     return state;
 }
 
@@ -107,7 +106,7 @@ REGISTER_MOD
 
     def("make_dynamics_state", &make_dynamics_state);
 
-    block_state::dispatch
+    graph_tool::block_model::block_model::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -115,8 +114,8 @@ REGISTER_MOD
              dynamics_state<block_state_t>::dispatch
                  ([&](auto* s)
                   {
-                      typedef typename std::remove_reference<decltype(*s)>::type state_t;
-                      auto name = name_demangle(typeid(state_t).name());
+                      typedef std::decay_t<decltype(*s)> state_t;
+                      auto name = get_type_name<state_t>();
                       auto& c = __MOD__::get_class<state_t, bases<>, std::shared_ptr<state_t>,
                                                    boost::noncopyable>(name.c_str(), no_init);
                       c.def("remove_edge",
@@ -196,6 +195,11 @@ REGISTER_MOD
                                     return python::make_tuple(dS, nmoves);
                                 })
                           .def("entropy", &state_t::entropy)
+                          .def("gen_eargs",
+                               +[](state_t&)
+                                {
+                                    return dentropy_args_t(uentropy_args_t(BlockStateSpec::entropy_args_t()));
+                                })
                           .def("get_node_prob", &state_t::get_node_prob)
                           .def("get_edge_prob",
                                +[](state_t& state, size_t u, size_t v, double x,
@@ -299,7 +303,7 @@ REGISTER_MOD
                                     typedef eprop_map_t<int32_t> eimap_t;
                                     eimap_t ei = std::any_cast<eimap_t>(aei);
                                     std::tuple<size_t, size_t, size_t> ret;
-                                    run_action<decltype(always_directed_never_filtered_never_reversed)>()
+                                    run_action<{.tr=graph_tool::type<decltype(always_directed_never_filtered_never_reversed)>}>()
                                         (gi,
                                          [&](auto& g)
                                          {
@@ -324,4 +328,4 @@ REGISTER_MOD
                           .def("set_params", &state_t::set_params);
                   });
          });
-}, 5);
+}, MODULE_PRIO);

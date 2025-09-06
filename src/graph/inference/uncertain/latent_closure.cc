@@ -21,7 +21,7 @@
 
 #include <boost/python.hpp>
 
-#include "../blockmodel/graph_blockmodel.hh"
+#include "../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "latent_closure.hh"
 #include "latent_layers.hh"
@@ -29,8 +29,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 GEN_DISPATCH(latent_layers_state, LatentLayers<BaseState>::template LatentLayersState,
@@ -88,7 +87,7 @@ python::object make_latent_closure_state(boost::python::object oeblock_state,
                           layers);
                  });
         };
-    block_state::dispatch(oeblock_state, dispatch);
+    graph_tool::block_model::block_model::dispatch(oeblock_state, dispatch);
     return state;
 }
 
@@ -101,7 +100,7 @@ REGISTER_MOD
 
     def("make_latent_closure_state", &make_latent_closure_state);
 
-    block_state::dispatch
+    graph_tool::block_model::block_model::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -111,17 +110,17 @@ REGISTER_MOD
                   {
                       typedef typename std::remove_reference<decltype(*cs)>::type c_state_t;
 
-                      class_<c_state_t, bases<>, std::shared_ptr<c_state_t>>
-                          c(name_demangle(typeid(c_state_t).name()).c_str(),
+                      class_<c_state_t, bases<>, std::shared_ptr<c_state_t>, boost::noncopyable>
+                          c(get_type_name<c_state_t>().c_str(),
                             no_init);
                       c.def("entropy", &c_state_t::entropy);
 
                       latent_layers_state<c_state_t>::dispatch
                           ([&](auto* s)
                            {
-                               typedef typename std::remove_reference<decltype(*s)>::type state_t;
-                               class_<state_t, bases<>, std::shared_ptr<state_t>>
-                                   c(name_demangle(typeid(state_t).name()).c_str(),
+                               typedef std::decay_t<decltype(*s)> state_t;
+                               class_<state_t, bases<>, std::shared_ptr<state_t>, boost::noncopyable>
+                                   c(get_type_name<state_t>().c_str(),
                                      no_init);
                                c.def("remove_edge", &state_t::remove_edge)
                                    .def("add_edge", &state_t::add_edge)
@@ -132,8 +131,13 @@ REGISTER_MOD
                                    .def("get_N", &state_t::get_N)
                                    .def("get_X", &state_t::get_X)
                                    .def("get_T", &state_t::get_T)
-                                   .def("get_M", &state_t::get_M);
+                                   .def("get_M", &state_t::get_M)
+                                   .def("gen_eargs",
+                                        +[](state_t&)
+                                         {
+                                             return uentropy_args_t(BlockStateSpec::entropy_args_t());
+                                         });
                            });
                   });
          });
-});
+}, MODULE_PRIO);

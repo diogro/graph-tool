@@ -22,7 +22,7 @@
 
 #include "../support/util.hh"
 
-#include "../blockmodel/graph_blockmodel_entropy.hh"
+#include "../blockmodel/spec.hh"
 
 namespace graph_tool
 {
@@ -30,9 +30,9 @@ using namespace boost;
 using namespace std;
 
 struct uentropy_args_t:
-        public entropy_args_t
+        public BlockStateSpec::entropy_args_t
 {
-    uentropy_args_t(const entropy_args_t& ea)
+    uentropy_args_t(const BlockStateSpec::entropy_args_t& ea)
         : entropy_args_t(ea) {}
 
     bool latent_edges = true;

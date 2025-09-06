@@ -133,11 +133,12 @@ libgraph_tool_core_la_SOURCES = \
 	src/graph/random.cc \
 	src/graph/read_graphviz_new.cpp
 libgraph_tool_core_la_includedir = $(MOD_DIR)/include
-libgraph_tool_core_la_include_HEADERS = \
+nobase_libgraph_tool_core_la_include_HEADERS = \
 	config.h \
 	src/graph/base64.hh \
 	src/graph/coroutine.hh \
 	src/graph/demangle.hh \
+	src/graph/dispatch.hh \
 	src/graph/dynamic_sampler.hh \
 	src/graph/fast_vector_property_map.hh \
 	src/graph/gil_release.hh \
@@ -161,6 +162,7 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/hash_map_wrap.hh \
 	src/graph/histogram.hh \
 	src/graph/idx_map.hh \
+	src/graph/lock_free_stack.hh \
 	src/graph/module_registry.hh \
 	src/graph/npy_2_compat.h \
 	src/graph/numpy_bind.hh \
@@ -170,6 +172,7 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/parallel_util.hh \
 	src/graph/random.hh \
 	src/graph/samplers.hh \
+	src/graph/scoped_hash_map.hh \
 	src/graph/shared_heap.hh \
 	src/graph/shared_map.hh \
 	src/graph/str_repr.hh \
@@ -178,7 +181,7 @@ libgraph_tool_core_la_include_HEADERS = \
 	src/graph/value_convert.hh
 
 libgraph_tool_core_la_workarounddir = $(MOD_DIR)/include/boost-workaround/boost/graph/
-libgraph_tool_core_la_workaround_HEADERS = \
+nobase_libgraph_tool_core_la_workaround_HEADERS = \
 	src/boost-workaround/boost/container/small_vector_old.hpp \
 	src/boost-workaround/boost/container/vector_old.hpp \
 	src/boost-workaround/boost/graph/adjacency_iterator.hpp \
@@ -199,7 +202,7 @@ libgraph_tool_core_la_workaround_HEADERS = \
 	src/boost-workaround/boost/graph/vf2_sub_graph_iso.hpp \
 	src/boost-workaround/boost/math/special_functions/relative_difference.hpp
 libgraph_tool_core_la_pcg_cppdir = $(MOD_DIR)/include/pcg-cpp
-libgraph_tool_core_la_pcg_cpp_HEADERS = \
+nobase_libgraph_tool_core_la_pcg_cpp_HEADERS = \
 	src/pcg-cpp/include/pcg_extras.hpp \
 	src/pcg-cpp/include/pcg_random.hpp \
 	src/pcg-cpp/include/pcg_uint128.hpp
@@ -210,7 +213,7 @@ libgraph_tool_core_la_pcg_cpp_HEADERS = \
 
 libgraph_tool_centralitydir = $(MOD_DIR)/centrality
 libgraph_tool_centrality_LTLIBRARIES = libgraph_tool_centrality.la
-libgraph_tool_centrality_la_includedir = $(MOD_DIR)/include/centrality
+libgraph_tool_centrality_la_includedir = $(MOD_DIR)/include
 libgraph_tool_centrality_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_centrality_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_centrality_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -224,7 +227,7 @@ libgraph_tool_centrality_la_SOURCES = \
 	src/graph/centrality/graph_katz.cc \
 	src/graph/centrality/graph_pagerank.cc \
 	src/graph/centrality/graph_trust_transitivity.cc
-libgraph_tool_centrality_la_include_HEADERS = \
+nobase_libgraph_tool_centrality_la_include_HEADERS = \
 	src/graph/centrality/graph_closeness.hh \
 	src/graph/centrality/graph_eigentrust.hh \
 	src/graph/centrality/graph_eigenvector.hh \
@@ -240,7 +243,7 @@ libgraph_tool_centrality_la_include_HEADERS = \
 
 libgraph_tool_clusteringdir = $(MOD_DIR)/clustering
 libgraph_tool_clustering_LTLIBRARIES = libgraph_tool_clustering.la
-libgraph_tool_clustering_la_includedir = $(MOD_DIR)/include/clustering
+libgraph_tool_clustering_la_includedir = $(MOD_DIR)/include
 libgraph_tool_clustering_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_clustering_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_clustering_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -248,7 +251,7 @@ libgraph_tool_clustering_la_SOURCES = \
 	src/graph/clustering/graph_clustering.cc \
 	src/graph/clustering/graph_extended_clustering.cc \
 	src/graph/clustering/graph_motifs.cc
-libgraph_tool_clustering_la_include_HEADERS = \
+nobase_libgraph_tool_clustering_la_include_HEADERS = \
 	src/graph/clustering/graph_clustering.hh \
 	src/graph/clustering/graph_extended_clustering.hh \
 	src/graph/clustering/graph_motifs.hh
@@ -259,7 +262,7 @@ libgraph_tool_clustering_la_include_HEADERS = \
 
 libgraph_tool_correlationsdir = $(MOD_DIR)/correlations
 libgraph_tool_correlations_LTLIBRARIES = libgraph_tool_correlations.la
-libgraph_tool_correlations_la_includedir = $(MOD_DIR)/include/correlations
+libgraph_tool_correlations_la_includedir = $(MOD_DIR)/include
 libgraph_tool_correlations_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_correlations_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_correlations_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -270,7 +273,7 @@ libgraph_tool_correlations_la_SOURCES = \
 	src/graph/correlations/graph_avg_correlations_combined.cc \
 	src/graph/correlations/graph_correlations_combined.cc \
 	src/graph/correlations/graph_correlations_bind.cc
-libgraph_tool_correlations_la_include_HEADERS = \
+nobase_libgraph_tool_correlations_la_include_HEADERS = \
 	src/graph/correlations/graph_assortativity.hh \
 	src/graph/correlations/graph_correlations.hh \
 	src/graph/correlations/graph_corr_hist.hh \
@@ -282,24 +285,24 @@ libgraph_tool_correlations_la_include_HEADERS = \
 
 libgraph_tool_drawdir = $(MOD_DIR)/draw
 libgraph_tool_draw_LTLIBRARIES = libgraph_tool_draw.la
-libgraph_tool_draw_la_includedir = $(MOD_DIR)/include/draw
+libgraph_tool_draw_la_includedir = $(MOD_DIR)/include
 libgraph_tool_draw_la_CPPFLAGS = $(AM_CPPFLAGS) $(CAIROMM_CFLAGS)
 libgraph_tool_draw_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_draw_la_LDFLAGS = $(MOD_LDFLAGS) $(CAIROMM_LIBS)
 libgraph_tool_draw_la_SOURCES = \
 	src/graph/draw/graph_cairo_draw.cc \
 	src/graph/draw/graph_tree_cts.cc
-libgraph_tool_draw_la_include_HEADERS =
+nobase_libgraph_tool_draw_la_include_HEADERS =
 
 libgt_pycairo_auxdir = $(MOD_DIR)/draw
 libgt_pycairo_aux_LTLIBRARIES = libgt_pycairo_aux.la
-libgt_pycairo_aux_la_includedir = $(MOD_DIR)/include/draw
+libgt_pycairo_aux_la_includedir = $(MOD_DIR)/include
 libgt_pycairo_aux_la_CPPFLAGS = $(AM_CPPFLAGS) $(CAIROMM_CFLAGS)
 libgt_pycairo_aux_la_LIBADD = $(MOD_LIBADD)
 libgt_pycairo_aux_la_LDFLAGS = $(MOD_LDFLAGS) $(CAIROMM_LIBS)
 libgt_pycairo_aux_la_SOURCES = \
 	src/graph/draw/pycairo_aux.cc
-libgt_pycairo_aux_la_include_HEADERS =
+nobase_libgt_pycairo_aux_la_include_HEADERS =
 
 #######################
 # src/graph/dynamics/ #
@@ -307,7 +310,7 @@ libgt_pycairo_aux_la_include_HEADERS =
 
 libgraph_tool_dynamicsdir = $(MOD_DIR)/dynamics
 libgraph_tool_dynamics_LTLIBRARIES = libgraph_tool_dynamics.la
-libgraph_tool_dynamics_la_includedir = $(MOD_DIR)/include/dynamics
+libgraph_tool_dynamics_la_includedir = $(MOD_DIR)/include
 libgraph_tool_dynamics_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_dynamics_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_dynamics_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -317,7 +320,7 @@ libgraph_tool_dynamics_la_SOURCES = \
 	src/graph/dynamics/graph_dynamics.cc \
 	src/graph/dynamics/graph_normal_bp.cc \
 	src/graph/dynamics/graph_potts_bp.cc
-libgraph_tool_dynamics_la_include_HEADERS = \
+nobase_libgraph_tool_dynamics_la_include_HEADERS = \
 	src/graph/dynamics/graph_continuous.hh \
 	src/graph/dynamics/graph_discrete.hh \
 	src/graph/dynamics/graph_normal_bp.hh \
@@ -329,7 +332,7 @@ libgraph_tool_dynamics_la_include_HEADERS = \
 
 libgraph_tool_flowdir = $(MOD_DIR)/flow
 libgraph_tool_flow_LTLIBRARIES = libgraph_tool_flow.la
-libgraph_tool_flow_la_includedir = $(MOD_DIR)/include/flow
+libgraph_tool_flow_la_includedir = $(MOD_DIR)/include
 libgraph_tool_flow_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_flow_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_flow_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -339,7 +342,7 @@ libgraph_tool_flow_la_SOURCES = \
 	src/graph/flow/graph_kolmogorov.cc \
 	src/graph/flow/graph_minimum_cut.cc \
 	src/graph/flow/graph_flow_bind.cc
-libgraph_tool_flow_la_include_HEADERS = \
+nobase_libgraph_tool_flow_la_include_HEADERS = \
 	src/graph/flow/graph_augment.hh
 
 #########################
@@ -348,7 +351,7 @@ libgraph_tool_flow_la_include_HEADERS = \
 
 libgraph_tool_generationdir = $(MOD_DIR)/generation
 libgraph_tool_generation_LTLIBRARIES = libgraph_tool_generation.la
-libgraph_tool_generation_la_includedir = $(MOD_DIR)/include/generation
+libgraph_tool_generation_la_includedir = $(MOD_DIR)/include
 libgraph_tool_generation_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS)
 libgraph_tool_generation_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS)
 libgraph_tool_generation_la_LDFLAGS = $(MOD_LDFLAGS)
@@ -375,7 +378,7 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/graph_sbm.cc \
 	src/graph/generation/graph_triadic_closure.cc \
 	src/graph/generation/graph_triangulation.cc
-libgraph_tool_generation_la_include_HEADERS = \
+nobase_libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/graph_bip_projection.hh \
 	src/graph/generation/graph_complete.hh \
 	src/graph/generation/graph_contract_edges.hh \
@@ -398,95 +401,81 @@ libgraph_tool_generation_la_include_HEADERS = \
 # src/graph/inference/ #
 ########################
 
-libgraph_tool_inferencedir = $(MOD_DIR)/inference
-libgraph_tool_inference_LTLIBRARIES = libgraph_tool_inference.la
-libgraph_tool_inference_la_includedir = $(MOD_DIR)/include/inference
+libgraph_tool_inference_ladir = $(MOD_DIR)/inference
+libgraph_tool_inference_la_LTLIBRARIES = libgraph_tool_inference.la
+libgraph_tool_inference_la_includedir = $(MOD_DIR)/include
 libgraph_tool_inference_la_LIBADD = $(MOD_LIBADD) libgraph_tool_inference_fast.la
 libgraph_tool_inference_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_inference_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_inference_la_SOURCES = \
-	src/graph/inference/blockmodel/graph_blockmodel.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_em.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_exhaustive.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_gibbs.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_imp.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_imp2.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_imp3.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_marginals.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_mcmc.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_multicanonical.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_multicanonical_multiflip.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_multiflip_mcmc.cc \
-	src/graph/inference/blockmodel/graph_blockmodel_multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/state.cc \
+	src/graph/inference/blockmodel/em.cc \
+	src/graph/inference/blockmodel/exhaustive.cc \
+	src/graph/inference/blockmodel/gibbs.cc \
+	src/graph/inference/blockmodel/imp.cc \
+	src/graph/inference/blockmodel/marginals.cc \
+	src/graph/inference/blockmodel/mcmc.cc \
+	src/graph/inference/blockmodel/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered/spec.cc \
+	src/graph/inference/blockmodel/layered/exhaustive.cc \
+	src/graph/inference/blockmodel/layered/gibbs.cc \
+	src/graph/inference/blockmodel/layered/mcmc.cc \
+	src/graph/inference/blockmodel/layered/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/layered/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered_overlap/spec.cc \
+	src/graph/inference/blockmodel/layered_overlap/exhaustive.cc \
+	src/graph/inference/blockmodel/layered_overlap/gibbs.cc \
+	src/graph/inference/blockmodel/layered_overlap/mcmc.cc \
+	src/graph/inference/blockmodel/layered_overlap/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc.cc \
+    src/graph/inference/blockmodel/overlap/spec.cc \
+	src/graph/inference/blockmodel/overlap/exhaustive.cc \
+	src/graph/inference/blockmodel/overlap/gibbs.cc \
+	src/graph/inference/blockmodel/overlap/mcmc.cc \
+	src/graph/inference/blockmodel/overlap/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/overlap/multilevel_mcmc.cc \
+    src/graph/inference/blockmodel/ranked/spec.cc \
+	src/graph/inference/blockmodel/ranked/exhaustive.cc \
+	src/graph/inference/blockmodel/ranked/gibbs.cc \
+	src/graph/inference/blockmodel/ranked/label_mcmc.cc \
+	src/graph/inference/blockmodel/ranked/mcmc.cc \
+	src/graph/inference/blockmodel/ranked/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/ranked/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/weighted_overlap/spec.cc \
+	src/graph/inference/blockmodel/weighted_overlap/exhaustive.cc \
+	src/graph/inference/blockmodel/weighted_overlap/gibbs.cc \
+	src/graph/inference/blockmodel/weighted_overlap/mcmc.cc \
+	src/graph/inference/blockmodel/weighted_overlap/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/weighted_overlap/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/weighted/spec.cc \
+	src/graph/inference/blockmodel/weighted/exhaustive.cc \
+	src/graph/inference/blockmodel/weighted/gibbs.cc \
+	src/graph/inference/blockmodel/weighted/mcmc.cc \
+	src/graph/inference/blockmodel/weighted/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/weighted/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted/spec.cc \
+	src/graph/inference/blockmodel/layered_weighted/exhaustive.cc \
+	src/graph/inference/blockmodel/layered_weighted/gibbs.cc \
+	src/graph/inference/blockmodel/layered_weighted/mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/spec.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/exhaustive.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/gibbs.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/multiflip_mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/multilevel_mcmc.cc \
 	src/graph/inference/cliques/graph_clique_decomposition.cc \
 	src/graph/inference/histogram/graph_histogram.cc \
 	src/graph/inference/histogram/graph_histogram_mcmc.cc \
-	src/graph/inference/modularity/graph_modularity.cc \
-	src/graph/inference/modularity/graph_modularity_gibbs.cc \
-	src/graph/inference/modularity/graph_modularity_mcmc.cc \
-	src/graph/inference/modularity/graph_modularity_multiflip_mcmc.cc \
-	src/graph/inference/modularity/graph_modularity_multilevel_mcmc.cc \
-	src/graph/inference/norm_cut/graph_norm_cut.cc \
-	src/graph/inference/norm_cut/graph_norm_cut_gibbs.cc \
-	src/graph/inference/norm_cut/graph_norm_cut_mcmc.cc \
-	src/graph/inference/norm_cut/graph_norm_cut_multiflip_mcmc.cc \
-	src/graph/inference/norm_cut/graph_norm_cut_multilevel_mcmc.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_mcmc.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_multiflip_mcmc.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_multilevel_mcmc.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_rmi.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_rmi_mcmc.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_rmi_multiflip_mcmc.cc \
-	src/graph/inference/partition_centroid/graph_partition_centroid_rmi_multilevel_mcmc.cc \
-	src/graph/inference/partition_modes/graph_partition_mode.cc \
-	src/graph/inference/partition_modes/graph_partition_mode_clustering.cc \
-	src/graph/inference/partition_modes/graph_partition_mode_clustering_mcmc.cc \
-	src/graph/inference/partition_modes/graph_partition_mode_clustering_multiflip_mcmc.cc \
-	src/graph/inference/partition_modes/graph_partition_mode_clustering_multilevel_mcmc.cc \
-	src/graph/inference/planted_partition/graph_planted_partition.cc \
-	src/graph/inference/planted_partition/graph_planted_partition_gibbs.cc \
-	src/graph/inference/planted_partition/graph_planted_partition_mcmc.cc \
-	src/graph/inference/planted_partition/graph_planted_partition_multiflip_mcmc.cc \
-	src/graph/inference/planted_partition/graph_planted_partition_multilevel_mcmc.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_exhaustive.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_gibbs.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_mcmc.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_mcmc_bundled.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_multicanonical.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_multicanonical_multiflip.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_multiflip_mcmc.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_multilevel_mcmc.cc \
-	src/graph/inference/overlap/graph_blockmodel_overlap_vacate.cc \
-	src/graph/inference/potts/graph_potts.cc \
-	src/graph/inference/potts/graph_potts_mcmc.cc \
-	src/graph/inference/potts/graph_potts_gibbs.cc \
-	src/graph/inference/potts/graph_potts_multiflip_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_exhaustive.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_gibbs.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_imp.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_multicanonical.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_multicanonical_multiflip.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_multiflip_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_multilevel_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_exhaustive.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_gibbs.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_mcmc_bundled.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_multicanonical.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_multicanonical_multiflip.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_multiflip_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_multilevel_mcmc.cc \
-	src/graph/inference/layers/graph_blockmodel_layers_overlap_vacate.cc \
-	src/graph/inference/ranked/graph_ranked.cc \
-	src/graph/inference/ranked/graph_ranked_mcmc.cc \
-	src/graph/inference/ranked/graph_ranked_gibbs.cc \
-	src/graph/inference/ranked/graph_ranked_multiflip_mcmc.cc \
-	src/graph/inference/ranked/graph_ranked_multilevel_mcmc.cc \
+	src/graph/inference/support/bisection_sampler.cc \
+	src/graph/inference/support/cache.cc \
+	src/graph/inference/support/int_part.cc \
+	src/graph/inference/support/spence.cc \
+	src/graph/inference/graph_inference.cc \
+	src/graph/inference/graph_latent_multigraph.cc \
+	src/graph/inference/graph_modularity.cc \
 	src/graph/inference/uncertain/dynamics/dynamics.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_mcmc.cc \
 	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.cc \
@@ -520,16 +509,40 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/uncertain/uncertain_marginal.cc \
 	src/graph/inference/uncertain/uncertain_marginal_imp1.cc \
 	src/graph/inference/uncertain/uncertain_mcmc.cc \
-	src/graph/inference/support/bisection_sampler.cc \
-	src/graph/inference/support/cache.cc \
-	src/graph/inference/support/int_part.cc \
-	src/graph/inference/support/spence.cc \
-	src/graph/inference/graph_inference.cc \
-	src/graph/inference/graph_latent_multigraph.cc \
-	src/graph/inference/graph_modularity.cc
+	src/graph/inference/modularity/state.cc \
+	src/graph/inference/modularity/mcmc.cc \
+	src/graph/inference/modularity/multilevel_mcmc.cc \
+	src/graph/inference/modularity/multiflip_mcmc.cc \
+	src/graph/inference/modularity/gibbs.cc \
+	src/graph/inference/norm_cut/state.cc \
+	src/graph/inference/norm_cut/mcmc.cc \
+	src/graph/inference/norm_cut/multilevel_mcmc.cc \
+	src/graph/inference/norm_cut/multiflip_mcmc.cc \
+	src/graph/inference/norm_cut/gibbs.cc \
+	src/graph/inference/potts/state.cc \
+	src/graph/inference/potts/mcmc.cc \
+	src/graph/inference/potts/multilevel_mcmc.cc \
+	src/graph/inference/potts/multiflip_mcmc.cc \
+	src/graph/inference/potts/gibbs.cc \
+	src/graph/inference/planted_partition/state.cc \
+	src/graph/inference/planted_partition/mcmc.cc \
+	src/graph/inference/planted_partition/multilevel_mcmc.cc \
+	src/graph/inference/planted_partition/multiflip_mcmc.cc \
+	src/graph/inference/planted_partition/gibbs.cc \
+	src/graph/inference/partition_centroid/state.cc \
+	src/graph/inference/partition_centroid/mcmc.cc \
+	src/graph/inference/partition_centroid/multilevel_mcmc.cc \
+	src/graph/inference/partition_centroid/multiflip_mcmc.cc \
+	src/graph/inference/partition_centroid/gibbs.cc \
+	src/graph/inference/partition_modes/partition_mode.cc \
+	src/graph/inference/partition_modes/state.cc \
+	src/graph/inference/partition_modes/mcmc.cc \
+	src/graph/inference/partition_modes/multilevel_mcmc.cc \
+	src/graph/inference/partition_modes/multiflip_mcmc.cc \
+	src/graph/inference/partition_modes/gibbs.cc
 
 noinst_LTLIBRARIES = libgraph_tool_inference_fast.la
-libgraph_tool_inference_fast_la_includedir = $(MOD_DIR)/include/inference
+libgraph_tool_inference_fast_la_includedir = $(MOD_DIR)/include
 libgraph_tool_inference_fast_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_inference_fast_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_inference_fast_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -funswitch-loops -funroll-loops -fno-lto
@@ -546,137 +559,84 @@ libgraph_tool_inference_fast_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/lotka_volterra/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/normal_glauber/base_vec.cc
 
-graph_inference_blockmodeldir = $(MOD_DIR)/include/inference/blockmodel
-dist_graph_inference_blockmodel_HEADERS = \
-	src/graph/inference/blockmodel/graph_blockmodel.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_em.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_emat.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_elist.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_entries.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_entropy.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_exhaustive.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_gibbs.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_mcmc.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_multicanonical.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_multiflip_mcmc.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_multilevel_mcmc.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_partition.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_util.hh \
-	src/graph/inference/blockmodel/graph_blockmodel_weights.hh
-
-graph_inference_cliquesdir = $(MOD_DIR)/include/inference/cliques
-dist_graph_inference_cliques_HEADERS = \
-	src/graph/inference/cliques/graph_clique_decomposition.hh
-
-graph_inference_histogramdir = $(MOD_DIR)/include/inference/histogram
-dist_graph_inference_histogram_HEADERS = \
+nobase_libgraph_tool_inference_la_HEADERS = \
+	src/graph/inference/base/loop_template.hh \
+	src/graph/inference/base/mcmc.hh \
+	src/graph/inference/base/multilevel_mcmc.hh \
+	src/graph/inference/base/multiflip_mcmc.hh \
+	src/graph/inference/base/gibbs.hh \
+	src/graph/inference/base/graph_spec_base.hh \
+	src/graph/inference/base/spec_base.hh \
+	src/graph/inference/base/state.hh \
+	src/graph/inference/blockmodel/state.hh \
+	src/graph/inference/blockmodel/elist.hh \
+	src/graph/inference/blockmodel/em.hh \
+	src/graph/inference/blockmodel/emat.hh \
+	src/graph/inference/blockmodel/entries.hh \
+	src/graph/inference/blockmodel/entropy.hh \
+	src/graph/inference/blockmodel/exhaustive.hh \
+	src/graph/inference/blockmodel/gibbs.hh \
+	src/graph/inference/blockmodel/layered/deg_stats.hh \
+	src/graph/inference/blockmodel/layered/entropy.hh \
+	src/graph/inference/blockmodel/layered/spec.hh \
+	src/graph/inference/blockmodel/layered/types.hh \
+	src/graph/inference/blockmodel/layered/vec_ref.hh \
+	src/graph/inference/blockmodel/layered_overlap/entropy.hh \
+	src/graph/inference/blockmodel/layered_overlap/spec.hh \
+	src/graph/inference/blockmodel/layered_overlap/types.hh \
+	src/graph/inference/blockmodel/mcmc.hh \
+	src/graph/inference/blockmodel/multiflip_mcmc.hh \
+	src/graph/inference/blockmodel/multilevel_mcmc.hh \
+	src/graph/inference/blockmodel/overlap/entropy.hh \
+	src/graph/inference/blockmodel/overlap/half_edge_adaptor.hh \
+	src/graph/inference/blockmodel/overlap/partition.hh \
+	src/graph/inference/blockmodel/overlap/partition_simple.hh \
+	src/graph/inference/blockmodel/overlap/spec.hh \
+	src/graph/inference/blockmodel/overlap/types.hh \
+	src/graph/inference/blockmodel/weighted_overlap/entropy.hh \
+	src/graph/inference/blockmodel/weighted_overlap/spec.hh \
+	src/graph/inference/blockmodel/weighted_overlap/types.hh \
+	src/graph/inference/blockmodel/deg_partition.hh \
+	src/graph/inference/blockmodel/partition.hh \
+	src/graph/inference/blockmodel/spec.hh \
+	src/graph/inference/blockmodel/ranked/entropy.hh \
+	src/graph/inference/blockmodel/ranked/label_mcmc.hh \
+	src/graph/inference/blockmodel/ranked/spec.hh \
+	src/graph/inference/blockmodel/ranked/types.hh \
+	src/graph/inference/blockmodel/weighted/entropy.hh \
+	src/graph/inference/blockmodel/weighted/spec.hh \
+	src/graph/inference/blockmodel/weighted/types.hh \
+	src/graph/inference/blockmodel/layered_weighted/entropy.hh \
+	src/graph/inference/blockmodel/layered_weighted/spec.hh \
+	src/graph/inference/blockmodel/layered_weighted/types.hh \
+	src/graph/inference/blockmodel/layered_weighted_overlap/entropy.hh \
+	src/graph/inference/blockmodel/layered_weighted_overlap/spec.hh \
+	src/graph/inference/blockmodel/layered_weighted_overlap/types.hh \
+	src/graph/inference/cliques/graph_clique_decomposition.hh \
+	src/graph/inference/graph_latent_multigraph.hh \
+	src/graph/inference/graph_modularity.hh \
 	src/graph/inference/histogram/graph_histogram.hh \
-	src/graph/inference/histogram/graph_histogram_mcmc.hh
-
-graph_inference_modularitydir = $(MOD_DIR)/include/inference/modularity
-dist_graph_inference_modularity_HEADERS = \
-	src/graph/inference/modularity/graph_modularity.hh
-
-graph_inference_norm_cutdir = $(MOD_DIR)/include/inference/norm_cut
-dist_graph_inference_norm_cut_HEADERS = \
-	src/graph/inference/norm_cut/graph_norm_cut.hh
-
-graph_inference_partition_centroiddir = $(MOD_DIR)/include/inference/partition_centroid
-dist_graph_inference_partition_centroid_HEADERS = \
-	src/graph/inference/partition_centroid/graph_partition_centroid.hh \
-	src/graph/inference/partition_centroid/graph_partition_centroid_rmi.hh
-
-graph_inference_partition_modesdir = $(MOD_DIR)/include/inference/partition_modes
-dist_graph_inference_partition_modes_HEADERS = \
-	src/graph/inference/partition_modes/graph_partition_mode.hh \
-	src/graph/inference/partition_modes/graph_partition_mode_clustering.hh
-
-graph_inference_planted_partitiondir = $(MOD_DIR)/include/inference/planted_partition
-dist_graph_inference_planted_partition_HEADERS = \
-	src/graph/inference/planted_partition/graph_planted_partition.hh
-
-graph_inference_rankeddir = $(MOD_DIR)/include/inference/ranked
-dist_graph_inference_ranked_HEADERS = \
-	src/graph/inference/ranked/graph_ranked.hh \
-	src/graph/inference/ranked/graph_ranked_mcmc.hh \
-	src/graph/inference/ranked/graph_ranked_gibbs.hh \
-	src/graph/inference/ranked/graph_ranked_multiflip_mcmc.hh \
-	src/graph/inference/ranked/graph_ranked_multilevel_mcmc.hh
-
-graph_inference_overlapdir = $(MOD_DIR)/include/inference/overlap
-dist_graph_inference_overlap_HEADERS = \
-	src/graph/inference/overlap/graph_blockmodel_overlap.hh \
-	src/graph/inference/overlap/graph_blockmodel_overlap_mcmc_bundled.hh \
-	src/graph/inference/overlap/graph_blockmodel_overlap_util.hh \
-	src/graph/inference/overlap/graph_blockmodel_overlap_vacate.hh \
-	src/graph/inference/overlap/graph_blockmodel_overlap_partition.hh
-
-graph_inference_pottsdir = $(MOD_DIR)/include/inference/potts
-dist_graph_inference_potts_HEADERS = \
-	src/graph/inference/potts/graph_potts.hh \
-	src/graph/inference/potts/graph_potts_mcmc.hh \
-	src/graph/inference/potts/graph_potts_gibbs.hh \
-	src/graph/inference/potts/graph_potts_multiflip_mcmc.hh
-
-graph_inference_layersdir = $(MOD_DIR)/include/inference/layers
-dist_graph_inference_layers_HEADERS = \
-	src/graph/inference/layers/graph_blockmodel_layers.hh \
-	src/graph/inference/layers/graph_blockmodel_layers_util.hh
-
-graph_inference_uncertaindir = $(MOD_DIR)/include/inference/uncertain
-dist_graph_inference_uncertain_HEADERS = \
-	src/graph/inference/uncertain/dynamics/dynamics.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_imp.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_base.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_discrete.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_discrete_potts.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_elist_state.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_tdelta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_xdelta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_util.hh \
-	src/graph/inference/uncertain/dynamics/test/test.hh \
-	src/graph/inference/uncertain/latent_closure.hh \
-	src/graph/inference/uncertain/latent_layers.hh \
-	src/graph/inference/uncertain/latent_layers_mcmc.hh \
-	src/graph/inference/uncertain/latent_mask.hh \
-	src/graph/inference/uncertain/measured.hh \
-	src/graph/inference/uncertain/uncertain.hh \
-	src/graph/inference/uncertain/uncertain_mcmc.hh \
-	src/graph/inference/uncertain/uncertain_util.hh \
-	src/graph/inference/uncertain/sample_edge_sbm.hh
-
-noinst_HEADERS = \
-	src/graph/inference/uncertain/dynamics/cising_glauber/setup.hh \
-	src/graph/inference/uncertain/dynamics/epidemics/setup.hh \
-	src/graph/inference/uncertain/dynamics/ising_glauber/setup.hh \
-	src/graph/inference/uncertain/dynamics/linear_normal/setup.hh \
-	src/graph/inference/uncertain/dynamics/lotka_volterra/setup.hh \
-	src/graph/inference/uncertain/dynamics/potts_glauber/setup.hh \
-	src/graph/inference/uncertain/dynamics/pseudo_cising/setup.hh \
-	src/graph/inference/uncertain/dynamics/pseudo_ising/setup.hh \
-	src/graph/inference/uncertain/dynamics/pseudo_normal/setup.hh \
-	src/graph/inference/uncertain/dynamics/pseudo_potts/setup.hh \
-	src/graph/inference/uncertain/dynamics/normal_glauber/setup.hh
-
-graph_inference_loopsdir = $(MOD_DIR)/include/inference/loops
-dist_graph_inference_loops_HEADERS = \
+	src/graph/inference/histogram/graph_histogram_mcmc.hh \
 	src/graph/inference/loops/bundled_vacate_loop.hh \
 	src/graph/inference/loops/exhaustive_loop.hh \
 	src/graph/inference/loops/gibbs_loop.hh \
 	src/graph/inference/loops/mcmc_loop.hh \
 	src/graph/inference/loops/merge_split.hh \
 	src/graph/inference/loops/multilevel.hh \
-	src/graph/inference/loops/parallel_pseudo_mcmc.hh
-
-graph_inference_supportdir = $(MOD_DIR)/include/inference/support
-dist_graph_inference_support_HEADERS = \
+	src/graph/inference/loops/parallel_pseudo_mcmc.hh \
+	src/graph/inference/modularity/state.hh \
+	src/graph/inference/modularity/spec.hh \
+	src/graph/inference/norm_cut/state.hh \
+	src/graph/inference/norm_cut/spec.hh \
+	src/graph/inference/potts/state.hh \
+	src/graph/inference/potts/spec.hh \
+	src/graph/inference/planted_partition/state.hh \
+	src/graph/inference/planted_partition/spec.hh \
+	src/graph/inference/partition_centroid/state.hh \
+	src/graph/inference/partition_centroid/spec.hh \
+	src/graph/inference/partition_modes/partition_mode.hh \
+	src/graph/inference/partition_modes/state.hh \
+	src/graph/inference/partition_modes/spec.hh \
 	src/graph/inference/support/bisection_sampler.hh \
 	src/graph/inference/support/cache.hh \
 	src/graph/inference/support/contingency.hh \
@@ -685,12 +645,44 @@ dist_graph_inference_support_HEADERS = \
 	src/graph/inference/support/int_part.hh \
 	src/graph/inference/support/sample_util.hh \
 	src/graph/inference/support/segment_sampler.hh \
-	src/graph/inference/support/util.hh
-
-graph_inferencedir = $(MOD_DIR)/include/inference
-dist_graph_inference_HEADERS = \
-	src/graph/inference/graph_modularity.hh \
-	src/graph/inference/graph_latent_multigraph.hh
+	src/graph/inference/support/util.hh \
+	src/graph/inference/uncertain/dynamics/cising_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/dynamics.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_base.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_discrete.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_discrete_potts.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_elist_state.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_imp.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_tdelta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_mcmc_xdelta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/dynamics_util.hh \
+	src/graph/inference/uncertain/dynamics/epidemics/setup.hh \
+	src/graph/inference/uncertain/dynamics/ising_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/linear_normal/setup.hh \
+	src/graph/inference/uncertain/dynamics/lotka_volterra/setup.hh \
+	src/graph/inference/uncertain/dynamics/normal_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/potts_glauber/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_cising/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_ising/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_normal/setup.hh \
+	src/graph/inference/uncertain/dynamics/pseudo_potts/setup.hh \
+	src/graph/inference/uncertain/dynamics/test/test.hh \
+	src/graph/inference/uncertain/latent_closure.hh \
+	src/graph/inference/uncertain/latent_layers.hh \
+	src/graph/inference/uncertain/latent_layers_mcmc.hh \
+	src/graph/inference/uncertain/latent_mask.hh \
+	src/graph/inference/uncertain/measured.hh \
+	src/graph/inference/uncertain/sample_edge_sbm.hh \
+	src/graph/inference/uncertain/uncertain.hh \
+	src/graph/inference/uncertain/uncertain_mcmc.hh \
+	src/graph/inference/uncertain/uncertain_util.hh
 
 #####################
 # src/graph/layout/ #
@@ -698,7 +690,7 @@ dist_graph_inference_HEADERS = \
 
 libgraph_tool_layoutdir = $(MOD_DIR)/draw
 libgraph_tool_layout_LTLIBRARIES = libgraph_tool_layout.la
-libgraph_tool_layout_la_includedir = $(MOD_DIR)/include/layout
+libgraph_tool_layout_la_includedir = $(MOD_DIR)/include
 libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_layout_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -709,7 +701,7 @@ libgraph_tool_layout_la_SOURCES = \
 	src/graph/layout/graph_sfdp.cc \
 	src/graph/layout/graph_radial.cc \
 	src/graph/layout/graph_bind_layout.cc
-libgraph_tool_layout_la_include_HEADERS = \
+nobase_libgraph_tool_layout_la_include_HEADERS = \
 	src/graph/layout/graph_arf.hh \
 	src/graph/layout/graph_sfdp.hh \
 	src/graph/layout/quad_tree.hh
@@ -720,7 +712,7 @@ libgraph_tool_layout_la_include_HEADERS = \
 
 libgraph_tool_searchdir = $(MOD_DIR)/search
 libgraph_tool_search_LTLIBRARIES = libgraph_tool_search.la
-libgraph_tool_search_la_includedir = $(MOD_DIR)/include/search
+libgraph_tool_search_la_includedir = $(MOD_DIR)/include
 libgraph_tool_search_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_search_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_search_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -733,7 +725,7 @@ libgraph_tool_search_la_SOURCES = \
 	src/graph/search/graph_astar.cc \
 	src/graph/search/graph_astar_implicit.cc \
 	src/graph/search/graph_search_bind.cc
-libgraph_tool_search_la_include_HEADERS =
+nobase_libgraph_tool_search_la_include_HEADERS =
 
 #######################
 # src/graph/spectral/ #
@@ -741,7 +733,7 @@ libgraph_tool_search_la_include_HEADERS =
 
 libgraph_tool_spectraldir = $(MOD_DIR)/spectral
 libgraph_tool_spectral_LTLIBRARIES = libgraph_tool_spectral.la
-libgraph_tool_spectral_la_includedir = $(MOD_DIR)/include/spectral
+libgraph_tool_spectral_la_includedir = $(MOD_DIR)/include
 libgraph_tool_spectral_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_spectral_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_spectral_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -753,7 +745,7 @@ libgraph_tool_spectral_la_SOURCES = \
 	src/graph/spectral/graph_matrix.cc \
 	src/graph/spectral/graph_transition.cc \
 	src/graph/spectral/graph_nonbacktracking.cc
-libgraph_tool_spectral_la_include_HEADERS = \
+nobase_libgraph_tool_spectral_la_include_HEADERS = \
 	src/graph/spectral/graph_adjacency.hh \
 	src/graph/spectral/graph_incidence.hh \
 	src/graph/spectral/graph_laplacian.hh \
@@ -766,7 +758,7 @@ libgraph_tool_spectral_la_include_HEADERS = \
 
 libgraph_tool_statsdir = $(MOD_DIR)/stats
 libgraph_tool_stats_LTLIBRARIES = libgraph_tool_stats.la
-libgraph_tool_stats_la_includedir = $(MOD_DIR)/include/stats
+libgraph_tool_stats_la_includedir = $(MOD_DIR)/include
 libgraph_tool_stats_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_stats_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_stats_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -776,7 +768,7 @@ libgraph_tool_stats_la_SOURCES = \
 	src/graph/stats/graph_distance.cc \
 	src/graph/stats/graph_distance_sampled.cc \
 	src/graph/stats/graph_stats_bind.cc
-libgraph_tool_stats_la_include_HEADERS = \
+nobase_libgraph_tool_stats_la_include_HEADERS = \
 	src/graph/stats/graph_histograms.hh \
 	src/graph/stats/graph_average.hh \
 	src/graph/stats/graph_distance_sampled.hh \
@@ -788,7 +780,7 @@ libgraph_tool_stats_la_include_HEADERS = \
 
 libgraph_tool_topologydir = $(MOD_DIR)/topology
 libgraph_tool_topology_LTLIBRARIES = libgraph_tool_topology.la
-libgraph_tool_topology_la_includedir = $(MOD_DIR)/include/topology
+libgraph_tool_topology_la_includedir = $(MOD_DIR)/include
 libgraph_tool_topology_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_topology_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_topology_la_CXXFLAGS = $(MOD_CXXFLAGS)
@@ -821,7 +813,7 @@ libgraph_tool_topology_la_SOURCES = \
 	src/graph/topology/graph_tsp.cc \
 	src/graph/topology/graph_transitive_closure.cc \
 	src/graph/topology/graph_vertex_similarity.cc
-libgraph_tool_topology_la_include_HEADERS = \
+nobase_libgraph_tool_topology_la_include_HEADERS = \
 	src/graph/topology/graph_bipartite_weighted_matching.hh \
 	src/graph/topology/graph_components.hh \
 	src/graph/topology/graph_kcore.hh \
@@ -836,14 +828,14 @@ libgraph_tool_topology_la_include_HEADERS = \
 
 libgraph_tool_utildir = $(MOD_DIR)/util
 libgraph_tool_util_LTLIBRARIES = libgraph_tool_util.la
-libgraph_tool_util_la_includedir = $(MOD_DIR)/include/util
+libgraph_tool_util_la_includedir = $(MOD_DIR)/include
 libgraph_tool_util_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_util_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_util_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_util_la_SOURCES = \
 	src/graph/util/graph_search.cc \
 	src/graph/util/graph_util_bind.cc
-libgraph_tool_util_la_include_HEADERS = \
+nobase_libgraph_tool_util_la_include_HEADERS = \
 	src/graph/util/graph_search.hh
 
 ###################

@@ -21,7 +21,7 @@
 #include <boost/python.hpp>
 
 #define GRAPH_VIEWS decltype(never_filtered_never_reversed)
-#include "../../../blockmodel/graph_blockmodel.hh"
+#include "../../../blockmodel/state.hh"
 
 #include "../dynamics.hh"
 #include "../dynamics_base.hh"
@@ -33,8 +33,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 struct Dyn : Dynamics<BaseState> {};
@@ -51,11 +50,11 @@ python::object MAKE_STATE(BASE_NAME)(GraphInterface& gi, python::object odynamic
 {
     python::object state;
 
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g)
          {
              typedef typename std::remove_reference<decltype(g)>::type g_t;
-             block_state::dispatch
+             graph_tool::block_model::block_model::dispatch
                  ([&](auto* bs)
                   {
                       typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -63,7 +62,7 @@ python::object MAKE_STATE(BASE_NAME)(GraphInterface& gi, python::object odynamic
                           (odynamics_state,
                            [&](auto& s)
                            {
-                               typedef typename std::remove_reference<decltype(s)>::type state_t;
+                               typedef std::decay_t<decltype(s)> state_t;
                                using DState = graph_tool::TestStateBase<g_t,state_t>;
                                state = python::object(std::make_shared<DState>(g, s, params));
                            }, false);
@@ -99,20 +98,19 @@ REGISTER_MOD
          ([](auto g)
           {
               typedef typename decltype(+g)::type g_t;
-              block_state::dispatch
+              graph_tool::block_model::block_model::dispatch
                   ([&](auto* bs)
                    {
                        typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
                        dynamics_state<block_state_t>::dispatch
                            ([&](auto* s)
                             {
-                                typedef typename std::remove_reference<decltype(*s)>::type state_t;
+                                typedef std::decay_t<decltype(*s)> state_t;
                                 using DState = graph_tool::TestStateBase<g_t,state_t>;
-
-                                auto name = name_demangle(typeid(DState).name());
+                                auto name = get_type_name<DState>();
                                 class_<DState, bases<DStateBase>, std::shared_ptr<DState>,
                                        boost::noncopyable>(name.c_str(), no_init);
                             });
                    });
           }));
-}, 6);
+}, MODULE_PRIO + 1);

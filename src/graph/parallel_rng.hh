@@ -31,8 +31,8 @@ template <class RNG>
 class parallel_rng
 {
 public:
-    parallel_rng(RNG& rng):
-        _rngs(get_rngs(rng))
+    parallel_rng(RNG& rng)
+        : _rngs(get_rngs(rng))
     {
         size_t num_threads = get_num_threads();
         for (size_t i = _rngs.size(); i < num_threads - 1; ++i)
@@ -49,10 +49,15 @@ public:
 
     RNG& get(RNG& rng)
     {
-        size_t tid = get_thread_num();
-        if (tid == 0)
+        auto tnum = get_thread_num();
+        return get(rng, tnum);
+    }
+
+    RNG& get(RNG& rng, int tnum)
+    {
+        if (tnum == 0)
             return rng;
-        return _rngs[tid - 1];
+        return _rngs[tnum - 1];
     }
 
 private:

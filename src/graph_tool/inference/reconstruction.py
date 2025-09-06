@@ -288,21 +288,13 @@ class DynamicsBlockStateBase(UncertainBaseState):
         r"""Gets the model parameters via the dictionary ``params``."""
         return dict(self.params)
 
-    def __getstate__(self):
-        state = UncertainBaseState.__getstate__(self)
-        return dict(state, s=self.s, t=self.t,
-                    active=self.active, x=self.x,
-                    x_range=(self.xmin_bound, self.xmax_bound),
-                    theta=self.theta,
-                    theta_range=list(zip(self.tmin_bound, self.tmax_bound)),
-                    xdelta=self.xdelta,
-                    tdelta=self.tdelta,
-                    disable_xdist=self.disable_xdist,
-                    disable_tdist=self.disable_tdist,
-                    rg=self.rg, elist=self.elist,
-                    ecandidates=self.ecandidates,
-                    max_m=self.max_m,
-                    **self.params)
+    @property
+    def x_range(self):
+        return (self.xmin_bound, self.xmax_bound)
+
+    @property
+    def theta_range(self):
+        return list(zip(self.tmin_bound, self.tmax_bound))
 
     def __repr__(self):
         return "<%s object with %s, %d edge categories and %d node categories, at 0x%x>" % \
@@ -310,10 +302,6 @@ class DynamicsBlockStateBase(UncertainBaseState):
              self.nbstate if self.nbstate is not None else self.bstate,
              len(self.get_xvals()), len(self.get_tvals()),
              id(self))
-
-    def _gen_eargs(self, args):
-        uea = UncertainBaseState._gen_eargs(self, args)
-        return libinference.dentropy_args(uea)
 
     @copy_state_wrap
     def _entropy(self, latent_edges=True, density=False, aE=1, sbm=True,
@@ -2726,10 +2714,7 @@ class TestBlockState(DynamicsBlockStateBase):
                                         directed=g.is_directed(), **kwargs)
     def __getstate__(self):
         return dict(DynamicsBlockStateBase.__getstate__(self),
-                    g=self.g_ref, p=self.p, mu=self.mu, sigma=self.sigma,
-                    p_default=self.p_default, mu_default=self.mu_default,
-                    sigma_default=self.sigma_default, mu_v=self.mu_v,
-                    sigma_v=self.sigma_v)
+                    g=self.g_ref)
 
     def _make_state(self):
         return libinference.make_test_state(self.g_ref._Graph__graph,

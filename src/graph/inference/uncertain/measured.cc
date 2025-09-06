@@ -20,7 +20,7 @@
 
 #include <boost/python.hpp>
 
-#include "../blockmodel/graph_blockmodel.hh"
+#include "../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "uncertain.hh"
 #include "measured.hh"
@@ -28,8 +28,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 GEN_DISPATCH(measured_state, Measured<BaseState>::template MeasuredState,
@@ -52,7 +51,7 @@ python::object make_measured_state(boost::python::object oblock_state,
                  },
                  block_state);
         };
-    block_state::dispatch(oblock_state, dispatch);
+    graph_tool::block_model::block_model::dispatch(oblock_state, dispatch);
     return state;
 }
 
@@ -65,7 +64,7 @@ REGISTER_MOD
 
     def("make_measured_state", &make_measured_state);
 
-    block_state::dispatch
+    graph_tool::block_model::block_model::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -73,10 +72,10 @@ REGISTER_MOD
              measured_state<block_state_t>::dispatch
                  ([&](auto* s)
                   {
-                      typedef typename std::remove_reference<decltype(*s)>::type state_t;
+                      typedef std::decay_t<decltype(*s)> state_t;
 
-                      class_<state_t, bases<>, std::shared_ptr<state_t>>
-                          c(name_demangle(typeid(state_t).name()).c_str(),
+                      class_<state_t, bases<>, std::shared_ptr<state_t>, boost::noncopyable>
+                          c(get_type_name<state_t>().c_str(),
                             no_init);
                       c.def("remove_edge", &state_t::remove_edge)
                           .def("add_edge", &state_t::add_edge)
@@ -100,6 +99,11 @@ REGISTER_MOD
                           .def("get_X", &state_t::get_X)
                           .def("get_T", &state_t::get_T)
                           .def("get_M", &state_t::get_M)
+                          .def("gen_eargs",
+                               +[](state_t&)
+                                {
+                                    return uentropy_args_t(BlockStateSpec::entropy_args_t());
+                                })
                           .def("get_edge_prob",
                                +[](state_t& state, size_t u, size_t v,
                                    const uentropy_args_t& ea, double epsilon)
@@ -117,4 +121,4 @@ REGISTER_MOD
                                 });
                   });
          });
-});
+}, MODULE_PRIO);

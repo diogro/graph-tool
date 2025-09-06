@@ -21,7 +21,7 @@
 #include <boost/python.hpp>
 
 #define GRAPH_VIEWS decltype(never_filtered_never_reversed)
-#include "../../blockmodel/graph_blockmodel.hh"
+#include "../../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "dynamics.hh"
 #include "dynamics_multiflip_mcmc.hh"
@@ -30,8 +30,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 struct Dyn : Dynamics<BaseState> {};
@@ -50,7 +49,7 @@ REGISTER_MOD
 ([]
 {
     using namespace boost::python;
-    block_state::dispatch
+    graph_tool::block_model::block_model::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -58,7 +57,7 @@ REGISTER_MOD
              dynamics_state<block_state_t>::dispatch
                  ([&](auto* s)
                   {
-                      typedef typename std::remove_reference<decltype(*s)>::type state_t;
+                      typedef std::decay_t<decltype(*s)> state_t;
                       auto& c = __MOD__::get_class<state_t, bases<>, std::shared_ptr<state_t>,
                                                    boost::noncopyable>();
                       c.def("multiflip_mcmc_sweep",
@@ -70,10 +69,10 @@ REGISTER_MOD
                                       [&](auto& s)
                                       {
                                           auto ret_ = mcmc_sweep(*s, rng);
-                                          ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
+                                          ret = std::apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                                       });
                                  return ret;
                              });
                   });
              });
-}, 10);
+}, MODULE_PRIO + 1);

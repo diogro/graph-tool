@@ -39,6 +39,8 @@
 
 #include "dynamics_util.hh"
 
+#undef MODULE_PRIO
+#define MODULE_PRIO 15
 
 namespace graph_tool
 {
@@ -69,19 +71,19 @@ typedef vprop_map_t<std::vector<double>> tmap_t;
 typedef vprop_map_t<double> smap_t;
 
 #define DYNAMICS_STATE_params                                                  \
-    ((g, &, decltype(never_filtered_never_reversed), 1))                       \
-    ((x,, xmap_t, 0))                                                          \
-    ((params,, python::dict, 0))                                               \
-    ((q_t,, size_t, 0))                                                        \
-    ((theta,, tmap_t, 0))                                                      \
-    ((xdelta,, double, 0))                                                     \
-    ((xdelta_min,, double, 0))                                                 \
-    ((tdelta,, std::vector<double>, 0))                                        \
-    ((tdelta_min,, std::vector<double>, 0))                                    \
-    ((disable_xdist,, bool, 0))                                                \
-    ((disable_tdist,, bool, 0))                                                \
-    ((self_loops,, bool, 0))                                                   \
-    ((max_m,, int64_t, 0))
+    ((g, decltype(never_filtered_never_reversed), 1))                          \
+    ((x, xmap_t, 0))                                                           \
+    ((params, python::dict, 0))                                                \
+    ((q_t, size_t, 0))                                                         \
+    ((theta, tmap_t, 0))                                                       \
+    ((xdelta, double, 0))                                                      \
+    ((xdelta_min, double, 0))                                                  \
+    ((tdelta, std::vector<double>, 0))                                         \
+    ((tdelta_min, std::vector<double>, 0))                                     \
+    ((disable_xdist, bool, 0))                                                 \
+    ((disable_tdist, bool, 0))                                                 \
+    ((self_loops, bool, 0))                                                    \
+    ((max_m, int64_t, 0))
 
 
 class DynBase
@@ -716,10 +718,10 @@ struct Dynamics
 
             if (ea.sbm)
             {
-                do_slock([&]()
-                         {
-                             dS += _block_state.modify_edge_dS(u, v, e, -dm, ea);
-                         }, _sbm_mutex, lock);
+                do_slock_d([&]()
+                           {
+                               dS += _block_state.modify_edge_dS(u, v, e, -dm, ea);
+                           }, lock, _sbm_mutex);
             }
 
             if (ea.density)
@@ -747,14 +749,14 @@ struct Dynamics
 
                     if (ea.xdist && !_disable_xdist)
                     {
-                        do_slock([&]()
-                                 {
-                                     dS += hist_modify_dS<false>(x, _M, _xhist,
-                                                                 _xvals,
-                                                                 ea.xdist_uniform,
-                                                                 ea.xl1, _xdelta,
-                                                                 true);
-                                 }, _x_mutex, lock);
+                        do_slock_d([&]()
+                                   {
+                                       dS += hist_modify_dS<false>(x, _M, _xhist,
+                                                                   _xvals,
+                                                                   ea.xdist_uniform,
+                                                                   ea.xl1, _xdelta,
+                                                                   true);
+                                   }, lock, _x_mutex);
                     }
                 }
             }
@@ -783,10 +785,10 @@ struct Dynamics
 
             if (ea.sbm)
             {
-                do_slock([&]()
-                         {
-                             dS += _block_state.modify_edge_dS(u, v, e, dm, ea);
-                         }, _sbm_mutex, lock);
+                do_slock_d([&]()
+                           {
+                               dS += _block_state.modify_edge_dS(u, v, e, dm, ea);
+                           }, lock, _sbm_mutex);
             }
 
             if (ea.density)
@@ -818,15 +820,15 @@ struct Dynamics
                     assert(!std::isinf(dS) && !std::isnan(dS));
                     if (ea.xdist && !_disable_xdist)
                     {
-                        do_slock([&]()
-                                 {
-                                     dS += hist_modify_dS<true>(x, _M, _xhist,
-                                                                _xvals,
-                                                                ea.xdist_uniform,
-                                                                ea.xl1, _xdelta,
-                                                                true);
-                                     assert(!isinf(dS));
-                                 }, _x_mutex, lock);
+                        do_slock_d([&]()
+                                   {
+                                       dS += hist_modify_dS<true>(x, _M, _xhist,
+                                                                  _xvals,
+                                                                  ea.xdist_uniform,
+                                                                  ea.xl1, _xdelta,
+                                                                  true);
+                                       assert(!isinf(dS));
+                                   }, lock, _x_mutex);
                     }
                     assert(!std::isinf(dS) && !std::isnan(dS));
                 }
@@ -863,13 +865,13 @@ struct Dynamics
 
                     if (ea.xdist && !_disable_xdist)
                     {
-                        do_slock([&]()
-                                 {
-                                     dS += hist_move_dS(x, nx, _M, _xhist,
-                                                        _xvals, ea.xdist_uniform,
-                                                        ea.xl1, _xdelta, ea.sbm);
-                                     assert(!std::isinf(dS) && !std::isnan(dS));
-                                 }, _x_mutex, lock);
+                        do_slock_d([&]()
+                                   {
+                                       dS += hist_move_dS(x, nx, _M, _xhist,
+                                                          _xvals, ea.xdist_uniform,
+                                                          ea.xl1, _xdelta, ea.sbm);
+                                       assert(!std::isinf(dS) && !std::isnan(dS));
+                                   }, lock, _x_mutex);
                     }
                 }
             }
@@ -966,13 +968,13 @@ struct Dynamics
 
             assert(e != _null_edge);
 
-            do_ulock
+            do_ulock_d
                 ([&]()
                  {
                      _block_state.template modify_edge<false>(u, v, e, dm);
                      if (e == _null_edge)
                          erase_u_edge(u, v);
-                 }, _sbm_mutex, lock);
+                 }, lock, _sbm_mutex);
 
             #pragma omp atomic
             _E -= dm;
@@ -981,12 +983,12 @@ struct Dynamics
             {
                 if (!_disable_xdist)
                 {
-                    do_ulock
+                    do_ulock_d
                         ([&]()
                          {
                              hist_remove(x, _xhist, _xvals);
                          },
-                         _x_mutex, lock);
+                         lock, _x_mutex);
                 }
 
                 #pragma omp atomic
@@ -1025,11 +1027,11 @@ struct Dynamics
 
             auto& e = get_u_edge<true>(u, v);
 
-            do_ulock
+            do_ulock_d
                 ([&]()
                  {
                      _block_state.template modify_edge<true>(u, v, e, dm);
-                 }, _sbm_mutex, lock);
+                 }, lock, _sbm_mutex);
 
             #pragma omp atomic
             _E += dm;
@@ -1041,11 +1043,11 @@ struct Dynamics
                 {
                     if (!_disable_xdist)
                     {
-                        do_ulock
+                        do_ulock_d
                             ([&]()
                              {
                                  hist_add(nx, _xhist, _xvals);
-                             }, _x_mutex, lock);
+                             }, lock, _x_mutex);
                     }
 
                     #pragma omp atomic
@@ -1089,12 +1091,12 @@ struct Dynamics
 
                 if (!_disable_xdist)
                 {
-                    do_ulock
+                    do_ulock_d
                         ([&]()
                          {
                              hist_remove(x, _xhist, _xvals);
                              hist_add(nx, _xhist, _xvals);
-                         }, _x_mutex, lock);
+                         }, lock, _x_mutex);
                 }
 
                 assert(nx != 0);
@@ -1190,13 +1192,13 @@ struct Dynamics
 
             if (ea.tdist[l] && !_disable_tdist)
             {
-                do_slock([&]()
-                         {
-                             dS += hist_move_dS(t, nt, num_vertices(_u),
-                                                _thist[l], _tvals[l],
-                                                ea.tdist_uniform[l], ea.tl1[l],
-                                                _tdelta[l], false);
-                         }, _t_mutex, lock);
+                do_slock_d([&]()
+                           {
+                               dS += hist_move_dS(t, nt, num_vertices(_u),
+                                                  _thist[l], _tvals[l],
+                                                  ea.tdist_uniform[l], ea.tl1[l],
+                                                  _tdelta[l], false);
+                           }, lock, _t_mutex);
             }
 
             dS += node_x_S(nt, l, ea) - node_x_S(t, l, ea);
@@ -1234,12 +1236,12 @@ struct Dynamics
 
             if (!_disable_tdist)
             {
-                do_ulock
+                do_ulock_d
                     ([&]()
                      {
                          hist_remove(t, _thist[l], _tvals[l]);
                          hist_add(nt, _thist[l], _tvals[l]);
-                     }, _t_mutex, lock);
+                     }, lock, _t_mutex);
             }
         }
 
@@ -1531,7 +1533,7 @@ struct Dynamics
             std::tie(m, x) = edge_state(u, v);
 
             auto f =
-                [=](auto nx)
+                [=,this](auto nx)
                 {
                     return (dstate_edge_dS(u, v, x, nx, ea) +
                             (edge_x_S(nx, ea) - edge_x_S(x, ea)));
@@ -1573,7 +1575,7 @@ struct Dynamics
         {
             auto x = _theta[v][l];
             auto f =
-                [=](auto nx)
+                [=,this](auto nx)
                 {
                     return dstate_node_dS(v, l, x, nx, ea) +
                         (node_x_S(nx, l, ea) - node_x_S(x, l, ea));
@@ -1614,7 +1616,7 @@ struct Dynamics
             double S0 = entropy(ea);
 
             auto f =
-                [=](auto nx)
+                [=,this](auto nx)
                 {
                     dentropy_args_t ea_ = ea;
                     ea_.xl1 = nx;
@@ -1632,7 +1634,7 @@ struct Dynamics
             double S0 = entropy(ea);
 
             auto f =
-                [=](auto nx)
+                [=,this](auto nx)
                 {
                     dentropy_args_t ea_ = ea;
                     ea_.tl1[l] = nx;

@@ -80,7 +80,6 @@ Abstract base classes
    MultiflipMCMCState
    MultilevelMCMCState
    GibbsMCMCState
-   MulticanonicalMCMCState
    ExhaustiveSweepState
    DrawBlockState
 
@@ -93,14 +92,6 @@ Sampling and minimization
 
    mcmc_equilibrate
    mcmc_anneal
-   multicanonical_equilibrate
-
-.. autosummary::
-   :nosignatures:
-   :toctree: autosummary
-   :template: class.rst
-
-   MulticanonicalState
 
 Comparing and manipulating partitions
 =====================================
@@ -146,7 +137,6 @@ Auxiliary functions
    bethe_entropy
    microstate_entropy
    marginal_multigraph_entropy
-   half_edge_graph
    get_block_edge_gradient
 
 Auxiliary classes
@@ -259,8 +249,13 @@ Large-scale descriptors
 __all__ = ["minimize_blockmodel_dl",
            "minimize_nested_blockmodel_dl",
            "BlockState",
+           "WeightedBlockState",
            "OverlapBlockState",
+           "WeightedOverlapBlockState",
            "LayeredBlockState",
+           "LayeredWeightedBlockState",
+           "LayeredOverlapBlockState",
+           "LayeredWeightedOverlapBlockState",
            "NestedBlockState",
            "PPBlockState",
            "RankedBlockState",
@@ -302,14 +297,11 @@ __all__ = ["minimize_blockmodel_dl",
            "MultiflipMCMCState",
            "MultilevelMCMCState",
            "GibbsMCMCState",
-           "MulticanonicalMCMCState",
            "ExhaustiveSweepState",
            "DrawBlockState",
            "mcmc_equilibrate",
            "mcmc_anneal",
            "TemperingState",
-           "multicanonical_equilibrate",
-           "MulticanonicalState",
            "EMBlockState",
            "em_infer",
            "mf_entropy",
@@ -322,7 +314,6 @@ __all__ = ["minimize_blockmodel_dl",
            "marginal_graph_lprob",
            "PartitionHist",
            "BlockPairHist",
-           "half_edge_graph",
            "get_block_edge_gradient",
            "get_hierarchy_tree",
            "modularity",
@@ -367,8 +358,3 @@ from . ranked import *
 from . latent_layers import *
 from . histogram import *
 from . clique_decomposition import *
-
-libinference.init_cache()
-
-from .. openmp import _openmp_add_hook
-_openmp_add_hook(libinference.init_cache)

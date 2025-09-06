@@ -54,8 +54,8 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     """
 
-    def __init__(self, g, b=None):
-        EntropyState.__init__(self)
+    def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={}):
+        EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int64_t")
@@ -63,40 +63,23 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             self.b = b.copy("int64_t")
         else:
             self.b = self.g.new_vp("int64_t", vals=b)
+        if eweight is None:
+            eweight = g.new_ep("int64_t", 1)
+        else:
+            eweight = g.own_property(eweight)
+        self.eweight = eweight
 
-        self.er = Vector_size_t()
-        self.err = Vector_size_t()
+        if clabel is None:
+            clabel = g.new_vp("int64_t")
+        else:
+            clabel = g.own_property(clabel)
+        self.clabel = clabel
 
-        self.bg = self.g
-        self._abg = self.bg._get_any()
         self._state = libinference.make_norm_cut_state(self)
-
-    def __copy__(self):
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        g = copy.deepcopy(self.g, memo)
-        b = copy.deepcopy(self.b, memo)
-        return self.copy(g=g, b=b)
-
-    def copy(self, g=None, b=None):
-        r"""Copies the state. The parameters override the state properties, and
-         have the same meaning as in the constructor."""
-        return NormCutState(g=g if g is not None else self.g,
-                            b=b if b is not None else self.b)
-
-    def __getstate__(self):
-        return dict(g=self.g, b=self.b)
-
-    def __setstate__(self, state):
-        self.__init__(**state)
 
     def __repr__(self):
         return "<NormCutState object with %d blocks, for graph %s, at 0x%x>" % \
             (self.get_B(), str(self.g), id(self))
-
-    def _gen_eargs(self, args):
-        return libinference.modularity_entropy_args()
 
     def get_B(self):
         r"Returns the total number of blocks."
@@ -113,23 +96,9 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def _entropy(self):
+    def _entropy(self, **kwargs):
         r"""Return the normalized cut. See :meth:`~NormCutState.norm_cut`."""
-
-        eargs = self._get_entropy_args(locals(), ignore=["self", "kwargs"])
-
-        return self._state.entropy(eargs)
-
-    def _get_entropy_args(self, kwargs, ignore=None):
-        kwargs = dict(self._entropy_args, **kwargs)
-        if ignore is not None:
-            for a in ignore:
-                kwargs.pop(a, None)
-        ea = libinference.norm_cut_entropy_args()
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized entropy arguments: " +
-                             str(list(kwargs.keys())))
-        return ea
+        return EntropyState._entropy_dispatch(**dict(locals(), **kwargs))
 
     def norm_cut(self):
         r"""Return the normalized cut.
@@ -150,20 +119,3 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         """
 
         return self.entropy()
-
-    def _mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.norm_cut_mcmc_sweep(mcmc_state, self._state,
-                                                _get_rng())
-
-    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.norm_cut_multiflip_mcmc_sweep(mcmc_state,
-                                                          self._state,
-                                                          _get_rng())
-
-    def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.norm_cut_multilevel_mcmc_sweep(mcmc_state,
-                                                           self._state,
-                                                           _get_rng())
-    def _gibbs_sweep_dispatch(self, gibbs_state):
-        return libinference.norm_cut_gibbs_sweep(gibbs_state, self._state,
-                                                 _get_rng())

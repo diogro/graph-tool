@@ -20,7 +20,7 @@
 
 #include <boost/python.hpp>
 
-#include "../blockmodel/graph_blockmodel.hh"
+#include "../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "measured.hh"
 #include "uncertain_mcmc.hh"
@@ -29,8 +29,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 GEN_DISPATCH(measured_state, Measured<BaseState>::template MeasuredState,
@@ -62,12 +61,12 @@ python::object mcmc_measured_sweep(python::object omcmc_state,
                       [&](auto& s)
                       {
                           auto ret_ = mcmc_sweep(*s, rng);
-                          ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
+                          ret = std::apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                       });
              },
              false);
     };
-    block_state::dispatch(dispatch);
+    graph_tool::block_model::block_model::dispatch(dispatch);
     return ret;
 }
 

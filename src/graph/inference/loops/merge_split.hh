@@ -22,16 +22,105 @@
 
 #include "mcmc_loop.hh"
 
+#include "../support/util.hh"
+
+template <class State>
+struct vlist_t
+{
+    typedef std::conditional_t<std::is_scalar_v<typename State::vertex_t>,
+                               std::vector<typename State::vertex_t>&,
+                               std::vector<typename State::vertex_t>> type;
+};
+
+#define MERGE_SPLIT_params(State)                                              \
+    ((state, State&, 0))                                                       \
+    ((beta, double, 0))                                                        \
+    ((c, double, 0))                                                           \
+    ((d, double, 0))                                                           \
+    ((psingle, double, 0))                                                     \
+    ((psplit, double, 0))                                                      \
+    ((pmerge, double, 0))                                                      \
+    ((pmergesplit, double, 0))                                                 \
+    ((nproposal, vector<size_t>&, 0))                                          \
+    ((nacceptance, vector<size_t>&, 0))                                        \
+    ((gibbs_sweeps, size_t, 0))                                                \
+    ((parallel_thres, size_t, 0))                                              \
+    ((vertices, typename vlist_t<State>::type, 0))                             \
+    ((entropy_args, typename State::entropy_args_t, 0))                        \
+    ((verbose, int, 0))                                                        \
+    ((force_move, bool, 0))                                                    \
+    ((niter, double, 0))
+
 namespace graph_tool
 {
-using namespace boost;
-using namespace std;
 
 struct MergeSplitStateBase
 {
+    // mandatory
+
+    constexpr static size_t _null_group = std::numeric_limits<size_t>::max();
+
+    template <class F>
+    void iter_nodes(F&& f)
+    {
+        static_assert(false, "default method needs to be specialized");
+    }
+
+    template <class F>
+    void iter_groups(F&& f)
+    {
+        static_assert(false, "default method needs to be specialized");
+    }
+
+    template <class Vertex>
+    auto get_group(Vertex v) = delete;
+
+    template <bool sample_branch=true, class Vertex, class RNG, class VS = std::array<size_t,0>>
+    size_t sample_new_group(Vertex v, RNG& rng, VS&& except = VS())
+    {
+        static_assert(false, "default method needs to be specialized");
+        return 0;
+    }
+
+    template <class Vertex, class Group>
+    void move_node(Vertex v, Group r, bool cache)
+    {
+        static_assert(false, "default method needs to be specialized");
+    }
+
+    virtual void reserve_empty_groups(size_t nB) = 0;
+
+    template <class Vertex, class Group>
+    double virtual_move(Vertex v, Group s)
+    {
+        static_assert(false, "default method needs to be specialized");
+        return 0;
+    }
+
+    template <class Vertex, class RNG>
+    size_t sample_group(Vertex v, bool allow_empty, RNG& rng)
+    {
+        static_assert(false, "default method needs to be specialized");
+        return 0;
+    }
+
     // optional
 
-    void reserve_empty_groups(size_t) {}
+    constexpr static double _pmovelabel = 0;
+
+    constexpr static double _psingle_sweep = 0;
+    constexpr static double _pmerge_sweep = 0;
+    constexpr static double _psplit_sweep = 0;
+
+    constexpr static double _psrandom = 1;
+    constexpr static double _psscatter = 1;
+    constexpr static double _pscoalesce = 1;
+
+    constexpr static bool _parallel = false;
+    constexpr static bool _has_replace = false;
+    constexpr static bool _has_relabel = false;
+    constexpr static bool _has_merge = false;
+    constexpr static bool _has_parallel_move = false;
 
     template <class Group>
     bool can_swap(const Group&, const Group&) { return true; }
@@ -39,23 +128,16 @@ struct MergeSplitStateBase
     template <class Group>
     bool allow_move(const Group&, const Group&) { return true; }
 
-    void relax_update(bool) {}
-
-    template <class V>
-    void store_next_state(V) {}
-
-    void clear_next_state() {}
-
     template <class V>
     void push_state(V&&) {}
 
     void pop_state() {}
 
     template <class Group, class VS>
-    std::tuple<Group, double> relabel_group(const Group& r, VS&) { return {r, 0}; }
+    std::tuple<Group, double> replace_group(const Group& r, VS&) { return {r, 0}; }
 
-    template <class V, class Group, class Rs>
-    void virtual_move_lock(V, Group&&, Rs&&) {}
+    template <class V, class Rs>
+    void virtual_move_lock(V, Rs&&) {}
 
     template <class V>
     void virtual_move_unlock(V) {}
@@ -65,8 +147,31 @@ struct MergeSplitStateBase
 
     constexpr size_t get_max_B() { return std::numeric_limits<size_t>::max(); }
 
-    constexpr static bool _parallel = false;
-    constexpr static bool _relabel = false;
+    template <class Group>
+    double virtual_merge(const Group& r, const Group& s)
+    {
+        static_assert(false, "default method needs to be specialized");
+        return 0;
+    }
+
+    template <class Group>
+    void merge_groups(const Group& r, const Group& s)
+    {
+        static_assert(false,  "default method needs to be specialized");
+    }
+
+    template <class Vs, class Groups>
+    void move_nodes_parallel(Vs&& vs, Groups&& rs)
+    {
+        static_assert(false,  "default method needs to be specialized");
+    }
+
+    int group_label(auto) { return 0; }
+    int sample_group_label(auto, auto&) { return 0; }
+    double get_relabel_prob(auto, auto, auto, bool) { return 0; }
+    double relabel_group_dS(auto, auto) { return 0; }
+    void relabel_group(auto, auto) {}
+    double relabel_groups_parallel(auto&, auto&) { return 0; }
 };
 
 template <class State, class Node, class Group,
@@ -79,7 +184,8 @@ struct MergeSplit:
         public State,
         public MetropolisStateBase
 {
-    enum class move_t { single = 0, split, merge, mergesplit, movelabel, null };
+    enum class move_t { single = 0, split, merge, mergesplit, movelabel,
+                        single_sweep, merge_sweep, split_sweep, null };
     enum class stage_t { random = 0, scatter, coalesce };
 
     template <class... TS>
@@ -124,9 +230,15 @@ struct MergeSplit:
     using State::_gibbs_sweeps;
     using State::_verbose;
     using State::_parallel;
-    using State::_relabel;
+    using State::_has_replace;
+    using State::_has_relabel;
+    using State::_has_merge;
+    using State::_has_parallel_move;
 
     size_t _nmoves = 0;
+
+    typedef decltype(std::declval<State>().group_label(Group())) group_label_t;
+    std::vector<std::vector<std::tuple<Group,group_label_t>>> _lstack;
 
     std::vector<std::vector<std::tuple<Node,Group>>> _bstack;
 
@@ -142,6 +254,22 @@ struct MergeSplit:
         for (const auto& v : vs)
             back.emplace_back(v, State::get_group(v));
         State::push_state(vs);
+        if constexpr (_has_relabel)
+        {
+            auto& back = _lstack.back();
+            gt_hash_set<Group> rs;
+            for (auto [r, u] : back)
+                rs.insert(r);
+            for (auto v : vs)
+            {
+                auto r = State::get_group(v);
+                if (rs.find(r) == rs.end())
+                {
+                    rs.insert(r);
+                    back.emplace_back(r, State::group_label(r));
+                }
+            }
+        }
         _push_b_dispatch(std::forward<Vs>(vvs)...);
     }
 
@@ -149,21 +277,57 @@ struct MergeSplit:
     void push_b(Vs&&... vvs)
     {
         _bstack.emplace_back();
+        if constexpr (_has_relabel)
+            _lstack.emplace_back();
         _push_b_dispatch(std::forward<Vs>(vvs)...);
     }
 
     void pop_b()
     {
         auto& back = _bstack.back();
-        #pragma omp parallel for schedule(runtime) if (_parallel)
-        for (size_t i = 0; i < back.size(); ++i)
+        if constexpr (_has_parallel_move)
         {
-            auto& [v, s] = back[i];
-            State::virtual_move_lock(v, State::get_group(v), s);
-            move_node(v, s);
+            for (auto& [v, s] : back)
+                move_node(v, s, false, true);
+            State::move_nodes_parallel
+                (back | std::views::transform([](auto& vr) { return get<0>(vr); }),
+                 back | std::views::transform([](auto& vr) { return get<1>(vr); }));
+        }
+        else
+        {
+            #pragma omp parallel for schedule(runtime) if (_parallel)
+            for (size_t i = 0; i < back.size(); ++i)
+            {
+                auto& [v, s] = back[i];
+                State::virtual_move_lock(v, s);
+                move_node(v, s);
+            }
         }
         _bstack.pop_back();
+
+        if constexpr (_has_relabel)
+        {
+            auto& back = _lstack.back();
+            for (auto& [r, u] : back)
+                State::relabel_group(r, u);
+            _lstack.pop_back();
+        }
+
         State::pop_state();
+    }
+
+    void swap_b()
+    {
+        std::swap(_bstack[_bstack.size() - 2], _bstack[_bstack.size() - 1]);
+        if constexpr (_has_relabel)
+            std::swap(_lstack[_lstack.size() - 2], _lstack[_lstack.size() - 1]);
+    }
+
+    void clear_b()
+    {
+        _bstack.clear();
+        if constexpr (_has_relabel)
+            _lstack.clear();
     }
 
     void check_rlist()
@@ -179,7 +343,7 @@ struct MergeSplit:
     std::vector<Node> _vs;
     move_t _move;
 
-    VMap<Node, Group> _bnext, _btemp;
+    VMap<Node, Group> _btemp;
 
     constexpr static size_t _null_move = 1;
 
@@ -188,32 +352,41 @@ struct MergeSplit:
     double _dS;
     double _a;
 
-    Group node_state(const Node&)
-    {
-        return Group();
-    }
-
-    constexpr bool skip_node(const Node&)
-    {
-        return false;
-    }
-
-    void move_node(const Node& v, const Group& r, bool cache=false)
+    void move_node(const Node& v, const Group& r, bool cache = false,
+                   bool skip_move = false)
     {
         Group s = State::get_group(v);
         if (s != r)
         {
-            #pragma omp critical (move_node)
+            auto f =
+                [&]()
+                {
+                    auto& vs = _groups[s];
+                    vs.erase(v);
+                    if (vs.empty())
+                    {
+                        _groups.erase(s);
+                        _rlist.erase(s);
+                    }
+                    _groups[r].insert(v);
+                    if (_groups[r].size() == 1)
+                        _rlist.insert(r);
+                    _nmoves++;
+                };
+
+            if (_parallel && !_has_parallel_move)
             {
-                auto& vs = _groups[s];
-                vs.erase(v);
-                if (vs.empty())
-                    _groups.erase(s);
-                _groups[r].insert(v);
-                _nmoves++;
+                #pragma omp critical (move_node)
+                f();
+            }
+            else
+            {
+                f();
             }
         }
-        State::move_node(v, r, cache); // will unlock if needed
+
+        if (!skip_move)
+            State::move_node(v, r, cache); // will unlock if needed
     }
 
     template <bool clear=true>
@@ -239,23 +412,55 @@ struct MergeSplit:
         return get_wr(r);
     }
 
-    double relabel_group(Group& r)
+    double replace_group(Group& r)
     {
         Group s;
         double dS;
-        std::tie(s, dS) = State::relabel_group(r, _groups[r]);
+        std::tie(s, dS) = State::replace_group(r, _groups[r]);
         if (dS >= 0 || (s != r && get_wr(s) > 0))
             return 0;
         if (s != r)
         {
             std::vector<Node> vrs;
             get_group_vs<>(r, vrs);
-            #pragma omp parallel for schedule(runtime) if (_parallel)
-            for (size_t i = 0; i < vrs.size(); ++i)
-                move_node(vrs[i], s);
+            if constexpr (_has_parallel_move)
+            {
+                for (const auto& v : vrs)
+                    move_node(v, s, false, true);
+                State::move_nodes_parallel
+                    (vrs,
+                     vrs | std::views::transform([&](auto&) { return s; }));
+            }
+            else
+            {
+                #pragma omp parallel for schedule(runtime) if (_parallel)
+                for (size_t i = 0; i < vrs.size(); ++i)
+                    move_node(vrs[i], s);
+            }
             r = s;
         }
         return dS;
+    }
+
+    template <class RNG>
+    double relabel_group(Group r, double beta, RNG& rng)
+    {
+        double S = 0;
+        auto v = State::group_label(r);
+        auto u = State::sample_group_label(r, rng);
+        double dS = State::relabel_group_dS(r, u);
+        double pf = 0, pb = 0;
+        if (!std::isinf(beta))
+        {
+            pf = State::get_relabel_prob(r, v, u, false);
+            pb = State::get_relabel_prob(r, u, v, true);
+        }
+        if (metropolis_accept(dS, pb - pf, beta, rng))
+        {
+            State::relabel_group(r, u);
+            S += dS;
+        }
+        return S;
     }
 
     template <class RNG>
@@ -277,11 +482,11 @@ struct MergeSplit:
             Group bv = State::get_group(v);
             Group nbv = (bv == r) ? s : r;
             double ddS;
-            State::virtual_move_lock(v, bv, nbv);
+            State::virtual_move_lock(v, nbv);
 
             // serial
             if (allow_empty || get_wr(bv) > 1)
-                ddS = State::virtual_move(v, bv, nbv);
+                ddS = State::virtual_move(v, nbv);
             else
                 ddS = std::numeric_limits<double>::infinity();
 
@@ -369,10 +574,10 @@ struct MergeSplit:
                 }
             }
 
-            State::virtual_move_lock(v, State::get_group(v), rt[j]);
+            State::virtual_move_lock(v, rt[j]);
 
             // serial
-            dS += State::virtual_move(v, State::get_group(v), rt[j]);
+            dS += State::virtual_move(v, rt[j]);
             move_node(v, rt[j], true);
         }
 
@@ -410,8 +615,8 @@ struct MergeSplit:
         for (size_t i = 0; i < vrs.size(); ++i)
         {
             const auto& v = vrs[i];
-            State::virtual_move_lock(v, State::get_group(v), t);
-            dS += State::virtual_move(v, State::get_group(v), t);
+            State::virtual_move_lock(v, t);
+            dS += State::virtual_move(v, t);
             move_node(v, t, true);
         }
 
@@ -423,8 +628,8 @@ struct MergeSplit:
             for (size_t i = 0; i < vrs.size(); ++i)
             {
                 const auto& v = vrs[i];
-                State::virtual_move_lock(v, State::get_group(v), t);
-                dS += State::virtual_move(v, State::get_group(v), t);
+                State::virtual_move_lock(v, t);
+                dS += State::virtual_move(v, t);
                 move_node(v, t, true);
             }
         }
@@ -466,13 +671,13 @@ struct MergeSplit:
                 }
             }
 
-            State::virtual_move_lock(v, State::get_group(v), rt);
+            State::virtual_move_lock(v, rt);
 
             //serial
             if (std::isnan(ps[0]))
-                ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+                ps[0] = State::virtual_move(v, rt[0]);
             if (std::isnan(ps[1]))
-                ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);;
+                ps[1] = State::virtual_move(v, rt[1]);;
 
             double Z = log_sum_exp(ps[0], ps[1]);
             double p0 = ps[0] - Z;
@@ -539,10 +744,10 @@ struct MergeSplit:
                 t = State::template sample_new_group<false>(v, rng, except);
             else
                 t = r;
-            State::virtual_move_lock(v, State::get_group(v), t);
+            State::virtual_move_lock(v, t);
 
             //serial
-            dS += State::virtual_move(v, State::get_group(v), t);
+            dS += State::virtual_move(v, t);
             move_node(v, t, true);
         }
 
@@ -561,10 +766,10 @@ struct MergeSplit:
                     t = State::template sample_new_group<false>(v, rng, except);
                 else
                     t = s;
-                State::virtual_move_lock(v, State::get_group(v), t);
+                State::virtual_move_lock(v, t);
 
                 // serial
-                dS += State::virtual_move(v, State::get_group(v), t);
+                dS += State::virtual_move(v, t);
                 move_node(v, t, true);
             }
         }
@@ -604,13 +809,13 @@ struct MergeSplit:
                 }
             }
 
-            State::virtual_move_lock(v, State::get_group(v), rt);
+            State::virtual_move_lock(v, rt);
 
             // serial
             if (std::isnan(ps[0]))
-                ps[0] = State::virtual_move(v, State::get_group(v), rt[0]);
+                ps[0] = State::virtual_move(v, rt[0]);
             if (std::isnan(ps[1]))
-                ps[1] = State::virtual_move(v, State::get_group(v), rt[1]);
+                ps[1] = State::virtual_move(v, rt[1]);
 
             double Z = log_sum_exp(ps[0], ps[1]);
             double p0 = ps[0] - Z;
@@ -662,12 +867,12 @@ struct MergeSplit:
             break;
         }
 
-        if constexpr (_relabel)
+        if constexpr (_has_replace)
         {
             if (std::isinf(_beta))
             {
-                dS += relabel_group(rt[0]);
-                dS += relabel_group(rt[1]);
+                dS += replace_group(rt[0]);
+                dS += replace_group(rt[1]);
             }
         }
 
@@ -678,12 +883,21 @@ struct MergeSplit:
                                    rng);
             dS += get<0>(ret);
 
-            if constexpr (_relabel)
+            if constexpr (_has_replace)
             {
                 if (std::isinf(_beta))
                 {
-                    dS += relabel_group(rt[0]);
-                    dS += relabel_group(rt[1]);
+                    dS += replace_group(rt[0]);
+                    dS += replace_group(rt[1]);
+                }
+            }
+
+            if constexpr (_has_relabel && forward)
+            {
+                if (std::isinf(_beta))
+                {
+                    dS += relabel_group(rt[0], _beta, rng);
+                    dS += relabel_group(rt[1], _beta, rng);
                 }
             }
 
@@ -832,12 +1046,12 @@ struct MergeSplit:
             Group bv = State::get_group(v);
             Group nbv = (bv == r) ? s : r;
 
-            State::virtual_move_lock(v, bv, nbv);
+            State::virtual_move_lock(v, nbv);
 
             //serial
             double ddS;
             if (allow_empty || get_wr(bv) > 1)
-                ddS = State::virtual_move(v, bv, nbv);
+                ddS = State::virtual_move(v, nbv);
             else
                 ddS = std::numeric_limits<double>::infinity();
 
@@ -881,7 +1095,7 @@ struct MergeSplit:
         return State::allow_move(r, s);
     }
 
-    double merge(const Group& r, Group& s)
+    double merge(const Group& r, Group& s, auto& rng)
     {
         assert(r != s);
 
@@ -890,23 +1104,45 @@ struct MergeSplit:
         std::vector<Node> vrs;
         get_group_vs<>(r, vrs);
 
-        #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+:dS)
-        for (size_t i = 0; i < vrs.size(); ++i)
+        if constexpr (_has_merge)
         {
-            // parallel
-            const auto& v = vrs[i];
-            State::virtual_move_lock(v, State::get_group(v), s);
-            // serial
-            dS += State::virtual_move(v, State::get_group(v), s); // FIXME: State::get_group(v) -> r
-            move_node(v, s, true);
+            dS += State::virtual_merge(r, s);
+            for (const auto& v : vrs)
+            {
+                assert(State::get_group(v) == r);
+                move_node(v, s, false, true);
+            }
+            State::merge_groups(r, s);
+        }
+        else
+        {
+            #pragma omp parallel for schedule(runtime) if (_parallel) reduction(+:dS)
+            for (size_t i = 0; i < vrs.size(); ++i)
+            {
+                // parallel
+                const auto& v = vrs[i];
+                State::virtual_move_lock(v, s);
+                // serial
+                dS += State::virtual_move(v, s);
+                move_node(v, s, true);
+            }
         }
 
-        if constexpr (_relabel)
+        if constexpr (_has_replace)
         {
             if (std::isinf(_beta))
             {
                 for (size_t i = 0; i < _gibbs_sweeps; ++i)
-                    dS += relabel_group(s);
+                    dS += replace_group(s);
+            }
+        }
+
+        if constexpr (_has_relabel)
+        {
+            if (std::isinf(_beta))
+            {
+                for (size_t i = 0; i < _gibbs_sweeps; ++i)
+                    dS += relabel_group(s, _beta, rng);
             }
         }
 
@@ -972,7 +1208,7 @@ struct MergeSplit:
         if (_verbose)
             cout << "merge " << r << " " << s << " " << get_wr(r) << " " << get_wr(s);
 
-        double dS = merge(r, s);
+        double dS = merge(r, s, rng);
 
         if (_verbose)
             cout << " " << dS << " " << pf << "  " << pb << " " << endl;
@@ -1024,22 +1260,21 @@ struct MergeSplit:
                     move = move_t::null;
                     break;
                 }
-                _dS = State::virtual_move(v, r, s);
+                _dS = State::virtual_move(v, s);
                 if (!std::isinf(_beta))
                 {
                     pf = State::get_move_prob(v, r, s, true, false);
                     pb = State::get_move_prob(v, s, r, true, true);
                 }
-                _vs.clear();
-                _vs.push_back(v);
-                _bnext[v] = s;
+                _vs = {v};
+                push_b(_vs);
+                move_node(v, s);
                 _nmoves++;
             }
             break;
 
         case move_t::split:
             {
-                check_rlist();
                 auto r = uniform_sample(_rlist, rng);
 
                 if (get_wr(r) < 2 && !allow_empty)
@@ -1047,8 +1282,6 @@ struct MergeSplit:
                     move = move_t::null;
                     break;
                 }
-
-                State::relax_update(true);
 
                 auto& vrs = _groups[r];
                 _vs.clear();
@@ -1077,19 +1310,11 @@ struct MergeSplit:
                          << get_wr(r) << " " << get_wr(s) << " "
                          << _dS << " " << pb << " " << pf
                          << " " << -_dS + pb - pf << endl;
-
-                for (const auto& v : _vs)
-                    _bnext[v] = State::get_group(v);
-
-                pop_b();
-                check_rlist();
-                State::relax_update(false);
             }
             break;
 
         case move_t::merge:
             {
-                check_rlist();
                 if (_rlist.size() == 1 && !allow_empty)
                 {
                     move = move_t::null;
@@ -1105,7 +1330,12 @@ struct MergeSplit:
                     break;
                 }
 
-                State::relax_update(true);
+                auto* vrs = &_groups[r];
+                _vs.clear();
+                _vs.insert(_vs.end(), vrs->begin(), vrs->end());
+                vrs = &_groups[s];
+                _vs.insert(_vs.end(), vrs->begin(), vrs->end());
+                push_b(_vs);
 
                 if (!std::isinf(_beta))
                 {
@@ -1118,24 +1348,7 @@ struct MergeSplit:
                     pb += log(State::_psplit);
                 }
 
-                auto* vrs = &_groups[r];
-                _vs.clear();
-                _vs.insert(_vs.end(), vrs->begin(), vrs->end());
-                vrs = &_groups[s];
-                _vs.insert(_vs.end(), vrs->begin(), vrs->end());
-
-                push_b(_vs);
-
-                _dS = merge(r, s);
-
-                for (const auto& v : _vs)
-                    _bnext[v] = State::get_group(v);
-
-                pop_b();
-
-                check_rlist();
-
-                State::relax_update(false);
+                _dS = merge(r, s, rng);
 
                 if (_verbose)
                     cout << "merge proposal: " << r << " " << s
@@ -1153,8 +1366,6 @@ struct MergeSplit:
                     break;
                 }
 
-                check_rlist();
-
                 auto r = uniform_sample(_rlist, rng);
 
                 if (get_wr(r) < 2 && !allow_empty)
@@ -1163,8 +1374,6 @@ struct MergeSplit:
                     break;
                 }
 
-                State::relax_update(true);
-
                 push_b(_groups[r]);
 
                 auto ret = sample_merge(r, rng);
@@ -1172,9 +1381,7 @@ struct MergeSplit:
 
                 if (s == _null_group)
                 {
-                    while (!_bstack.empty())
-                        pop_b();
-                    State::relax_update(false);
+                    clear_b();
                     move = move_t::null;
                     break;
                 }
@@ -1189,20 +1396,6 @@ struct MergeSplit:
                 pf += get<2>(ret);
                 pb += get<3>(ret);
 
-                for (auto& vs : _bstack)
-                    for (auto& vb : vs)
-                    {
-                        auto v = get<0>(vb);
-                        _vs.push_back(v);
-                        _bnext[v] = State::get_group(v);
-                    }
-
-                while (!_bstack.empty())
-                    pop_b();
-
-                check_rlist();
-                State::relax_update(false);
-
                 if (_verbose)
                     cout << "mergesplit proposal: "
                          << r << " " << s << " "
@@ -1214,9 +1407,7 @@ struct MergeSplit:
 
         case move_t::movelabel:
             {
-                check_rlist();
                 auto r = uniform_sample(_rlist, rng);
-
                 auto s = State::sample_new_group(*_groups[r].begin(), rng);
 
                 if (!allow_merge(r, s) || r == s)
@@ -1225,23 +1416,13 @@ struct MergeSplit:
                     break;
                 }
 
-                State::relax_update(true);
-
                 auto& vrs = _groups[r];
                 _vs.clear();
                 _vs.insert(_vs.begin(), vrs.begin(), vrs.end());
 
                 push_b(_vs);
 
-                _dS = merge(r, s);
-
-                for (const auto& v : _vs)
-                    _bnext[v] = State::get_group(v);
-
-                pop_b();
-                check_rlist();
-
-                State::relax_update(false);
+                _dS = merge(r, s, rng);
 
                 if (_verbose)
                     cout << "movelabel proposal: "
@@ -1277,8 +1458,6 @@ struct MergeSplit:
             _a = _dS * _beta + 1;
         }
 
-        check_rlist();
-
         return {0, _nmoves};
     }
 
@@ -1290,25 +1469,16 @@ struct MergeSplit:
 
     void perform_move(const Node&, size_t)
     {
-        check_rlist();
-        for (const auto& v : _vs)
-        {
-            auto r = State::get_group(v);
-            auto s = _bnext[v];
-            if (r == s)
-                continue;
-
-            if (get_wr(s) == 0)
-                _rlist.insert(s);
-
-            move_node(v, s);
-
-            if (get_wr(r) == 0)
-                _rlist.erase(r);
-        }
-        check_rlist();
-
         State::_nacceptance[size_t(_move)]++;
+        clear_b();
+        check_rlist();
+    }
+
+    void step(const Node&, size_t)
+    {
+        while (!_bstack.empty())
+            pop_b();
+        check_rlist();
     }
 
     constexpr bool is_deterministic()

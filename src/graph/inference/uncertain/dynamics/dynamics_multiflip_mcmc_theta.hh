@@ -38,22 +38,21 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((l,, size_t, 0))                                                          \
-    ((beta,, double, 0))                                                       \
-    ((c,, double, 0))                                                          \
-    ((psplit,, double, 0))                                                     \
-    ((pmerge,, double, 0))                                                     \
-    ((pmergesplit,, double, 0))                                                \
-    ((nproposal, &, vector<size_t>&, 0))                                       \
-    ((nacceptance, &, vector<size_t>&, 0))                                     \
-    ((gibbs_sweeps,, size_t, 0))                                               \
-    ((entropy_args,, dentropy_args_t, 0))                                      \
-    ((bisect_args,, bisect_args_t, 0))                                         \
-    ((verbose,, int, 0))                                                       \
-    ((force_move,, bool, 0))                                                   \
-    ((niter,, double, 0))
+    ((state, State&, 0))                                                       \
+    ((l, size_t, 0))                                                           \
+    ((beta, double, 0))                                                        \
+    ((c, double, 0))                                                           \
+    ((psplit, double, 0))                                                      \
+    ((pmerge, double, 0))                                                      \
+    ((pmergesplit, double, 0))                                                 \
+    ((nproposal, vector<size_t>&, 0))                                          \
+    ((nacceptance, vector<size_t>&, 0))                                        \
+    ((gibbs_sweeps, size_t, 0))                                                \
+    ((entropy_args, dentropy_args_t, 0))                                       \
+    ((bisect_args, bisect_args_t, 0))                                          \
+    ((verbose, int, 0))                                                        \
+    ((force_move, bool, 0))                                                    \
+    ((niter, double, 0))
 
 template <class State>
 struct MCMCTheta
@@ -197,15 +196,16 @@ struct MCMCTheta
         std::vector<std::array<std::tuple<double, double>,2>> _dS;
         std::mutex _move_mutex;
 
-        void virtual_move_lock(size_t idx, double r, double s)
+        void virtual_move_lock(size_t idx, double s)
         {
-            virtual_move_lock(idx, r, std::array<double,1>{s});
+            virtual_move_lock(idx, std::array<double,1>{s});
         }
 
         bool _move_locked = false;
         template <size_t d>
-        void virtual_move_lock(size_t v, double r, const std::array<double,d>& s)
+        void virtual_move_lock(size_t v, const std::array<double,d>& s)
         {
+            auto r = get_group(v);
             auto& dS = _dS[get_thread_num()];
             for (size_t i = 0; i < 2; ++i)
                 dS[i] = {std::numeric_limits<double>::quiet_NaN(),
@@ -251,7 +251,7 @@ struct MCMCTheta
             return true;
         }
 
-        double virtual_move(size_t v, double, double s)
+        double virtual_move(size_t v, double s)
         {
             auto& dSs = _dS[get_thread_num()];
             double dS = (get<0>(dSs[0]) == s) ? get<1>(dSs[0]) : get<1>(dSs[1]);

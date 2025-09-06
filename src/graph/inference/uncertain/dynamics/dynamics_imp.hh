@@ -21,7 +21,7 @@
 #include <boost/python.hpp>
 
 #define GRAPH_VIEWS decltype(never_filtered_never_reversed)
-#include "../../blockmodel/graph_blockmodel.hh"
+#include "../../blockmodel/state.hh"
 
 #include "dynamics.hh"
 #include "dynamics_base.hh"
@@ -29,8 +29,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 struct Dyn : Dynamics<BaseState> {};
@@ -47,7 +46,7 @@ python::object MAKE_STATE(BASE_NAME)(python::object odynamics_state,
                                      python::object oa, python::dict params)
 {
     python::object state;
-    block_state::dispatch
+    graph_tool::block_model::block_model::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -78,7 +77,7 @@ REGISTER_MOD
     using namespace boost::python;
     def("make_" STRINGIFY(BASE_NAME) "_state", &MAKE_STATE(BASE_NAME));
 
-    auto name = name_demangle(typeid(DState).name());
+    auto name = get_type_name<DState>();
 
     class_<DState, bases<DStateBase>, std::shared_ptr<DState>,
            boost::noncopyable> dclass(name.c_str(), no_init);
@@ -86,7 +85,7 @@ REGISTER_MOD
     dclass.def("reset_m",
                +[](DState& state, python::object odynamics_state)
                 {
-                    block_state::dispatch
+                    graph_tool::block_model::block_model::dispatch
                         ([&](auto* bs)
                          {
                              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -98,4 +97,4 @@ REGISTER_MOD
                                   }, false);
                          });
                 });
-}, 6);
+}, MODULE_PRIO + 1);

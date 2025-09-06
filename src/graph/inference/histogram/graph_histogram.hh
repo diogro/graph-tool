@@ -22,8 +22,10 @@
 
 #include <vector>
 
-#include "../blockmodel/graph_blockmodel_util.hh"
 #include "../support/graph_state.hh"
+#include "../support/cache.hh"
+#include "../support/util.hh"
+#include "../../samplers.hh"
 
 #include "../../idx_map.hh"
 
@@ -56,17 +58,17 @@ typedef decltype(hana::tuple_t<multi_array_ref<double,2>,
 
 typedef decltype(hana::tuple_t<multi_array_ref<uint64_t,1>>) w_ts;
 
-#define HIST_STATE_params                                                     \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))               \
-    ((x_r,, x_ts, 1))                                                         \
-    ((w_r,, w_ts, 1))                                                         \
-    ((obins,, python::list, 0))                                               \
-    ((obounded,, python::list, 0))                                            \
-    ((odiscrete,, python::list, 0))                                           \
-    ((ocategorical,, python::list, 0))                                        \
-    ((alpha,, double, 0))                                                     \
-    ((pcount,, double, 0))                                                    \
-    ((conditional,, size_t, 0))
+#define HIST_STATE_params                                                      \
+    ((__class__, decltype(hana::tuple_t<python::object>), 1))                  \
+    ((x_r, x_ts, 1))                                                           \
+    ((w_r, w_ts, 1))                                                           \
+    ((obins, python::list, 0))                                                 \
+    ((obounded, python::list, 0))                                              \
+    ((odiscrete, python::list, 0))                                             \
+    ((ocategorical, python::list, 0))                                          \
+    ((alpha, double, 0))                                                       \
+    ((pcount, double, 0))                                                      \
+    ((conditional, size_t, 0))
 
 GEN_STATE_BASE(HistStateBase, HIST_STATE_params)
 
@@ -169,14 +171,14 @@ public:
         std::vector<bool> _categorical;
 
         typedef VT<value_t> group_t;
-        typedef is_instance<group_t, std::vector> is_vec;
+        constexpr static bool is_vec = is_specialization_of_v<group_t, std::vector>;
         typedef std::conditional_t
-            <is_vec{},
+            <is_vec,
              group_t,
              boost::container::static_vector
                  <value_t,
                   std::tuple_size<std::conditional_t
-                                    <is_vec{},
+                                    <is_vec,
                                      std::array<value_t,1>,
                                      group_t>>::value>>
             cgroup_t;
@@ -184,7 +186,7 @@ public:
         gt_hash_map<group_t, size_t> _hist;
         gt_hash_map<cgroup_t, size_t> _chist;
 
-        typedef idx_set<size_t, true> mgroup_t;
+        typedef idx_set<size_t, {.shared_pos=true}> mgroup_t;
         std::vector<gt_hash_map<value_t, mgroup_t>> _mgroups;
         std::vector<std::vector<size_t>> _mpos;
 
@@ -213,7 +215,7 @@ public:
             {
                 if (dummy)
                     return _dummy_set;
-                iter = m.insert({x, idx_set<size_t, true>(_mpos[j])}).first;
+                iter = m.insert({x, idx_set<size_t, {.shared_pos=true}>(_mpos[j])}).first;
             }
             return iter->second;
         }
@@ -254,14 +256,14 @@ public:
 
                     auto iter = std::upper_bound(bins.begin(), bins.end(), x[j]) - 1;
 
-                    if constexpr (is_instance<VT<value_t>, std::vector>{})
+                    if constexpr (is_specialization_of_v<VT<value_t>, std::vector>)
                         r.push_back(*iter);
                     else
                         r[j] = *iter;
                 }
                 else
                 {
-                    if constexpr (is_instance<VT<value_t>, std::vector>{})
+                    if constexpr (is_specialization_of_v<VT<value_t>, std::vector>)
                         r.push_back(size_t(x[j]));
                     else
                         r[j] = size_t(x[j]);
@@ -290,7 +292,7 @@ public:
         const group_t& to_group(V&& r)
         {
             auto& nr = _r_temp;
-            if constexpr (is_instance<VT<value_t>, std::vector>{})
+            if constexpr (is_specialization_of_v<VT<value_t>, std::vector>)
             {
                 nr.clear();
                 nr.insert(nr.end(), r.begin(), r.end());
@@ -416,7 +418,7 @@ public:
             if (_pcount == 1)
                 S -= lgamma_fast(n + 1);
             else
-                S -= lgamma(n + _pcount) - lgamma(_pcount);
+                S -= safe_lgamma(n + _pcount) - safe_lgamma(_pcount);
 
             S += n * lw;
 

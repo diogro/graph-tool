@@ -35,17 +35,16 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((beta,, double, 0))                                                       \
-    ((step,, double, 0))                                                       \
-    ((pold,, double, 0))                                                       \
-    ((pxu,, double, 0))                                                        \
-    ((intra_sweeps,, size_t, 0))                                               \
-    ((entropy_args,, dentropy_args_t, 0))                                      \
-    ((bisect_args,, bisect_args_t, 0))                                         \
-    ((verbose,, int, 0))                                                       \
-    ((niter,, size_t, 0))
+    ((state, State&, 0))                                                       \
+    ((beta, double, 0))                                                        \
+    ((step, double, 0))                                                        \
+    ((pold, double, 0))                                                        \
+    ((pxu, double, 0))                                                         \
+    ((intra_sweeps, size_t, 0))                                                \
+    ((entropy_args, dentropy_args_t, 0))                                       \
+    ((bisect_args, bisect_args_t, 0))                                          \
+    ((verbose, int, 0))                                                        \
+    ((niter, size_t, 0))
 
 template <class State>
 struct MCMCXDelta

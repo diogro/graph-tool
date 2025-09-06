@@ -19,6 +19,7 @@
 #include "parallel_rng.hh"
 #include "samplers.hh"
 #include "../support/util.hh"
+#include "uncertain.hh"
 
 using namespace boost;
 using namespace graph_tool;
@@ -103,4 +104,4 @@ REGISTER_MOD
     using namespace boost::python;
     def("marginal_multigraph_sample", &marginal_multigraph_sample);
     def("marginal_multigraph_lprob", &marginal_multigraph_lprob);
-});
+}, MODULE_PRIO);

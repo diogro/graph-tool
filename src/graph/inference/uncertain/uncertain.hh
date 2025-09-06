@@ -25,18 +25,21 @@
 #include "../support/graph_state.hh"
 #include "uncertain_util.hh"
 
+#undef MODULE_PRIO
+#define MODULE_PRIO 10
+
 namespace graph_tool
 {
 using namespace boost;
 using namespace std;
 
 #define UNCERTAIN_STATE_params                                                 \
-    ((g, &, decltype(all_graph_views), 1))                                     \
-    ((q,, eprop_map_t<double>, 0))                                             \
-    ((q_default,, double, 0))                                                  \
-    ((S_const,, double, 0))                                                    \
-    ((self_loops,, bool, 0))                                                   \
-    ((max_m,, int64_t, 0))
+    ((g, decltype(all_graph_views), 1))                                        \
+    ((q, eprop_map_t<double>, 0))                                              \
+    ((q_default, double, 0))                                                   \
+    ((S_const, double, 0))                                                     \
+    ((self_loops, bool, 0))                                                    \
+    ((max_m, int64_t, 0))
 
 template <class BlockState>
 struct Uncertain

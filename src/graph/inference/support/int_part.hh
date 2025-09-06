@@ -36,15 +36,15 @@ double log_q_approx_small(size_t n, size_t k);
 
 extern boost::multi_array<double, 2> __q_cache;
 
-template <class T>
-[[gnu::const]] [[gnu::hot]]
-double log_q(T n, T k)
+template <class T1, class T2>
+[[gnu::const]]
+double log_q(T1 n, T2 k)
 {
-    if (k > n)
+    if (std::cmp_greater(k, n))
         k = n;
     if (n == 0 && k == 0)
         return 0;
-    if (n < 0 || k < 0)
+    if (n < 0 || k <= 0)
         return -std::numeric_limits<double>::infinity();
     if (size_t(n) < __q_cache.shape()[0])
         return __q_cache[n][k];

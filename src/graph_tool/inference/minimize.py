@@ -135,7 +135,10 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
     return state
 
 def minimize_nested_blockmodel_dl(g, init_bs=None,
-                                  state=NestedBlockState, state_args={},
+                                  state=NestedBlockState,
+                                  base_state=BlockState,
+                                  state_args={},
+                                  base_state_args={},
                                   multilevel_mcmc_args={}):
     r"""Fit the nested stochastic block model, by minimizing its description length
     using an agglomerative heuristic.
@@ -146,10 +149,15 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
         The graph.
     init_bs : iterable of iterable of ``int``s (optional, default: ``None``)
         Initial hierarchical partition.
-    state : SBM state class (optional, default: :class:`~graph_tool.inference.NestedBlockState`)
-        Type of model that will be used.
+    state : nested SBM state class (optional, default: :class:`~graph_tool.inference.NestedBlockState`)
+        Type of next model that will be used.
+    base_state : base SBM state class (optional, default: :class:`~graph_tool.inference.BlockState`)
+        Type of model that will be used at the bottom of the hierarchy.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to appropriate state constructor (e.g.
+        :class:`~graph_tool.inference.NestedBlockState`)
+    base_state_args : ``dict`` (optional, default: ``{}``)
+        Arguments to be passed to appropriate base state constructor (e.g.
         :class:`~graph_tool.inference.BlockState`)
     multilevel_mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :meth:`~graph_tool.inference.MultilevelMCMCState.multilevel_mcmc_sweep`.
@@ -199,7 +207,7 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
     .. doctest:: nested_mdl_overlap
 
        >>> g = gt.collection.data["celegansneural"]
-       >>> state = gt.minimize_nested_blockmodel_dl(g, state_args=dict(overlap=True))
+       >>> state = gt.minimize_nested_blockmodel_dl(g, base_state=gt.OverlapBlockState)
        >>> state.draw(output="celegans_nested_mdl_overlap.pdf")
        (...)
 
@@ -224,7 +232,8 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
 
     """
 
-    state = state(g, bs=init_bs, **state_args)
+    state = state(g, bs=init_bs, base_state=base_state,
+                  base_state_args=base_state_args, **state_args)
 
     args = dict(niter=1, beta=numpy.inf)
     args.update(multilevel_mcmc_args)

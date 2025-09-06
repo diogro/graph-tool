@@ -20,15 +20,14 @@
 
 #include <boost/python.hpp>
 
-#include "../blockmodel/graph_blockmodel.hh"
+#include "../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "uncertain.hh"
 #include "../support/graph_state.hh"
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 GEN_DISPATCH(uncertain_state, Uncertain<BaseState>::template UncertainState,
@@ -51,7 +50,7 @@ python::object make_uncertain_state(boost::python::object oblock_state,
                  },
                  block_state);
         };
-    block_state::dispatch(oblock_state, dispatch);
+    graph_tool::block_model::block_model::dispatch(oblock_state, dispatch);
     return state;
 }
 
@@ -63,8 +62,8 @@ REGISTER_MOD
 {
     using namespace boost::python;
 
-    class_<uentropy_args_t, bases<entropy_args_t>>("uentropy_args",
-                                                   init<entropy_args_t>())
+    class_<uentropy_args_t, bases<BlockStateSpec::entropy_args_t>>
+        ("uentropy_args", init<BlockStateSpec::entropy_args_t>())
         .def_readwrite("latent_edges", &uentropy_args_t::latent_edges)
         .def_readwrite("density", &uentropy_args_t::density)
         .def_readwrite("aE", &uentropy_args_t::aE)
@@ -72,7 +71,7 @@ REGISTER_MOD
 
     def("make_uncertain_state", &make_uncertain_state);
 
-    block_state::dispatch
+    graph_tool::block_model::block_model::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
@@ -80,10 +79,10 @@ REGISTER_MOD
              uncertain_state<block_state_t>::dispatch
                  ([&](auto* s)
                   {
-                      typedef typename std::remove_reference<decltype(*s)>::type state_t;
+                      typedef std::decay_t<decltype(*s)> state_t;
 
-                      class_<state_t, bases<>, std::shared_ptr<state_t>>
-                          c(name_demangle(typeid(state_t).name()).c_str(),
+                      class_<state_t, bases<>, std::shared_ptr<state_t>, boost::noncopyable>
+                          c(get_type_name<state_t>().c_str(),
                             no_init);
                       c.def("remove_edge", &state_t::remove_edge)
                           .def("add_edge", &state_t::add_edge)
@@ -98,6 +97,11 @@ REGISTER_MOD
                                          { set_state(state, g, w); },
                                          all_graph_views)
                                         (gi.get_graph_view());
+                                })
+                          .def("gen_eargs",
+                               +[](state_t&)
+                                {
+                                    return uentropy_args_t(BlockStateSpec::entropy_args_t());
                                 })
                           .def("remove_edge_dS", &state_t::remove_edge_dS)
                           .def("add_edge_dS", &state_t::add_edge_dS)
@@ -123,4 +127,4 @@ REGISTER_MOD
                   });
          });
 
-});
+}, MODULE_PRIO);

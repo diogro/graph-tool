@@ -20,9 +20,9 @@
 
 from .. import Graph, GraphView, _get_rng, Vector_size_t, PropertyMap, \
     group_vector_property
-from . blockmodel import DictState, init_q_cache
 from . base_states import *
 from . util import *
+from . blockmodel import BlockState
 
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
@@ -54,9 +54,12 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
        043271 (2020), :doi:`10.1103/PhysRevResearch.2.043271`, :arxiv:`2006.14493`
     """
 
-    def __init__(self, g, b=None, entropy_args={}):
+    def __init__(self, g, b=None, eweight=None, clabel=None, pclabel=None,
+                 uniform=False, deg_corr=True, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
-        self.g = GraphView(g, directed=False)
+        self.g = g
+        self.uniform = uniform
+        self.deg_corr = deg_corr
         if b is None:
             self.b = self.g.new_vp("int64_t")
         elif isinstance(g, PropertyMap):
@@ -64,42 +67,36 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         else:
             self.b = self.g.new_vp("int64_t", vals=b)
 
-        self.wr = Vector_size_t()
-        self.er = Vector_size_t()
-        self.err = Vector_size_t()
-        self.eio = Vector_size_t()
+        if eweight is None:
+            eweight = g.new_ep("int64_t", 1)
+        else:
+            eweight = g.own_property(eweight)
+        self.eweight = eweight
 
-        init_q_cache(max((2 * max((self.g.num_edges(),
-                                   self.g.num_vertices())), 100)))
+        if clabel is None:
+            clabel = pclabel
 
-        self.bg = Graph(g.num_vertices(), directed=False)
-        self._abg = self.bg._get_any()
-        self._state = libinference.make_pp_state(self)
+        if clabel is None:
+            clabel = g.new_vp("int64_t")
+        else:
+            clabel = g.own_property(clabel)
+        self.clabel = clabel
 
-    def __copy__(self):
-        return self.copy()
+        if pclabel is None:
+            self.pclabel = g.new_vp("int64_t")
+        else:
+            self.pclabel = g.own_property(pclabel)
 
-    def __deepcopy__(self, memo):
-        g = copy.deepcopy(self.g, memo)
-        b = copy.deepcopy(self.b, memo)
-        return self.copy(g=g, b=b)
+        self._state = libinference.make_planted_partition_state(self)
 
-    def copy(self, g=None, b=None):
-        r"""Copies the state. The parameters override the state properties, and
-         have the same meaning as in the constructor."""
-        return PPBlockState(g=g if g is not None else self.g,
-                            b=b if b is not None else self.b)
-
-    def __getstate__(self):
-        state = EntropyState.__getstate__(self)
-        return dict(state, g=self.g, b=self.b)
-
-    def __setstate__(self, state):
-        self.__init__(**state)
+    def _repr_extra(self):
+        if self.uniform:
+            return " uniform assortativity,"
+        else:
+            return " non-uniform assortativity,"
 
     def __repr__(self):
-        return "<PPBlockState object with %d blocks, for graph %s, at 0x%x>" % \
-            (self.get_B(), str(self.g), id(self))
+        return BlockState.__repr__(self)
 
     def get_blocks(self):
         r"""Returns the property map which contains the block labels for each vertex."""
@@ -127,20 +124,11 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         w /= w.sum()
         return np.exp(-(w*np.log(w)).sum())
 
-    def virtual_vertex_move(self, v, s, **kwargs):
-        r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
-        remaining parameters are the same as in
-        :meth:`~graph_tool.inference.PPBlockState.entropy`."""
-        return self._state.virtual_move(int(v), self.b[v], s,
-                                        self._get_entropy_args(dict(self._entropy_args,
-                                                                    **kwargs)))
-
-    def move_vertex(self, v, s):
-        r"""Move vertex ``v`` to block ``s``."""
-        self._state.move_vertex(int(v), int(s))
-
     @copy_state_wrap
-    def _entropy(self, uniform=False, degree_dl_kind="distributed"):
+    def _entropy(self, adjacency=True, parallel_entropy=True,
+                 degree_entropy=True, dl=True, partition_dl=True,
+                 degree_dl=True, edges_dl=True, degree_dl_kind="distributed",
+                 constants=True, **kwargs):
         r"""Return the model entropy (negative log-likelihood).
 
         Parameters
@@ -230,39 +218,4 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
            043271 (2020), :doi:`10.1103/PhysRevResearch.2.043271`, :arxiv:`2006.14493`
         """
 
-        eargs = self._get_entropy_args(locals())
-
-        return self._state.entropy(eargs)
-
-    def _gen_eargs(self, args):
-        return libinference.pp_entropy_args()
-
-    def _get_entropy_args(self, kwargs, consume=False):
-        if not consume:
-            kwargs = kwargs.copy()
-        deg_dl_kind = kwargs.get("degree_dl_kind",
-                                 self._entropy_args["degree_dl_kind"])
-        if deg_dl_kind == "entropy":
-            kind = libinference.deg_dl_kind.ent
-        elif deg_dl_kind == "uniform":
-            kind = libinference.deg_dl_kind.uniform
-        elif deg_dl_kind == "distributed":
-            kind = libinference.deg_dl_kind.dist
-        kwargs["degree_dl_kind"] = kind
-        return super()._get_entropy_args(kwargs, consume)
-
-    def _mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.pp_mcmc_sweep(mcmc_state, self._state,
-                                          _get_rng())
-
-    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.pp_multiflip_mcmc_sweep(mcmc_state, self._state,
-                                                    _get_rng())
-
-    def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.pp_multilevel_mcmc_sweep(mcmc_state, self._state,
-                                                     _get_rng())
-
-    def _gibbs_sweep_dispatch(self, gibbs_state):
-        return libinference.pp_gibbs_sweep(gibbs_state, self._state,
-                                           _get_rng())
+        return EntropyState._entropy_dispatch(**dict(locals(), **kwargs))

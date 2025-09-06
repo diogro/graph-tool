@@ -74,20 +74,27 @@ class CliqueState(object):
        ...         break
        array([0, 2, 4, 5], dtype=int32) 1
        array([0, 1, 3, 5], dtype=int32) 1
-       array([0, 1, 5, 6], dtype=int32) 1
        array([0, 4, 5, 6], dtype=int32) 0
-       array([2, 5, 7], dtype=int32) 1
-       array([ 4, 28], dtype=int32) 1
-       array([ 4,  6, 29], dtype=int32) 1
-       array([ 4, 30, 31], dtype=int32) 0
-       array([5, 6, 7], dtype=int32) 0
-       array([ 7, 71], dtype=int32) 1
-       array([ 7, 14, 58], dtype=int32) 1
-       array([ 7, 58, 85], dtype=int32) 0
-       array([ 7, 30, 58], dtype=int32) 1
-       array([ 6, 10, 12], dtype=int32) 0
-       array([ 6, 12, 18], dtype=int32) 1
-       array([ 8, 12, 13, 32], dtype=int32) 1
+       array([0, 1, 5, 6], dtype=int32) 1
+       array([34, 35, 36], dtype=int32) 1
+       array([34, 35, 38, 39], dtype=int32) 1
+       array([34, 35, 37, 38], dtype=int32) 1
+       array([12, 23, 33, 47], dtype=int32) 0
+       array([12, 23, 47, 54], dtype=int32) 1
+       array([12, 36, 41, 47], dtype=int32) 1
+       array([12, 46, 47], dtype=int32) 0
+       array([ 9, 12, 41, 47], dtype=int32) 0
+       array([ 9, 11, 12, 47], dtype=int32) 0
+       array([ 9, 12, 24, 47], dtype=int32) 0
+       array([11, 12, 13, 17, 47], dtype=int32) 0
+       array([12, 13, 40, 47], dtype=int32) 0
+       array([12, 40, 41, 47, 54], dtype=int32) 0
+       array([12, 24, 40, 47], dtype=int32) 0
+       array([24, 26, 40, 47], dtype=int32) 0
+       array([26, 40, 45, 47], dtype=int32) 1
+       array([11, 26, 45, 47], dtype=int32) 0
+       array([13, 40, 42, 47], dtype=int32) 1
+       array([33, 37, 47], dtype=int32) 1
 
     References
     ----------

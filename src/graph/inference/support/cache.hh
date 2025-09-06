@@ -23,93 +23,131 @@
 
 #include <vector>
 #include <cmath>
+#include <utility>
+#include <mutex>
+#include <type_traits>
+
+#include <boost/math/special_functions/gamma.hpp>
 
 namespace graph_tool
 {
-using namespace std;
 
-// Repeated computation of x*log(x) and log(x) actually adds up to a lot of
-// time. A significant speedup can be made by caching pre-computed values.
+// thread-safe lgamma
 
-extern vector<vector<double>> __safelog_cache;
-extern vector<vector<double>> __xlogx_cache;
-extern vector<vector<double>> __lgamma_cache;
+auto safe_lgamma(auto x)
+{
+    using boost::math::policies::domain_error;
+    using boost::math::policies::pole_error;
+    using boost::math::policies::evaluation_error;
+    using boost::math::policies::overflow_error;
+    using boost::math::policies::make_policy;
+    using boost::math::policies::ignore_error;
+    return boost::math::lgamma(x, make_policy(domain_error<ignore_error>(),
+                                              pole_error<ignore_error>(),
+                                              overflow_error<ignore_error>(),
+                                              evaluation_error<ignore_error>()));
+}
 
-constexpr size_t __max_size = (500 * (1 << 20)) / sizeof(double);
+// Repeated computation of x*log(x), log(x), and lgamma(x) actually adds up to a
+// lot of time. A significant speedup can be made by caching pre-computed
+// values.
+
+extern std::vector<double> __safelog_cache;
+extern std::vector<double> __xlogx_cache;
+extern std::vector<double> __lgamma_cache;
+
+constexpr size_t __max_size = std::numeric_limits<size_t>::max();
 
 template <class T>
-size_t get_size(T n)
+concept Scalar = std::is_scalar_v<T>;
+
+template <class T>
+size_t get_next_size(T n)
 {
     size_t k = 1;
-    while (k < size_t(n))
+    while (std::cmp_less(k, n))
         k <<= 1;
     return k;
 }
 
-template <bool Init=true, class T, class F, class Cache>
-[[gnu::pure]]
-inline double get_cached(T x, F&& f, Cache& tcache)
+template <class T, class F, class Cache>
+[[gnu::const]]
+inline double get_cached(T x, F&& f, Cache& cache)
 {
-    auto t = get_thread_num();
-    auto& cache = tcache[t];
-    if (size_t(x) >= cache.size())
-    {
-        if (Init && size_t(x) < __max_size)
-        {
-            size_t old_size = cache.size();
-            if (size_t(x) >= old_size)
-            {
-                cache.resize(get_size(x + 1));
-                for (size_t y = old_size; y < cache.size(); ++y)
-                    cache[y] = f(y);
-            }
-        }
-        else
-        {
-            return f(x);
-        }
-    }
-    return cache[x];
+    if (std::cmp_greater_equal(x, cache.size())) [[unlikely]]
+        return f(x);
+    else                                         [[likely]]
+        return cache[x];
 }
 
-template <class T>
+template <class T, class F, class Cache>
+void init_cache(T x, F&& f, Cache& cache)
+{
+    if (std::cmp_greater_equal(x, cache.size()) &&
+        std::cmp_less(x, __max_size))
+    {
+        size_t old_size = cache.size();
+        cache.resize(get_next_size(x + 1));
+        #pragma omp parallel for
+        for (size_t y = old_size; y < cache.size(); ++y)
+            cache[y] = f(y);
+    }
+}
+
+template <Scalar T>
 [[gnu::const]]
 inline double safelog(T x)
 {
     if (x == 0)
         return 0;
-    return log(x);
+    return std::log(x);
 }
 
-template <bool Init=true, class T>
-[[gnu::pure]]
+template <Scalar T>
+[[gnu::const]]
 inline double safelog_fast(T x)
 {
-    return get_cached<Init>(x, [](T x) { return safelog(x); }, __safelog_cache);
+    return get_cached(x, [](T x) { return safelog(x); }, __safelog_cache);
 }
 
 template <class T>
+inline void init_safelog_fast(T x)
+{
+    return init_cache(x, [](T x) { return safelog(x); }, __safelog_cache);
+}
+
+template <Scalar T>
 [[gnu::const]]
 inline double xlogx(T x)
 {
     return x * safelog(x);
 }
 
-template <bool Init=true, class T>
-[[gnu::pure]]
+template <Scalar T>
+[[gnu::const]]
 inline double xlogx_fast(T x)
 {
-    return get_cached<Init>(x, [](T x) { return xlogx(x); }, __xlogx_cache);
+    return get_cached(x, [](T x) { return xlogx(x); }, __xlogx_cache);
 }
 
-template <bool Init=true, class T>
-[[gnu::pure]]
+template <Scalar T>
+void init_xlogx_fast(T x)
+{
+    return init_cache(x, [](T x) { return xlogx(x); }, __xlogx_cache);
+}
+
+template <Scalar T>
+[[gnu::const]]
 inline double lgamma_fast(T x)
 {
-    return get_cached<Init>(x, [](T x) { return lgamma(x); }, __lgamma_cache);
+    return get_cached(x, [](T x) { return safe_lgamma(x); }, __lgamma_cache);
 }
 
-void init_cache();
+template <Scalar T>
+void init_lgamma_fast(T x)
+{
+    return init_cache(x, [](T x) { return safe_lgamma(x); }, __lgamma_cache);
+}
 
 } // graph_tool namespace
 

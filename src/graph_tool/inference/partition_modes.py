@@ -89,10 +89,10 @@ class PartitionModeState(object):
         bs = list(self.get_nested_partitions().values())
         if not self.nested:
             bs = [bv[0] for bv in bs]
-        return dict(bs=bs, nested=self.nested)
+        return dict(bs=bs, nested=self.nested, relabel=False)
 
     def __setstate__(self, state):
-        self.__init__(**state, relabel=False)
+        self.__init__(**state)
 
     def add_partition(self, b, relabel=True):
         r"""Adds partition ``b`` to the ensemble, after relabelling it if
@@ -261,7 +261,8 @@ class PartitionModeState(object):
         return self._base.sample_nested_partition(MLE, fix_empty, _get_rng())
 
 @entropy_state_signature
-class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
+class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
+                       GibbsMCMCState):
     r"""The mixed random label model state for a set of labelled partitions, which
     attempts to align them inside clusters with a common group labelling.
 
@@ -288,8 +289,9 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
        :doi:`10.1103/PhysRevX.11.021003`, :arxiv:`2005.13977`
 
     """
-    def __init__(self, bs, b=None, B=1, nested=False, relabel=True, **kwargs):
-        EntropyState.__init__(self)
+    def __init__(self, bs, b=None, B=1, nested=False, relabel=True, clabel=None,
+                 **kwargs):
+        EntropyState.__init__(self, **kwargs)
         self.bs = []
         self.nested = nested
 
@@ -308,42 +310,17 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
                 raise ValueError("supplied clustering 'b' has maximum label larger than number of partitions")
         self.b = Vector_int64_t(init=self.b)
 
+        if clabel is None:
+            clabel = np.zeros(len(self.bs), dtype="int64")
+        self.clabel = Vector_int64_t(init=clabel)
+
         self.relabel_init = relabel
-        self.g = Graph()
-        self.g.add_vertex(len(self.b))
-        self.bg = self.g
-        self._abg = self.bg._get_any()
-        self.obs = self.bs
+        self.relabel = False
         self._state = libinference.make_mode_cluster_state(self)
 
-    def __copy__(self):
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        b = copy.deepcopy(self.b, memo)
-        bs = copy.deepcopy(self.bs, memo)
-        return self.copy(bs=bs, b=b)
-
-    def copy(self, bs=None, b=None):
-        r"""Copies the state. The parameters override the state properties, and
-         have the same meaning as in the constructor."""
-        if bs is None:
-            if not self.nested:
-                bs = [x[0] for x in self.bs]
-            else:
-                bs = self.bs
-        return ModeClusterState(bs=bs, b=b if b is not None else self.b,
-                                relabel=False, nested=self.nested)
-
-
-    def __getstate__(self):
-        state = EntropyState.__getstate__(self)
-        return dict(state, bs=self.bs, b=self.b, nested=self.nested)
-
-    def __setstate__(self, state):
-        if not state["nested"]:
-            state["bs"] = [x[0] for x in state["bs"]]
-        self.__init__(**state, relabel=False)
+    @property
+    def B(self):
+        return int(self.b.a.max()) + 1
 
     def get_mode(self, r):
         r"""Return the mode in cluster ``r`` as an instance of
@@ -424,12 +401,9 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         return self._state.relabel_modes(epsilon, maxiter)
 
     @copy_state_wrap
-    def _entropy(self):
+    def _entropy(self, **kwargs):
         r"""Return the description length (negative joint log-likelihood)."""
-        return self._state.entropy()
-
-    def _gen_eargs(self, eargs):
-        return ""
+        return EntropyState._entropy_dispatch(**dict(locals(), **kwargs))
 
     def posterior_entropy(self, MLE=True):
         r"""Return the entropy of the random label model, using maximum likelihood
@@ -466,19 +440,6 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
         """
         return self._state.sample_nested_partition(MLE, fix_empty, _get_rng())
 
-    def _mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.mode_clustering_mcmc_sweep(mcmc_state, self._state,
-                                                       _get_rng())
-
-    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.mode_clustering_multiflip_mcmc_sweep(mcmc_state,
-                                                                 self._state,
-                                                                 _get_rng())
-
-    def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.mode_clustering_multilevel_mcmc_sweep(mcmc_state,
-                                                                  self._state,
-                                                                  _get_rng())
 
 def _get_array(x):
     if isinstance(x, PropertyMap):

@@ -20,7 +20,7 @@
 
 from .. import Graph, _get_rng, Vector_size_t, _parallel
 from .. decorators import _limit_args
-from . blockmodel import DictState
+from . blockmodel import DictState, BlockState
 from . base_states import *
 from . partition_modes import contingency_graph
 
@@ -32,7 +32,8 @@ import math
 from scipy.special import gammaln
 
 @entropy_state_signature
-class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState):
+class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
+                             GibbsMCMCState):
     r"""Obtain the center of a set of partitions, according to the variation of
     information metric or reduced mutual information.
 
@@ -48,46 +49,17 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState)
          variation of information metric will be used instead.
     """
 
-    def __init__(self, bs, b=None, RMI=False):
+    def __init__(self, bs, b=None, clabel=None, RMI=False):
         EntropyState.__init__(self)
-        self.bs = bs = np.asarray(bs, dtype="int32")
+        self.bs = bs = np.asarray(bs, dtype="int64")
         if b is None:
-            b = np.zeros(bs.shape[1], dtype="int32")
-        self.b = np.array(b, dtype="int32")
-
-        self.g = Graph()
-        self.g.add_vertex(bs.shape[1])
-        self.bg = self.g
-        self._abg = self.bg._get_any()
+            b = np.zeros(bs.shape[1], dtype="int64")
+        self.b = np.array(b, dtype="int64")
+        if clabel is None:
+            clabel = np.zeros(bs.shape[1], dtype="int64")
+        self.clabel = np.asarray(clabel, dtype="int64")
         self.RMI = RMI
-        if self.RMI:
-            self._state = libinference.make_rmi_center_state(self)
-        else:
-            self._state = libinference.make_vi_center_state(self)
-
-    def __copy__(self):
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        b = copy.deepcopy(self.b, memo)
-        bs = copy.deepcopy(self.bs, memo)
-        return self.copy(bs=bs, b=b, RMI=self.rmi)
-
-    def copy(self, bs=None, b=None, RMI=None):
-        r"""Copies the state. The parameters override the state properties, and
-         have the same meaning as in the constructor."""
-
-        return VICentroidState(bs=bs if bs is not None else self.bs,
-                               b=b if b is not None else self.b,
-                               RMI=RMI if RMI is not None else self.self.RMI)
-
-
-    def __getstate__(self):
-        state = EntropyState.__getstate__(self)
-        return dict(state, bs=self.bs, b=self.b, RMI=self.RMI)
-
-    def __setstate__(self, state):
-        self.__init__(**state)
+        self._state = libinference.make_partition_centroid_state(self)
 
     def get_B(self):
         r"Returns the total number of blocks."
@@ -104,39 +76,9 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState)
         return np.exp(-(w*log(w)).sum())
 
     @copy_state_wrap
-    def _entropy(self):
+    def _entropy(self, **kwargs):
         r"""Return the description length (negative joint log-likelihood)."""
-        return self._state.entropy()
-
-    def _gen_eargs(self, args):
-        return "f"
-
-    def _mcmc_sweep_dispatch(self, mcmc_state):
-        if self.RMI:
-            return libinference.rmi_mcmc_sweep(mcmc_state, self._state,
-                                               _get_rng())
-        else:
-            return libinference.vi_mcmc_sweep(mcmc_state, self._state,
-                                              _get_rng())
-
-    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        if self.RMI:
-            return libinference.rmi_multiflip_mcmc_sweep(mcmc_state,
-                                                         self._state,
-                                                         _get_rng())
-        else:
-            return libinference.vi_multiflip_mcmc_sweep(mcmc_state, self._state,
-                                                        _get_rng())
-
-    def _multilevel_mcmc_sweep_dispatch(self, mcmc_state):
-        if self.RMI:
-            return libinference.rmi_multilevel_mcmc_sweep(mcmc_state,
-                                                          self._state,
-                                                          _get_rng())
-        else:
-            return libinference.vi_multilevel_mcmc_sweep(mcmc_state,
-                                                         self._state,
-                                                         _get_rng())
+        return EntropyState._entropy_dispatch(**dict(locals(), **kwargs))
 
 
 def variation_information(x, y, norm=False):

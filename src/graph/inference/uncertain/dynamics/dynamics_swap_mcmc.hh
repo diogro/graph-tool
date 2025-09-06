@@ -38,27 +38,24 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((ecandidates,, elist_t, 0))                                               \
-    ((beta,, double, 0))                                                       \
-    ((preplace,, double, 0))                                                   \
-    ((pswap,, double, 0))                                                      \
-    ((d,, size_t, 0))                                                          \
-    ((pself,, double, 0))                                                      \
-    ((puniform,, double, 0))                                                   \
-    ((pedge,, double, 0))                                                      \
-    ((pnearby,, double, 0))                                                    \
-    ((pcandidates,, double, 0))                                                \
-    ((entropy_args,, dentropy_args_t, 0))                                      \
-    ((verbose,, int, 0))                                                       \
-    ((parallel,, bool, 0))                                                     \
-    ((niter,, size_t, 0))
+    ((state, State&, 0))                                                       \
+    ((ecandidates, elist_t, 0))                                                \
+    ((beta, double, 0))                                                        \
+    ((preplace, double, 0))                                                    \
+    ((pswap, double, 0))                                                       \
+    ((d, size_t, 0))                                                           \
+    ((pself, double, 0))                                                       \
+    ((puniform, double, 0))                                                    \
+    ((pedge, double, 0))                                                       \
+    ((pnearby, double, 0))                                                     \
+    ((pcandidates, double, 0))                                                 \
+    ((entropy_args, dentropy_args_t, 0))                                       \
+    ((verbose, int, 0))                                                        \
+    ((parallel, bool, 0))                                                      \
+    ((niter, size_t, 0))
 
 
 enum class move_t { replace = 0, swap, null };
-
-ostream& operator<<(ostream& s, move_t& v);
 
 template <class State>
 struct MCMC
@@ -625,5 +622,26 @@ struct MCMC
 };
 
 } // graph_tool namespace
+
+namespace std
+{
+using namespace graph_tool;
+template <>
+struct formatter<move_t>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const move_t& v, format_context& ctx) const
+    {
+        string temp;
+        format_to(back_inserter(temp), "{}", int(v));
+        return formatter<string_view>().format(temp, ctx);
+    }
+};
+}
+
 
 #endif //DYNAMICS_MCMC_SWAP_HH

@@ -26,6 +26,11 @@ from .. import PropertyMap
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 
+def pl(n, t):
+    if n == 1:
+        return f"{n} {t}"
+    return f"{n} {t}s"
+
 class DictState(dict):
     """Dictionary with (key,value) pairs accessible via attributes."""
     def __init__(self, d):
@@ -60,7 +65,7 @@ def check_verbose(verbose):
 def verbose_pad(verbose):
     if isinstance(verbose, tuple):
         return verbose_pad(verbose[1])
-    if verbose is True:
+    if int(verbose) > 0:
         return ""
     return verbose
 

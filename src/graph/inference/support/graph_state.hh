@@ -21,7 +21,7 @@
 #include <boost/python.hpp>
 #include <boost/preprocessor/comparison/equal.hpp>
 #include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/seq/size.hpp>
+#include <boost/preprocessor/seq/size.hpp> 
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
@@ -29,6 +29,7 @@
 #include <boost/preprocessor/seq/transform.hpp>
 #include <boost/preprocessor/seq/filter.hpp>
 #include <boost/preprocessor/seq/first_n.hpp>
+#include <boost/vmd/vmd.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
@@ -41,38 +42,29 @@
 #include "config.h"
 
 #include <memory>
+#include <print>
 
 namespace graph_tool
 {
 
-namespace
+constexpr auto get_ref_tr(auto vals)
 {
-    template <typename, template <typename...> typename>
-    struct is_instance_impl : public std::false_type {};
-
-    template <template <typename...> typename U, typename...Ts>
-    struct is_instance_impl<U<Ts...>, U> : public std::true_type {};
-
-    template <typename, template <typename T, size_t D> typename>
-    struct is_instance_impl_alt : public std::false_type {};
-
-    template <template <typename T, size_t D> typename U, typename T, size_t D>
-    struct is_instance_impl_alt<U<T, D>, U> : public std::true_type {};
+    return hana::transform
+        (vals,
+         [](auto t)
+         {
+             typedef typename decltype(+t)::type T;
+             return hana::type_c<T&>;
+         });
 }
 
-template <typename T, template <typename ...> typename U>
-using is_instance = is_instance_impl<std::decay_t<T>, U>;
-
-template <typename T, template <typename T1, size_t D> typename U>
-using is_instance_alt = is_instance_impl_alt<std::decay_t<T>, U>;
-
-using namespace boost;
+inline constexpr auto all_graph_view_refs = get_ref_tr(all_graph_views);
 
 template <size_t N>
 struct nth
 {
     template <class T, class... Ts>
-    auto&& operator()(T&&, Ts&&... as) const
+    decltype(auto) operator()(T&&, Ts&&... as) const
     {
         static_assert(N < sizeof...(as) + 1, "wrong number of arguments");
         return nth<N-1>()(std::forward<Ts>(as)...);
@@ -83,7 +75,7 @@ template <>
 struct nth<0>
 {
     template <class T, class... Ts>
-    auto&& operator()(T&& a, Ts&&...) const
+    decltype(auto) operator()(T&& a, Ts&&...) const
     {
         return std::forward<T>(a);
     }
@@ -92,10 +84,9 @@ struct nth<0>
 template <size_t N, class T, class... Ts>
 struct nth_t
 {
-    typedef typename std::conditional<N == 0,
-                                      T,
-                                      typename nth_t<N-1, Ts...>::type>::type
-        type;
+    typedef std::conditional_t<N == 0,
+                               T,
+                               typename nth_t<N-1, Ts...>::type> type;
 };
 
 template <size_t N, class T>
@@ -114,40 +105,15 @@ struct StateFactory
     };
 };
 
-
-template <class Type, class Index>
-auto uncheck(boost::checked_vector_property_map<Type,Index>*)
+constexpr auto get_type_map(auto plist, auto names)
 {
-    boost::unchecked_vector_property_map<Type,Index>* na(nullptr);
-    return na;
-}
-
-template <class Type, class Index>
-auto& uncheck(boost::checked_vector_property_map<Type,Index> p)
-{
-    return p.get_unchecked();
-}
-
-template <class Type, class Index>
-auto uncheck(std::vector<boost::checked_vector_property_map<Type,Index>>*)
-{
-    std::vector<boost::unchecked_vector_property_map<Type,Index>>* na(nullptr);
-    return na;
-}
-
-template <class Type, class Index>
-auto uncheck(std::vector<boost::checked_vector_property_map<Type,Index>> p)
-{
-    std::vector<boost::unchecked_vector_property_map<Type,Index>> np;
-    for (auto& x : p)
-        np.push_back(x.get_unchecked());
-    return np;
-}
-
-template <class T>
-auto&& uncheck(T&& a)
-{
-    return std::forward<T>(a);
+    constexpr auto pairs =
+        hana::transform(hana::zip(plist, names),
+                        [](auto x)
+                        {
+                            return hana::make_pair(x[1_c], x[0_c]);
+                        });
+    return hana::to<hana::map_tag>(pairs);
 }
 
 template <class Factory, class... TRS>
@@ -156,365 +122,231 @@ struct StateWrap
     template <class... Ts>
     struct FactoryWrap
     {
-        typedef typename Factory::template apply
-            <typename std::remove_reference<Ts>::type...>::type
-            type;
+        typedef typename Factory::template apply<Ts...>::type state_t;
 
         template <class... ATs>
         auto operator()(ATs&&... args) const
         {
-            return std::make_shared<type>(std::forward<ATs>(args)...);
+            return std::make_shared<state_t>(std::forward<ATs>(args)...);
         };
     };
 
-    template <class... TS, class F>
-    static void dispatch(F&& f)
+    template <class F>
+    static void dispatch(F&& f, auto names)
     {
-        auto full_dispatch = [&](auto*... full_args)
+        auto final_dispatch =
+            [&](auto... args)
             {
-                typedef typename FactoryWrap
-                    <typename std::remove_reference
-                       <decltype(*full_args)>::type...>::type
+                typedef typename FactoryWrap<typename decltype(args)::type...>::state_t
                     state_t;
                 state_t* ptr(nullptr);
                 f(ptr);
             };
 
-        auto partial_dispatch = [&](auto*... args)
-            {
-                full_dispatch(args...,
-                              uncheck((typename std::add_pointer<TS>::type)(nullptr))...);
-            };
-
         constexpr auto cp = hana::cartesian_product(hana::make_tuple(TRS()...));
 
-        hana::for_each(cp,
-                       [&](auto ats)
-                       {
-                           auto args = hana::transform(ats,
-                                                       [](auto t)
-                                                       {
-                                                           typedef typename decltype(+t)::type T;
-                                                           return uncheck(std::add_pointer_t<T>());
-                                                       });
-                           hana::unpack(args, partial_dispatch);
-                       });
+        hana::for_each
+            (cp,
+             [&](auto ats)
+             {
+                 auto sargs =
+                     hana::fold
+                     (ats, hana::tuple(),
+                      [&](auto xs, auto x)
+                      {
+                          typedef typename decltype(+x)::type x_t;
+                          if constexpr (std::is_base_of_v<last_type_func_t, x_t>)
+                              return hana::append(xs, x_t::get(hana::back(xs)));
+                          else if constexpr (std::is_base_of_v<all_types_func_t, x_t>)
+                              return hana::append(xs, x_t::get(get_type_map(xs, names)));
+                          else
+                              return hana::append(xs, x);
+                      });
+
+                 auto args =
+                     hana::transform
+                     (sargs,
+                      [](auto t)
+                      {
+                          typedef typename decltype(+t)::type T;
+                          return hana::type_c<typename boost::uncheck<T>::type>;
+                      });
+                 hana::unpack(args, final_dispatch);
+             });
     }
 
-    template <class... TS, class F>
-    static void dispatch(python::object& ostate, F&& f,
+    template <class F>
+    static void dispatch(boost::python::object& ostate,
+                         F&& f,
+                         auto names,
                          bool throw_not_found = true)
     {
         bool found = false;
-        dispatch<TS...>
+        dispatch
             ([&](auto* s)
              {
-                 typedef typename std::remove_reference<decltype(*s)>::type
-                     state_t;
-                 python::extract<state_t&> get_state(ostate);
+                 typedef std::decay_t<decltype(*s)> state_t;
+                 boost::python::extract<state_t&> get_state(ostate);
                  if (get_state.check())
                  {
                      state_t& state = get_state();
                      f(state);
                      found = true;
                  }
-             });
+             }, names);
 
         if (!found && throw_not_found)
             throw GraphException("dispatch not found for: " +
-                                 name_demangle(typeid(StateWrap).name()));
+                                 get_type_name<StateWrap>());
     }
 
-
-    template <class... Ts>
-    struct make_dispatch
+    template <class T, class Names>
+    struct all_types_func_wrap
+        : public T
     {
-        template <size_t N, size_t... Idx, size_t... FIdx, class... Extra,
-                  class F>
-        void operator()(python::object& ostate,
-                        std::array<const char*, N>& names,
-                        std::index_sequence<Idx...>,
-                        std::index_sequence<FIdx...>,
-                        F&& f, Extra&&... extra) const
+        constexpr static decltype(auto) get(auto ps)
         {
-            static_assert(sizeof...(TRS)  == sizeof...(Idx),
-                          "wrong number of argument names");
-            static_assert(sizeof...(TRS) + sizeof...(FIdx) == N,
-                          "wrong total number of argument names");
-
-            auto full_f = [&](auto&&... full_args)
-                {
-                    auto state = FactoryWrap<decltype(full_args)...>()
-                       (std::forward<Extra>(extra)...,
-                        std::forward<decltype(full_args)>(full_args)...);
-                    f(state);
-                };
-            auto partial_f = [&](auto&&... args)
-                {
-                    full_f(std::forward<decltype(args)>(args)...,
-                           uncheck(Extract<Ts>()
-                                   (ostate,
-                                    names[FIdx + sizeof...(Idx)]))...);
-                };
-            gt_dispatch<>(false)(partial_f, TRS()...)
-                (get_any(ostate, names[Idx], TRS())...);
+            return T::get(get_type_map(ps, Names()));
         }
-
-        template <class T>
-        struct Extract
-        {
-            T operator()(python::object mobj, std::string name) const
-            {
-                python::object obj = mobj.attr(name.c_str());
-                python::extract<T> extract(obj);
-                if (extract.check())
-                {
-                    T val = extract();
-                    return val;
-                }
-                else
-                {
-                    python::object aobj;
-                    if (PyObject_HasAttrString(obj.ptr(), "_get_any"))
-                        aobj = obj.attr("_get_any")();
-                    else
-                        aobj = obj;
-                    python::extract<std::any&> extract(aobj);
-                    try
-                    {
-                        if (!extract.check())
-                            throw std::bad_any_cast();
-                        std::any& aval = extract();
-                        T val = std::any_cast<T>(aval);
-                        return val;
-                    }
-                    catch (std::bad_any_cast&)
-                    {
-                        try
-                        {
-                            typedef std::reference_wrapper
-                                <typename std::remove_reference<T>::type>
-                                ref_wrap_t;
-                            std::any& aval = extract();
-                            auto val = std::any_cast<ref_wrap_t>(aval);
-                            return val.get();
-                        }
-                        catch (std::bad_any_cast&)
-                        {
-                            throw ValueException("Cannot extract parameter '" + name +
-                                                 "' of desired type: " +
-                                                 name_demangle(typeid(T).name()));
-                        }
-                    }
-                }
-            }
-        };
-
-        template <class Type, size_t Dim>
-        struct Extract<multi_array_ref<Type, Dim>>
-        {
-            multi_array_ref<Type, Dim> operator()(python::object mobj,
-                                                  std::string name) const
-            {
-                python::object obj = mobj.attr(name.c_str());
-                try
-                {
-                    return get_array<Type, Dim>(obj);
-                }
-                catch (InvalidNumpyConversion& e)
-                {
-                    throw ValueException("Cannot extract parameter '" + name +
-                                         "' of desired type: " +
-                                         name_demangle(typeid(multi_array_ref<Type, Dim>).name())
-                                         + ", reason: " +
-                                         std::string(e.what()));
-                }
-            }
-        };
-
-        template <class Value, class Index>
-        struct Extract<std::vector<boost::checked_vector_property_map<Value,Index>>>
-        {
-            typedef boost::checked_vector_property_map<Value,Index> pmap_t;
-            std::vector<pmap_t> operator()(python::object mobj,
-                                           std::string name) const
-            {
-                python::object obj = mobj.attr(name.c_str());
-                std::vector<pmap_t> ret;
-                try
-                {
-                    for (int i = 0; i < python::len(obj); ++i)
-                    {
-                        python::object o = obj[i];
-                        python::object aobj;
-                        if (PyObject_HasAttrString(o.ptr(), "_get_any"))
-                            aobj = o.attr("_get_any")();
-                        else
-                            aobj = o;
-                        python::extract<std::any&> extract(aobj);
-                        if (!extract.check())
-                            throw std::bad_any_cast();
-                        std::any& aval = extract();
-                        pmap_t val = std::any_cast<pmap_t>(aval);
-                        ret.push_back(val);
-                    }
-                }
-                catch (std::bad_any_cast& e)
-                {
-                    throw ValueException("Cannot extract parameter '" + name +
-                                         "' of desired type: " +
-                                         name_demangle(typeid(std::vector<pmap_t>).name()));
-                }
-                return ret;
-            }
-        };
     };
 
-
-    template <class TR>
-    static std::any get_any(python::object mobj, std::string name, TR tr)
+    template <class... Extra, class F>
+    static void make_dispatch(boost::python::object& ostate,
+                              F&& f, auto names,
+                              Extra&&... extra)
     {
-        python::object obj = mobj.attr(name.c_str());
-        if (PyObject_HasAttrString(obj.ptr(), "_get_any"))
+        auto convert_tr =
+            [&](auto tr)
+            {
+                return hana::transform
+                    (tr,
+                     [&](auto x)
+                     {
+                         using T = typename decltype(x)::type;
+                         if constexpr (std::is_base_of_v<all_types_func_t, T>)
+                             return hana::type_c<all_types_func_wrap<T, decltype(names)>>;
+                         else
+                             return x;
+                     });
+            };
+
+        auto dispatch =
+            gt_dispatch<{.pass_types=true, .gil_release=false}>()
+            ([&](auto ats, auto&&... args)
+             {
+                 hana::unpack
+                     (ats,
+                      [&](auto... ts)
+                      {
+                          auto state =
+                              FactoryWrap<typename boost::uncheck<typename decltype(ts)::type>::type...>()
+                              (std::forward<Extra>(extra)...,
+                               std::forward<decltype(args)>(args)...);
+                          f(state);
+                      });
+             }, convert_tr(TRS())...);
+
+        try
         {
-            return python::extract<std::any&>(obj.attr("_get_any")())();
+            hana::unpack(hana::transform(names,
+                                         [&](auto name)
+                                         {
+                                             return ostate.attr(name.c_str());
+                                         }),
+                         dispatch);
         }
-        else
+        catch (const DispatchNotFound& e)
         {
-            std::any ret;
-            bool found = false;
+            std::string msg;
+            size_t idx = 0;
             hana::for_each
-                (tr,
-                 [&](auto t)
+                (names,
+                 [&](auto name)
                  {
-                     typedef typename std::remove_reference<typename decltype(+t)::type>::type
-                         val_t;
-                     if constexpr (std::is_same<val_t, python::object>::value)
-                     {
-                         ret = obj;
-                         found = true;
-                     }
-                     else if constexpr (std::is_same<val_t, std::true_type>::value ||
-                                        std::is_same<val_t, std::false_type>::value)
-                     {
-                         python::extract<bool> extract(obj);
-                         if (extract.check())
-                         {
-                             bool val = extract();
-                             if (val == std::is_same<val_t, std::true_type>::value)
-                             {
-                                 ret = typename std::is_same<val_t,
-                                                             std::true_type>::type();
-                                 found = true;
-                             }
-                         }
-                     }
-                     else if constexpr (is_instance_alt<val_t, multi_array_ref>{})
-                     {
-                         try
-                         {
-                             ret = get_array<typename val_t::element, val_t::dimensionality>(obj);
-                             found = true;
-                         }
-                         catch (InvalidNumpyConversion& e) {}
-                     }
-                     else
-                     {
-                         python::extract<val_t> extract(obj);
-                         if (extract.check())
-                         {
-                             val_t val = extract();
-                             ret = val;
-                             found = true;
-                         }
-                     }
+                     if (e.get_pos() == idx++)
+                         msg = std::format("Cannot extract parameter \"{}\" of desired types {} from value: {}\n",
+                                           name.c_str(), e.get_trs(), e.get_val());
                  });
-            if (!found)
-                throw ValueException("Cannot extract parameter '" + name +
-                                     "' of desired types: " +
-                                     name_demangle(typeid(TR).name()));
-            return ret;
+            throw ValueException(msg);
         }
     }
 };
 
-#define _COMMA_CAT(r, data, pos, name) name,
-#define GET_COMMA_LIST(seq)                                                    \
-    BOOST_PP_SEQ_FOR_EACH_I                                                    \
-        (_COMMA_CAT,,BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(seq)),\
-                                          seq))                                \
-    BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(seq)), seq)
+// workaround for empty sequences
+#define BOOST_PP_SEQ_ENUM_0
 
 #define _PARAM_TYPEDEF(r, pack, pos, name)                                     \
-    typedef typename nth_t<pos, pack...>::type                                 \
-    BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(4, 0, name), _t);
+    typedef std::decay_t<typename nth_t<pos, pack...>::type>                   \
+    BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(3, 0, name), _t);
 #define GET_PARAMS_TYPEDEF(pack, names)                                        \
     BOOST_PP_SEQ_FOR_EACH_I(_PARAM_TYPEDEF, pack, names)
 
 #define _PARAM_USING(r, base, pos, name)                                       \
-    using base :: BOOST_PP_CAT(_,BOOST_PP_TUPLE_ELEM(4, 0, name));
+    using base :: BOOST_PP_CAT(_,BOOST_PP_TUPLE_ELEM(3, 0, name));
 #define GET_PARAMS_USING(base, names)                                          \
     BOOST_PP_SEQ_FOR_EACH_I(_PARAM_USING, base, names)
 
 #define _PARAM_DEFINE(r, pack, pos, name)                                      \
-    BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(4, 0, name), _t)                          \
-    BOOST_PP_TUPLE_ELEM(2, 1, name)                                            \
-    BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(4, 0, name));
-#define GET_PARAMS_DEFINE(names)                                               \
-    BOOST_PP_SEQ_FOR_EACH_I(_PARAM_DEFINE, r, names)
-
-#define __PARAM_DISPATCH(r, pack, pos, name)                                   \
-    pdispatch(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(4, 0, name)),             \
-              std::get<pos>(args))
-#define _PARAM_DISPATCH(r, pack, pos, name)                                    \
-    __PARAM_DISPATCH(r, pack, pos, name),
-#define GEN_PARAMS_DISPATCH(names)                                             \
-    BOOST_PP_SEQ_FOR_EACH_I                                                    \
-        (_PARAM_DISPATCH,,                                                     \
-         BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),          \
-                              names))                                          \
-    __PARAM_DISPATCH(,,BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),                 \
-                     BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)), \
-                                       names))
-
-#define __PARAM_TYPE(name)                                                     \
-    BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(4, 0, name), _t)                          \
-    BOOST_PP_TUPLE_ELEM(2, 1, name)
-#define _PARAM_TYPE(r, pack, pos, name)                                        \
-    __PARAM_TYPE(name),
-#define GET_PARAMS_ALL_TYPES(names)                                            \
-    BOOST_PP_SEQ_FOR_EACH_I                                                    \
-        (_PARAM_TYPE,,                                                         \
-         BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),          \
-                              names))                                          \
-    __PARAM_TYPE(BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),     \
-                                   names))
+    typename nth_t<pos, pack...>::type                                         \
+    BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(3, 0, name));
+#define GET_PARAMS_DEFINE(pack, names)                                         \
+    BOOST_PP_SEQ_FOR_EACH_I(_PARAM_DEFINE, pack, names)
 
 #define _PARAM_INIT(r, pack, pos, name)                                        \
-    BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(4, 0, name))(nth<pos>()(pack...)),
+    BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(3, 0, name))(nth<pos>()(pack...)),
 #define GET_PARAMS_INIT(pack, names)                                           \
     BOOST_PP_SEQ_FOR_EACH_I                                                    \
        (_PARAM_INIT, pack,                                                     \
-        BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),           \
+        BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names)),          \
                              names))                                           \
    BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM                                         \
-                (4, 0,                                                         \
-                 BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),     \
+                (3, 0,                                                         \
+                 BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names)),    \
                                    names)))                                    \
-        (nth<BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names))>()(pack...))
+        (nth<BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names))>()(pack...))
 
 #define _PARAM_STRING(r, data, pos, name)                                      \
-    BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(4, 0, name)),
+    BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(3, 0, name)),
 #define GET_PARAMS_NAMES(names)                                                \
     BOOST_PP_SEQ_FOR_EACH_I                                                    \
        (_PARAM_STRING,,                                                        \
-        BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),           \
+        BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names)),          \
                              names))                                           \
     BOOST_PP_STRINGIZE                                                         \
        (BOOST_PP_TUPLE_ELEM                                                    \
-        (4, 0, BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_PP_SEQ_SIZE(names)),       \
+        (3, 0, BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names)),      \
                                  names)))
 
+// as hana strings
+#define _PARAM_HSTRING(r, data, pos, name)                                     \
+    BOOST_HANA_STRING(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(3, 0, name))),
+#define GET_PARAMS_HNAMES(names)                                               \
+    BOOST_PP_SEQ_FOR_EACH_I                                                    \
+       (_PARAM_HSTRING,,                                                       \
+        BOOST_PP_SEQ_FIRST_N(BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names)),          \
+                             names))                                           \
+    BOOST_HANA_STRING(BOOST_PP_STRINGIZE                                       \
+       (BOOST_PP_TUPLE_ELEM                                                    \
+        (3, 0, BOOST_PP_SEQ_ELEM(BOOST_PP_DEC(BOOST_VMD_SEQ_SIZE(names)),      \
+                                 names))))
+
+#define _PARAM_SPEC_TYPEDEF(r, pack, pos, name)                                \
+    typedef State::BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(3, 0, name), _t)           \
+        BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(3, 0, name), _t);
+#define GET_PARAMS_SPEC_TYPEDEF(names)                                         \
+    BOOST_PP_SEQ_FOR_EACH_I(_PARAM_SPEC_TYPEDEF, r, names)
+
+#define _PARAM_SPEC_DEFINE(r, pack, pos, name)                                 \
+    BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(3, 0, name), _t)&                         \
+        BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(3, 0, name));
+#define GET_PARAMS_SPEC_DEFINE(names)                                          \
+    BOOST_PP_SEQ_FOR_EACH_I(_PARAM_SPEC_DEFINE, r, names)
+
+#define _PARAM_SPEC_INIT(r, pack, pos, name)                                   \
+    BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(3, 0, name))                           \
+        (state.BOOST_PP_CAT(_, BOOST_PP_TUPLE_ELEM(3, 0, name))),
+#define GET_PARAMS_SPEC_INIT(names)                                            \
+    BOOST_PP_SEQ_FOR_EACH_I(_PARAM_SPEC_INIT, r, names)
 
 #define GEN_STATE_BASE(base_name, state_params)                                \
     template <class... Ts>                                                     \
@@ -522,70 +354,111 @@ struct StateWrap
     {                                                                          \
     public:                                                                    \
         GET_PARAMS_TYPEDEF(Ts, state_params)                                   \
-        typedef std::tuple<GET_PARAMS_ALL_TYPES(state_params)> args_t;         \
-        template <class... ATs,                                                \
-                  typename std::enable_if_t                                    \
-                      <!std::is_same<typename nth_t<0, ATs...>::type,          \
-                                     base_name<Ts...>>::value>* = nullptr>     \
-        base_name(ATs&&... args) : GET_PARAMS_INIT(args, state_params) {}      \
-        base_name(const base_name<Ts...>&) = default;                          \
+        template <class... ATs>                                                \
+        base_name(ATs&&... args)                                               \
+            : GET_PARAMS_INIT(args, state_params) {}                           \
+        base_name(const base_name&) = delete;                                  \
+        static inline auto __param_names =                                     \
+            hana::make_tuple(GET_PARAMS_HNAMES(state_params));                 \
     protected:                                                                 \
-        GET_PARAMS_DEFINE(state_params)                                        \
-        template <class Args, class F>                                         \
-        Args dispatch_args(Args& args, F&& pdispatch)                          \
-        {                                                                      \
-            return Args(GEN_PARAMS_DISPATCH(state_params));                    \
-        }                                                                      \
+        GET_PARAMS_DEFINE(Ts, state_params)                                    \
     };
 
+#define _EMPTY_PROTECT(pred, seq, dummy)                                       \
+    BOOST_VMD_SEQ_POP_BACK(pred(BOOST_VMD_SEQ_PUSH_BACK(seq, dummy)))
 
-#define _GET_T(r, data, elem) BOOST_PP_TUPLE_ELEM(4, 2, elem)
-#define _IS_TR(s, data, elem) BOOST_PP_EQUAL(BOOST_PP_TUPLE_ELEM(4, 3, elem),1)
+#define _IS_TR(r, data, elem) BOOST_PP_EQUAL(BOOST_PP_TUPLE_ELEM(3, 2, elem),1)
+#define _GET_T(r, data, elem)                                                  \
+    BOOST_PP_IIF(_IS_TR(r, data, elem),                                        \
+                 BOOST_PP_TUPLE_ELEM(3, 1, elem),                              \
+                 decltype(hana::tuple_t<BOOST_PP_TUPLE_ELEM(3, 1, elem)>))
 #define GET_PARAMS_TRS(params)                                                 \
-    BOOST_PP_SEQ_TRANSFORM(_GET_T,,BOOST_PP_SEQ_FILTER(_IS_TR,,params))
+    BOOST_PP_SEQ_TRANSFORM(_GET_T,,params)
 
-#define IS_TYPE(s, data, elem) BOOST_PP_EQUAL(BOOST_PP_TUPLE_ELEM(4, 3, elem),0)
+#define _IS_T(r, data, elem) BOOST_PP_EQUAL(BOOST_PP_TUPLE_ELEM(3, 2, elem),0)
+#define _GET_TYPE(r, data, elem)                                               \
+    BOOST_PP_TUPLE_ELEM(3, 1, elem)
 #define GET_PARAMS_TYPES(params)                                               \
-    BOOST_PP_SEQ_TRANSFORM(_GET_T,,BOOST_PP_SEQ_FILTER(IS_TYPE,,params))
+    BOOST_PP_SEQ_TRANSFORM(_GET_TYPE,,BOOST_PP_SEQ_FILTER(_IS_T, 1, params))
 
 #define GEN_DISPATCH(gen_name, state_name, params)                             \
     struct gen_name                                                            \
     {                                                                          \
-        typedef StateWrap<StateFactory<state_name>,                            \
-                          GET_COMMA_LIST(GET_PARAMS_TRS(params))>              \
+        typedef StateWrap<BOOST_PP_SEQ_ENUM((StateFactory<state_name>)         \
+                                            GET_PARAMS_TRS(params))>           \
             state_wrap_t;                                                      \
         template <class F, class... Extra>                                     \
-        static void make_dispatch(python::object ostate, F&& f,                \
+        static void make_dispatch(boost::python::object ostate, F&& f,         \
                                   Extra&&... args)                             \
         {                                                                      \
-            std::array<const char*, BOOST_PP_SEQ_SIZE(params)> names =         \
-                {{GET_PARAMS_NAMES(params)}};                                  \
-            typedef typename state_wrap_t::template make_dispatch              \
-                <GET_COMMA_LIST(GET_PARAMS_TYPES(params))> dispatch_t;         \
-            dispatch_t()                                                       \
-                (ostate, names,                                                \
-                 std::make_index_sequence                                      \
-                     <BOOST_PP_SEQ_SIZE(GET_PARAMS_TRS(params))>(),            \
-                 std::make_index_sequence                                      \
-                     <BOOST_PP_SEQ_SIZE(GET_PARAMS_TYPES(params))>(),          \
-                 std::forward<F>(f), std::forward<Extra>(args)...);            \
+            constexpr auto names =                                             \
+                boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
+            state_wrap_t::make_dispatch                                        \
+                (ostate, std::forward<F>(f), names,                            \
+                 std::forward<Extra>(args)...);                                \
         }                                                                      \
         template <class F>                                                     \
         static void dispatch(F&& f)                                            \
         {                                                                      \
-            state_wrap_t::template dispatch                                    \
-                <GET_COMMA_LIST(GET_PARAMS_TYPES(params))>(std::forward<F>(f));\
+            constexpr auto names =                                             \
+                boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
+            state_wrap_t::dispatch                                             \
+                (std::forward<F>(f), names);                                   \
         }                                                                      \
         template <class F>                                                     \
-        static void dispatch(python::object state, F&& f,                      \
+        static void dispatch(boost::python::object state, F&& f,               \
                              bool throw_not_found = true)                      \
         {                                                                      \
-            state_wrap_t::template dispatch                                    \
-                <GET_COMMA_LIST(GET_PARAMS_TYPES(params))>(state,              \
-                                                           std::forward<F>(f), \
-                                                           throw_not_found);   \
+            constexpr auto names =                                             \
+                boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
+            state_wrap_t::dispatch                                             \
+                (state, std::forward<F>(f), names, throw_not_found);           \
         }                                                                      \
     };
+
+
+#define _PARAM_DEF(r, data, pos, elem)                                         \
+    BOOST_PP_TUPLE_ELEM(1, elem) BOOST_PP_TUPLE_ELEM(0, elem);
+#define DEFINE_STRUCT(name, params)                                            \
+    struct name                                                                \
+    {                                                                          \
+        BOOST_PP_SEQ_FOR_EACH_I(_PARAM_DEF,, params)                           \
+    };
+#define DEFINE_STRUCT_BASED(name, based, params)                               \
+    struct name                                                                \
+        : public based                                                         \
+    {                                                                          \
+        BOOST_PP_SEQ_FOR_EACH_I(_PARAM_DEF,, params)                           \
+    };
+
+#define _PARAM_RW(r, sname, pos, elem)                                         \
+    .def_readwrite(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(0, elem)),           \
+                   &sname::BOOST_PP_TUPLE_ELEM(0, elem))
+
+#define EXPORT_STRUCT(name, params)                                            \
+    try                                                                        \
+    {                                                                          \
+        __MOD__::get_class<name>();                                            \
+    }                                                                          \
+    catch (ObjNotFound&)                                                       \
+    {                                                                          \
+        __MOD__::get_class<name>(BOOST_PP_STRINGIZE(name))                     \
+            BOOST_PP_SEQ_FOR_EACH_I(_PARAM_RW, name, params);                  \
+    }
+
+#define EXPORT_STRUCT_BASED(name, base, params)                                \
+    try                                                                        \
+    {                                                                          \
+        using namespace boost::python;                                         \
+        __MOD__::get_class<name, bases<base>>();                               \
+    }                                                                          \
+    catch (ObjNotFound&)                                                       \
+    {                                                                          \
+        using namespace boost::python;                                         \
+        __MOD__::get_class<name, bases<base>>(BOOST_PP_STRINGIZE(name))        \
+            BOOST_PP_SEQ_FOR_EACH_I(_PARAM_RW, name, params);                  \
+    }
+
 
 } // namespace graph_tool
 

@@ -1,0 +1,2455 @@
+// graph-tool -- a general graph modification and manipulation thingy
+//
+// Copyright (C) 2006-2025 Tiago de Paula Peixoto <tiago@skewed.de>
+//
+// This program is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option) any
+// later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+#ifndef GRAPH_BLOCK_MODEL_HH
+#define GRAPH_BLOCK_MODEL_HH
+
+#include "config.h"
+
+#include <print>
+#include <vector>
+#include <ranges>
+#include <mutex>
+#include <shared_mutex>
+#include <boost/scope/scope_exit.hpp>
+#include "idx_map.hh"
+
+#include "../support/graph_state.hh"
+#include "../../parallel_util.hh"
+
+#include "spec.hh"
+#include "entropy.hh"
+#include "partition.hh"
+#include "entries.hh"
+#include "emat.hh"
+#include "elist.hh"
+
+#ifndef STATE_NAME
+#define STATE_NAME block_model
+#endif
+
+#ifndef STATE_SPEC
+#define STATE_SPEC BlockStateSpec
+#endif
+
+#ifndef BLOCK_STATE_SPEC_params
+#define BLOCK_STATE_SPEC_params
+#endif
+
+#ifndef MODULE_PRIO
+#define MODULE_PRIO 0
+#endif
+
+namespace graph_tool
+{
+namespace STATE_NAME
+{
+
+using namespace boost;
+
+typedef decltype(hana::tuple_t<std::true_type>) hbool_tr;
+
+#define BLOCK_MODEL_params_base                                                \
+    ((g, STATE_SPEC::g_tr, 1))                                                 \
+    ((bg, STATE_SPEC::bg_tr, 1))                                               \
+    ((use_hash, hbool_tr, 1))                                                  \
+    ((eweight, STATE_SPEC::wmap_tr, 1))                                        \
+    ((mrs, STATE_SPEC::bwmap_tr, 1))                                           \
+    ((mrp, STATE_SPEC::mrp_tr, 1))                                             \
+    ((mrm, STATE_SPEC::mrm_tr, 1))                                             \
+    ((vweight, STATE_SPEC::vweight_tr, 1))                                     \
+    ((wr, STATE_SPEC::wr_tr, 1))                                               \
+    ((b, STATE_SPEC::bmap_t, 0))                                               \
+    ((clabel, STATE_SPEC::bmap_t, 0))                                          \
+    ((bclabel, STATE_SPEC::cmap_t, 0))                                         \
+    ((pclabel, STATE_SPEC::bmap_t, 0))                                         \
+    ((bfield, STATE_SPEC::bfield_t, 0))                                        \
+    ((Bfield, std::vector<double>&, 0))                                        \
+    ((deg_corr, bool, 0))
+
+#define BLOCK_MODEL_params BLOCK_MODEL_params_base BLOCK_STATE_SPEC_params
+
+GEN_STATE_BASE(BlockStateBase, BLOCK_MODEL_params)
+
+template <class... Ts>
+class BlockState
+    : public BlockStateBase<Ts...>
+{
+public:
+    GET_PARAMS_USING(BlockStateBase<Ts...>, BLOCK_MODEL_params)
+    GET_PARAMS_TYPEDEF(Ts, BLOCK_MODEL_params)
+
+    constexpr static inline auto args_t = hana::tuple_t<Ts...>;
+
+    template <class... As>
+    using state_t = BlockState<As...>;
+
+    using vertex_t = boost::graph_traits<g_t>::vertex_descriptor;
+
+    typedef STATE_SPEC spec_t;
+
+    typedef spec_t::count_t count_t;
+    typedef spec_t::group_t group_t;
+    typedef spec_t::vcount_t vcount_t;
+    typedef spec_t::bmap_t bmap_t;
+    typedef spec_t::entropy_args_t entropy_args_t;
+    static constexpr group_t null_group = spec_t::null_group;
+
+    using weight_t = property_traits<eweight_t>::value_type;
+    using deg_t = spec_t::deg_t<BlockState>::type;
+    using vw_t = property_traits<vweight_t>::value_type;
+    using rw_t = property_traits<wr_t>::value_type;
+
+    using coupled_state_t = spec_t::coupled_state_t<BlockState>::type;
+    using coupled_entropy_args_t = coupled_state_t::entropy_args_t;
+
+    template <class... ATs>
+    BlockState(ATs&&... args)
+        : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
+          _spec(*this)
+    {
+        GILRelease gil_release;
+
+        size_t B = 0;
+        for (auto v : vertices_range(_g))
+        {
+            auto r = _b[v];
+            B = std::max(B, size_t(r + 1));
+            _bclabel.get_checked()[r] = _clabel[v];
+            _wr.get_checked()[r] += _vweight[v];
+            if (_vweight[v] > 0)
+            {
+                if (_groups[r].empty())
+                    _actual_B++;
+                _groups[r].insert(v);
+            }
+            _N[_bclabel[r]] += _vweight[v];
+        }
+
+        boost::add_vertex(_bg, B);
+        _mrp.reserve(B);
+        _mrm.reserve(B);
+
+        for (auto r [[maybe_unused]] : vertices_range(_bg))
+            _group_mutex.push_back(std::make_shared<shared_canary_mutex>());
+
+        set_concurrent(true);
+
+        parallel_edge_loop
+            (_g,
+             [&](const auto& e)
+             {
+                 atomic_inc(_E, _eweight[e]);
+             });
+
+        _emat.add_group(_bg);
+
+        parallel_edge_loop
+            (_g,
+             [&](const auto& e)
+             {
+                 auto r = _b[source(e, _g)];
+                 auto s = _b[target(e, _g)];
+
+                 auto me = _emat.get_null_edge();
+
+                 do_lock<lock_t::shared, {.pass_lock=true}>
+                     (r, s,
+                      [&](auto&... locks)
+                      {
+                          me = _emat.get_me(r, s);
+                          if (me == _emat.get_null_edge())
+                          {
+                              upgrade_canary_lock<{.ula={.relock=false}}>
+                                  ([&](bool succ)
+                                   {
+                                       if (!succ) [[unlikely]]
+                                       {
+                                           me = _emat.get_me(r, s);
+                                           if (me != _emat.get_null_edge())
+                                               return;
+                                       }
+                                       me = boost::add_edge(size_t(r), size_t(s), _bg).first;
+                                       _emat.put_me(r, s, me);
+                                       _mrs[me] = weight_t{};
+                                   }, locks...);
+                          }
+                      });
+
+                 atomic_inc(_mrs[me], _eweight[e]);
+             });
+        base_graph(_bg).set_keep_epos(true);
+
+        _m_entries.resize(num_vertices(_bg));
+
+        for (auto r : vertices_range(_bg))
+        {
+            if (_wr[r] == 0)
+                _empty_groups.insert(r);
+            else
+                _candidate_groups[_bclabel[r]].insert(r);
+        }
+
+        _degs.resize(num_vertices(_g));
+
+        parallel_vertex_loop
+            (_g,
+             [&, this](auto v)
+             {
+                 auto r = _b[v];
+                 deg_t kin = in_degree(v, _g, _eweight);
+                 deg_t kout = out_degree(v, _g, _eweight);
+                 _degs[v] = {kin, kout};
+                 atomic_inc(_mrp[r], kout);
+                 if constexpr (is_directed_v<g_t>)
+                     atomic_inc(_mrm[r], kin);
+                 if constexpr (std::is_scalar_v<deg_t>)
+                 {
+                     if (kin + kout > 0 && _vweight[v] == 0)
+                         throw ValueException("Invalid graph: vweight cannot be zero if total degree is non-zero!");
+                 }
+             }, get_openmp_min_thresh(), (ValueException*)(nullptr));
+
+        set_concurrent(false);
+
+        init_partition_stats();
+
+        if (_deg_corr)
+        {
+            init_deg_stats();
+            init_q_cache(std::min(std::max(2 * int(_E), 100), 10000));
+        }
+
+        init_safelog_fast(2 * count_t(_E));
+        init_lgamma_fast(2 * count_t(_E));
+
+        _spec.post_init();
+    }
+
+    // =========================================================================
+    // State modification
+    // =========================================================================
+
+    bool allow_move(group_t r, group_t nr)
+    {
+        if (_coupled_state != nullptr)
+        {
+            auto& hb = _coupled_state->get_b();
+            auto rr = hb[r];
+            auto ss = hb[nr];
+            if (rr != ss && !_coupled_state->allow_move(rr, ss))
+                return false;
+        }
+        return _bclabel[r] == _bclabel[nr];
+    }
+
+    template <class MEntries>
+    void move_vertex(vertex_t v, group_t nr, MEntries& m_entries)
+    {
+        group_t r = _b[v];
+
+        if (r == nr)
+            return;
+
+        if (!allow_move(r, nr))
+            throw ValueException("cannot move vertex across clabel barriers");
+
+        _spec.move_vertex(v, nr);
+        _spec.apply_delta(m_entries);
+
+        apply_delta(*this, m_entries);
+        BlockState::remove_partition_node(v, r);
+        BlockState::add_partition_node(v, nr);
+    }
+
+    // move a vertex from its current block to block nr
+    void move_vertex(vertex_t v, group_t nr)
+    {
+        get_move_entries(v, nr, _m_entries);
+        move_vertex(v, nr, _m_entries);
+    }
+
+    template <class Vs, class Nrs>
+    void move_vertices(Vs&& vs, Nrs&& nrs)
+    {
+        for (auto&& [v, nr] : std::views::zip(std::forward<Vs>(vs),
+                                              std::forward<Nrs>(nrs)))
+            move_vertex(v, nr);
+    }
+
+    void move_vertices(python::object ovs, python::object ors, bool parallel)
+    {
+        if constexpr (std::is_scalar_v<vertex_t>)
+        {
+            multi_array_ref<vertex_t, 1> vs = get_array<vertex_t, 1>(ovs);
+            multi_array_ref<group_t, 1> rs = get_array<group_t, 1>(ors);
+
+            if (vs.size() != rs.size())
+                throw ValueException("vertex and group lists do not have the same size");
+
+            if (parallel)
+                move_vertices_parallel(make_random_access_adaptor_range(vs),
+                                       make_random_access_adaptor_range(rs));
+            else
+                move_vertices(vs, rs);
+        }
+    }
+
+    enum class lock_t { unique, shared };
+
+    template <lock_t kind, lock_args largs = {}>
+    decltype(auto) do_lock(group_t r, group_t s, auto&& dispatch)
+    {
+        if constexpr (kind == lock_t::unique)
+            return do_ulock_pair<largs>(dispatch, r, s, *_group_mutex[r], *_group_mutex[s]);
+        else
+            return do_slock_pair<largs>(dispatch, r, s, *_group_mutex[r], *_group_mutex[s]);
+    }
+
+    template <class Vs, class NRs>
+    void move_vertices_parallel_dispatch(Vs&& vs, NRs&& nrs)
+    {
+        static_assert(std::ranges::random_access_range<Vs>);
+        static_assert(std::ranges::random_access_range<NRs>);
+
+        _vset.reserve(num_vertices(_g), null_group);
+        _rset.clear();
+        _group_delta.reserve(num_vertices(_bg));
+        _groups_in.clear();
+        _groups_out.clear();
+        _groups_in.resize(num_vertices(_bg));
+        _groups_out.resize(num_vertices(_bg));
+        _deltas.clear();
+        _deltas.resize(2);
+        for (auto& d : _deltas)
+            d.resize(num_vertices(_bg));
+
+        for (const auto& [v, nr] : std::views::zip(vs, nrs))
+        {
+            if (size_t(nr) >= num_vertices(_bg))
+                add_group(1 + nr - num_vertices(_bg));
+
+            auto r = _b[v];
+
+            _group_delta[r] -= _vweight[v];
+            _group_delta[nr] += _vweight[v];
+
+            _rset.insert(r);
+            _rset.insert(nr);
+
+            if (nr == r)
+                continue;
+
+            _vset[v] = nr;
+
+            _groups_out[r].push_back(v);
+            _groups_in[nr].push_back(v);
+
+            _groups[r].erase(v);
+            _groups[nr].insert(v);
+        }
+
+        set_concurrent(true);
+
+        auto lguard =
+            boost::scope::make_scope_exit
+            ([&]()
+             {
+                 set_concurrent(false);
+             });
+
+        _m_entries_pool.resize(get_num_threads());
+
+        if constexpr (!std::is_same_v<typename coupled_state_t::m_entries_t,
+                                     m_entries_t>)
+            _m_entries_pool_coupled.resize(get_num_threads());
+
+        for (auto&& [i, mes] : enumerate(_m_entries_pool))
+        {
+            if constexpr (std::is_same_v<typename coupled_state_t::m_entries_t,
+                          m_entries_t>)
+            {
+                mes[0].set_next(mes[1]);
+                mes[1].set_next(mes[0]);
+            }
+            else
+            {
+                mes[0].set_next(_m_entries_pool_coupled[i][0]);
+                auto& cmes = _m_entries_pool_coupled[i];
+                cmes[0].set_next(cmes[1]);
+                cmes[1].set_next(cmes[0]);
+            }
+        }
+
+        auto nb = make_adhoc_prop<vertex_t>
+            ([&](auto v)
+             {
+                 auto r = _vset[v];
+                 if (r == null_group)
+                     return _b[v];
+                 return r;
+             });
+
+        auto insert_delta =
+            [&]
+            (auto& state, auto& m_entries, auto& deltas)
+            {
+                typedef std::decay_t<decltype(state)> state_t;
+
+                entries_op(m_entries,
+                           [&](auto r, auto s, const auto& delta)
+                           {
+                               if (delta == 0)
+                                   return;
+
+                               if (!is_directed_v<typename state_t::g_t> && r > s)
+                                   std::swap(r, s);
+
+                               auto& delta_r = deltas[r];
+
+                               do_slock<{.pass_lock=true}>
+                                   ([&](auto& lock)
+                                    {
+                                        auto iter = delta_r.find(s);
+                                        if (iter == delta_r.end())
+                                        {
+                                            upgrade_canary_lock<{.ula={.relock=false}}>
+                                                ([&](bool succ)
+                                                 {
+                                                     if (!succ) [[unlikely]]  // lost race
+                                                         iter = delta_r.find(s);
+                                                     if (iter == delta_r.end())
+                                                     {
+                                                         delta_r[s] = delta;
+                                                         _spec.set_concurrent_delta(delta_r[s], true);
+                                                     }
+                                                     else
+                                                     {
+                                                         iter->second += delta;
+                                                     }
+                                                 }, lock);
+                                        }
+                                        else
+                                        {
+                                            atomic_inc(iter->second, delta);
+                                        }
+                                    }, *state._group_mutex[r]);
+                           });
+            };
+
+        #pragma omp parallel
+        {
+            auto tid = get_thread_num();
+            parallel_loop_no_spawn
+                (std::views::zip(vs, nrs),
+                 [&] (auto, const auto& vnr)
+                 {
+                     const auto& [v, nr] = vnr;
+                     auto r = _b[v];
+
+                     if (nr == r)
+                         return;
+
+                     auto& m_entries = _m_entries_pool[tid][0];
+
+                     modify_entries
+                         (v, nr, _b, nb, _g, _eweight, num_vertices(_bg), m_entries,
+                          [&](auto& e, bool out)
+                          {
+                              if constexpr (is_directed_v<g_t>)
+                              {
+                                  auto u = (out) ? target(e, _g) : source(e, _g);
+                                  return (!out && (_vset[u] != null_group));
+                              }
+                              else
+                              {
+                                  auto u = target(e, _g);
+                                  return ((v > u) && (_vset[u] != null_group));
+                              }
+                          });
+
+                     insert_delta(*this, m_entries, _deltas[0]);
+                     _spec.template move_vertex<true>(v, nr, nb,
+                                                      [&](auto u){ return (v > u) && (_vset[u] != null_group); });
+                 });
+        }
+
+        typedef std::conditional_t
+            <std::is_same_v<BlockState, coupled_state_t>,
+             std::variant<BlockState*, std::nullptr_t>,
+             std::variant<BlockState*, coupled_state_t*, std::nullptr_t>> vstate_t;
+
+        vstate_t vstate;
+        vstate = this;
+
+        size_t count = 0;
+        while (!std::holds_alternative<std::nullptr_t>(vstate))
+        {
+            std::visit
+                ([&](auto state)
+                 {
+                     if constexpr (!std::is_same_v<decltype(state), std::nullptr_t>)
+                     {
+                         auto l = (count++) % 2;
+                         auto& deltas = _deltas[l];
+                         auto& ndeltas = _deltas[(l + 1) % 2];
+                         if (state->_coupled_state != nullptr)
+                         {
+                             ndeltas.clear();
+                             ndeltas.resize(num_vertices(state->_coupled_state->_bg));
+                         }
+
+                         bool stop = true;
+
+                         auto dispatch_delta =
+                             [&](auto&& f)
+                             {
+                                 #pragma omp parallel
+                                 {
+                                     auto tid = get_thread_num();
+                                     parallel_vertex_loop_no_spawn
+                                         (state->_bg,
+                                          [&deltas,&state,&stop,&f,tid,l,this](auto r) // explict capture due to clang bug
+                                          {
+                                              if (deltas[r].empty())
+                                                  return;
+
+                                              auto dispatch =
+                                                  [&](auto& m_entries)
+                                                  {
+                                                      m_entries.set_move(r, null_group, num_vertices(state->_bg));
+
+                                                      for (auto& [s, delta] : deltas[r])
+                                                      {
+                                                          if (delta == 0)
+                                                              continue;
+                                                          m_entries.template insert_delta_rnr<true, true, true>(r, s, delta);
+                                                      }
+
+                                                      if (m_entries.empty())
+                                                          return;
+
+                                                      stop = false;
+
+                                                      f(m_entries);
+                                                  };
+
+                                              if constexpr (std::is_same_v<typename std::decay_t<decltype(*state)>::m_entries_t, m_entries_t>)
+                                                  dispatch(_m_entries_pool[tid][l]);
+                                              else
+                                                  dispatch(_m_entries_pool_coupled[tid][l]);
+                                         });
+                                 }
+                             };
+
+                         if constexpr (!std::is_same_v<decltype(_spec.template apply_delta<true>(_m_entries_pool[0][0], deltas)), bool>)
+                         {
+                             dispatch_delta([&](auto& m_entries)
+                                            {
+                                                _spec.template apply_delta<true>(m_entries, deltas);
+                                            });
+                         }
+
+                         dispatch_delta([&](auto& m_entries)
+                                        {
+                                            if (state->_coupled_state != nullptr)
+                                            {
+                                                state->_coupled_state->propagate_entries(*state, m_entries, false);
+                                                insert_delta(*state->_coupled_state, *m_entries._next, ndeltas);
+                                            }
+
+                                            apply_delta<true>(*state, m_entries, false);
+                                        });
+
+                         if (stop || state->_coupled_state == nullptr)
+                             vstate = nullptr;
+                         else
+                             vstate = state->_coupled_state;
+                     }
+                 }, vstate);
+        }
+
+        parallel_loop
+            (_groups_in,
+             [&](auto nr, auto& vs)
+             {
+                 for (auto v : vs)
+                 {
+                     const auto& vw = _vweight[v];
+                     auto& ps = get_partition_stats(v);
+                     ps.add_item(nr, vw);
+                     if (_deg_corr)
+                         _deg_stats.add_vertex(_degs[v], nr, vw);
+                 }
+             }, 0);
+
+        parallel_loop
+            (_groups_out,
+             [&](auto r, auto& vs)
+             {
+                 for (auto v : vs)
+                 {
+                     const auto& vw = _vweight[v];
+                     auto& ps = get_partition_stats(v);
+                     assert(_b[v] == r);
+                     ps.remove_item(r, vw);
+                     if (_deg_corr)
+                         _deg_stats.remove_vertex(_degs[v], r, vw);
+                 }
+             }, 0);
+
+        for (auto r : _rset)
+        {
+            const auto& d = _group_delta[r];
+
+            if (d == 0)
+                continue;
+
+            if (_wr[r] + d == 0)
+            {
+                vacate_group(r);
+            }
+            else if (_wr[r] == 0)
+            {
+                occupy_group(r, d);
+            }
+            else
+            {
+                _spec.update_group_weight(r, d);
+                _wr[r] += d;
+            }
+
+            _group_delta[r] = 0;
+        }
+
+        parallel_loop(std::views::zip(vs, nrs),
+                      [&](auto&&, const auto& vnr)
+                      {
+                          const auto& [v, nr] = vnr;
+                          _b[v] = nr;
+                          _vset[v] = null_group;
+                      }, 0);
+    }
+
+    template <class Vs, class NRs>
+    void move_vertices_parallel(Vs&& vs, NRs&& nrs)
+    {
+        if constexpr (std::ranges::random_access_range<Vs>)
+        {
+            move_vertices_parallel_dispatch(vs, nrs);
+        }
+        else
+        {
+            std::vector<std::decay_t<decltype(*std::ranges::begin(vs))>>
+                vs_(std::from_range_t(), vs);
+            if constexpr (std::ranges::random_access_range<NRs>)
+            {
+                move_vertices_parallel_dispatch(vs_, nrs);
+
+            }
+            else
+            {
+                std::vector<std::decay_t<decltype(*std::ranges::begin(nrs))>>
+                    nrs_(std::from_range_t(), nrs);
+                move_vertices_parallel_dispatch(vs_, nrs_);
+            }
+        }
+    }
+
+    template <class VMap>
+    void set_partition(VMap& b, [[maybe_unused]] bool parallel)
+    {
+        std::decay_t<decltype(_coupled_state->get_b())> hb;
+        if (_coupled_state != nullptr)
+            hb = _coupled_state->get_b();
+
+        for (auto v : vertices_range(_g))
+        {
+            group_t r = b[v];
+            if (size_t(r) >= num_vertices(_bg))
+                add_group(r + 1 - num_vertices(_bg));
+            if (_wr[r] == 0)
+            {
+                if (_coupled_state != nullptr)
+                    hb[r] = hb[_b[v]];
+                _bclabel[r] = _bclabel[_b[v]];
+            }
+        }
+
+        if (parallel)
+        {
+            move_vertices_parallel(vertices_range(_g),
+                                   std::ranges::transform_view(vertices_range(_g),
+                                                               [&](auto v){ return b[v]; }));
+        }
+        else
+        {
+            move_vertices(vertices_range(_g),
+                          std::ranges::transform_view(vertices_range(_g),
+                                                      [&](auto v){ return b[v]; }));
+        }
+    }
+
+    void set_partition(std::any& ab, bool parallel)
+    {
+        bmap_t& b = std::any_cast<bmap_t&>(ab);
+        set_partition<bmap_t>(b, parallel);
+    }
+
+    void remove_partition_node(vertex_t v, group_t r)
+    {
+        assert(_b[v] == r);
+
+        auto& w = _vweight[v];
+
+        assert(w != 0);
+
+        if (w != 0 && _wr[r] == w)
+        {
+            vacate_group(r);
+        }
+        else
+        {
+            _spec.update_group_weight(r, -w);
+            _wr[r] -= w;
+        }
+
+        get_partition_stats(v).remove_item(r, w);
+
+        if (_deg_corr)
+            _deg_stats.remove_vertex(_degs[v], r, w);
+
+        _groups[r].erase(v);
+    }
+
+    void add_partition_node(vertex_t v, group_t r)
+    {
+        auto& w = _vweight[v];
+
+        assert(w != 0);
+
+        if (w != 0 && _wr[r] == 0)
+        {
+            occupy_group(r, w);
+        }
+        else
+        {
+            _spec.update_group_weight(r, w);
+            _wr[r] += w;
+        }
+
+        get_partition_stats(v).add_item(r, w);
+
+        if (_deg_corr)
+            _deg_stats.add_vertex(_degs[v], r, w);
+
+        _groups[r].insert(v);
+
+        _b[v] = r;
+    }
+
+    void vacate_group(group_t r)
+    {
+        _wr[r] = 0;
+        _candidate_groups[_bclabel[r]].erase(r);
+        _empty_groups.insert(r);
+        _actual_B--;
+
+        if (_coupled_state != nullptr)
+        {
+            auto& hb = _coupled_state->get_b();
+            _coupled_state->remove_partition_node(r, hb[r]);
+            _coupled_state->set_vertex_weight(r, rw_t());
+        }
+    }
+
+    void occupy_group(group_t r, const rw_t& w)
+    {
+        _wr[r] = w;
+        _empty_groups.erase(r);
+        _candidate_groups[_bclabel[r]].insert(r);
+        _actual_B++;
+
+        if (_coupled_state != nullptr)
+        {
+            auto& hb = _coupled_state->get_b();
+            auto rw = w;
+            rw = 1; // NOTE: setting this way is important for the layered model
+            _coupled_state->set_vertex_weight(r, rw);
+            _coupled_state->add_partition_node(r, hb[r]);
+        }
+    }
+
+    template <class MEntries>
+    void merge_groups(group_t s, group_t t, MEntries& m_entries)
+    {
+        if (s == t)
+            return;
+
+        _spec.merge_groups(s, t, m_entries);
+
+        apply_delta(*this, m_entries);
+
+        auto& ps = _partition_stats[_bclabel[s]];
+        auto& ws = _wr[s];
+        ps.add_item(t, ws);
+        ps.remove_item(s, ws);
+
+        if (_deg_corr)
+            _deg_stats.merge_groups(s, t);
+
+        if (_wr[t] == 0)
+        {
+            occupy_group(t, _wr[s]);
+        }
+        else
+        {
+            _spec.update_group_weight(t, _wr[s]);
+            _wr[t] += _wr[s];
+        }
+
+        if (_wr[s] != 0)
+            vacate_group(s);
+
+        std::vector<vertex_t> vs(_groups[s].begin(), _groups[s].end());
+        for (auto v : vs)
+        {
+            _groups[s].erase(v);
+            _groups[t].insert(v);
+            _b[v] = t;
+        }
+    }
+
+    void merge_groups(group_t s, group_t t)
+    {
+        get_move_entries(s, t, get(vertex_index_t(), _bg),
+                         get(vertex_index_t(), _bg), _bg, _mrs,
+                         num_vertices(_bg), _m_entries);
+        merge_groups(s, t, _m_entries);
+    }
+
+    group_t add_group(size_t n = 1)
+    {
+        _wr.soft_reserve(num_vertices(_bg) + n);
+        _mrm.soft_reserve(num_vertices(_bg) + n);
+        _mrp.soft_reserve(num_vertices(_bg) + n);
+        _bclabel.soft_reserve(num_vertices(_bg) + n);
+        if (_deg_corr)
+            _deg_stats.add_group(n);
+        group_t r = null_group;
+        for (size_t i = 0; i < n; ++i)
+        {
+            r = boost::add_vertex(_bg);
+            _wr[r] = 0;
+            _mrm[r] = _mrp[r] = 0;
+            _empty_groups.insert(r);
+            for (auto& p : _partition_stats)
+                p.add_group();
+            if (_egroups)
+                _egroups->add_group();
+            _group_mutex.push_back(std::make_shared<shared_canary_mutex>());
+        }
+        _emat.add_group(_bg);
+        _spec.add_group(n);
+        if (_coupled_state != nullptr)
+            _coupled_state->coupled_resize_vertices();
+        return r;
+    }
+
+    // =========================================================================
+    // Nested states
+    // =========================================================================
+
+    void couple_state(coupled_state_t& s, const coupled_entropy_args_t& ea)
+    {
+        _coupled_state = &s;
+        _coupled_entropy_args = ea;
+        _m_entries.set_next(s.get_m_entries());
+        _spec.couple_state(s);
+    }
+
+    void decouple_state()
+    {
+        _coupled_state = nullptr;
+    }
+
+    size_t get_L()
+    {
+        size_t L = 1;
+        auto cstate = _coupled_state;
+        while (cstate != nullptr)
+        {
+            L++;
+            cstate = cstate->get_coupled_state();
+        }
+        return L;
+    }
+
+    void set_concurrent(bool concurrent, size_t M = 0)
+    {
+        if (concurrent)
+        {
+            M = std::max(base_graph(_g).get_edge_index_range(), M);
+            base_graph(_bg).set_concurrent(true);
+            base_graph(_bg).reserve_epos(2 * M + 10 * get_num_threads());
+            _mrs.reserve(2 * M + 10 * get_num_threads());
+        }
+        else
+        {
+            base_graph(_bg).set_concurrent(false);
+            base_graph(_bg).shrink_to_fit();
+            _mrs.resize(base_graph(_bg).get_edge_index_range());
+            _mrs.shrink_to_fit();
+        }
+
+        _spec.set_concurrent(concurrent, M);
+
+        if (_coupled_state != nullptr)
+            _coupled_state->set_concurrent(concurrent, M / 2);
+    }
+
+    void coupled_resize_vertices()
+    {
+        size_t N = num_vertices(_g);
+        _b.soft_reserve(N);
+        _bfield.soft_reserve(N);
+        _vweight.soft_reserve(N);
+        _pclabel.soft_reserve(N);
+        _degs.resize(N);
+        _spec.coupled_resize_vertices(N);
+    }
+
+    void set_vertex_weight(vertex_t v, const vw_t& w)
+    {
+        //assert(total_degree(v, _g, _eweight) == 0 || w != 0);
+        auto r = _b[v];
+        auto c = _bclabel[r];
+        _N[c] -= _vweight[v];
+        _N[c] += w;
+        _vweight[v] = w;
+        _spec.set_vertex_weight(v, w);
+    }
+
+    // =========================================================================
+    // Virtual state modification
+    // =========================================================================
+
+    void get_move_entries(auto v, group_t nr, auto&& b, auto&& nb, auto& g,
+                          auto&& eweight, size_t B, auto& m_entries,
+                          auto&& efilt)
+    {
+        modify_entries(v, nr, b, nb, g, eweight, B, m_entries, efilt);
+
+        if (_coupled_state != nullptr)
+            _coupled_state->propagate_entries(*this, m_entries);
+    }
+
+    void get_move_entries(auto v, group_t nr, auto&& b, auto&& nb,
+                          auto& g, auto&& eweight, size_t B,
+                          auto& m_entries)
+    {
+        get_move_entries(v, nr, b, nb, g, eweight, B, m_entries,
+                         [](auto&&...) { return false; });
+    }
+
+    template <class MEntries, class Efilt>
+    void get_move_entries(vertex_t v, group_t nr, MEntries& m_entries,
+                          Efilt&& efilt)
+    {
+        get_move_entries(v, nr, _b, _b, _g, _eweight, num_vertices(_bg),
+                         m_entries, efilt);
+    }
+
+    template <class MEntries>
+    void get_move_entries(vertex_t v, group_t nr, MEntries& m_entries)
+    {
+        get_move_entries(v, nr, m_entries, [](auto&&...) { return false; });
+    }
+
+    void propagate_entries(auto& below, auto& m_entries_below, bool propagate=true)
+    {
+        auto& m_entries = *m_entries_below._next;
+
+        auto [u, v] = m_entries_below.get_move();
+        group_t r = _b[u];
+        group_t s = (v != null_group) ? _b[v] : null_group;
+
+        m_entries.set_move(r, s, num_vertices(_bg));
+
+        entries_op(m_entries_below,
+                   [&](auto t, auto u, auto delta)
+                   {
+                       _spec.propagate_delta(below, t, u, delta);
+                       if (delta == 0)
+                           return;
+                       m_entries.template insert_delta<true>
+                           (_b[t], _b[u], delta);
+                   });
+
+        if (_coupled_state != nullptr && propagate)
+            _coupled_state->propagate_entries(*this, m_entries);
+    }
+
+    // obtain the entropy difference given a set of entries in the e_rs matrix
+    double entries_dS(group_t r, group_t nr, const rw_t& dr, const rw_t& dnr,
+                      const auto& dkin, const auto& dkout,
+                      const entropy_args_t& ea, auto& m_entries)
+    {
+        double dS = 0;
+
+        if (ea.adjacency)
+        {
+            if (ea.dense)
+            {
+                if (_deg_corr)
+                    throw GraphException("Dense entropy for degree corrected model not implemented!");
+
+                auto get_dS =
+                    [&](group_t t, group_t u, const auto& me, const auto& d)
+                    {
+                        weight_t etu{};
+                        if (me != _emat.get_null_edge())
+                            etu = _mrs[me];
+
+                        double dS = 0;
+
+                        auto wt = _wr[t];
+                        auto wu = _wr[u];
+
+                        dS -= eterm_dense(t, u, etu, wt, wu, ea.multigraph, _bg);
+
+                        if (t == r)
+                            wt += dr;
+                        if (t == nr)
+                            wt += dnr;
+
+                        if (u == r)
+                            wu += dr;
+                        if (u == nr)
+                            wu += dnr;
+
+                        dS += eterm_dense(t, u, etu + d, wt, wu, ea.multigraph, _bg);
+
+                        assert(!std::isinf(dS) && !std::isnan(dS));
+                        return dS;
+                    };
+
+                entries_op(m_entries,
+                           [&](auto t, auto u, const auto& delta)
+                           {
+                               if (delta == 0)
+                                   return;
+                               auto me = _emat.get_me(t, u);
+                               dS += get_dS(t, u, me, delta);
+                               assert(!std::isinf(dS) && !std::isnan(dS));
+                           });
+
+                for (auto t : std::array<group_t, 2>({r, nr}))
+                {
+                    if ((t == r && dr != 0) || (t == nr && dnr != 0))
+                    {
+                        for (auto me : out_edges_range(t, _bg))
+                        {
+                            group_t u = target(me, _bg);
+                            if (u == r || u == nr || m_entries.get_delta(t, u) != 0)
+                                continue;
+                            dS += get_dS(t, u, me, weight_t{});
+                            assert(!std::isinf(dS) && !std::isnan(dS));
+                        }
+
+                        for (auto me : in_edges_range(t, _bg))
+                        {
+                            group_t u = source(me, _bg);
+                            if (u == r || u == nr || m_entries.get_delta(u, t) != 0)
+                                continue;
+                            dS += get_dS(u, t, me, weight_t{});
+                            assert(!std::isinf(dS) && !std::isnan(dS));
+                        }
+                    }
+
+                    if (m_entries.get_delta(t, r) == 0)
+                        dS += get_dS(t, r, _emat.get_me(t, r), weight_t{});
+
+                    assert(!std::isinf(dS) && !std::isnan(dS));
+
+                    if (r == nr)
+                        break;
+
+                    if ((is_directed_v<bg_t> || t != r) && m_entries.get_delta(t, nr) == 0)
+                        dS += get_dS(t, nr, _emat.get_me(t, nr), weight_t{});
+
+                    assert(!std::isinf(dS) && !std::isnan(dS));
+                };
+            }
+            else
+            {
+                entries_op(m_entries,
+                           [&](auto r, auto s, const auto& d)
+                           {
+                               auto me = _emat.get_me(r, s);
+                               weight_t ers{};
+                               if (me != _emat.get_null_edge())
+                                   ers = _mrs[me];
+                               dS += eterm(r, s, ers + d, _bg) - eterm(r, s, ers, _bg);
+                           });
+
+                auto vt = [&](auto&& mrp, auto&& mrm, auto&& nr)
+                          {
+                              return vterm(mrp, mrm, nr, _deg_corr, _bg);
+                          };
+
+                auto&& mrp_r = _mrp[r];
+                auto&& mrm_r = _mrm[r];
+                auto&& wr_r = _wr[r];
+                dS += vt(mrp_r - dkout, mrm_r - dkin, wr_r + dr);
+                dS -= vt(mrp_r        , mrm_r       , wr_r     );
+
+                auto&& mrp_nr = _mrp[nr];
+                auto&& mrm_nr = _mrm[nr];
+                auto&& wr_nr = _wr[nr];
+                dS += vt(mrp_nr + dkout, mrm_nr + dkin, wr_nr + dnr);
+                dS -= vt(mrp_nr        , mrm_nr       , wr_nr      );
+            }
+        }
+
+        dS += _spec.entries_dS(ea, m_entries);
+
+        double dS_dl = 0;
+        if (_coupled_state != nullptr)
+        {
+            using crw_t = typename coupled_state_t::rw_t;
+            crw_t ddr, ddnr;
+
+            if (r != nr)
+            {
+                crw_t wr_nr = _wr[nr];
+                crw_t wr_r = _wr[r];
+                crw_t n_wr_r = _wr[r] + dr;
+                crw_t n_wr_nr = _wr[nr] + dnr;
+                ddr = -thresh_diff(n_wr_r, wr_r);
+                ddnr = thresh_diff(wr_nr, n_wr_nr);
+            }
+            else
+            {
+                ddr = ddnr = 0;
+            }
+
+            if (!m_entries._next->empty() || ddr != 0 || ddnr != 0)
+                dS_dl += _coupled_state->propagate_entries_dS(r, nr, ddr, ddnr,
+                                                              *m_entries._next,
+                                                              _coupled_entropy_args);
+        }
+
+        return dS + ea.beta_dl * dS_dl;
+    }
+
+    double propagate_entries_dS(vertex_t u, vertex_t v, const rw_t& du,
+                                const rw_t& dv, auto& m_entries,
+                                const entropy_args_t& ea)
+    {
+        group_t r = _b[u];
+        group_t s = _b[v];
+
+        double dS = entries_dS(r, s, du, dv, _mrm[r], _mrp[s], ea, m_entries);
+
+        if (spec_t::edges_dl && ea.edges_dl && r != s)
+        {
+            count_t dr = (_wr[r] + du == 0 && _wr[r] != 0) ? -1 : 0;
+            count_t ds = (_wr[s] == 0 && dv != 0) ? 1 : 0;
+            dS -= get_edges_dl(_actual_B, _E, _g);
+            dS += get_edges_dl(_actual_B + (dr + ds), _E, _g);
+        }
+
+        assert(!std::isinf(dS));
+        return dS;
+    }
+
+    template <class MEntries>
+    double virtual_move(vertex_t v, group_t nr, const entropy_args_t& ea,
+                        MEntries& m_entries)
+    {
+        get_move_entries(v, nr, m_entries);
+
+        auto r = _b[v];
+
+        assert(_vweight[v] != 0);
+
+        if (r == nr || _vweight[v] == 0)
+            return 0;
+
+        if (!allow_move(r, nr))
+            return std::numeric_limits<double>::infinity();
+
+        auto& [kin, kout] = _degs[v];
+
+        double dS = entries_dS(r, nr, -_vweight[v], _vweight[v], kin, kout,
+                               ea, m_entries);
+
+        double dS_dl = get_delta_partition_dl(v, r, nr, ea);
+
+        if (_deg_corr && ea.degree_dl)
+        {
+            auto& ds = _deg_stats;
+            dS_dl += ds.get_delta_dl(_degs[v], r, nr, ea.degree_dl_kind,
+                                     _vweight[v]);
+        }
+
+        count_t dB = 0;
+        if (r != null_group && _wr[r] == _vweight[v])
+            dB--;
+        if (nr != null_group && _wr[nr] == 0)
+            dB++;
+
+        if (spec_t::edges_dl && ea.edges_dl && dB != 0)
+        {
+            dS_dl -= get_edges_dl(_actual_B, _E, _g);
+            dS_dl += get_edges_dl(_actual_B + dB, _E, _g);
+        }
+
+        if (!_Bfield.empty() && ea.Bfield && dB != 0)
+        {
+            size_t B = _actual_B;
+            dS_dl += (B < _Bfield.size()) ? _Bfield[B] : _Bfield.back();
+            B += dB;
+            dS_dl -= (B < _Bfield.size()) ? _Bfield[B] : _Bfield.back();
+        }
+
+        dS += _spec.virtual_move_dS(v, nr, ea, m_entries);
+
+        return dS + ea.beta_dl * dS_dl;
+    }
+
+    double virtual_move(vertex_t v, group_t nr, const entropy_args_t& ea)
+    {
+        return virtual_move(v, nr, ea, _m_entries);
+    }
+
+    double get_delta_partition_dl(vertex_t v, group_t r, group_t nr,
+                                  const entropy_args_t& ea)
+    {
+        if (r == nr)
+            return 0;
+
+        double dS = 0;
+
+        auto& f = _bfield[v];
+        if (!f.empty())
+        {
+            if (nr != null_group)
+                dS -= (size_t(nr) < f.size()) ? f[nr] : f.back();
+            if (r != null_group)
+                dS += (size_t(r) < f.size()) ? f[r] : f.back();
+        }
+
+        if (ea.partition_dl)
+        {
+            auto& ps = get_partition_stats(v);
+            if (r == null_group)
+                dS += ps.get_delta_dl(r, nr);
+            else
+                dS += ps.get_delta_dl(r, nr, _vweight[v]);
+        }
+
+        if (_coupled_state != nullptr)
+        {
+            bool r_vacate = (r != null_group && _wr[r] == _vweight[v]);
+            bool nr_occupy = (nr != null_group && _wr[nr] == 0);
+
+            auto& bh = _coupled_state->get_b();
+            if (r_vacate && nr_occupy)
+            {
+                dS += _coupled_state->get_delta_partition_dl(r, bh[r], bh[nr],
+                                                             _coupled_entropy_args);
+            }
+            else
+            {
+                if (r_vacate)
+                    dS += _coupled_state->get_delta_partition_dl(r, bh[r], null_group,
+                                                                 _coupled_entropy_args);
+                if (nr_occupy)
+                    dS += _coupled_state->get_delta_partition_dl(nr, null_group, bh[nr],
+                                                                 _coupled_entropy_args);
+            }
+        }
+        return dS;
+    }
+
+    template <class MEntries>
+    double virtual_merge(group_t s, group_t t, const entropy_args_t& ea,
+                         MEntries& m_entries)
+    {
+        get_move_entries(s, t, get(vertex_index_t(), _bg),
+                         get(vertex_index_t(), _bg), _bg,
+                         _mrs, num_vertices(_bg), m_entries);
+
+        if (s == t)
+            return 0;
+
+        assert(_wr[s] != 0);
+
+        if (!allow_move(s, t))
+            return std::numeric_limits<double>::infinity();
+
+        double dS = entries_dS(s, t, -_wr[s], _wr[s], _mrm[s], _mrp[s], ea,
+                               m_entries);
+
+        dS += _spec.virtual_merge_dS(s, t, ea, m_entries);
+
+        double dS_dl = 0;
+
+        if (ea.partition_dl)
+        {
+            auto& ps = _partition_stats[_bclabel[s]];
+            dS_dl += ps.get_delta_dl(s, t, _wr[s]);
+        }
+
+        if (_deg_corr && ea.degree_dl)
+            dS_dl += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
+
+        int dB = 0;
+        if (_wr[s] != 0)
+            dB--;
+        if (_wr[t] == 0)
+            dB++;
+
+        if (spec_t::edges_dl && ea.edges_dl && dB != 0 && _coupled_state == nullptr)
+        {
+            dS_dl -= get_edges_dl(_actual_B, _E, _g);
+            dS_dl += get_edges_dl(_actual_B + dB, _E, _g);
+        }
+
+        if (!_Bfield.empty() && ea.Bfield && dB != 0)
+        {
+            size_t actual_B = _actual_B;
+            dS_dl += (actual_B < _Bfield.size()) ?
+                _Bfield[actual_B] : _Bfield.back();
+            actual_B += dB;
+            dS_dl -= (actual_B < _Bfield.size()) ?
+                _Bfield[actual_B] : _Bfield.back();
+        }
+
+        if (_coupled_state != nullptr)
+        {
+            auto& bh = _coupled_state->get_b();
+
+            count_t dt = (_wr[t] == 0) ? 1 : 0;
+
+            if (dt > 0)
+                dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], bh[t],
+                                                                _coupled_entropy_args);
+            else
+                dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], null_group,
+                                                                _coupled_entropy_args);
+        }
+
+        return dS + ea.beta_dl * dS_dl;
+    }
+
+    double virtual_merge(group_t s, group_t t, const entropy_args_t& ea)
+    {
+        return virtual_merge(s, t, ea, _m_entries);
+    }
+
+    size_t virtual_remove_size(vertex_t v)
+    {
+        return _wr[_b[v]] - _vweight[v];
+    }
+
+    // =========================================================================
+    // Move proposals
+    // =========================================================================
+
+    group_t get_empty_group(vertex_t v)
+    {
+        if (_empty_groups.empty())
+        {
+            auto r = _b[v];
+            auto s = add_group();
+            _bclabel[s] = _bclabel[r];
+            if (_coupled_state != nullptr)
+            {
+                auto& hb = _coupled_state->get_b();
+                hb[s] = hb[r];
+                auto& hpclabel = _coupled_state->get_pclabel();
+                hpclabel[s] = _pclabel[v];
+            }
+            return s;
+        }
+        else
+        {
+            return *(_empty_groups.end()-1);
+        }
+    }
+
+    void sample_branch(vertex_t v, vertex_t u, rng_t& rng)
+    {
+        group_t s;
+        auto r = _b[u];
+
+        auto& candidate_groups = _candidate_groups[_bclabel[r]];
+
+        std::bernoulli_distribution new_r(1./(candidate_groups.size()+1));
+        if (candidate_groups.size() < _N[_bclabel[r]] && new_r(rng))
+        {
+            get_empty_group(u);
+            s = uniform_sample(_empty_groups, rng);
+            if (_coupled_state != nullptr)
+            {
+                _coupled_state->sample_branch(s, r, rng);
+                auto& hpclabel = _coupled_state->get_pclabel();
+                hpclabel[s] = _pclabel[u];
+            }
+            _bclabel[s] = _bclabel[r];
+        }
+        else
+        {
+            s = uniform_sample(candidate_groups, rng);
+        }
+        _b[v] = s;
+    }
+
+    // Sample node placement
+    group_t sample_group(vertex_t v, double c, double d, rng_t& rng)
+    {
+        auto r = _b[v];
+
+        size_t B = _candidate_groups[_bclabel[r]].size();
+
+        // attempt new group
+        std::bernoulli_distribution new_r(d);
+        if (d > 0 && B < _N[_bclabel[r]] && new_r(rng))
+        {
+            get_empty_group(v);
+            auto s = uniform_sample(_empty_groups, rng);
+            if (_coupled_state != nullptr)
+            {
+                _coupled_state->sample_branch(s, r, rng);
+                auto& hpclabel = _coupled_state->get_pclabel();
+                hpclabel[s] = _pclabel[v];
+            }
+            _bclabel[s] = _bclabel[r];
+
+            if constexpr (spec_t::has_relabel)
+                _spec.relabel_group(s, _spec.sample_group_label(s, rng));
+
+            return s;
+        }
+
+        group_t s;
+        if (!std::isinf(c) && total_degree(v, _g) > 0) // FIXME: use weight?
+        {
+            auto u = graph_tool::random_neighbor(v, _g, rng);
+            group_t t = _b[u];
+            double p_rand = 0;
+            if (c > 0)
+            {
+                if (is_directed_v<g_t>)
+                    p_rand = c * B / double(count_t(_mrp[t]) + count_t(_mrm[t]) + c * B);
+                else
+                    p_rand = c * B / double(count_t(_mrp[t]) + c * B);
+            }
+
+            std::bernoulli_distribution rand(p_rand);
+            if (c == 0 || !rand(rng))
+            {
+                if (!_egroups)
+                    init_egroups();
+                s = _egroups->sample_edge(t, rng);
+            }
+            else
+            {
+                s = uniform_sample(_candidate_groups[_bclabel[r]], rng);
+            }
+        }
+        else
+        {
+            s = uniform_sample(_candidate_groups[_bclabel[r]], rng);
+        }
+
+        return s;
+    }
+
+    vertex_t random_neighbor(vertex_t v, rng_t& rng)
+    {
+        if (count_t(total_degree(v, _g)) == 0)
+            return v;
+        return graph_tool::random_neighbor(v, _g, rng);
+    }
+
+    group_t sample_group_local(vertex_t v, rng_t& rng)
+    {
+        if (total_degree(v, _g) > 0)
+        {
+            auto u = graph_tool::random_neighbor(v, _g, rng);
+            auto w = graph_tool::random_neighbor(u, _g, rng);
+            return _b[w];
+        }
+        else
+        {
+            return uniform_sample(_candidate_groups[_bclabel[_b[v]]], rng);
+        }
+    }
+
+    // Computes the move proposal probability
+    template <class MEntries>
+    double get_move_prob(vertex_t v, group_t r, group_t s, double c, double d,
+                         bool reverse, MEntries& m_entries)
+    {
+        size_t B = _candidate_groups[_bclabel[r]].size();
+
+        if (r == s)
+            reverse = false;
+
+        if (reverse)
+        {
+            if (_wr[s] == _vweight[v])
+                return log(d);
+
+            if (_wr[r] == 0)
+                B++;
+        }
+        else
+        {
+            if (_wr[s] == 0)
+                return log(d);
+        }
+
+        if (B == _N[_bclabel[r]])
+            d = 0;
+
+        if (std::isinf(c))
+            return log(1. - d) - safelog_fast(B);
+
+        double p = 0;
+        size_t w = 0;
+
+        size_t kin, kout;
+        std::tie(kin, kout) = _degs[v];
+
+        m_entries.get_mes(_emat);
+
+        auto sum_prob = [&](auto&& range)
+            {
+                for (auto u : range)
+                {
+                    group_t t = _b[u];
+                    if (u == v)
+                        t = r;
+                    w++;
+
+                    count_t mts = 0;
+                    const auto& me = m_entries.get_me(t, s, _emat);
+                    if (me != _emat.get_null_edge())
+                        mts = _mrs[me];
+                    count_t mtp = _mrp[t];
+                    count_t mst = mts;
+                    count_t mtm = mtp;
+
+                    if constexpr (is_directed_v<g_t>)
+                    {
+                        mst = 0;
+                        const auto& me = m_entries.get_me(s, t, _emat);
+                        if (me != _emat.get_null_edge())
+                            mst = _mrs[me];
+                        mtm = _mrm[t];
+                    }
+
+                    if (reverse)
+                    {
+                        count_t dts = m_entries.get_delta(t, s);
+                        count_t dst = dts;
+                        if constexpr (is_directed_v<g_t>)
+                            dst = m_entries.get_delta(s, t);
+
+                        mts += dts;
+                        mst += dst;
+
+                        if (t == s)
+                        {
+                            mtp -= kout;
+                            mtm -= kin;
+                        }
+
+                        if (t == r)
+                        {
+                            mtp += kout;
+                            mtm += kin;
+                        }
+                    }
+
+                    if constexpr (is_directed_v<g_t>)
+                    {
+                        auto T = (mtp + mtm + c * B);
+                        if (T > 0)
+                            p += (mts + mst + c) / T;
+                    }
+                    else
+                    {
+                        if (t == s)
+                            mts *= 2;
+                        auto T = (mtp + c * B);
+                        if (T > 0)
+                            p += (mts + c) / T;
+                    }
+                }
+            };
+
+        sum_prob(_spec.random_neighbors_range(v, _g));
+
+        if (w > 0)
+            return log(1. - d) + log(p) - log(w);
+        else
+            return log(1. - d) - safelog_fast(B);
+    }
+
+    double get_move_prob(vertex_t v, group_t r, group_t s, double c, double d,
+                         bool reverse)
+    {
+        get_move_entries(v, (reverse) ? r : s, _m_entries);
+        return get_move_prob(v, r, s, c, d, reverse, _m_entries);
+    }
+
+    bool is_last(vertex_t v)
+    {
+        return bool(_vweight[v] != 0) && bool(_wr[_b[v]] == _vweight[v]);
+    }
+
+    auto node_weight(vertex_t v)
+    {
+        return _vweight[v];
+    }
+
+    // =========================================================================
+    // Entropy computation
+    // =========================================================================
+
+    double get_dl()
+    {
+        double S = 0;
+        for (auto& ps : _partition_stats)
+            S += ps.get_dl();
+        return S;
+    }
+
+    double entropy(const entropy_args_t& ea)
+    {
+        double S = 0, S_dl = 0;
+
+        if (ea.adjacency)
+        {
+            if (!ea.dense)
+                S = sparse_entropy(_g, _eweight, _degs, _bg, _mrs, _mrp, _mrm,
+                                   _wr, _deg_corr, ea);
+            else
+                S = dense_entropy(_bg, _mrs, _wr, _deg_corr, ea);
+
+            assert(!isnan(S) && !isnan(S_dl));
+        }
+
+        if (ea.partition_dl)
+        {
+            for (auto& ps : _partition_stats)
+                S_dl += ps.get_dl();
+        }
+
+        assert(!isnan(S) && !isnan(S_dl));
+
+        if (_deg_corr && ea.degree_dl)
+            S_dl += _deg_stats.get_dl(ea.degree_dl_kind);
+
+        assert(!isnan(S) && !isnan(S_dl));
+
+        if (spec_t::edges_dl && ea.edges_dl)
+            S_dl += get_edges_dl(_actual_B, _E, _g);
+
+        assert(!isnan(S) && !isnan(S_dl));
+
+        #pragma omp parallel reduction(+:S_dl)
+        parallel_vertex_loop_no_spawn
+            (_g,
+             [&](auto v)
+             {
+                 auto& f = _bfield[v];
+                 if (f.empty())
+                     return;
+                 size_t r = _b[v];
+                 S_dl -= (r < f.size()) ? f[r] : f.back();
+             });
+
+        assert(!isnan(S) && !isnan(S_dl));
+
+        if (!_Bfield.empty() && ea.Bfield)
+        {
+            S_dl -= (_actual_B < _Bfield.size()) ?
+                _Bfield[_actual_B] : _Bfield.back();
+        }
+        assert(!isnan(S) && !isnan(S_dl));
+
+        S += _spec.entropy(ea);
+
+        if (_coupled_state != nullptr && ea.propagate && ea.beta_dl != 0)
+            S_dl += _coupled_state->entropy(_coupled_entropy_args);
+
+        assert(!isnan(S) && !isnan(S_dl));
+
+        return S + S_dl * ea.beta_dl;
+    }
+
+    // =========================================================================
+    // Edge modification
+    // =========================================================================
+
+    template <bool Add, bool Deplete=true>
+    void modify_edge(vertex_t u, vertex_t v, GraphInterface::edge_t& e, const weight_t& dm)
+    {
+        if (dm == weight_t{})
+            return;
+
+        group_t r = _b[u];
+        group_t s = _b[v];
+
+        if (_deg_corr)
+        {
+            _deg_stats.remove_vertex(_degs[u], r, _vweight[u]);
+            if (u != v)
+                _deg_stats.remove_vertex(_degs[v], s, _vweight[v]);
+        }
+
+        auto me = _emat.get_me(r, s);
+        if constexpr (Add)
+        {
+            if (me == _emat.get_null_edge())
+            {
+                me = boost::add_edge(size_t(r), size_t(s), _bg).first;
+                _emat.put_me(r, s, me);
+                _mrs.get_checked()[me] = weight_t{};
+            }
+
+            if (_coupled_state == nullptr)
+                _mrs[me] += dm;
+
+            _mrp[r] += dm;
+            _mrm[s] += dm;
+        }
+        else
+        {
+            assert(me != _emat.get_null_edge());
+            if (_coupled_state == nullptr)
+            {
+                _mrs[me] -= dm;
+                if (_mrs[me] == weight_t{})
+                {
+                    _emat.remove_me(me, _bg);
+                    boost::remove_edge(me, _bg);
+                }
+            }
+            else
+            {
+                if (_mrs[me] == dm)
+                    _emat.remove_me(me, _bg);
+            }
+            _mrp[r] -= dm;
+            _mrm[s] -= dm;
+        }
+
+        if constexpr (Add)
+        {
+            if (e == GraphInterface::edge_t())
+            {
+                e = boost::add_edge(u, v, _g).first;
+                _eweight.get_checked()[e] = dm;
+            }
+            else
+            {
+                _eweight[e] += dm;
+            }
+
+            get<1>(_degs[u]) += dm;
+            if constexpr (is_directed_v<g_t>)
+                get<0>(_degs[v]) += dm;
+            else
+                get<1>(_degs[v]) += dm;
+
+            _E += dm;
+        }
+        else
+        {
+            _eweight[e] -= dm;
+            if (_eweight[e] == weight_t{} && Deplete)
+            {
+                boost::remove_edge(e, _g);
+                e = GraphInterface::edge_t();
+            }
+
+            get<1>(_degs[u]) -= dm;
+            if constexpr (is_directed_v<g_t>)
+                get<0>(_degs[v]) -= dm;
+            else
+                get<1>(_degs[v]) -= dm;
+
+            _E -= dm;
+        }
+
+        if (_deg_corr)
+        {
+            _deg_stats.add_vertex(_degs[u], r, _vweight[u]);
+            if (u != v)
+                _deg_stats.add_vertex(_degs[v], s, _vweight[v]);
+        }
+
+
+        if (_coupled_state != nullptr)
+        {
+            if constexpr (Add)
+                _coupled_state->add_edge(r, s, me, dm);
+            else
+                _coupled_state->remove_edge(r, s, me, dm);
+        }
+
+        _spec.template modify_edge<Add, Deplete>(u, v, e, dm);
+
+        clear_egroups();
+    }
+
+    void add_edge(vertex_t u, vertex_t v, GraphInterface::edge_t& e, const weight_t& dm)
+    {
+        modify_edge<true, true>(u, v, e, dm);
+    }
+
+    void remove_edge(vertex_t u, vertex_t v, GraphInterface::edge_t& e, const weight_t& dm)
+    {
+        modify_edge<false, true>(u, v, e, dm);
+    }
+
+    double modify_edge_dS(vertex_t u, vertex_t v, const GraphInterface::edge_t& e,
+                          const weight_t& dm, const entropy_args_t& ea)
+    {
+        if (dm == 0)
+            return 0;
+
+        double S = 0, S_dl = 0;
+        group_t r = _b[u];
+        group_t s = _b[v];
+
+        if (ea.degree_dl && _deg_corr)
+        {
+            deg_t null = get<0>(_degs[u]);
+            null = numeric_limits<int64_t>::max(); // FIXME: check if valid for layered case
+
+            if (r != s || u == v)
+            {
+                std::array<std::tuple<deg_t, count_t>, 2> kins, kouts;
+
+                auto [kin, kout] = _degs[u];
+
+                if constexpr (is_directed_v<g_t>)
+                    kins = {make_tuple(kin, 0), make_tuple(null, 0)};
+                kouts = {make_tuple(kout, 0), make_tuple(null, 0)};
+
+                if (u != v)
+                {
+                    if constexpr (is_directed_v<g_t>)
+                        kins[0] = {null, 0};
+                    kouts[1] = {deg_t(kout + dm), 0};
+                }
+                else
+                {
+                    if constexpr (!is_directed_v<g_t>)
+                    {
+                        kouts[1] = {kout + 2 * dm, 0};
+                    }
+                    else
+                    {
+                        kins[1] = {deg_t(kin + dm), 0};
+                        kouts[1] = {deg_t(kout + dm), 0};
+                    }
+                }
+
+                auto& dsu = _deg_stats;
+
+                S_dl -= dsu.get_dl(ea.degree_dl_kind,
+                                   std::array<group_t,1>({r}),
+                                   kins, kouts);
+
+                if constexpr (is_directed_v<g_t>)
+                    get<1>(kins[0]) -= 1;
+                get<1>(kouts[0]) -= 1;
+                if constexpr (is_directed_v<g_t>)
+                    get<1>(kins[1]) += 1;
+                get<1>(kouts[1]) += 1;
+
+                S_dl += dsu.get_dl(ea.degree_dl_kind,
+                                   std::array<group_t,1>({r}),
+                                   kins, kouts);
+
+                if (u != v) // r != s
+                {
+                    auto [kin, kout] = _degs[v];
+
+                    if constexpr (is_directed_v<g_t>)
+                        kins = {make_tuple(kin, 0), make_tuple(null, 0)};
+                    kouts = {make_tuple(kout, 0), make_tuple(null, 0)};
+
+                    if constexpr (!is_directed_v<g_t>)
+                    {
+                        kouts[1] = {kout + dm, 0};
+                    }
+                    else
+                    {
+                        kins[1] = {deg_t(kin + dm), 0};
+                        kouts[0] = {null, 0};
+                    }
+
+                    auto& dsv = _deg_stats;
+
+                    S_dl -= dsv.get_dl(ea.degree_dl_kind,
+                                       std::array<group_t,1>({s}),
+                                       kins, kouts);
+
+                    if constexpr (is_directed_v<g_t>)
+                        get<1>(kins[0]) -= 1;
+                    get<1>(kouts[0]) -= 1;
+                    if constexpr (is_directed_v<g_t>)
+                        get<1>(kins[1]) += 1;
+                    get<1>(kouts[1]) += 1;
+
+                    S_dl += dsv.get_dl(ea.degree_dl_kind,
+                                       std::array<group_t,1>({s}),
+                                       kins, kouts);
+                }
+            }
+            else // r == s && u != v
+            {
+                auto& dsu = _deg_stats;
+
+                if constexpr (!is_directed_v<g_t>)
+                {
+                    std::array<std::tuple<deg_t, count_t>, 0> kins;
+                    std::array<std::tuple<deg_t, count_t>, 4> kouts;
+
+                    auto [ukin, ukout] = _degs[u];
+                    auto [vkin, vkout] = _degs[v];
+
+                    kouts = {make_tuple(ukout,     -1),
+                             make_tuple(ukout + dm, 1),
+                             make_tuple(vkout,     -1),
+                             make_tuple(vkout + dm, 1)};
+
+                    for (size_t i = 0; i < 2; ++i)
+                    {
+                        if (get<0>(kouts[2]) == get<0>(kouts[i]))
+                        {
+                            get<1>(kouts[i]) += get<1>(kouts[2]);
+                            kouts[2] = {null, 0};
+                        }
+
+                        if (get<0>(kouts[3]) == get<0>(kouts[i]))
+                        {
+                            get<1>(kouts[i]) += get<1>(kouts[3]);
+                            kouts[3] = {null, 0};
+                        }
+                    }
+
+                    S_dl += dsu.get_dl(ea.degree_dl_kind,
+                                       std::array<group_t,1>({r}),
+                                       kins, kouts);
+
+                    for (size_t i = 0; i < 4; ++i)
+                        get<1>(kouts[i]) = 0;
+
+                    S_dl -= dsu.get_dl(ea.degree_dl_kind,
+                                       std::array<group_t,1>({r}),
+                                       kins, kouts);
+                }
+                else
+                {
+                    std::array<std::tuple<deg_t, count_t>, 2> kins;
+                    std::array<std::tuple<deg_t, count_t>, 2> kouts;
+
+                    auto [kin, kout] = _degs[u];
+
+                    kouts = {make_tuple(kout, -1), make_tuple(kout + dm, 1)};
+
+                    std::tie(kin, kout) = _degs[v];
+
+                    kins = {make_tuple(kin, -1), make_tuple(kin + dm, 1)};
+
+                    S_dl += dsu.get_dl(ea.degree_dl_kind,
+                                       std::array<group_t,1>({r}),
+                                       kins, kouts);
+
+                    for (size_t i = 0; i < 2; ++i)
+                        get<1>(kins[i]) = get<1>(kouts[i]) = 0;
+
+                    S_dl -= dsu.get_dl(ea.degree_dl_kind,
+                                       std::array<group_t,1>({r}),
+                                       kins, kouts);
+                }
+            }
+        }
+
+        auto& me = _emat.get_me(r, s);
+        weight_t mrs{};
+        if (me != _emat.get_null_edge())
+            mrs = _mrs[me];
+
+        if (ea.adjacency)
+        {
+            if (ea.dense)
+            {
+                S -= eterm_dense(r, s, mrs, _wr[r], _wr[s], ea.multigraph, _bg);
+                S += eterm_dense(r, s, mrs + dm, _wr[r], _wr[s], ea.multigraph, _bg);
+            }
+            else
+            {
+                S -= eterm(r, s, mrs, _bg);
+                S += eterm(r, s, mrs + dm, _bg);
+                if (s != r)
+                {
+                    S -= vterm(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
+                    S -= vterm(_mrp[s], _mrm[s], _wr[s], _deg_corr, _bg);
+                    if constexpr (is_directed_v<g_t>)
+                    {
+                        S += vterm(_mrp[r] + dm, _mrm[r],      _wr[r], _deg_corr, _bg);
+                        S += vterm(_mrp[s],      _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                    }
+                    else
+                    {
+                        S += vterm(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
+                        S += vterm(_mrp[s] + dm, _mrm[s] + dm, _wr[s], _deg_corr, _bg);
+                    }
+                }
+                else
+                {
+                    S -= vterm(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
+                    if constexpr (is_directed_v<g_t>)
+                        S += vterm(_mrp[r] + dm, _mrm[r] + dm, _wr[r], _deg_corr, _bg);
+                    else
+                        S += vterm(_mrp[r] + 2 * dm, _mrm[r] + 2 * dm, _wr[r], _deg_corr, _bg);
+                }
+
+                if (ea.multigraph && ea.parallel_entropy)
+                {
+                    weight_t m{};
+                    if (e != GraphInterface::edge_t())
+                        m = _eweight[e];
+                    if (u == v && !is_directed_v<g_t>)
+                    {
+                        S -= parallel_term(u, v, 2 * m, _g);
+                        S += parallel_term(u, v, 2 * (m + dm), _g);
+                    }
+                    else
+                    {
+                        S -= parallel_term(u, v, m, _g);
+                        S += parallel_term(u, v, m + dm, _g);
+                    }
+                }
+
+                if (_deg_corr)
+                {
+                    auto get_deg_ent =
+                        [&](auto v, const std::array<deg_t,2>& delta = std::array<deg_t,2>{})
+                        {
+                            return get_deg_entropy(_degs[v], _g, delta);
+                        };
+
+                    deg_t zero_in = get<0>(_degs[v]);
+                    deg_t zero_out = get<1>(_degs[v]);
+                    deg_t dm_in = get<0>(_degs[v]);
+                    deg_t dm_out = get<1>(_degs[v]);
+
+                    zero_in = 0;
+                    zero_out = 0;
+                    dm_in = dm;
+                    dm_out = dm;
+
+                    if (u != v)
+                    {
+                        S -= get_deg_ent(u);
+                        S += get_deg_ent(u, std::array<deg_t,2>{zero_in, dm_out});
+                        S -= get_deg_ent(v);
+                        if constexpr (is_directed_v<g_t>)
+                            S += get_deg_ent(v, {dm_in, zero_out});
+                        else
+                            S += get_deg_ent(v, {zero_in, dm_out});
+                    }
+                    else
+                    {
+                        S -= get_deg_ent(u);
+                        if constexpr (is_directed_v<g_t>)
+                            S += get_deg_ent(u, {dm_in, dm_out});
+                        else
+                            S += get_deg_ent(u, {zero_in, 2 * dm_out});
+                    }
+                }
+            }
+        }
+
+        if (_coupled_state != nullptr)
+        {
+            S_dl += _coupled_state->modify_edge_dS(r, s, me, dm,
+                                                   _coupled_entropy_args);
+        }
+        else
+        {
+            if (spec_t::edges_dl && ea.edges_dl)
+            {
+                S_dl -= get_edges_dl(_actual_B, _E, _g);
+                S_dl += get_edges_dl(_actual_B, _E + dm, _g);
+            }
+        }
+
+        S += _spec.modify_edge_dS(u, v, e, dm, ea);
+
+        return S + S_dl * ea.beta_dl;
+    }
+
+
+    // =========================================================================
+    // Initializetio and setup
+    // =========================================================================
+
+    void init_partition_stats()
+    {
+#ifndef _LIBCPP_VERSION
+        auto vi = std::max_element(vertices(_g).first,
+                                   vertices(_g).second,
+#else // libc++ is stupid
+        auto vi = boost::first_max_element(vertices(_g).first,
+                                           vertices(_g).second,
+#endif
+                                   [&](auto u, auto v)
+                                   { return (_pclabel[u] < _pclabel[v]); });
+
+        size_t C = _pclabel[*vi] + 1;
+
+        vector<vector<vertex_t>> vcs(C);
+        for (auto v : vertices_range(_g))
+            vcs[_pclabel[v]].push_back(v);
+
+        for (size_t c = 0; c < C; ++c)
+        {
+            _partition_stats.emplace_back([&](auto&& f)
+                                          {
+                                              for (auto v : vcs[c])
+                                                  f(_b[v], _vweight[v]);
+                                          });
+        }
+    }
+
+    auto& get_partition_stats(vertex_t v)
+    {
+        size_t r = _pclabel[v];
+        return _partition_stats[r];
+    }
+
+    void init_deg_stats()
+    {
+        _deg_stats.init([&](auto&& f)
+                        {
+                            for (auto v : vertices_range(_g))
+                            {
+                                if (_vweight[v] == 0)
+                                    continue;
+                                f(_degs[v], _b[v], _vweight[v]);
+                            }
+                        });
+    }
+
+    auto& get_m_entries()
+    {
+        return _m_entries;
+    }
+
+    auto get_coupled_state()
+    {
+        return _coupled_state;
+    }
+
+    void init_egroups()
+    {
+        _egroups = std::make_unique<EGroups>(_bg, _mrs);
+    }
+
+    void clear_egroups()
+    {
+        _egroups.reset();
+    }
+
+    void sync_emat()
+    {
+        _emat.sync(_bg);
+    }
+
+    size_t get_N()
+    {
+        size_t N = 0;
+        for (auto& [k, n] : _N)
+            N += n;
+        return N;
+    }
+
+    size_t get_E()
+    {
+        return _E;
+    }
+
+    size_t get_actual_B()
+    {
+        return _actual_B;
+    }
+
+    auto& get_b()
+    {
+        return _b;
+    }
+
+    auto& get_bclabel()
+    {
+        return _bclabel;
+    }
+
+    auto& get_pclabel()
+    {
+        return _pclabel;
+    }
+
+    bool check_edge_counts(bool emat=true, bool propagate=true)
+    {
+        if (!_spec.check_edge_counts())
+        {
+            assert(false);
+            return false;
+        }
+
+        for (auto r : _empty_groups)
+        {
+           if (_wr[r] != 0)
+           {
+               std::println("empty group not empty: {} {}", r, _wr[r]);
+               assert(false);
+               return false;
+           }
+        }
+
+        for (auto v : vertices_range(_g))
+        {
+            if (total_degree(v, _g, _eweight) != 0 && _vweight[v] == 0)
+            {
+                std::println("zero weight node has positive degree: {} {}", v, total_degree(v, _g, _eweight));
+                assert(false);
+                return false;
+            }
+        }
+
+        gt_hash_map<std::pair<group_t, group_t>, weight_t> mrs;
+
+        for (auto e : edges_range(_g))
+        {
+            group_t r = _b[source(e, _g)];
+            group_t s = _b[target(e, _g)];
+            if (!is_directed_v<g_t> && s < r)
+                std::swap(r, s);
+            mrs[std::make_pair(r, s)] += _eweight[e];
+            assert(_eweight[e] != 0);
+            assert(int64_t(_eweight[e]) != 0);
+        }
+
+        for (auto& rs_m : mrs)
+        {
+            auto r = rs_m.first.first;
+            auto s = rs_m.first.second;
+            weight_t m_rs{};
+            typename graph_traits<bg_t>::edge_descriptor me;
+            if (emat)
+            {
+                me = _emat.get_me(r, s);
+                if (me != _emat.get_null_edge())
+                    m_rs = _mrs[me];
+            }
+            else
+            {
+                auto ret = boost::edge(size_t(r), size_t(s), _bg);
+                me = ret.first;
+                if (ret.second)
+                    m_rs = _mrs[me];
+            }
+
+            if (m_rs != rs_m.second)
+            {
+                std::println("a: wrong edge count for {} {}; is: {}, should have been: {}", r, s, m_rs, rs_m.second);
+                assert(false);
+                return false;
+            }
+        }
+
+        for (auto me : edges_range(_bg))
+        {
+            auto r = source(me, _bg);
+            auto s = target(me, _bg);
+            assert(me == _emat.get_me(r, s));
+            if (!is_directed_v<g_t> && s < r)
+                std::swap(r, s);
+            auto m_rs = mrs[std::make_pair(r, s)];
+            if (m_rs != _mrs[me])
+            {
+                std::println("b: wrong edge count for {} {}; is: {}, should have been: {}", r, s, _mrs[me], m_rs);
+                assert(false);
+                return false;
+            }
+            [[maybe_unused]] auto eS = eterm_dense(r, s, m_rs, _wr[r], _wr[s], true, _bg);
+            assert(!std::isinf(eS) && !std::isnan(eS));
+        }
+
+        if (_coupled_state != nullptr && propagate)
+        {
+             std::println("\nnext level\n");
+            if (!_coupled_state->check_edge_counts(false))
+            {
+                assert(false);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void check_node_counts([[maybe_unused]] bool verbose=false)
+    {
+#ifndef NDEBUG
+        std::vector<rw_t> wr(num_vertices(_bg));
+        std::vector<typename property_traits<mrp_t>::value_type>
+            mrp(num_vertices(_bg)), mrm(num_vertices(_bg));
+        for (auto v : vertices_range(_g))
+        {
+            auto r = _b[v];
+            wr[r] += _vweight[v];
+            deg_t kin = in_degree(v, _g, _eweight);
+            deg_t kout = out_degree(v, _g, _eweight);
+            mrp[r] += kout;
+            mrm[r] += kin;
+        }
+
+        size_t B = 0;
+        for (auto r : vertices_range(_bg))
+        {
+            assert(_wr[r] == wr[r]);
+            assert(_mrp[r] == mrp[r]);
+            assert(!is_directed_v<g_t> || _mrm[r] == mrm[r]);
+            if (_wr[r] != 0)
+                B++;
+        }
+
+        assert(B == _actual_B);
+
+        if (_coupled_state != nullptr)
+        {
+            for (auto r : vertices_range(_bg))
+            {
+                assert((_wr[r] != 0) == (_coupled_state->_vweight[r] != 0));
+                auto wr = _wr[r];
+                auto vw = _coupled_state->_vweight[r];
+                if (vw == 0)
+                    assert(wr == 0);
+                else if (wr == 0)
+                    assert(vw == 0);
+                else
+                {
+                    wr = 1;
+                    vw = 1;
+                    assert(wr == vw);
+                }
+            }
+
+            _coupled_state->check_node_counts(verbose);
+        }
+#endif
+    }
+
+    void relax_update(bool relax)
+    {
+        // if (_egroups)
+        //     _egroups->check(_bg, _mrs);
+        _egroups_update = !relax;
+        if (_coupled_state != nullptr)
+            _coupled_state->relax_update(relax);
+    }
+
+    auto& get_candidate_groups(vertex_t v)
+    {
+        return _candidate_groups[_bclabel[_b[v]]];
+    }
+
+    constexpr static bool _has_merge = spec_t::has_merge;
+    constexpr static bool _has_parallel_move = spec_t::has_parallel_move;
+
+//private:
+
+    idx_map<group_t, idx_set<group_t, {.shared_pos=true}>,
+            {.shared_tpos=true}> _candidate_groups;
+    idx_set<group_t> _empty_groups;
+
+    typename spec_t::groups_t _groups;
+
+    idx_map<size_t, size_t> _N;
+    weight_t _E{};
+
+    typedef spec_t::vprop_t<std::tuple<deg_t, deg_t>> degs_map_t;
+    typename degs_map_t::unchecked_t _degs;
+
+    typedef typename std::conditional<use_hash_t::value,
+                                      EHash<bg_t>,
+                                      EMat<bg_t>>::type emat_t;
+    emat_t _emat;
+
+    std::unique_ptr<EGroups> _egroups;
+    bool _egroups_update = true;
+
+    size_t _actual_B = 0;
+
+    using partition_stats_t = spec_t::partition_stats_t<BlockState>::type;
+
+    std::vector<partition_stats_t> _partition_stats;
+
+    using deg_stats_t = spec_t::deg_stats_t<BlockState>::type;
+    deg_stats_t _deg_stats;
+
+    using m_entries_t = spec_t::m_entries_t<BlockState>::type;
+    m_entries_t _m_entries;
+
+    coupled_state_t* _coupled_state = nullptr;
+    coupled_entropy_args_t _coupled_entropy_args;
+
+    std::vector<std::shared_ptr<shared_canary_mutex>> _group_mutex;
+
+    // for move_vertices_parallel()
+    spec_t::vprop_t<group_t>::unchecked_t _vset;
+    idx_set<group_t> _rset;
+    vprop_map_t<rw_t> _group_delta;
+    std::vector<std::vector<vertex_t>> _groups_in, _groups_out;
+    std::vector<std::vector<gt_hash_map<group_t, weight_t>>> _deltas;
+    std::vector<std::array<m_entries_t,2>> _m_entries_pool;
+    std::vector<std::array<typename coupled_state_t::m_entries_t,2>> _m_entries_pool_coupled;
+
+    spec_t::Imp<BlockState> _spec;
+};
+
+GEN_DISPATCH(STATE_NAME, BlockState, BLOCK_MODEL_params)
+
+} // STATE_NAME_SPACE
+} // graph_tool namespace
+
+#endif //GRAPH_BLOCK_MODEL_HH

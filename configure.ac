@@ -358,7 +358,7 @@ AC_DEFINE([BOOST_BIND_GLOBAL_PLACEHOLDERS], [1], [Suppress Boost warning])
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
                          [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS}],
+                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp -I${MOD_DIR}/include/src/graph ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS}],
                          [])
 
 AC_CONFIG_FILES([

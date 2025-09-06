@@ -20,39 +20,24 @@
 namespace graph_tool
 {
 
-using namespace std;
 
-vector<vector<double>> __safelog_cache;
-vector<vector<double>> __xlogx_cache;
-vector<vector<double>> __lgamma_cache;
+std::vector<double> __safelog_cache;
+std::vector<double> __xlogx_cache;
+std::vector<double> __lgamma_cache;
 
 void clear_safelog()
 {
     __safelog_cache.clear();
 }
 
-
 void clear_xlogx()
 {
     __xlogx_cache.clear();
 }
 
-
 void clear_lgamma()
 {
     __lgamma_cache.clear();
 }
-
-void init_cache()
-{
-    size_t nt = get_num_threads();
-    if (__lgamma_cache.size() < nt)
-    {
-        __lgamma_cache.resize(nt);
-        __xlogx_cache.resize(nt);
-        __safelog_cache.resize(nt);
-    }
-}
-
 
 } // namespace graph_tool

@@ -30,7 +30,7 @@ double modularity(GraphInterface& gi, double gamma, std::any weight,
     double Q = 0;
 
     typedef UnityPropertyMap<int, GraphInterface::edge_t> weight_map_t;
-    auto edge_props_t = hana::append(edge_scalar_properties,
+    auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
     if(!weight.has_value())
@@ -38,7 +38,7 @@ double modularity(GraphInterface& gi, double gamma, std::any weight,
 
     run_action<>()
         (gi, [&](auto& g, auto w, auto b){ Q = get_modularity(g, gamma, w, b);},
-         edge_props_t, vertex_scalar_properties)
+         edge_props_t, scalar_vertex_properties)
         (weight, property);
 
     return Q;

@@ -38,21 +38,20 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((beta,, double, 0))                                                       \
-    ((c,, double, 0))                                                          \
-    ((psplit,, double, 0))                                                     \
-    ((pmerge,, double, 0))                                                     \
-    ((pmergesplit,, double, 0))                                                \
-    ((nproposal, &, vector<size_t>&, 0))                                       \
-    ((nacceptance, &, vector<size_t>&, 0))                                     \
-    ((gibbs_sweeps,, size_t, 0))                                               \
-    ((bisect_args,, bisect_args_t, 0))                                         \
-    ((entropy_args,, dentropy_args_t, 0))                                      \
-    ((verbose,, int, 0))                                                       \
-    ((force_move,, bool, 0))                                                   \
-    ((niter,, double, 0))
+    ((state, State&, 0))                                                       \
+    ((beta, double, 0))                                                        \
+    ((c, double, 0))                                                           \
+    ((psplit, double, 0))                                                      \
+    ((pmerge, double, 0))                                                      \
+    ((pmergesplit, double, 0))                                                 \
+    ((nproposal, vector<size_t>&, 0))                                          \
+    ((nacceptance, vector<size_t>&, 0))                                        \
+    ((gibbs_sweeps, size_t, 0))                                                \
+    ((bisect_args, bisect_args_t, 0))                                          \
+    ((entropy_args, dentropy_args_t, 0))                                       \
+    ((verbose, int, 0))                                                        \
+    ((force_move, bool, 0))                                                    \
+    ((niter, double, 0))
 
 template <class State>
 struct MCMC
@@ -98,7 +97,7 @@ struct MCMC
         constexpr static double _pscoalesce = 0; // TODO: broken detailed!
 
         constexpr static bool _parallel = true;
-        constexpr static bool _relabel = true;
+        constexpr static bool _has_replace = true;
 
         std::vector<std::tuple<size_t,size_t>> _elist;
 
@@ -260,16 +259,17 @@ struct MCMC
         std::vector<std::array<std::tuple<double, double>,2>> _dS;
         std::mutex _move_mutex;
 
-        void virtual_move_lock(size_t idx, double r, double s)
+        void virtual_move_lock(size_t idx, double s)
         {
-            virtual_move_lock(idx, r, std::array<double,1>{s});
+            virtual_move_lock(idx, std::array<double,1>{s});
         }
 
         bool _move_locked = false;
         template <size_t d>
-        void virtual_move_lock(size_t idx, double r, const std::array<double,d>& s)
+        void virtual_move_lock(size_t idx, const std::array<double,d>& s)
         {
             auto [u, v] = get_edge(idx);
+            auto [m, r] = _state.edge_state(u, v);
             if (is_directed(_state._u) || u == v)
                 _state._v_mutex[v].lock();
             else
@@ -303,12 +303,13 @@ struct MCMC
                 _state._v_mutex[u].unlock();
         }
 
-        double virtual_move(size_t idx, double r, double s)
+        double virtual_move(size_t idx, double s)
         {
+            auto [u, v] = get_edge(idx);
+            auto [m, r] = _state.edge_state(u, v);
+
             if (s == r)
                 return 0;
-            auto [u, v] = get_edge(idx);
-            auto [m, x] = _state.edge_state(u, v);
 
             auto& dSs = _dS[get_thread_num()];
             double dS = (get<0>(dSs[0]) == s) ? get<1>(dSs[0]) : get<1>(dSs[1]);
@@ -467,7 +468,7 @@ struct MCMC
         }
 
         template <class VS>
-        std::tuple<double, double> relabel_group(double r, VS& vs)
+        std::tuple<double, double> replace_group(double r, VS& vs)
         {
             if (r == 0)
                 return {0., 0.};

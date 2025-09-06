@@ -68,8 +68,8 @@ class UncertainBaseState(EntropyState):
             self.eweight = self.u.own_property(self.eweight.copy())
             if nested:
                 bstate = bstate.copy(g=self.u,
-                                     state_args=dict(bstate.state_args,
-                                                     eweight=self.eweight))
+                                     base_state_args=dict(bstate.state_args,
+                                                          eweight=self.eweight))
             else:
                 bstate = bstate.copy(g=self.u, eweight=self.eweight)
 
@@ -92,8 +92,8 @@ class UncertainBaseState(EntropyState):
 
         if bstate is None:
             if nested:
-                state_args["state_args"] = state_args.get("state_args", {})
-                state_args["state_args"].update(dict(eweight=self.eweight))
+                state_args["base_state_args"] = state_args.get("state_args", {})
+                state_args["base_state_args"].update(dict(eweight=self.eweight))
                 self.nbstate = NestedBlockState(self.u, **state_args)
                 self.bstate = self.nbstate.levels[0]
             else:
@@ -107,6 +107,8 @@ class UncertainBaseState(EntropyState):
             else:
                 self.nbstate = None
                 self.bstate = bstate
+
+        self.nested = nested
 
         self._entropy_args.update(self.bstate._entropy_args)
         self._entropy_args.update(entropy_args)
@@ -124,24 +126,8 @@ class UncertainBaseState(EntropyState):
 
     def __getstate__(self):
         state = EntropyState.__getstate__(self)
-        return dict(state, g=self.g, nested=self.nbstate is not None,
-                    bstate=(self.nbstate if self.nbstate is not None else self.bstate),
-                    self_loops=self.self_loops, max_m=self.max_m)
-
-    def __setstate__(self, state):
-        self.__init__(**state)
-
-    def copy(self, **kwargs):
-        """Return a copy of the state."""
-        args = dict(self.__getstate__(), **kwargs)
-        return type(self)(**args)
-
-    def __copy__(self):
-        return self.copy()
-
-    def _gen_eargs(self, args):
-        ea = self.bstate._get_entropy_args(args, consume=True)
-        return libinference.uentropy_args(ea)
+        return dict(state, nested=self.nbstate is not None,
+                    bstate=(self.nbstate if self.nbstate is not None else self.bstate))
 
     def get_block_state(self):
         """Return the underlying block state, which can be either
@@ -462,9 +448,6 @@ class UncertainBlockState(UncertainBaseState):
 
         self._state = libinference.make_uncertain_state(self.bstate._state,
                                                         self)
-    def __getstate__(self):
-        state = super().__getstate__()
-        return dict(state,  q=self._q, q_default=self._q_default)
 
     def __repr__(self):
         return "<UncertainBlockState object with %s, at 0x%x>" % \
@@ -612,14 +595,6 @@ class MeasuredBlockState(UncertainBaseState):
         self._state = libinference.make_measured_state(self.bstate._state,
                                                        self)
 
-    def __getstate__(self):
-        state = super().__getstate__()
-        return dict(state, n=self.n, x=self.x, n_default=self.n_default,
-                    x_default=self.x_default,
-                    fn_params=dict(alpha=self.alpha, beta=self.beta),
-                    fp_params=dict(mu=self.mu, nu=self.nu), lp=self.lp,
-                    lq=self.lq)
-
     def __repr__(self):
         return "<MeasuredBlockState object with %s, at 0x%x>" % \
             (self.nbstate if self.nbstate is not None else self.bstate,
@@ -722,6 +697,10 @@ class MixedMeasuredBlockState(UncertainBaseState):
         self._state = libinference.make_uncertain_state(self.bstate._state,
                                                         self)
 
+    @property
+    def fn_params(self):
+        return {k: getattar(self, k) for k in ["alpha", "beta", "mu", "nu"]}
+
     def sync_q(self):
         ra, rb = self.transform(self.n.fa, self.x.fa)
         self.q.fa = ra - rb
@@ -784,8 +763,8 @@ class MixedMeasuredBlockState(UncertainBaseState):
 
             density = False
 
-            ea = self._gen_eargs(dict(latent_edges=latent_edges,
-                                      density=density))
+            ea = self._get_entropy_args(dict(latent_edges=latent_edges,
+                                             density=density))
             Sb = self._state.entropy(ea)
             self.set_hparams(*hs)
             Sa = self._state.entropy(ea)
@@ -879,10 +858,6 @@ class LatentMaskBlockState(UncertainBaseState):
 
         self._state = libinference.make_latent_mask_state(self.bstate._state,
                                                           self)
-
-    def __getstate__(self):
-        state = super().__getstate__()
-        return dict(state, ecount=self.ecount, f=self.f, f_default=self.f_default)
 
     def __repr__(self):
         return "<LatentMaskBlockState object with %s, at 0x%x>" % \

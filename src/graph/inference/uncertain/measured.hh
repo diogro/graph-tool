@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "../support/graph_state.hh"
-#include "../blockmodel/graph_blockmodel_util.hh"
 #include "uncertain.hh"
 
 namespace graph_tool
@@ -32,19 +31,19 @@ using namespace boost;
 using namespace std;
 
 #define MEASURED_STATE_params                                                  \
-    ((g, &, decltype(all_graph_views), 1))                                     \
-    ((n,, eprop_map_t<int64_t>, 0))                                                \
-    ((x,, eprop_map_t<int64_t>, 0))                                                \
-    ((n_default,, int64_t, 0))                                                     \
-    ((x_default,, int64_t, 0))                                                     \
-    ((alpha,, double, 0))                                                      \
-    ((beta,, double, 0))                                                       \
-    ((mu,, double, 0))                                                         \
-    ((nu,, double, 0))                                                         \
-    ((lp,, double, 0))                                                         \
-    ((lq,, double, 0))                                                         \
-    ((max_m,, int64_t, 0))                                                         \
-    ((self_loops,, bool, 0))
+    ((g, decltype(all_graph_views), 1))                                        \
+    ((n, eprop_map_t<int64_t>, 0))                                             \
+    ((x, eprop_map_t<int64_t>, 0))                                             \
+    ((n_default, int64_t, 0))                                                  \
+    ((x_default, int64_t, 0))                                                  \
+    ((alpha, double, 0))                                                       \
+    ((beta, double, 0))                                                        \
+    ((mu, double, 0))                                                          \
+    ((nu, double, 0))                                                          \
+    ((lp, double, 0))                                                          \
+    ((lq, double, 0))                                                          \
+    ((max_m, int64_t, 0))                                                      \
+    ((self_loops, bool, 0))
 
 template <class BlockState>
 struct Measured
@@ -60,8 +59,7 @@ struct Measured
                          MEASURED_STATE_params)
         GET_PARAMS_TYPEDEF(Ts, MEASURED_STATE_params)
 
-        template <class... ATs,
-                  typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
+        template <class... ATs>
         MeasuredState(BlockState& block_state, ATs&&... args)
             : MeasuredStateBase<Ts...>(std::forward<ATs>(args)...),
               _block_state(block_state)

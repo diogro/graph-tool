@@ -36,12 +36,13 @@ template <class State>
 class SBMEdgeSampler
 {
 public:
+    typedef typename State::vertex_t vertex_t;
+
     SBMEdgeSampler(State& state, double esample=.25, double usample=.25)
         : _state(state),
-          _tgts(vertices(state._g).first,
-                vertices(state._g).second),
-          _N(num_vertices(state._g)),
-          _sample_vertex(0, _N - 1),
+          _vertices(vertices(state._g).first,
+                    vertices(state._g).second),
+          _N(_vertices.size()),
           _v_in_sampler(is_directed(state._g) ?
                         __v_in_sampler : _v_out_sampler),
           _esample(esample),
@@ -50,17 +51,15 @@ public:
         if (_esample == 0 && _usample == 1)
             return;
 
-        for (auto v : _tgts)
+        for (auto e : edges_range(state._g))
         {
-            for (auto e : in_or_out_edges_range(v, state._g))
-            {
-                size_t u = source(e, state._g);
-                if (_edge_pos.find(get_edge(u, v)) != _edge_pos.end())
-                    continue;
-                _edges.push_back(get_edge(u, v));
-                _edge_pos[_edges.back()] = _edges.size() - 1;
-                _E += _state._eweight[e];
-            }
+            auto u = source(e, state._g);
+            auto v = target(e, state._g);
+            if (_edge_pos.find(get_edge(u, v)) != _edge_pos.end() || _state._eweight[e] == 0)
+                continue;
+            _edges.push_back(get_edge(u, v));
+            _edge_pos[_edges.back()] = _edges.size() - 1;
+            _E += _state._eweight[e];
         }
 
         if (_esample == 1 || _usample == 1)
@@ -95,7 +94,7 @@ public:
             }
         }
 
-        for (auto v : _tgts)
+        for (auto v : _vertices)
         {
             size_t r = state._b[v];
             if (r >= _v_out_sampler.size())
@@ -105,9 +104,10 @@ public:
                 _v_out_sampler.resize(r+1);
             }
 
-            auto [kin, kout] = (state._deg_corr) ?
-                get_deg(v, state._eweight, state._degs, state._g) :
-                std::make_tuple(size_t(0), size_t(0));
+            size_t kin = 0;
+            size_t kout = 0;
+            if (state._deg_corr)
+                std::tie(kin, kout) = state._degs[v];
 
             if (is_directed(_state._g))
                 _v_in_pos[v] = _v_in_sampler[r].insert(v, kin + 1);
@@ -117,14 +117,15 @@ public:
 
     SBMEdgeSampler(const SBMEdgeSampler&) = delete;
 
-    std::tuple<size_t, size_t> get_edge(size_t u, size_t v)
+    template <class T>
+    std::tuple<T, T> get_edge(T u, T v)
     {
         if (!is_directed(_state._g) && u > v)
             return {v, u};
         return {u, v};
     }
 
-    void update_edge(size_t u, size_t v, size_t m, int64_t delta)
+    void update_edge(vertex_t u, vertex_t v, size_t m, int64_t delta)
     {
         if (_esample == 0 && _usample == 1)
             return;
@@ -159,7 +160,7 @@ public:
         std::tie(r, s) = get_edge(r, s);
 
         auto me = _state._emat.get_me(r, s);
-        assert (me != _state._emat.get_null_edge());
+        assert(me != _state._emat.get_null_edge());
 
         int64_t ers = _state._mrs[me] + ((delta < 0) ? delta : 0);
         if (ers == 0)
@@ -221,10 +222,10 @@ public:
 
         if (_state._deg_corr)
         {
-            size_t ku = get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
+            size_t ku = get<1>(_state._degs[u]);
             size_t kv = (is_directed(_state._g)) ?
-                get<0>(get_deg(v, _state._eweight, _state._degs, _state._g)) :
-                get<1>(get_deg(v, _state._eweight, _state._degs, _state._g));
+                get<0>(_state._degs[v]) :
+                get<1>(_state._degs[v]);
 
             if (delta < 0)
             {
@@ -261,15 +262,15 @@ public:
     }
 
     template <class RNG>
-    std::tuple<size_t, size_t> sample(RNG& rng, bool edges_only = false)
+    std::tuple<vertex_t, vertex_t> sample(RNG& rng, bool edges_only = false)
     {
         // if (_edges.empty())
         //     return _null_edge;
         // return uniform_sample(_edges, rng);
         if (_esample == 0 && _usample == 1)
         {
-            return get_edge(_sample_vertex(rng),
-                            uniform_sample(_tgts, rng));
+            return get_edge(uniform_sample(_vertices, rng),
+                            uniform_sample(_vertices, rng));
         }
 
         if (_esample == 1 || edges_only)
@@ -284,7 +285,7 @@ public:
             }
             else
             {
-                size_t v = uniform_sample(_tgts, rng);
+                auto v = uniform_sample(_vertices, rng);
                 return {v, v};
             }
         }
@@ -297,8 +298,8 @@ public:
         std::bernoulli_distribution usample(_usample);
 
         if (_edges.empty() || usample(rng))
-            return get_edge(_sample_vertex(rng),
-                            uniform_sample(_tgts, rng));
+            return get_edge(uniform_sample(_vertices, rng),
+                            uniform_sample(_vertices, rng));
 
         auto [r, s] = _rs_sampler.sample(rng);
         auto& r_sampler = _v_out_sampler[r];
@@ -307,7 +308,7 @@ public:
                         s_sampler.sample(rng));
     }
 
-    double log_prob(size_t u, size_t v, size_t m, int64_t delta,
+    double log_prob(vertex_t u, vertex_t v, size_t m, int64_t delta,
                     bool edges_only = false)
     {
         // if (_edges.size() + delta == 0)
@@ -323,7 +324,7 @@ public:
         auto E = is_directed(g) ? (_E + delta) :
             2 * (_E + delta);
 
-        double lu = -safelog_fast(_N) - safelog_fast(_tgts.size());
+        double lu = -safelog_fast(_N) - safelog_fast(_vertices.size());
         if (!is_directed(g) && u != v)
             lu += log(2);
 
@@ -336,14 +337,14 @@ public:
         size_t ku = 0, kv = 0;
         if (_state._deg_corr)
         {
-            ku = get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
+            ku = get<1>(_state._degs[u]);
             kv = (is_directed(_state._g)) ?
-                get<0>(get_deg(v, _state._eweight, _state._degs, _state._g)) :
-                get<1>(get_deg(v, _state._eweight, _state._degs, _state._g));
+                get<0>(_state._degs[v]) :
+                get<1>(_state._degs[v]);
         }
 
         auto&& me = _state._emat.get_me(r, s);
-        size_t ers = (me == _state._emat.get_null_edge()) ? 0 : _state._mrs[me];
+        size_t ers = (me == _state._emat.get_null_edge()) ? 0 : size_t(_state._mrs[me]);
         ers += delta;
 
         if (!is_directed(g) && r == s)
@@ -431,28 +432,28 @@ public:
     }
 
     template <class RNG>
-    size_t sample_out_neighbor(size_t v, RNG& rng)
+    vertex_t sample_out_neighbor(vertex_t v, RNG& rng)
     {
         auto r = _state._b[v];
         std::bernoulli_distribution usample(_usample);
         if (_state._mrp[r] == 0 || usample(rng))
-            return _sample_vertex(rng);
+            return uniform_sample(_vertices, rng);
         auto s = _r_out_sampler[r].sample(rng);
         return _v_in_sampler[s].sample(rng);
     }
 
     template <class RNG>
-    size_t sample_in_neighbor(size_t v, RNG& rng)
+    vertex_t sample_in_neighbor(vertex_t v, RNG& rng)
     {
         auto r = _state._b[v];
         std::bernoulli_distribution usample(_usample);
         if (_state._mrm[r] == 0 || usample(rng))
-            return _sample_vertex(rng);
+            return uniform_sample(_vertices, rng);
         auto s = _r_in_sampler[r].sample(rng);
         return _v_out_sampler[s].sample(rng);
     }
 
-    double log_prob_out(size_t v, size_t u)
+    double log_prob_out(vertex_t v, vertex_t u)
     {
         if (_usample == 1)
             return -safelog_fast(_N);
@@ -464,11 +465,11 @@ public:
         size_t ku = 0;
         if (_state._deg_corr)
             ku = (is_directed(_state._g)) ?
-                get<0>(get_deg(u, _state._eweight, _state._degs, _state._g)) :
-                get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
+                get<0>(_state._degs[u]) :
+                get<1>(_state._degs[u]);
 
         auto&& me = _state._emat.get_me(r, s);
-        size_t ers = (me == _state._emat.get_null_edge()) ? 0 : _state._mrs[me];
+        size_t ers = (me == _state._emat.get_null_edge()) ? 0 : size_t(_state._mrs[me]);
 
         if (!is_directed(g) && r == s)
             ers *= 2;
@@ -496,7 +497,7 @@ public:
         }
     }
 
-    double log_prob_in(size_t v, size_t u)
+    double log_prob_in(vertex_t v, vertex_t u)
     {
         if (_usample == 1)
             return -safelog_fast(_N);
@@ -506,10 +507,10 @@ public:
 
         size_t ku = 0;
         if (_state._deg_corr)
-            ku = get<1>(get_deg(u, _state._eweight, _state._degs, _state._g));
+            ku = get<1>(_state._degs[u]);
 
         auto&& me = _state._emat.get_me(s, r);
-        size_t esr = (me == _state._emat.get_null_edge()) ? 0 : _state._mrs[me];
+        size_t esr = (me == _state._emat.get_null_edge()) ? 0 : size_t(_state._mrs[me]);
 
         size_t ns = _state._wr[s];
         size_t er = _state._mrm[r];
@@ -609,7 +610,7 @@ public:
         }
     }
 
-    std::tuple<size_t, size_t> get_null_edge()
+    std::tuple<vertex_t, vertex_t> get_null_edge()
     {
         return _null_edge;
     }
@@ -621,9 +622,9 @@ public:
 
 //private:
     State& _state;
-    std::vector<size_t> _tgts;
+
+    std::vector<vertex_t> _vertices;
     size_t _N;
-    std::uniform_int_distribution<size_t> _sample_vertex;
 
     typedef DynamicSampler<std::tuple<size_t, size_t>> rs_sampler_t;
     rs_sampler_t _rs_sampler;
@@ -636,25 +637,25 @@ public:
     std::vector<r_sampler_t> _r_in_sampler;
     eprop_map_t<size_t> _r_in_pos;
 
-    typedef DynamicSampler<size_t> vsampler_t;
+    typedef DynamicSampler<vertex_t> vsampler_t;
     vector<vsampler_t> __v_in_sampler, _v_out_sampler;
     vector<vsampler_t>& _v_in_sampler;
 
-    vprop_map_t<size_t> _v_in_pos;
-    vprop_map_t<size_t> _v_out_pos;
+    std::conditional_t<std::is_integral_v<vertex_t>,
+                       vprop_map_t<size_t>,
+                       gt_hash_map<vertex_t, size_t>>
+        _v_in_pos, _v_out_pos;
 
-    std::vector<std::tuple<size_t, size_t>> _edges;
-    gt_hash_map<std::tuple<size_t, size_t>, size_t> _edge_pos;
+    std::vector<std::tuple<vertex_t, vertex_t>> _edges;
+    gt_hash_map<std::tuple<vertex_t, vertex_t>, size_t> _edge_pos;
     size_t _E = 0;
-
-    std::vector<size_t> _vertices;
 
     double _esample;
     double _usample;
 
-    std::tuple<size_t, size_t> _null_edge = \
-            {std::numeric_limits<size_t>::max(),
-             std::numeric_limits<size_t>::max()};
+    std::tuple<vertex_t, vertex_t> _null_edge = \
+            { boost::graph_traits<typename State::g_t>::null_vertex(),
+              boost::graph_traits<typename State::g_t>::null_vertex() };
 
 };
 

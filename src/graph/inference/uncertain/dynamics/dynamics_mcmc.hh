@@ -32,13 +32,6 @@
 
 #include "dynamics_elist_state.hh"
 
-template <class T1, class T2>
-std::ostream& operator<<(std::ostream& s, std::tuple<T1, T2>& v)
-{
-    s << "(" << std::get<0>(v) << ", " << std::get<1>(v) << ")";
-    return s;
-}
-
 #include "../../loops/mcmc_loop.hh"
 
 namespace graph_tool
@@ -47,32 +40,31 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_DYNAMICS_STATE_params(State)                                      \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((m,, double, 0))                                                          \
-    ((elist,, elist_t, 0))                                                     \
-    ((ecandidates,, elist_t, 0))                                               \
-    ((beta,, double, 0))                                                       \
-    ((pold,, double, 0))                                                       \
-    ((pnew,, double, 0))                                                       \
-    ((pxu,, double, 0))                                                        \
-    ((pm,, double, 0))                                                         \
-    ((premove,, double, 0))                                                    \
-    ((d,, size_t, 0))                                                          \
-    ((pself,, double, 0))                                                      \
-    ((puniform,, double, 0))                                                   \
-    ((pedge,, double, 0))                                                      \
-    ((pnearby,, double, 0))                                                    \
-    ((pcandidates,, double, 0))                                                \
-    ((binary,, bool, 0))                                                       \
-    ((entropy_args,, dentropy_args_t, 0))                                      \
-    ((bisect_args,, bisect_args_t, 0))                                         \
-    ((verbose,, int, 0))                                                       \
-    ((sequential,, bool, 0))                                                   \
-    ((deterministic,, bool, 0))                                                \
-    ((parallel,, bool, 0))                                                     \
-    ((pseudo,, bool, 0))                                                       \
-    ((niter,, size_t, 0))
+    ((state, State&, 0))                                                       \
+    ((m, double, 0))                                                           \
+    ((elist, elist_t, 0))                                                      \
+    ((ecandidates, elist_t, 0))                                                \
+    ((beta, double, 0))                                                        \
+    ((pold, double, 0))                                                        \
+    ((pnew, double, 0))                                                        \
+    ((pxu, double, 0))                                                         \
+    ((pm, double, 0))                                                          \
+    ((premove, double, 0))                                                     \
+    ((d, size_t, 0))                                                           \
+    ((pself, double, 0))                                                       \
+    ((puniform, double, 0))                                                    \
+    ((pedge, double, 0))                                                       \
+    ((pnearby, double, 0))                                                     \
+    ((pcandidates, double, 0))                                                 \
+    ((binary, bool, 0))                                                        \
+    ((entropy_args, dentropy_args_t, 0))                                       \
+    ((bisect_args, bisect_args_t, 0))                                          \
+    ((verbose, int, 0))                                                        \
+    ((sequential, bool, 0))                                                    \
+    ((deterministic, bool, 0))                                                 \
+    ((parallel, bool, 0))                                                      \
+    ((pseudo, bool, 0))                                                        \
+    ((niter, size_t, 0))
 
 template <class State>
 struct MCMC
@@ -204,12 +196,12 @@ struct MCMC
             double lf_e = 0;
             if (!std::isinf(_beta))
             {
-                do_slock
+                do_slock_d
                     ([&]()
                      {
                          std::tie(u, v) = es.sample_edge(rng);
                          lf_e = es.log_prob(u, v);
-                     }, _state._sbm_mutex, _parallel);
+                     },  _parallel, _state._sbm_mutex);
             }
 
             if (!proposal_lock(uv))
@@ -495,7 +487,7 @@ struct MCMC
 
                 bool is_new_nx = false;
                 bool is_last_x = false;
-                do_slock
+                do_slock_d
                     ([&]()
                      {
                         if (_state._xvals.size() == 1 &&
@@ -507,7 +499,7 @@ struct MCMC
                         }
                         is_new_nx = (_state.get_count(_state._xhist, nx) == 0);
                         is_last_x = (_state.get_count(_state._xhist, x) == 1);
-                     }, _xvals_mutex, _parallel && _pseudo);
+                     }, _parallel && _pseudo, _xvals_mutex);
 
                 double ptot = pnew + pold + premove + pm;
 
@@ -528,11 +520,11 @@ struct MCMC
                             lb = log_sum_exp(lb,
                                              log(pnew) - log(ptot));
                     }
-                    do_slock
+                    do_slock_d
                         ([&]()
                          {
                              lb += es.log_prob(u, v, 1, u, v);
-                         }, _state._sbm_mutex, _parallel && _pseudo);
+                         }, _parallel && _pseudo, _state._sbm_mutex);
                 }
                 else
                 {
@@ -564,11 +556,11 @@ struct MCMC
                             lb = log(pnew + pold) - log(ptot);
                         }
                         lb += sample_m_lprob(m, 0);
-                        do_slock
+                        do_slock_d
                             ([&]()
                              {
                                  lb += es.log_prob(u, v, -1, u, v);
-                             }, _state._sbm_mutex, _parallel && _pseudo);
+                             }, _parallel && _pseudo, _state._sbm_mutex);
                         break;
                     case xmove_t::x_new: [[fallthrough]];
                     case xmove_t::x_old:
@@ -590,20 +582,20 @@ struct MCMC
                             else
                                 lb = -numeric_limits<double>::infinity();
                         }
-                        do_slock
+                        do_slock_d
                             ([&]()
                              {
                                  lb += es.log_prob(u, v);
-                             }, _state._sbm_mutex, _parallel && _pseudo);
+                             }, _parallel && _pseudo, _state._sbm_mutex);
                         break;
                     case xmove_t::m:
                         lf = log(pm) - log(ptot);
                         lb += sample_m_lprob(m, m + dm);
-                        do_slock
+                        do_slock_d
                             ([&]()
                              {
                                  lb += es.log_prob(u, v);
-                             }, _state._sbm_mutex, _parallel && _pseudo);
+                             }, _parallel && _pseudo, _state._sbm_mutex);
                         break;
                     }
                 }
@@ -655,28 +647,35 @@ struct MCMC
             bool new_x = true;
             if (xold)
             {
-                slock<std::shared_mutex> lock(_xvals_mutex,
-                                              _parallel && _pseudo);
+                do_slock_d
+                    ([&]()
+                     {
+                         if (_state._xvals.empty())
+                         {
+                             nx = numeric_limits<double>::quiet_NaN();
+                         }
+                         else
+                         {
+                             SetBisectionSampler set_sampler(_state._xvals, _pxu, sampler);
+                             nx = set_sampler.sample(_beta, rng);
+                             new_x = false;
+                         }
+                     },
+                     _parallel && _pseudo,
+                     _xvals_mutex);
 
-                if (_state._xvals.empty())
-                {
-                    nx = numeric_limits<double>::quiet_NaN();
+                if (std::isnan(nx))
                     return std::make_tuple(nx, nx, sampler, false);
-                }
-                else
-                {
-                    SetBisectionSampler set_sampler(_state._xvals, _pxu, sampler);
-                    nx = set_sampler.sample(_beta, rng);
-                }
-
-                new_x = false;
             }
             else
             {
-                slock<std::shared_mutex> lock(_xvals_mutex,
-                                              _parallel && _pseudo);
-
-                new_x = (_state.get_count(_state._xhist, nx) == 0);
+                do_slock_d
+                    ([&]()
+                     {
+                         new_x = (_state.get_count(_state._xhist, nx) == 0);
+                     },
+                     _parallel && _pseudo,
+                     _xvals_mutex);
             }
 
             assert(nx >= _bisect_args.min_bound);
@@ -700,15 +699,20 @@ struct MCMC
         double sample_old_x_lprob(xval_t nx, Sampler& sampler,
                                   double add = numeric_limits<double>::quiet_NaN())
         {
-            slock<std::shared_mutex> lock(_xvals_mutex, _parallel && _pseudo);
+            return
+                do_slock_d
+                ([&]()
+                 {
+                     if (_state._xvals.empty())
+                         return std::numeric_limits<double>::quiet_NaN();
 
-            if (_state._xvals.empty())
-                return std::numeric_limits<double>::quiet_NaN();
+                     SetBisectionSampler set_sampler(_state._xvals, _pxu, sampler);
 
-            SetBisectionSampler set_sampler(_state._xvals, _pxu, sampler);
-
-            return set_sampler.lprob(nx, _beta,
-                                     numeric_limits<double>::quiet_NaN(), add);
+                     return set_sampler.lprob(nx, _beta,
+                                              numeric_limits<double>::quiet_NaN(), add);
+                 },
+                 _parallel && _pseudo,
+                 _xvals_mutex);
         }
 
         template <class RNG>
@@ -780,5 +784,25 @@ struct MCMC
 };
 
 } // graph_tool namespace
+
+namespace std
+{
+template <class T1, class T2>
+struct formatter<std::tuple<T1, T2>>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const std::tuple<T1, T2>& v, format_context& ctx) const
+    {
+        string temp;
+        format_to(back_inserter(temp), "({}, {})", get<0>(v), get<1>(v));
+        return formatter<string_view>().format(temp, ctx);
+    }
+};
+}
+
 
 #endif //DYNAMICS_MCMC_HH

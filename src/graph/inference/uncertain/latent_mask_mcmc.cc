@@ -20,7 +20,7 @@
 
 #include <boost/python.hpp>
 
-#include "../blockmodel/graph_blockmodel.hh"
+#include "../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "latent_mask.hh"
 #include "uncertain_mcmc.hh"
@@ -29,8 +29,7 @@
 
 using namespace boost;
 using namespace graph_tool;
-
-GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+using namespace block_model;
 
 template <class BaseState>
 GEN_DISPATCH(latent_mask_state, LatentMask<BaseState>::template LatentMaskState,
@@ -62,12 +61,12 @@ python::object mcmc_latent_mask_sweep(python::object omcmc_state,
                       [&](auto& s)
                       {
                           auto ret_ = mcmc_sweep(*s, rng);
-                          ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
+                          ret = std::apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                       });
              },
              false);
     };
-    block_state::dispatch(dispatch);
+    graph_tool::block_model::block_model::dispatch(dispatch);
     return ret;
 }
 
@@ -78,4 +77,4 @@ REGISTER_MOD
 {
     using namespace boost::python;
     def("mcmc_latent_mask_sweep", &mcmc_latent_mask_sweep);
-});
+}, MODULE_PRIO);

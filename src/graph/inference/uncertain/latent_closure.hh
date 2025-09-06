@@ -25,6 +25,9 @@
 #include "../support/graph_state.hh"
 #include <boost/range/counting_range.hpp>
 
+#undef MODULE_PRIO
+#define MODULE_PRIO 10
+
 namespace graph_tool
 {
 using namespace boost;
@@ -35,15 +38,14 @@ typedef eprop_map_t<std::vector<int64_t>> evmap_t;
 typedef vprop_map_t<int64_t> vmap_t;
 
 #define LATENT_CLOSURE_STATE_params                                            \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((oa,, python::list, 0))                                                   \
-    ((oaw,, python::list, 0))                                                  \
-    ((om,, python::list, 0))                                                   \
-    ((ox,, python::list, 0))                                                   \
-    ((oM,, python::list, 0))                                                   \
-    ((oE,, python::list, 0))                                                   \
-    ((b,, vmap_t, 0))                                                          \
-    ((L,, size_t, 0))
+    ((oa, python::list, 0))                                                    \
+    ((oaw, python::list, 0))                                                   \
+    ((om, python::list, 0))                                                    \
+    ((ox, python::list, 0))                                                    \
+    ((oM, python::list, 0))                                                    \
+    ((oE, python::list, 0))                                                    \
+    ((b, vmap_t, 0))                                                           \
+    ((L, size_t, 0))
 
 template <class Graphs, class F>
 void iter_out_neighbors(size_t v, Graphs& gs, size_t l,
@@ -101,8 +103,7 @@ struct LatentClosure
             return vs;
         }
 
-        template <class... ATs,
-                  typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
+        template <class... ATs>
         LatentClosureState(BlockState& ebstate, BlockState& pbstate, size_t l, ATs&&... args)
             : LatentClosureStateBase<Ts...>(std::forward<ATs>(args)...),
               _l(l),

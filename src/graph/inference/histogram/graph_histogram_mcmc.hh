@@ -33,15 +33,13 @@ using namespace boost;
 using namespace std;
 
 #define MCMC_HIST_STATE_params(State)                                          \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((beta,, double, 0))                                                       \
-    ((verbose,, int, 0))                                                       \
-    ((niter,, size_t, 0))
+    ((__class__, decltype(hana::tuple_t<python::object>), 1))                  \
+    ((state, State&, 0))                                                       \
+    ((beta, double, 0))                                                        \
+    ((verbose, int, 0))                                                        \
+    ((niter, size_t, 0))
 
 enum class hmove_t { move = 0, add, remove, null };
-
-ostream& operator<<(ostream& s, hmove_t v);
 
 template <class State>
 struct MCMC
@@ -422,5 +420,25 @@ struct MCMC
 
 
 } // graph_tool namespace
+
+namespace std
+{
+using namespace graph_tool;
+template <>
+struct formatter<hmove_t>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const hmove_t& v, format_context& ctx) const
+    {
+        string temp;
+        format_to(back_inserter(temp), "{}", int(v));
+        return formatter<string_view>().format(temp, ctx);
+    }
+};
+}
 
 #endif //GRAPH_HISTOGRAM_MCMC_HH

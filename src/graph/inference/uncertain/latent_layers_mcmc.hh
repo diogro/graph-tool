@@ -47,12 +47,11 @@ using namespace std;
 typedef std::vector<size_t> vlist_t;
 
 #define MCMC_LATENT_LAYERS_STATE_params(State)                                 \
-    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                \
-    ((state, &, State&, 0))                                                    \
-    ((beta,, double, 0))                                                       \
-    ((entropy_args,, uentropy_args_t, 0))                                      \
-    ((verbose,, int, 0))                                                       \
-    ((niter,, size_t, 0))
+    ((state, State&, 0))                                                       \
+    ((beta, double, 0))                                                        \
+    ((entropy_args, uentropy_args_t, 0))                                       \
+    ((verbose, int, 0))                                                        \
+    ((niter, size_t, 0))
 
 
 template <class State>
@@ -101,8 +100,8 @@ struct MCMC
             }
         }
 
-        typedef decltype(_state._block_state[0].get()._ebstate) block_state_t;
-        block_state_t _block_state;
+        typedef std::decay_t<decltype(_state._block_state[0].get()._ebstate)> block_state_t;
+        block_state_t& _block_state;
         bool _measured;
 
         std::vector<std::tuple<size_t, size_t>> _edges;
@@ -348,21 +347,21 @@ struct MCMC
             if (lmove)
             {
                 size_t nl = dm;
-                if (_measured)
-                {
-                    if (l == 0)
-                        _edge_sampler.update_edge(u, v, m, -1);
-                }
+                size_t m_nl = (_measured && nl == 0) ? node_state(nl, u, v) : 0;
+
+                if (_measured && l == 0)
+                    _edge_sampler.update_edge(u, v, m, -int64_t(m));
+
                 for (size_t i = 0; i < m; ++i)
                     _state.remove_edge(l, u, v);
                 for (size_t i = 0; i < m; ++i)
                     _state.add_edge(nl, u, v);
 
-                if (_measured)
-                {
-                    if (nl == 0)
-                        _edge_sampler.update_edge(u, v, m, 1);
-                }
+                assert(node_state(l, u, v) == 0);
+                assert(node_state(nl, u, v) == m);
+
+                if (_measured && nl == 0)
+                    _edge_sampler.update_edge(u, v, m_nl, m);
             }
             else
             {

@@ -21,7 +21,7 @@
 from .. import _prop, Graph, GraphView, _get_rng, PropertyMap, \
     edge_endpoint_property, Vector_size_t
 from .. generation import generate_triadic_closure, remove_parallel_edges, \
-    remove_self_loops
+    remove_self_loops, graph_merge
 from .. spectral import adjacency
 
 from .. dl_import import dl_import
@@ -154,14 +154,6 @@ class LatentLayerBaseState(EntropyState):
                                                 _prop("e", g, g.ep.w),
                                                 _prop("e", g, g.ep.wcount))
         return gs
-
-    def _gen_eargs(self, args):
-        if isinstance(self.bstates[0], NestedBlockState):
-            bstate = self.bstates[0].levels[0]
-        else:
-            bstate = self.bstates[0]
-        ea = bstate._get_entropy_args(args, consume=True)
-        return libinference.uentropy_args(ea)
 
     def _mcmc_sweep(self, mcmc_state):
         return libinference.mcmc_latent_layers_sweep(mcmc_state,
@@ -372,21 +364,9 @@ class LatentClosureBlockState(LatentLayerBaseState):
 
     def __getstate__(self):
         state = EntropyState.__getstate__(self)
-        return dict(state, g=self.g, L=self.L-1,
+        return dict(state, L=self.L-1,
                     b=self.bstate.get_bs() if self.nested else self.bstate.b.copy(),
-                    aE=self.aE, nested=self.nested,
-                    state_args=self.state_args, g_orig=self.g_orig,
                     ew=self.get_ec(self.ew), ex=self.get_ec(self.ex))
-
-    def __setstate__(self, state):
-        self.__init__(**state)
-
-    def copy(self, **kwargs):
-        """Return a copy of the state."""
-        return LatentClosureBlockState(**dict(self.__getstate__(), **kwargs))
-
-    def __copy__(self):
-        return self.copy()
 
     def __repr__(self):
         return "<LatentClosureBlockState object with (%s) closure edges, and %s, at 0x%x>" % \
@@ -395,8 +375,7 @@ class LatentClosureBlockState(LatentLayerBaseState):
     @copy_state_wrap
     def _entropy(self, latent_edges=True, density=False, aE=1., sbm=True, **kwargs):
         """Return the entropy, i.e. negative log-likelihood."""
-        eargs = self._get_entropy_args(locals())
-        S = self._state.entropy(eargs)
+        S = EntropyState._entropy_dispatch(**locals())
         S += self.bstates[0].entropy(**kwargs)
         for s in self._cstates[1:]:
             S += s.entropy()

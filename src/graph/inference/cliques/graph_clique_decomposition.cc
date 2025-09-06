@@ -42,7 +42,7 @@ clique_iter_mh(GraphInterface& gi, std::any ac, std::any ax,
     multi_array_ref<int32_t, 1> Ed = get_array<int32_t, 1>(oEd);
 
     boost::python::object pret;
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g){
              GILRelease gil_release;
              auto ret = iter_mh(g, x.get_unchecked(), c.get_unchecked(),

@@ -19,9 +19,10 @@
 #include "parallel_rng.hh"
 #include "../support/util.hh"
 
+#include "uncertain.hh"
+
 using namespace boost;
 using namespace graph_tool;
-
 
 double marginal_count_entropy(GraphInterface& gi, std::any aexc, std::any aeh)
 {
@@ -41,7 +42,7 @@ double marginal_count_entropy(GraphInterface& gi, std::any aexc, std::any aeh)
                       size_t N = 0;
                       for (auto n : exc[e])
                       {
-                          S -= xlogx_fast(n);
+                          S -= xlogx_fast(int64_t(n));
                           N += n;
                       }
                       if (N == 0)
@@ -53,7 +54,7 @@ double marginal_count_entropy(GraphInterface& gi, std::any aexc, std::any aeh)
                       S_tot += S;
                   });
          },
-        all_graph_views, edge_scalar_vector_properties)
+        all_graph_views, scalar_vector_edge_properties)
         (gi.get_graph_view(), aexc);
     return S_tot;
 }
@@ -97,8 +98,8 @@ double marginal_graph_lprob(GraphInterface& gi, std::any ap,
                      L += std::log1p(-p[e]);
              }
          },
-         all_graph_views, edge_scalar_properties,
-         edge_scalar_properties)
+         all_graph_views, scalar_edge_properties,
+         scalar_edge_properties)
         (gi.get_graph_view(), ap, ax);
     return L;
 }
@@ -114,4 +115,4 @@ REGISTER_MOD
     def("marginal_count_entropy", &marginal_count_entropy);
     def("marginal_graph_sample", &marginal_graph_sample);
     def("marginal_graph_lprob", &marginal_graph_lprob);
-});
+}, MODULE_PRIO);

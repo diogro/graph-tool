@@ -686,8 +686,7 @@ public:
         }
 
         auto get_nm =
-            [&](auto n, auto t, auto&& m)
-            [[gnu::always_inline]] -> std::conditional_t<!m_scalar, m_t&, m_t>
+            [&](auto n, auto t, auto&& m) -> std::conditional_t<!m_scalar, m_t&, m_t>
             {
                 if constexpr (!m_scalar)
                 {
