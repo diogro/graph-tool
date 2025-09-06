@@ -300,12 +300,16 @@ public:
     MaskFilter() {}
 
     template <class Descriptor>
-    inline bool operator() (Descriptor&& d) const
+    bool operator() (Descriptor&& d) const
     {
-        return get(_filtered_property, d);
+        return boost::get(_filtered_property, d);
     }
 
-    DescriptorProperty& get_filter() { return _filtered_property; }
+    template <class Descriptor>
+    void set_val(Descriptor&& d, bool existing)
+    {
+        boost::put(_filtered_property, d, existing);
+    }
 
 private:
     DescriptorProperty _filtered_property;
@@ -431,39 +435,22 @@ struct run_action
     }
 };
 
-} //graph_tool namespace
 
-// Overload add_vertex() and add_edge() to filtered graphs, so that the new
-// descriptors are always valid
+// Access underlying base graph
+
+template <class Graph>
+auto&& base_graph(Graph&& g)
+{
+    if constexpr (is_instance_of_v<std::decay_t<Graph>, boost::adj_list>)
+        return g;
+    else
+        return base_graph(g.original_graph());
+}
+
+} //graph_tool namespace
 
 namespace boost
 {
-template <class Graph, class EdgeProperty, class VertexProperty>
-auto
-add_vertex(boost::filt_graph<Graph,
-                             graph_tool::MaskFilter<EdgeProperty>,
-                             graph_tool::MaskFilter<VertexProperty>>& g)
-{
-    auto v = add_vertex(const_cast<Graph&>(g._g));
-    auto& filt = g._vertex_pred.get_filter();
-    auto& cfilt = filt.get_checked();
-    cfilt[v] = true;
-    return v;
-}
-
-template <class Graph, class EdgeProperty, class VertexProperty, class Vertex>
-auto
-add_edge(Vertex s, Vertex t, filt_graph<Graph,
-                                        graph_tool::MaskFilter<EdgeProperty>,
-                                        graph_tool::MaskFilter<VertexProperty>>& g)
-{
-    auto e = add_edge(s, t, const_cast<Graph&>(g._g));
-    auto& filt = g._edge_pred.get_filter();
-    auto& cfilt = filt.get_checked();
-    cfilt[e.first] = true;
-    return e;
-}
-
 // Used to skip filtered vertices
 
 template <class Graph, class EP, class VP, class Vertex>
@@ -490,7 +477,6 @@ bool is_valid_vertex(Vertex v, const Graph& g)
 {
     return v < num_vertices(g);
 }
-
 
 } // namespace boost
 

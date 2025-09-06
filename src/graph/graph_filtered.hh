@@ -196,6 +196,9 @@ public:
     static vertex_descriptor null_vertex()
     { return Traits::null_vertex(); }
 
+    Graph& original_graph() { return Base::_g; }
+    const Graph& original_graph() const { return Base::_g; }
+
     //private:
     EdgePredicate _edge_pred;
     VertexPredicate _vertex_pred;
@@ -585,10 +588,7 @@ add_edge(typename graph_traits
 {
     auto ret = add_edge(u, v, const_cast<G&>(g._g));
     if constexpr (!std::is_same_v<EP, boost::keep_all>)
-    {
-        auto filt = g._edge_pred.get_filter().get_checked();
-        filt[ret.first] = !g._edge_pred.is_inverted();
-    }
+        g._edge_pred.set_val(ret.first, true);
     return ret;
 }
 
@@ -629,10 +629,9 @@ void remove_vertex(typename boost::graph_traits
                      <filt_graph<G,EP,VP>>::vertex_descriptor v,
                   filt_graph<G,EP,VP>& g)
 {
-    auto& filt = g._vertex_pred.get_filter();
     for (size_t i = v; i < num_vertices(g) - 1; ++i)
-        filt[i] = filt[i + 1];
-    return remove_vertex(v,const_cast<G&>(g._g));
+        g._vertex_pred.set_val(i, g._vertex_pred(i + 1));
+    return remove_vertex(v, const_cast<G&>(g._g));
 }
 
 template <class G, class EP, class VP>
@@ -642,9 +641,8 @@ void remove_vertex_fast(typename boost::graph_traits
                        filt_graph<G,EP,VP>& g)
 {
    size_t back = num_vertices(g) - 1;
-   auto& filt = g._vertex_pred.get_filter();
-   filt[v] = filt[back];
-   return remove_vertex_fast(v,const_cast<G&>(g._g));
+   g._vertex_pred.set_val(v, g._vertex_pred(back));
+   return remove_vertex_fast(v, const_cast<G&>(g._g));
 }
 
 template <class G, class EP, class VP>

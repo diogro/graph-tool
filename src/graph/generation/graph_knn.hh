@@ -473,8 +473,11 @@ public:
         return get(*_filtered_property, d);
     }
 
-    DescriptorProperty& get_filter() { return *_filtered_property; }
-    constexpr bool is_inverted() { return false; }
+    template <class Descriptor>
+    void set_val(Descriptor&& d, bool existing)
+    {
+        boost::put(*_filtered_property, d, existing);
+    }
 
 private:
     DescriptorProperty* _filtered_property;
