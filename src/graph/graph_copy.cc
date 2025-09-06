@@ -219,8 +219,8 @@ struct do_graph_copy
             if (src_vertex_index[v] >= index_map.size())
                 index_map.resize(src_vertex_index[v] + 1);
             auto new_v = pos[v];
-            while (size_t(new_v) >= num_vertices(tgt))
-                add_vertex(tgt);
+            if (size_t(new_v) >= num_vertices(tgt))
+                add_vertex(tgt, 1 + size_t(new_v) - num_vertices(tgt));
             index_map[src_vertex_index[v]] = tgt_vertex_index[new_v];
         }
 

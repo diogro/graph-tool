@@ -127,7 +127,7 @@ template <class Vertex>
 size_t num_edges(const adj_list<Vertex>& g);
 
 template <class Vertex>
-Vertex add_vertex(adj_list<Vertex>& g);
+Vertex add_vertex(adj_list<Vertex>& g, size_t n = 1);
 
 template <class Vertex>
 void clear_vertex(Vertex v, adj_list<Vertex>& g);
@@ -693,7 +693,7 @@ private:
 
     friend size_t num_edges<>(const adj_list<Vertex>& g);
 
-    friend Vertex add_vertex<>(adj_list<Vertex>& g);
+    friend Vertex add_vertex<>(adj_list<Vertex>& g, size_t n);
 
     template <class V, class Pred>
     friend void clear_vertex(V v, adj_list<V>& g, Pred&& pred);
@@ -1154,10 +1154,12 @@ add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
 
     typedef typename adj_list<Vertex>::edge_descriptor edge_descriptor;
 
-    if (g._keep_ehash)
-        g.add_ehash(edge_descriptor(s, t, idx));
+    edge_descriptor e(s, t, idx);
 
-    return {edge_descriptor(s, t, idx), true};
+    if (g._keep_ehash)
+        g.add_ehash(e);
+
+    return {e, true};
 }
 
 template <class Vertex>
@@ -1239,12 +1241,23 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
 
 template <class Vertex>
 [[gnu::always_inline]] [[gnu::flatten]] inline
-Vertex add_vertex(adj_list<Vertex>& g)
+Vertex add_vertex(adj_list<Vertex>& g, size_t n)
 {
-    g._edges.emplace_back();
-    if (g._keep_ehash)
-        g._ehash.emplace_back();
-    return g._edges.size() - 1;
+    if (n == 1)
+    {
+        g._edges.emplace_back();
+        if (g._keep_ehash)
+            g._ehash.emplace_back();
+        return g._edges.size() - 1;
+    }
+    else
+    {
+        auto v = g._edges.size();
+        g._edges.resize(v + n);
+        if (g._keep_ehash)
+            g._ehash.resize(v + n);
+        return v;
+    }
 }
 
 template <class Vertex, class Pred>

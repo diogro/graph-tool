@@ -333,9 +333,9 @@ void clear_vertex(typename boost::graph_traits<reversed_graph<Graph>>
 
 template <class Graph>
 auto
-add_vertex(reversed_graph<Graph>& g)
+add_vertex(reversed_graph<Graph>& g, size_t n = 1)
 {
-    return add_vertex(const_cast<Graph&>(g.original_graph()));
+    return add_vertex(const_cast<Graph&>(g.original_graph()), n);
 }
 
 //========================================================================

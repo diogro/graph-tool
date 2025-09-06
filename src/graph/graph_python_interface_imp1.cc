@@ -68,8 +68,8 @@ void add_edge_list(Graph& g, ValueList vals, python::object aedge_list,
                          e[1] == numeric_limits<val_t>::max() ||
                          std::isnan(e[1]) || std::isinf(e[1]))
                      {
-                         while (s >= num_vertices(g))
-                             add_vertex(g);
+                         if (s >= num_vertices(g))
+                             add_vertex(g, 1 + num_vertices(g) - s);
                          continue;
                      }
                      while (s >= num_vertices(g) || t >= num_vertices(g))

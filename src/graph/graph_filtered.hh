@@ -650,13 +650,13 @@ void remove_vertex_fast(typename boost::graph_traits
 template <class G, class EP, class VP>
 inline
 typename boost::graph_traits<filt_graph<G,EP,VP>>::vertex_descriptor
-add_vertex(filt_graph<G,EP,VP>& g)
+add_vertex(filt_graph<G,EP,VP>& g, size_t n = 1)
 {
-    auto v = add_vertex(const_cast<G&>(g._g));
+    auto v = add_vertex(const_cast<G&>(g._g), n);
     if constexpr (!std::is_same_v<VP, boost::keep_all>)
     {
-        auto filt = g._vertex_pred.get_filter().get_checked();
-        filt[v] = !g._vertex_pred.is_inverted();
+        for (auto u = v; u < v + n; ++u)
+            g._vertex_pred.set_val(u, true);
     }
     return v;
 }

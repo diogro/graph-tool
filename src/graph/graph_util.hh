@@ -50,6 +50,13 @@ namespace graph_tool
 // Metaprogramming
 // ===============
 
+// check if is an instance of a template
+template<class T, template<class...> class U>
+inline constexpr bool is_instance_of_v = std::false_type{};
+
+template<template<class...> class U, class... Vs>
+inline constexpr bool is_instance_of_v<U<Vs...>,U> = std::true_type{};
+
 // useful metafunction to determine whether a graph is directed or not
 
 struct is_directed_

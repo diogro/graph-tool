@@ -365,9 +365,9 @@ degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
 template <class Graph>
 [[gnu::flatten]] inline
 auto
-add_vertex(undirected_adaptor<Graph>& g)
+add_vertex(undirected_adaptor<Graph>& g, size_t n = 1)
 {
-    return add_vertex(g.original_graph());
+    return add_vertex(g.original_graph(), n);
 }
 
 //==============================================================================

@@ -31,8 +31,7 @@ struct get_complete
     template <class Graph>
     void operator()(Graph& g, size_t N, bool directed, bool self_loops) const
     {
-        for (size_t i = 0; i < N; ++i)
-            add_vertex(g);
+        add_vertex(g, N);
 
         for (size_t i = 0; i < N; ++i)
         {
@@ -53,8 +52,7 @@ struct get_circular
     void operator()(Graph& g, size_t N, size_t k, bool directed,
                     bool self_loops) const
     {
-        for (size_t i = 0; i < N; ++i)
-            add_vertex(g);
+        add_vertex(g, N);
 
         for (size_t i = 0; i < N; ++i)
         {

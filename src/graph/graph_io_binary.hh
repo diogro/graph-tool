@@ -229,8 +229,7 @@ bool read_adjacency(Graph& g, std::istream& s)
     uint64_t N = 0;
     read<BE>(s, N);
 
-    for (size_t i = 0; i < N; ++i)
-        add_vertex(g);
+    add_vertex(g, N);
 
     if (N <= numeric_limits<uint8_t>::max())
         read_adjacency_dispatch<BE, uint8_t>(g, N, s);

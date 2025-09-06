@@ -200,8 +200,7 @@ void make_subgraph
     (std::vector<typename boost::graph_traits<Graph>::vertex_descriptor>& vlist,
      Graph& g, GraphSG& sub)
 {
-    for (size_t i = 0; i < vlist.size(); ++i)
-        add_vertex(sub);
+    add_vertex(sub, vlist.size());
     for (size_t i = 0; i < vlist.size(); ++i)
     {
         typename boost::graph_traits<Graph>::vertex_descriptor ov = vlist[i], ot;

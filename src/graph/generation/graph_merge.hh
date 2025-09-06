@@ -72,16 +72,16 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                 }
                 else
                 {
-                    while (w >= num_vertices(ug))
-                        add_vertex(ug);
+                    if (w >= num_vertices(ug))
+                        add_vertex(ug, 1 + w - num_vertices(ug));
                 }
             }
         }
     }
     else
     {
-        while (num_vertices(ug) < num_vertices(g))
-            add_vertex(ug);
+        if (num_vertices(ug) < num_vertices(g))
+            add_vertex(ug, num_vertices(g) - num_vertices(ug));
     }
 
     constexpr bool is_weighted = !std::is_same_v<EWeight1, null_weight_map_t>;

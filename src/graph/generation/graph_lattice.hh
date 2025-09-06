@@ -65,8 +65,8 @@ struct get_lattice
         int N = 1;
         for (size_t i = 0; i < shape.size(); ++i)
             N *= shape[i];
-        for (int i = 0; i < N; ++i)
-            add_vertex(g);
+
+        add_vertex(g, N);
 
         vector<int> pos(shape.size());
         for (int i = 0; i < N; ++i)

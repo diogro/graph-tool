@@ -116,8 +116,7 @@ python::object add_vertex(GraphInterface& gi, size_t n)
              auto& g = *gp;
              if (n != 1)
              {
-                 for (size_t i = 0; i < n; ++i)
-                     add_vertex(g);
+                 add_vertex(g, n);
                  v = python::object();
              }
              else

@@ -32,8 +32,8 @@ struct get_predecessor_graph
     template <class Graph, class PredGraph, class PredMap>
     void operator()(Graph& g, PredGraph& pg, PredMap pred_map) const
     {
-        while (num_vertices(pg) < num_vertices(g))
-            add_vertex(pg);
+        if (num_vertices(pg) < num_vertices(g))
+            add_vertex(pg, num_vertices(g) - num_vertices(pg));
 
         for (auto v : vertices_range(g))
         {
