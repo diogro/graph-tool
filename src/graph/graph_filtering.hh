@@ -308,7 +308,7 @@ public:
     template <class Descriptor>
     void set_val(Descriptor&& d, bool existing)
     {
-        boost::put(_filtered_property, d, existing);
+        boost::put(get_checked(_filtered_property), d, existing);
     }
 
 private:
