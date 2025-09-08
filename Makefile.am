@@ -1,6 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = $(MOD_CPPFLAGS)
+# Build the bundled packages first
+SUBDIRS = bundled/sparsehash
+
+AM_CPPFLAGS = $(MOD_CPPFLAGS) -I$(top_srcdir)/bundled/sparsehash/src -I$(top_builddir)/bundled/sparsehash/src
+
 AM_CFLAGS = $(AM_CXXFLAGS)
 
 graphtooldocdir = ${PACKAGE_DOC_DIR}

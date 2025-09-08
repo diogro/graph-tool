@@ -19,17 +19,13 @@
 #define HASH_MAP_WRAP_HH
 
 #include "config.h"
-#include <unordered_set>
-#include <unordered_map>
 #include <tuple>
 #include <vector>
 #include <utility>
 #include <limits>
 
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_set)
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
+#include <sparsehash/dense_hash_map>
+#include <sparsehash/dense_hash_set>
 
 template <class Key>
 struct empty_key
@@ -185,18 +181,10 @@ template<class Key,
          class Pred = std::equal_to<Key>,
          class Alloc = std::allocator<Key>>
 class gt_hash_set:
-#ifdef HAVE_SPARSEHASH
     public google::dense_hash_set<Key, Hash, Pred, Alloc>
-#else
-    public std::unordered_set<Key, Hash, Pred, Alloc>
-#endif
 {
 public:
-#ifdef HAVE_SPARSEHASH
     typedef google::dense_hash_set<Key, Hash, Pred, Alloc> base_t;
-#else
-    typedef std::unordered_set<Key, Hash, Pred, Alloc> base_t;
-#endif
 
     gt_hash_set(size_t n = 0,
                 const Hash& hf = Hash(),
@@ -204,10 +192,8 @@ public:
                 const Alloc& alloc = Alloc() )
         : base_t(n, hf, eql, alloc)
     {
-#ifdef HAVE_SPARSEHASH
         base_t::set_empty_key(empty_key<Key>::get());
         base_t::set_deleted_key(deleted_key<Key>::get());
-#endif
     }
 
     explicit gt_hash_set (const Alloc& alloc): base_t(alloc) {}
@@ -218,15 +204,11 @@ public:
                  const Hash& hf = Hash(),
                  const Pred& eql = Pred(),
                  const Alloc& alloc = Alloc() )
-#ifdef HAVE_SPARSEHASH
         : base_t(first, last, empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
-#else
-        : base_t(first, last, n, hf, eql, alloc) {}
 
-#endif
     // gt_hash_set(const gt_hash_set& gmp): base_t(gmp) {}
     // gt_hash_set(const gt_hash_set& gmp, Alloc& alloc): base_t(gmp, alloc)  {}
     // gt_hash_set(gt_hash_set&& gmp): base_t(gmp) {}
@@ -236,19 +218,10 @@ public:
                 const Hash& hf = Hash(),
                 const Pred& eql = Pred(),
                 const Alloc& alloc = Alloc() )
-#ifdef HAVE_SPARSEHASH
         : base_t(il.begin(), il.end(), empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
-#else
-        : base_t(il, n, hf, eql, alloc) { }
-#endif
-
-#ifndef HAVE_SPARSEHASH
-    void resize(size_t n) { base_t::reserve(n); }
-#endif
-
 };
 
 template<class Key,
@@ -257,18 +230,10 @@ template<class Key,
          class Pred = std::equal_to<Key>,
          class Alloc = std::allocator<std::pair<const Key, Value>>>
 class gt_hash_map:
-#ifdef HAVE_SPARSEHASH
     public google::dense_hash_map<Key, Value, Hash, Pred, Alloc>
-#else
-    public std::unordered_map<Key, Value, Hash, Pred, Alloc>
-#endif
 {
 public:
-#ifdef HAVE_SPARSEHASH
     typedef google::dense_hash_map<Key, Value, Hash, Pred, Alloc> base_t;
-#else
-    typedef std::unordered_map<Key, Value, Hash, Pred, Alloc> base_t;
-#endif
 
     gt_hash_map(size_t n = 0,
                 const Hash& hf = Hash(),
@@ -276,10 +241,8 @@ public:
                 const Alloc& alloc = Alloc() )
         : base_t(n, hf, eql, alloc)
     {
-#ifdef HAVE_SPARSEHASH
         base_t::set_empty_key(empty_key<Key>::get());
         base_t::set_deleted_key(deleted_key<Key>::get());
-#endif
     }
 
     explicit gt_hash_map (const Alloc& alloc): base_t(alloc) {}
@@ -290,15 +253,11 @@ public:
                  const Hash& hf = Hash(),
                  const Pred& eql = Pred(),
                  const Alloc& alloc = Alloc() )
-#ifdef HAVE_SPARSEHASH
         : base_t(first, last, empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
-#else
-        : base_t(first, last, n, hf, eql, alloc) {}
 
-#endif
     // gt_hash_map(const gt_hash_map& gmp): base_t(gmp) {}
     // gt_hash_map(const gt_hash_map& gmp, Alloc& alloc): base_t(gmp, alloc)  {}
     // gt_hash_map(gt_hash_map&& gmp): base_t(gmp) {}
@@ -308,18 +267,10 @@ public:
                 const Hash& hf = Hash(),
                 const Pred& eql = Pred(),
                 const Alloc& alloc = Alloc() )
-#ifdef HAVE_SPARSEHASH
         : base_t(il.begin(), il.end(), empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
-#else
-        : base_t(il, n, hf, eql, alloc) { }
-#endif
-
-#ifndef HAVE_SPARSEHASH
-    void resize(size_t n) { base_t::reserve(n); }
-#endif
 };
 
 #endif // HASH_MAP_WRAP_HH

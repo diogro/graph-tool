@@ -23,6 +23,9 @@ AM_INIT_AUTOMAKE([foreign subdir-objects tar-pax])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([config.h])
 
+# bundled packages
+AC_CONFIG_SUBDIRS([bundled/sparsehash])
+
 AC_USE_SYSTEM_EXTENSIONS
 AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_CXX
@@ -242,41 +245,6 @@ if test "$USING_CAIRO" = "yes"; then
    [CPPFLAGS="${CPPFLAGS_TEMP}"]
 fi
 
-dnl sparsehash
-[SPARSEHASH_PREFIX=sparsehash]
-AC_ARG_WITH([sparsehash-prefix], [AS_HELP_STRING([--with-sparsehash-prefix=prefix],
-                                                 [include directory prefix for sparsehash
-                                                  [default=sparsehash] ])],
-            [SPARSEHASH_PREFIX=$withval])
-
-[USING_SPARSEHASH=yes]
-AC_MSG_CHECKING(whether to enable sparsehash)
-AC_ARG_ENABLE([sparsehash],
-              [AS_HELP_STRING([--disable-sparsehash],[disable use of google's sparsehash [default=enabled] ])],
-              if test $enableval = no; then
-                  [USING_SPARSEHASH=no]
-                  [AC_MSG_RESULT(no)]
-              else
-                  [AC_MSG_RESULT(yes)]
-              fi,
-              [AC_MSG_RESULT(yes)])
-
-if test "$USING_SPARSEHASH" = "yes"; then
-   PKG_CHECK_MODULES(SPARSEHASH, [libsparsehash],
-                     AC_DEFINE([HAVE_SPARSEHASH], [1], [Using google's sparsehash]),
-                     [AC_MSG_RESULT([not found by pkgconfig, trying default...])])
-   AC_SUBST(SPARSEHASH_CFLAGS)
-   AC_DEFINE_UNQUOTED([SPARSEHASH_PREFIX], [${SPARSEHASH_PREFIX}],
-                      [Sparsehash include prefix])
-   AC_DEFINE_UNQUOTED([SPARSEHASH_INCLUDE(f)], [<${SPARSEHASH_PREFIX}/f>],
-                      [Sparsehash include macro])
-   [CPPFLAGS_TEMP="${CPPFLAGS}"]
-   [CPPFLAGS="${SPARSEHASH_CFLAGS} ${CPPFLAGS}"]
-   AC_CHECK_HEADER([${SPARSEHASH_PREFIX}/dense_hash_set], [],
-                   [AC_MSG_ERROR([sparsehash headers not found])])
-   [CPPFLAGS="${CPPFLAGS_TEMP}"]
-fi
-
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl Checks for library functions.
 
@@ -434,12 +402,6 @@ echo -e "$(color 3)Extra MOD_CXXFLAGS:     $(color 4)${MOD_CXXFLAGS}$(reset)"
 echo -e "$(color 3)Extra LDFLAGS:          $(color 4)${LDFLAGS}$(reset)\n"
 echo -n -e "$(color 3)Using OpenMP:           "
 if test ${USING_OPENMP} = yes; then
-   echo "$(color 5)yes$(reset)"
-else
-   echo "$(color 1)no$(reset)"
-fi
-echo -n -e "$(color 3)Using sparsehash:       "
-if test ${USING_SPARSEHASH} = yes; then
    echo "$(color 5)yes$(reset)"
 else
    echo "$(color 1)no$(reset)"

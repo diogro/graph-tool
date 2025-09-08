@@ -20,6 +20,7 @@
 
 #include <tuple>
 #include <iostream>
+#include <unordered_set>
 
 #include "graph.hh"
 #include "graph_filtering.hh"

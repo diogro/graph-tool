@@ -18,6 +18,7 @@
 #ifndef GRAPH_SIMILARITY_HH
 #define GRAPH_SIMILARITY_HH
 
+#include <unordered_set>
 #include "hash_map_wrap.hh"
 #include "idx_map.hh"
 

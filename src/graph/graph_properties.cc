@@ -27,6 +27,8 @@
 
 #include <boost/python/extract.hpp>
 
+#include <unordered_set>
+
 using namespace std;
 using namespace boost;
 using namespace graph_tool;
