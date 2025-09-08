@@ -27,7 +27,7 @@
 namespace graph_tool
 {
 
-constexpr const char* _magic = u8"⛾ gt";
+constexpr const char* _magic = "⛾ gt";
 constexpr const size_t _magic_length = 6;
 constexpr const uint8_t _version = 1;
 

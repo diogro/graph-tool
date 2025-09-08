@@ -35,7 +35,7 @@ LT_INIT([disable-static])
 PKG_PROG_PKG_CONFIG
 PKG_INSTALLDIR
 
-AX_CXX_COMPILE_STDCXX_17([ext],[mandatory])
+AX_CXX_COMPILE_STDCXX([23], [ext], [mandatory])
 
 dnl Checks for options
 
@@ -54,9 +54,6 @@ AC_ARG_ENABLE([debug],
               fi,
               [CPPFLAGS="-DNDEBUG ${CPPFLAGS}"]
               [AC_MSG_RESULT(no)])
-
-dnl enable explicit C++17 support
-[CXXFLAGS="--std=gnu++17 ${CXXFLAGS}"]
 
 dnl turn on warnings
 [CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]

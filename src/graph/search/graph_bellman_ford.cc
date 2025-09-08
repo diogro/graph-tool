@@ -131,8 +131,11 @@ struct do_bf_search
         typedef vprop_map_t<int64_t> pred_t;
         pred_t pred = std::any_cast<pred_t>(pred_map);
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
-        DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
-                                                       edge_properties);
+        typedef std::conditional_t<std::is_same_v<dtype_t,
+                                                  std::string>,
+                                   double, dtype_t> weight_t;
+        DynamicPropertyMapWrap<weight_t, edge_t> weight(aweight,
+                                                        edge_properties);
         ret = bellman_ford_shortest_paths
             (g, hard_num_vertices(g),
              root_vertex(vertex(s, g)).visitor(vis).weight_map(weight).
