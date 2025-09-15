@@ -432,7 +432,7 @@ class PropertyMap(object):
 
     def coerce_type(self, full=True):
         """Return a copy of the property map with the most appropriate type,
-        i.e. the simplest type necessary to accomodate all the values exactly.
+        i.e. the simplest type necessary to accommodate all the values exactly.
         If ``full == False``, in the case of filtered graphs only the unmasked
         values are copied (with the remaining ones taking the type-dependent
         default value).
@@ -1265,7 +1265,7 @@ def ungroup_vector_property(vprop, pos=None, props=None):
         correspond to the entire range of the first element in the map.
     props : list of :class:`~graph_tool.PropertyMap`  (optional, default: ``None``)
         If supplied, should contain a list of property maps to which ``vprop``
-        should be ungroupped.
+        should be ungrouped.
 
     Returns
     -------
@@ -1744,7 +1744,7 @@ class Graph(object):
               >>> g.add_edge_list(elist)
 
         4. An adjacency list, i.e. a dictionary with vertex keys mapping to an
-           interable of vertices, which will be used to populate the graph. For
+           iterable of vertices, which will be used to populate the graph. For
            directed graphs, the adjacency should list the out-neighbors.
 
            This is equivalent to calling :meth:`~graph_tool.Graph.add_edge_list`
@@ -1768,7 +1768,7 @@ class Graph(object):
 
               For undirected graphs, if a vertex ``u`` appears in the adjacency
               list of ``v`` and vice versa, then the edge ``(u,v)`` is added
-              twice in the graph. To prevent this from happening the adjancecy
+              twice in the graph. To prevent this from happening the adjacency
               list should mention an edge only once.
 
         5. A sparse adjacency matrix of type :class:`scipy.sparse.sparray` or
@@ -2211,7 +2211,7 @@ class Graph(object):
         ``s`` and ``t``.
 
         The shape of the array will be ``(m, len(eprops))``, where ``m`` is the
-        number of parallele edges, and each line will contain the edge property
+        number of parallel edges, and each line will contain the edge property
         values.
 
         This operation normally will take :math:`O(\times\min(k(s), k(t)))` time,
@@ -2811,7 +2811,7 @@ class Graph(object):
         determined automatically.
 
         If ``hashed == False`` and the target value of an edge corresponds to
-        the maximum interger value (:data:`sys.maxsize`, or the maximum integer
+        the maximum integer value (:data:`sys.maxsize`, or the maximum integer
         type of the :class:`numpy.ndarray` object), or is a :data:`numpy.nan` or
         :data:`numpy.inf` value, then only the source vertex will be added to
         the graph.
@@ -2822,7 +2822,7 @@ class Graph(object):
         If given, ``eprops`` should specify an iterable containing edge property
         maps that will be filled with the remaining values at each row, if there
         are more than two. Alternatively, ``eprops`` can contain a list of
-        ``(name, value_type)`` pairs, in which case new internal dege property
+        ``(name, value_type)`` pairs, in which case new internal edge property
         maps will be created with the corresponding name name and value type.
 
         .. note::
