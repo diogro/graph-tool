@@ -78,7 +78,7 @@ pkgconfig_DATA = graph-tool-py${PYTHON_VERSION}.pc
 
 # Copy all the spec files. Of course, only one is actually used.
 dist-hook:
-	cd ${top_srcdir} && git log --stat --name-only --date=short --abbrev-commit > ${distdir}/ChangeLog
+	(cd ${top_srcdir} && git log --stat --name-only --date=short --abbrev-commit) > ${distdir}/ChangeLog
 	for specfile in *.spec; do \
 		if test -f $$specfile; then \
 			cp -p $$specfile $(distdir); \
