@@ -38,6 +38,8 @@
 #include "openmp.hh"
 #include "hash_map_wrap.hh"
 
+#include "lock_free_stack.hh"
+
 namespace boost
 {
 
@@ -212,12 +214,13 @@ public:
 
     typedef detail::adj_edge_descriptor<Vertex> edge_descriptor;
 
-    typedef std::vector<std::pair<vertex_t, vertex_t> > edge_list_t;
+    typedef std::vector<std::pair<vertex_t, vertex_t>> edge_list_t;
     typedef std::vector<std::pair<size_t, edge_list_t>> vertex_list_t;
     typedef typename integer_range<Vertex>::iterator vertex_iterator;
 
-    adj_list(size_t n = 0): _edges(n), _n_edges(0), _edge_index_range(0),
-                            _keep_epos(false), _keep_ehash(false) {}
+    adj_list(size_t n = 0):
+        _edges(n), _n_edges(0), _edge_idx_range(0),
+        _keep_epos(false), _keep_ehash(false) {}
 
     struct get_vertex
     {
@@ -247,43 +250,35 @@ public:
         public edge_iter_facade<base_edge_iterator<Dereference>>
     {
         base_edge_iterator() {}
-        [[gnu::always_inline]]
         base_edge_iterator(vertex_t v, typename edge_list_t::const_iterator&& iter)
             : _v(v), _iter(std::forward<typename edge_list_t::const_iterator>(iter))
         {}
 
     private:
         friend class boost::iterator_core_access;
-        [[gnu::always_inline]] [[gnu::flatten]]
         void increment() { ++_iter; }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         void decrement() { --_iter; }
 
         template <class Distance>
-        [[gnu::always_inline]] [[gnu::flatten]]
         void advance(Distance n) { _iter += n; }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         auto distance_to(base_edge_iterator const& other) const
         {
             return other._iter - _iter;
         }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         bool equal(base_edge_iterator const& other) const
         {
             return _iter == other._iter;
         }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         edge_descriptor dereference() const
         {
             return Dereference::def(_v, *_iter, *this);
         }
 
     public:
-        [[gnu::always_inline]] [[gnu::flatten]]
         edge_descriptor operator*() const
         {
             return edge_iter_facade<base_edge_iterator>::operator*();
@@ -327,7 +322,6 @@ public:
     struct make_in_or_out_edge
     {
         template <class I>
-        [[gnu::always_inline]] [[gnu::flatten]]
         static edge_descriptor def(vertex_t u,
                                    const std::pair<vertex_t, vertex_t>& v,
                                    const I& i)
@@ -344,7 +338,6 @@ public:
         public base_edge_iterator<make_in_or_out_edge<all_edge_iterator>>
     {
         all_edge_iterator() {}
-        [[gnu::always_inline]]
         all_edge_iterator(vertex_t v,
                                typename edge_list_t::const_iterator&& iter,
                                const typename edge_list_t::const_iterator& pos)
@@ -366,7 +359,6 @@ public:
     {
     public:
         edge_iterator() {}
-        [[gnu::always_inline]]
         explicit edge_iterator(const typename vertex_list_t::const_iterator& vi_begin,
                                const typename vertex_list_t::const_iterator& vi_end,
                                const typename vertex_list_t::const_iterator& vi,
@@ -380,7 +372,6 @@ public:
     private:
         friend class boost::iterator_core_access;
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         void skip()
         {
             //skip empty vertices
@@ -393,14 +384,12 @@ public:
             }
         }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         void increment()
         {
             ++_ei;
             skip();
         }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         bool equal(edge_iterator const& other) const
         {
             if (_vi_begin == _vi_end)
@@ -408,7 +397,6 @@ public:
             return _vi == other._vi && _ei == other._ei;
         }
 
-        [[gnu::always_inline]] [[gnu::flatten]]
         edge_descriptor dereference() const
         {
             return edge_descriptor(vertex_t(_vi - _vi_begin),
@@ -423,8 +411,8 @@ public:
 
     void reindex_edges()
     {
-        _free_indices.clear();
-        _edge_index_range = 0;
+        _free_idx.clear();
+        _edge_idx_range = 0;
         for (auto& es : _edges)
             es.second.resize(es.first);
         for (size_t i = 0; i < _edges.size(); ++i)
@@ -435,10 +423,16 @@ public:
             {
                 auto& oe = es[j];
                 Vertex v = oe.first;
-                oe.second = _edge_index_range;
-                _edges[v].second.emplace_back(i, _edge_index_range);
-                _edge_index_range++;
+                oe.second = _edge_idx_range;
+                _edges[v].second.emplace_back(i, _edge_idx_range);
+                _edge_idx_range++;
             }
+        }
+
+        if (_concurrent)
+        {
+            _concurrent = false;
+            set_concurrent(true);
         }
 
         if (_keep_epos)
@@ -446,6 +440,35 @@ public:
 
         if (_keep_ehash)
             rebuild_ehash();
+    }
+
+    void set_concurrent(bool concurrent)
+    {
+        if (concurrent == _concurrent)
+            return;
+
+        _concurrent = concurrent;
+        if (_concurrent)
+        {
+            _idx_stack.clear();
+            while (!_free_idx.empty())
+            {
+                _idx_stack.push(_free_idx.back());
+                _free_idx.pop_back();
+            }
+        }
+        else
+        {
+            Vertex idx = null_vertex();
+            while (_idx_stack.pop(idx))
+                _free_idx.push_back(idx);
+            _idx_stack.clear();
+        }
+    }
+
+    bool get_concurrent()
+    {
+        return _concurrent;
     }
 
     void set_keep_epos(bool keep)
@@ -466,6 +489,14 @@ public:
     bool get_keep_epos()
     {
         return _keep_epos;
+    }
+
+    void reserve_epos(size_t capacity)
+    {
+        if (_keep_epos && _epos.size() < capacity)
+            _epos.resize(capacity);
+        if (_keep_ehash && _ehpos.size() < capacity)
+            _ehpos.resize(capacity);
     }
 
     void set_keep_ehash(bool keep)
@@ -490,9 +521,9 @@ public:
         return _keep_ehash;
     }
 
-    size_t get_edge_index_range() const { return _edge_index_range; }
+    size_t get_edge_index_range() const { return _edge_idx_range; }
 
-    static Vertex null_vertex() { return std::numeric_limits<Vertex>::max(); }
+    static constexpr Vertex null_vertex() { return std::numeric_limits<Vertex>::max(); }
 
     void shrink_to_fit()
     {
@@ -512,23 +543,28 @@ public:
             [](const auto &a, const auto& b) -> bool
             {return a.idx < b.idx;});
 
+        bool concurrent = get_concurrent();
+        set_concurrent(false);
+
         if (iter == erange.second)
-            _edge_index_range = 0;
+            _edge_idx_range = 0;
         else
-            _edge_index_range = iter->idx + 1;
-        auto iter_idx = std::remove_if(_free_indices.begin(),
-                                       _free_indices.end(),
+            _edge_idx_range = iter->idx + 1;
+        auto iter_idx = std::remove_if(_free_idx.begin(),
+                                       _free_idx.end(),
                                        [&](auto idx) -> bool
-                                       {return idx >= _edge_index_range;});
-        _free_indices.erase(iter_idx, _free_indices.end());
-        _free_indices.shrink_to_fit();
+                                       {return idx >= _edge_idx_range;});
+        _free_idx.erase(iter_idx, _free_idx.end());
+        _free_idx.shrink_to_fit();
+
+        set_concurrent(concurrent);
+
         if (_keep_epos)
-            _epos.resize(_edge_index_range);
+            _epos.resize(_edge_idx_range);
         _epos.shrink_to_fit();
         _ehash.shrink_to_fit();
     }
 
-    [[gnu::always_inline]] [[gnu::flatten]]
     void reverse_edge(edge_descriptor& e) const
     {
         auto& elist = _edges[e.s];
@@ -557,25 +593,81 @@ public:
     }
 
 private:
-    vertex_list_t _edges;
-    size_t _n_edges;
-    size_t _edge_index_range;
-    std::vector<size_t> _free_indices; // indices of deleted edges to be used up
-                                       // for new edges to avoid very large
-                                       // indices, and unnecessary property map
-                                       // memory use
-    bool _keep_epos;
+    vertex_list_t _edges;        // adjacency lists
+    size_t _n_edges;             // total number of edges
+    size_t _edge_idx_range;      // next edge index in range
+
+    // indices of deleted edges to be used up for new edges to avoid very large
+    // indices, and unnecessary property map memory use
+    std::vector<size_t> _free_idx;
+
+    // optional concurrent version of the above
+    bool _concurrent = false;
+    lock_free_stack<Vertex> _idx_stack;
+
+    // optional edge positions inside adjacency lists
+    bool _keep_epos = false;
     std::vector<std::pair<uint32_t, uint32_t>> _epos; // out, in
 
-    bool _keep_ehash;
+    // optional hash table with adjacencies
+    bool _keep_ehash = false;
     std::vector<gt_hash_map<Vertex, std::vector<Vertex>>> _ehash;
-    std::vector<uint32_t> _ehpos;
+    std::vector<uint64_t> _ehpos;
+
+    Vertex get_free_idx()
+    {
+        Vertex idx;
+        if (_concurrent)
+        {
+            if (!_idx_stack.pop(idx))
+            {
+                #pragma omp atomic capture
+                idx = _edge_idx_range++;
+            }
+        }
+        else
+        {
+            if (_free_idx.empty())
+            {
+                idx = _edge_idx_range++;
+            }
+            else
+            {
+                idx = _free_idx.back();
+                _free_idx.pop_back();
+            }
+        }
+        return idx;
+    }
+
+    void put_free_index(Vertex idx)
+    {
+        if (_concurrent)
+            _idx_stack.push(idx);
+        else
+            _free_idx.push_back(idx);
+    }
+
+    auto& get_epos(Vertex idx)
+    {
+        return _epos[idx];
+    }
+
+    void set_epos(Vertex idx, const std::pair<size_t, size_t>& epos)
+    {
+        if (idx >= _epos.size())
+            _epos.resize(idx + 1);
+        _epos[idx] = epos;
+    }
 
     void rebuild_epos()
     {
-        _epos.resize(_edge_index_range);
-        for (auto& pes : _edges)
+        _epos.resize(_edge_idx_range);
+
+        #pragma omp parallel for schedule(runtime) if (_edges.size() > get_openmp_min_thresh())
+        for (size_t v = 0; v < _edges.size(); ++v)
         {
+            auto& pes = _edges[v];
             auto pos = pes.first;
             auto& es = pes.second;
             for (size_t j = 0; j < es.size(); ++j)
@@ -613,7 +705,7 @@ private:
     {
         _ehash.clear();
         _ehash.resize(_edges.size());
-        _ehpos.resize(_edge_index_range);
+        _ehpos.resize(_edge_idx_range);
         #pragma omp parallel for schedule(runtime) if (_edges.size() > get_openmp_min_thresh())
         for (size_t v = 0; v < _edges.size(); ++v)
         {
@@ -750,7 +842,7 @@ struct graph_traits<adj_list<Vertex> >
     typedef Vertex edges_size_type;
     typedef size_t degree_size_type;
 
-    static Vertex null_vertex() { return adj_list<Vertex>::null_vertex(); }
+    static constexpr Vertex null_vertex() { return adj_list<Vertex>::null_vertex(); }
 
 private:
     BOOST_STATIC_ASSERT((std::is_convertible<typename std::iterator_traits<out_edge_iterator>::iterator_category,
@@ -766,7 +858,6 @@ struct graph_traits<const adj_list<Vertex> >
     : public graph_traits<adj_list<Vertex> >
 {
 };
-
 
 template <class Vertex>
 struct edge_property_type<adj_list<Vertex> >
@@ -791,7 +882,7 @@ struct graph_property_type<adj_list<Vertex> >
 //========================================================================
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::vertex_iterator,
           typename adj_list<Vertex>::vertex_iterator>
 vertices(const adj_list<Vertex>& g)
@@ -802,7 +893,7 @@ vertices(const adj_list<Vertex>& g)
 
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::edge_iterator,
           typename adj_list<Vertex>::edge_iterator>
 edges(const adj_list<Vertex>& g)
@@ -833,7 +924,7 @@ edges(const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 Vertex vertex(size_t i, const adj_list<Vertex>&)
 {
     return i;
@@ -948,7 +1039,7 @@ void edge_range_iter(Vertex s, Vertex t, const adj_list<Vertex>& g, F&& f)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 size_t out_degree(Vertex v, const adj_list<Vertex>& g)
 {
     const auto& pes = g._edges[v];
@@ -956,7 +1047,7 @@ size_t out_degree(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 size_t in_degree(Vertex v, const adj_list<Vertex>& g)
 {
     const auto& pes = g._edges[v];
@@ -966,14 +1057,14 @@ size_t in_degree(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 size_t degree(Vertex v, const adj_list<Vertex>& g)
 {
     return g._edges[v].second.size();
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::out_edge_iterator,
           typename adj_list<Vertex>::out_edge_iterator>
 out_edges(Vertex v, const adj_list<Vertex>& g)
@@ -986,7 +1077,7 @@ out_edges(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::in_edge_iterator,
           typename adj_list<Vertex>::in_edge_iterator>
 in_edges(Vertex v, const adj_list<Vertex>& g)
@@ -999,7 +1090,7 @@ in_edges(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::out_edge_iterator,
           typename adj_list<Vertex>::out_edge_iterator>
 _all_edges_out(Vertex v, const adj_list<Vertex>& g)
@@ -1011,7 +1102,7 @@ _all_edges_out(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::in_edge_iterator,
           typename adj_list<Vertex>::in_edge_iterator>
 _all_edges_in(Vertex v, const adj_list<Vertex>& g)
@@ -1023,7 +1114,7 @@ _all_edges_in(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::all_edge_iterator,
           typename adj_list<Vertex>::all_edge_iterator>
 all_edges(Vertex v, const adj_list<Vertex>& g)
@@ -1036,7 +1127,7 @@ all_edges(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 out_neighbors(Vertex v, const adj_list<Vertex>& g)
@@ -1049,7 +1140,7 @@ out_neighbors(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 in_neighbors(Vertex v, const adj_list<Vertex>& g)
@@ -1062,7 +1153,7 @@ in_neighbors(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 all_neighbors(Vertex v, const adj_list<Vertex>& g)
@@ -1074,7 +1165,7 @@ all_neighbors(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
@@ -1084,14 +1175,14 @@ adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
 
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 size_t num_vertices(const adj_list<Vertex>& g)
 {
     return g._edges.size();
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 size_t num_edges(const adj_list<Vertex>& g)
 {
     return g._n_edges;
@@ -1103,16 +1194,7 @@ typename std::pair<typename adj_list<Vertex>::edge_descriptor, bool>
 add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
 {
     // get index from free list, if available
-    Vertex idx;
-    if (g._free_indices.empty())
-    {
-        idx = g._edge_index_range++;
-    }
-    else
-    {
-        idx = g._free_indices.back();
-        g._free_indices.pop_back();
-    }
+    Vertex idx = g.get_free_idx();
 
     // put target on back of source's out-list (middle of total list)
     auto& s_pes = g._edges[s];
@@ -1125,7 +1207,7 @@ add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
         s_es.push_back(s_es[s_pos]);
         s_es[s_pos] = {t, idx};
         if (g._keep_epos)
-            g._epos[s_es.back().second].second = s_es.size() - 1;
+            g.get_epos(s_es.back().second).second = s_es.size() - 1;
     }
     else
     {
@@ -1137,18 +1219,12 @@ add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
     auto& t_es = g._edges[t].second;
     t_es.emplace_back(s, idx);
 
+    #pragma omp atomic
     g._n_edges++;
 
     if (g._keep_epos)
     {
-        if (idx >= g._epos.size())
-            g._epos.resize(idx + 1);
-        auto& ei = g._epos[idx];
-        ei.first = s_pos - 1;         // out
-        ei.second = t_es.size() - 1;  // in
-
-        assert(g._edges[s].second[ei.first].first == t);
-        assert(g._edges[t].second[ei.second].first == s);
+        g.set_epos(idx, {s_pos - 1, t_es.size() - 1}); // out, in
         //g.check_epos();
     }
 
@@ -1224,15 +1300,17 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
         };
 
         remove_e(s_es, s_es.begin(), s_es.begin() + s_pos,
-                 [&](size_t i) -> auto& {return g._epos[i].first;}, true);
+                 [&](size_t i) -> auto& {return g.get_epos(i).first;}, true);
         s_pos--;
         remove_e(t_es, t_es.begin() + t_pos, t_es.end(),
-                 [&](size_t i) -> auto& {return g._epos[i].second;}, false);
+                 [&](size_t i) -> auto& {return g.get_epos(i).second;}, false);
 
         //g.check_epos();
     }
 
-    g._free_indices.push_back(idx);
+    g.put_free_index(idx);
+
+    #pragma omp atomic
     g._n_edges--;
 
     if (g._keep_ehash)
@@ -1240,7 +1318,7 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
 }
 
 template <class Vertex>
-[[gnu::always_inline]] [[gnu::flatten]] inline
+inline
 Vertex add_vertex(adj_list<Vertex>& g, size_t n)
 {
     if (n == 1)
@@ -1280,16 +1358,19 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
         for (size_t i = 0; i < es.size(); ++i)
         {
             auto u = es[i].first;
-            if (u == v)
-                continue;
             auto idx = es[i].second;
+            if (u == v)
+            {
+                if (i < pos && pred(mk_out_edge.def(v, es[i])))
+                    g._free_idx.push_back(idx);
+                continue;
+            }
             auto& u_pos = g._edges[u].first;
             auto& u_es = g._edges[u].second;
             if (i < pos)
             {
                 if (!pred(mk_out_edge.def(v, es[i])))
                     continue;
-
                 auto iter =
                     std::remove_if(u_es.begin() + u_pos,
                                    u_es.end(),
@@ -1303,7 +1384,6 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
             {
                 if (!pred(mk_in_edge.def(v, es[i])))
                     continue;
-
                 auto iter = std::remove_if(u_es.begin(),
                                            u_es.begin() + u_pos,
                                            [&](auto& e)
@@ -1313,6 +1393,7 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
                 u_es.erase(iter, u_es.begin() + u_pos);
                 u_pos = iter - u_es.begin();
             }
+            g._free_idx.push_back(idx);
         }
         auto iter =
             std::remove_if(es.begin() + pos, es.end(),
@@ -1361,7 +1442,6 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g)
 {
     clear_vertex(v, g, [](auto&&){ return true; });
 }
-
 
 // O(V + E)
 template <class Vertex>
@@ -1458,7 +1538,7 @@ void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 Vertex source(const typename adj_list<Vertex>::edge_descriptor& e,
               const adj_list<Vertex>&)
 {
@@ -1466,7 +1546,7 @@ Vertex source(const typename adj_list<Vertex>::edge_descriptor& e,
 }
 
 template <class Vertex>
-[[gnu::always_inline]] inline
+inline
 Vertex target(const typename adj_list<Vertex>::edge_descriptor& e,
               const adj_list<Vertex>&)
 {
@@ -1544,7 +1624,6 @@ template <class Vertex>
 struct hash<boost::detail::adj_edge_descriptor<Vertex>>
 {
     template <class Edge>
-    [[gnu::always_inline]]
     std::size_t operator()(Edge const& e) const
     {
         return _h(e.idx);
