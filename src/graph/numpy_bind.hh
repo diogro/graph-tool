@@ -214,8 +214,8 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
 #if PY_VERSION_HEX >= 0x030b00f0
         auto* oname = PyType_GetName(Py_TYPE(points.ptr()));
         boost::python::handle<> x(boost::python::borrowed(oname));
-        boost::python::object dtype(x);
-        std::string type_name = boost::python::extract<std::string>(boost::python::str(dtype));
+        auto dtype = boost::python::str(boost::python::object(x));
+        std::string type_name = boost::python::extract<std::string>(dtype);
         throw InvalidNumpyConversion("not a numpy array! instead: " + type_name);
 #else
         throw InvalidNumpyConversion("not a numpy array!");
