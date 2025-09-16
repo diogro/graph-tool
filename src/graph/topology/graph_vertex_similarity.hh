@@ -187,7 +187,7 @@ void some_pairs_similarity(Graph& g, Vlist& vlist, Slist& slist, Sim&& f,
     #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
         firstprivate(mark)
     parallel_loop_no_spawn
-        (vlist,
+        (make_random_access_adaptor_range(vlist),
          [&](size_t i, const auto& val)
          {
              size_t u = val[0];

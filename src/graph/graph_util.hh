@@ -29,16 +29,17 @@ namespace boost { namespace python { namespace detail {
     }
 } } }
 
+#include <ranges>
+#include <random>
+#include <string>
+
 #include <boost/graph/graph_traits.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
-#include <string>
 
 #include <boost/functional/hash.hpp>
-
-#include <random>
 
 #include "graph_selectors.hh"
 #include "graph_filtered.hh"
@@ -271,17 +272,16 @@ void parallel_edge_loop(const Graph& g, F&& f,
     }
 }
 
-template <class Container, class F, class Except = void>
-void parallel_loop_no_spawn(Container&& v, F&& f,
+template <class Range, class F, class Except = void>
+void parallel_loop_no_spawn(Range&& vals, F&& f,
                             [[maybe_unused]] Except* ex = (void*)(nullptr))
 {
     std::conditional_t<std::is_same_v<Except, void>,
                        int, Except> e;
     bool skip = false;
 
-    size_t N = v.size();
     #pragma omp for schedule(runtime)
-    for (size_t i = 0; i < N; ++i)
+    for (auto&& [i, v] : std::views::enumerate(std::forward<Range>(vals)))
     {
         if constexpr (!std::is_same_v<Except, void>)
         {
@@ -289,16 +289,15 @@ void parallel_loop_no_spawn(Container&& v, F&& f,
                 continue;
         }
 
-
         if constexpr (std::is_same_v<Except, void>)
         {
-            f(i, v[i]);
+            f(i, v);
         }
         else
         {
             try
             {
-                f(i, v[i]);
+                f(i, v);
             }
             catch (const Except& ex)
             {
@@ -316,13 +315,13 @@ void parallel_loop_no_spawn(Container&& v, F&& f,
     }
 }
 
-template <class Container, class F, class Except=void>
-void parallel_loop(Container&& v, F&& f, size_t thres = get_openmp_min_thresh(),
+template <class Range, class F, class Except=void>
+void parallel_loop(Range&& vals, F&& f, size_t thres = get_openmp_min_thresh(),
                    Except* ex = (void*)(nullptr))
 {
-    #pragma omp parallel if (v.size() > thres)
-    parallel_loop_no_spawn<Container, F>(std::forward<Container>(v),
-                                         std::forward<F>(f), ex);
+    #pragma omp parallel if (std::ranges::size(vals) > thres)
+    parallel_loop_no_spawn<Range, F>(std::forward<Range>(vals),
+                                     std::forward<F>(f), ex);
 }
 
 } // namespace graph_tool
@@ -569,6 +568,47 @@ template <class V, class RNG>
 auto random_subset_range(V&& v, size_t M, RNG& rng)
 {
     return random_subset_range(v, v.size(), M, rng);
+}
+
+
+// random acess iterator adaptor; useful for boost::multi_array<>, who insists
+// to predent it's not random access, even though it is.
+
+template <class Iter>
+class random_access_adaptor
+  : public boost::iterator_adaptor<
+      random_access_adaptor<Iter>,         // Derived
+      Iter,                                // Base
+      boost::use_default,                  // Value
+      std::random_access_iterator_tag>     // CategoryOrTraversal
+{
+ public:
+    template <class... Args>
+    random_access_adaptor(Args&&... args)
+        : random_access_adaptor::iterator_adaptor_(std::forward<Args>(args)...) {}
+
+    std::iter_reference_t<random_access_adaptor<Iter>>
+    operator[](auto n) const
+    {
+        return *(*this + n);
+    }
+};
+
+template <class Iter>
+auto make_random_access_adaptor(Iter iter)
+{
+    static_assert(std::random_access_iterator<random_access_adaptor<Iter>>);
+    return random_access_adaptor<Iter>(iter);
+}
+
+template <class Range>
+auto make_random_access_adaptor_range(Range&& range)
+{
+    auto begin = make_random_access_adaptor(std::ranges::begin(range));
+    auto end = make_random_access_adaptor(std::ranges::end(range));
+    auto rg = graph_tool::mk_range(std::make_pair(begin, end));
+    static_assert(std::ranges::random_access_range<decltype(rg)>);
+    return rg;
 }
 
 //
