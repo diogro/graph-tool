@@ -19,7 +19,6 @@
 #define GRAPH_ADAPTOR_HH
 
 #include <boost/config.hpp>
-#include <boost/iterator_adaptors.hpp>
 #include <boost/graph/graph_traits.hpp>
 
 #include "transform_iterator.hh"
