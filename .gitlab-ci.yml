@@ -421,47 +421,6 @@ build_noble_git:
     BASE: ubuntu:noble
     PLATFORM: amd64
 
-build_oracular:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:oracular
-    PLATFORM: amd64
-
-build_oracular_opt2:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:oracular
-    PLATFORM: amd64
-    MARCH: "x86-64-v2"
-
-build_oracular_opt3:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:oracular
-    PLATFORM: amd64
-    MARCH: "x86-64-v3"
-
-build_oracular_opt4:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:oracular
-    PLATFORM: amd64
-    MARCH: "x86-64-v4"
-
-build_oracular_arm:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:oracular
-    PLATFORM: arm64
-    MARCH: "armv8-a"
-  needs: ["build_oracular"]
-
-build_oracular_git:
-  extends: .build_deb_git
-  variables:
-    BASE: ubuntu:oracular
-    PLATFORM: amd64
-
 build_plucky:
   extends: .build_deb
   variables:
