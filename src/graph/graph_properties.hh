@@ -786,6 +786,40 @@ struct is_converted_map<ConvertedPropertyMap<Map, Type>>
 template <class T>
 constexpr inline bool is_converted_map_v = is_converted_map<T>::value;
 
+// Ad hoc property map based on an arbitrary dispatcher (possibly a local lambda function)
+
+template <class Key, class Dispatch>
+class AdHocProp
+    : public boost::put_get_helper<std::decay_t<std::invoke_result_t<Dispatch, Key>>,
+                                   AdHocProp<Key, Dispatch>>
+{
+public:
+    typedef std::decay_t<std::invoke_result_t<Dispatch, Key>> value_type;
+    typedef std::remove_const_t<std::invoke_result_t<Dispatch, Key>> reference;
+    typedef Key key_type;
+    typedef std::conditional_t<std::is_reference_v<reference>,
+                               boost::read_write_property_map_tag,
+                               boost::readable_property_map_tag>
+         category;
+
+    AdHocProp() {}
+    AdHocProp(const Dispatch& d) : _dispatch(d) {}
+
+    decltype(auto) operator[](auto&& k)
+    {
+        return _dispatch(k);
+    }
+
+private:
+    Dispatch _dispatch;
+};
+
+template <class Key, class F>
+auto make_adhoc_prop(F&& f)
+{
+    return AdHocProp<Key, F>(f);
+}
+
 
 } // graph_tool namespace
 
