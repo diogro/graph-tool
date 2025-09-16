@@ -196,7 +196,7 @@ public:
     static vertex_descriptor null_vertex()
     { return Traits::null_vertex(); }
 
-    Graph& original_graph() { return Base::_g; }
+    Graph& original_graph() { return const_cast<Graph&>(Base::_g); }
     const Graph& original_graph() const { return Base::_g; }
 
     //private:

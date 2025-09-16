@@ -30,6 +30,7 @@
 #include <shared_mutex>
 
 #include <boost/python/object.hpp>
+#include <boost/scope/scope_exit.hpp>
 
 namespace graph_tool
 {
@@ -100,6 +101,70 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                 return w1 + w2;
         };
 
+    parallel = (parallel &&
+                (num_vertices(g) > get_openmp_min_thresh()) &&
+                (get_num_threads() > 1));
+
+    base_graph(ug).set_concurrent(parallel);
+    auto lguard = boost::scope::make_scope_exit([&](){ base_graph(ug).set_concurrent(false); });
+
+    if (parallel)
+    {
+        if constexpr (is_weighted)
+        {
+            ueweight.resize(eweight.get_storage().size());
+            base_graph(ug).reserve_epos(eweight.get_storage().size() + get_num_threads());
+        }
+        else
+        {
+            base_graph(ug).reserve_epos(num_edges(g) + get_num_threads());
+        }
+    }
+
+    std::vector<std::shared_mutex> vmutex(parallel ? num_vertices(ug) : 0);
+
+    auto lock
+        = [&]<class shared>(shared, size_t u, size_t v, auto&& f)
+          {
+              if (parallel)
+              {
+                  if constexpr (shared::value)
+                  {
+                      if (u == v)
+                      {
+                          std::shared_lock slock(vmutex[u]);
+                          f();
+                      }
+                      else
+                      {
+                          std::shared_lock slock_u(vmutex[u], std::defer_lock_t());
+                          std::shared_lock slock_v(vmutex[v], std::defer_lock_t());
+                          std::scoped_lock slock(slock_u, slock_v);
+                          f();
+                      }
+                  }
+                  else
+                  {
+                      if (u == v)
+                      {
+                          std::unique_lock slock(vmutex[u]);
+                          f();
+                      }
+                      else
+                      {
+                          std::unique_lock ulock_u(vmutex[u], std::defer_lock_t());
+                          std::unique_lock ulock_v(vmutex[v], std::defer_lock_t());
+                          std::scoped_lock ulock(ulock_u, ulock_v);
+                          f();
+                      }
+                  }
+              }
+              else
+              {
+                  f();
+              }
+          };
+
     if (multiset)
     {
         for (auto e : edges_range(g))
@@ -116,41 +181,10 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
     }
     else
     {
-        std::shared_mutex mutex;
-        std::vector<std::mutex> vmutex(is_vindex ? 0 : num_vertices(ug));
-        std::vector<edge_t> res;
-        gt_hash_set<edge_t> res_set;
-
         idx_set<size_t> self_loops;
         auto eindex = get(edge_index, g);
 
-        parallel = (parallel &&
-                    (num_vertices(g) > get_openmp_min_thresh()) &&
-                    (get_num_threads() > 1));
-
-        auto lock
-            = [&](auto&& f, bool shared)
-              {
-                  if (parallel)
-                  {
-                      if (shared)
-                      {
-                          std::shared_lock slock(mutex);
-                          f();
-                      }
-                      else
-                      {
-                          std::unique_lock slock(mutex);
-                          f();
-                      }
-                  }
-                  else
-                  {
-                      f();
-                  }
-              };
-
-        #pragma omp parallel if (parallel) firstprivate(self_loops, res, res_set)
+        #pragma omp parallel if (parallel) firstprivate(self_loops)
         parallel_vertex_loop_no_spawn
             (g,
              [&](auto s)
@@ -210,139 +244,88 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
 
                      size_t t_u = get(vmap, t);
 
-                     if (!is_vindex && parallel)
-                     {
-                         if (s_u != t_u)
-                             std::lock(vmutex[s_u], vmutex[t_u]);
-                         else
-                             vmutex[s_u].lock();
-                     }
-
                      std::decay_t<decltype(ueweight[e])> w1 = 0;
                      edge_t ge;
                      bool exists = false;
 
-                     if (simple)
-                     {
-                         lock([&]()
-                              {
-                                  std::tie(ge, exists) = edge(s_u, t_u, ug);
-                                  if (exists)
-                                      w1 = ueweight[ge];
-                              }, true);
-                     }
-                     else
-                     {
-                         lock([&]()
-                              {
-                                  edge_range_iter
-                                      (s_u, t_u, ug,
-                                       [&](const auto& ge_)
-                                       {
-                                           w1 += ueweight[ge_];
-                                           if (ge == edge_t())
-                                           {
-                                               ge = ge_;
-                                               exists = true;
-                                           }
-                                       });
-                              }, true);
-                     }
-
-                     auto w = compose_weight(w1, w2);
-
-                     if (w > 0)
-                     {
-                         if (exists)
+                     auto get_ge =
+                         [&]()
                          {
-                             if constexpr (is_weighted)
-                             {
-                                 lock([&]()
-                                      {
-                                          #pragma omp atomic
-                                          ueweight[ge] += w;
-                                      }, true);
-                             }
-                         }
-                         else
-                         {
-                             lock([&]()
-                                  {
-                                      ge = add_edge(s_u, t_u, ug).first;
-                                      if constexpr (is_weighted)
-                                          ueweight.get_checked()[ge] = w;
-                                  }, false);
-                         }
-                         emap[e] = ge;
-                     }
-                     else
-                     {
-                         if (exists)
-                         {
+                             w1 = 0;
                              if (simple)
                              {
-                                 auto iter = res_set.find(ge);
-                                 if (iter == res_set.end())
-                                 {
-                                     res_set.insert(ge);
-                                     res.push_back(ge);
-                                 }
+                                 std::tie(ge, exists) = edge(s_u, t_u, ug);
+                                 if (exists)
+                                     w1 = ueweight[ge];
                              }
                              else
                              {
-                                 lock([&]()
+                                 w1 = 0;
+                                 edge_range_iter
+                                     (s_u, t_u, ug,
+                                      [&](const auto& ge_)
                                       {
-                                          edge_range_iter(s_u, t_u, ug,
-                                                          [&](const auto& ge_)
-                                                          {
-                                                              auto iter = res_set.find(ge_);
-                                                              if (iter != res_set.end())
-                                                                  return;
-                                                              res_set.insert(ge_);
-                                                              res.push_back(ge_);
-                                                          });
-                                      }, true);
+                                          w1 += ueweight[ge_];
+                                          if (ge == edge_t())
+                                          {
+                                              ge = ge_;
+                                              exists = true;
+                                          }
+                                      });
                              }
-                         }
-                         emap[e] = edge_t();
+                         };
+
+                     lock(std::true_type(), s_u, t_u, get_ge);
+
+                     if (!exists)
+                     {
+                         lock(std::false_type(),
+                              s_u, t_u,
+                              [&]()
+                              {
+                                   get_ge(); // re-check to avoid race
+                                   if (!exists)
+                                   {
+                                       ge = add_edge(s_u, t_u, ug).first;
+                                       if constexpr (is_weighted)
+                                           ueweight[ge] = 0;
+                                   }
+                              });
                      }
 
-                     if (!is_vindex && parallel)
+                     if constexpr (is_weighted)
                      {
-                         vmutex[s_u].unlock();
-                         if (t_u != s_u)
-                             vmutex[t_u].unlock();
+                         auto w = compose_weight(w1, w2);
+                         ueweight[ge] += w;
                      }
                  }
+             });
 
-                 if (!res.empty())
+        parallel_vertex_loop
+            (ug,
+             [&](auto s)
+             {
+                 std::vector<edge_t> res;
+                 lock(std::true_type(), s, s,
+                      [&]()
+                      {
+                          for (auto ge : out_edges_range(s, ug))
+                          {
+                              if (!is_directed(ug) && target(ge, ug) < s)
+                                  continue;
+                              if (ueweight[ge] <= 0)
+                                  res.push_back(ge);
+                          }
+                      });
+
+                 for (auto ge : res)
                  {
-                     std::unique_lock lock(mutex);
-                     for (auto e : res)
-                     {
-                         bool exists = false;
-                         if (simple)
-                         {
-                             exists = edge(source(e, ug), target(e, ug), ug).second;
-                         }
-                         else
-                         {
-                             edge_range_iter(source(e, ug), target(e, ug), ug,
-                                             [&](const auto& ge_)
-                                             {
-                                                 if (e == ge_)
-                                                 {
-                                                     exists = true;
-                                                     return false;
-                                                 }
-                                                 return true;
-                                             });
-                         }
-                         if (exists)
-                             remove_edge(e, ug);
-                     }
-                     res.clear();
-                     res_set.clear();
+                     lock(std::false_type(),
+                          source(ge, ug), target(ge, ug),
+                          [&]()
+                          {
+                              remove_edge(ge, ug);
+                          });
                  }
              });
 
@@ -366,84 +349,93 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
         {
             auto eindex = get(edge_index, ug);
             #pragma omp parallel if (num_vertices(ug) > get_openmp_min_thresh()) \
-                firstprivate(self_loops, res)
+                firstprivate(self_loops)
             parallel_vertex_loop_no_spawn
                 (ug,
                  [&](auto s)
                  {
-                     std::shared_lock slock(mutex);
                      std::vector<edge_t> res;
 
                      if (!is_directed(g))
                          self_loops.clear();
 
-                     for (auto e : out_edges_range(s, ug))
-                     {
-                         auto t = target(e, ug);
+                     lock(std::true_type(), s, s,
+                          [&]()
+                          {
+                              for (auto e : out_edges_range(s, ug))
+                              {
+                                  auto t = target(e, ug);
+                                  std::shared_lock tlock(vmutex[t]);
 
-                         if (!is_directed_v<UnionGraph>)
-                         {
-                             if (s > t)
-                                 continue;
-                             if (t == s)
-                             {
-                                 auto iter = self_loops.find(eindex[e]);
-                                 if (iter != self_loops.end())
-                                     continue;
-                                 self_loops.insert(eindex[e]);
-                             }
-                         }
+                                  if (!is_directed_v<UnionGraph>)
+                                  {
+                                      if (s > t)
+                                          continue;
+                                      if (t == s)
+                                      {
+                                          auto iter = self_loops.find(eindex[e]);
+                                          if (iter != self_loops.end())
+                                              continue;
+                                          self_loops.insert(eindex[e]);
+                                      }
+                                  }
 
-                         if (edge(s, t, g).second)
-                             continue;
+                                  if (edge(s, t, g).second)
+                                      continue;
 
-                         std::decay_t<decltype(ueweight[e])> w1 = 0;
+                                  std::decay_t<decltype(ueweight[e])> w1 = 0;
 
-                         if (simple)
-                         {
-                             w1 = ueweight[e];
-                         }
-                         else
-                         {
-                             bool first = true;
-                             bool skip = false;
-                             edge_range_iter(s, t, ug,
-                                             [&](const auto& ge)
-                                             {
-                                                 if (first && ge != e)
-                                                 {
-                                                     skip = true;
-                                                     return false;
-                                                 }
-                                                 first = false;
-                                                 w1 += ueweight[ge];
-                                                 return true;
-                                             });
-                             if (skip)
-                                 continue;
-                         }
+                                  if (simple)
+                                  {
+                                      w1 = ueweight[e];
+                                  }
+                                  else
+                                  {
+                                      bool first = true;
+                                      bool skip = false;
+                                      edge_range_iter(s, t, ug,
+                                                      [&](const auto& ge)
+                                                      {
+                                                          if (first && ge != e)
+                                                          {
+                                                              skip = true;
+                                                              return false;
+                                                          }
+                                                          first = false;
+                                                          w1 += ueweight[ge];
+                                                          return true;
+                                                      });
+                                      if (skip)
+                                          continue;
+                                  }
 
-                         auto w = compose_weight(w1, 0);
+                                  auto w = compose_weight(w1, 0);
 
-                         if (w <= 0)
-                         {
-                             if (simple)
-                                 res.push_back(e);
-                             else
-                                 edge_range_iter(s, t, ug,
-                                                 [&](const auto& ge)
-                                                 {
-                                                     res.push_back(ge);
-                                                 });
-                         }
-                     }
+                                  if (w <= 0)
+                                  {
+                                      if (simple)
+                                          res.push_back(e);
+                                      else
+                                          edge_range_iter(s, t, ug,
+                                                          [&](const auto& ge)
+                                                          {
+                                                              res.push_back(ge);
+                                                          });
+                                  }
+                              }
+                          });
 
                      if (!res.empty())
                      {
-                         slock.unlock();
-                         std::unique_lock lock(mutex);
                          for (auto e : res)
-                             remove_edge(e, ug);
+                         {
+                             lock(std::false_type(),
+                                  source(e, ug), target(e, ug),
+                                  [&]()
+                                  {
+                                      remove_edge(e, ug);
+                                  });
+                         }
                      }
                  });
         }
