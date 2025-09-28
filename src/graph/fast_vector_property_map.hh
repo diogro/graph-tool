@@ -60,14 +60,17 @@ public:
     typedef IndexMap index_map_t;
     typedef checked_vector_property_map<T,IndexMap> self_t;
 
-    checked_vector_property_map(const IndexMap& idx = IndexMap())
-        : _store(std::make_shared<std::vector<T>>()), _index(idx) {}
+    template <class... As>
+    checked_vector_property_map(const IndexMap& idx = IndexMap(), As&&... as)
+        : _store(std::make_shared<std::vector<T>>(std::forward<As>(as)...)),
+          _index(idx) {}
 
-    checked_vector_property_map(const IndexMap& idx, size_t initial_size)
-        : _store(std::make_shared<std::vector<T>>(initial_size)), _index(idx) {}
+    template <class... As>
+    checked_vector_property_map(size_t size, As&&... as)
+        : _store(std::make_shared<std::vector<T>>(size, std::forward<As>(as)...)),
+          _index(IndexMap()) {}
 
-    checked_vector_property_map(size_t initial_size)
-        : _store(std::make_shared<std::vector<T>>(initial_size)), _index(IndexMap()) {}
+    checked_vector_property_map(const checked_vector_property_map&) = default;
 
     typename std::vector<T>::iterator storage_begin()
     {
@@ -89,15 +92,17 @@ public:
         return _store->end();
     }
 
-    void reserve(size_t size) const
+    template <class... As>
+    void reserve(size_t size, As&&... as) const
     {
         if (size > _store->size())
-            _store->resize(size);
+            _store->resize(size, std::forward<As>(as)...);
     }
 
-    void resize(size_t size) const
+    template <class... As>
+    void resize(size_t size, As&&... as) const
     {
-        _store->resize(size);
+        _store->resize(size, std::forward<As>(as)...);
     }
 
     void shrink_to_fit() const
@@ -205,6 +210,8 @@ public:
         : checked_t(std::forward<Ts>(as)...)
     {}
 
+    unchecked_vector_property_map(const unchecked_vector_property_map&) = default;
+
     typename std::vector<T>::iterator storage_begin()
     {
         return checked_t::_store->begin();
@@ -225,8 +232,12 @@ public:
         return checked_t::_store->end();
     }
 
-    void reserve(size_t size) const { checked_t::reserve(size); }
-    void resize(size_t size) const { checked_t::resize(size); }
+    template <class... As>
+    void reserve(As&&... as) const { checked_t::reserve(std::forward<As>(as)...); }
+
+    template <class... As>
+    void resize(As&&... as) const { checked_t::resize(std::forward<As>(as)...); }
+
     void shrink_to_fit() const { checked_t::shrink_to_fit(); }
 
     [[gnu::always_inline]] [[gnu::flatten]]
