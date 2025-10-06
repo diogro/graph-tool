@@ -71,6 +71,7 @@ public:
           _index(IndexMap()) {}
 
     checked_vector_property_map(const checked_vector_property_map&) = default;
+    checked_vector_property_map& operator=(const checked_vector_property_map&) = default;
 
     typename std::vector<T>::iterator storage_begin()
     {
@@ -211,6 +212,7 @@ public:
     {}
 
     unchecked_vector_property_map(const unchecked_vector_property_map&) = default;
+    unchecked_vector_property_map& operator=(const unchecked_vector_property_map&) = default;
 
     typename std::vector<T>::iterator storage_begin()
     {
