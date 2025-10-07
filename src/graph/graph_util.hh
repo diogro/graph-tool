@@ -272,6 +272,19 @@ void parallel_edge_loop(const Graph& g, F&& f,
     }
 }
 
+#ifdef _LIBCPP_VERSION
+/// work around libc++ poor C++23 support
+template <class R>
+inline auto enumerate(R&& rg)
+{
+    return std::views::zip(std::views::iota(size_t(0),
+                                            size_t(std::ranges::size(rg))),
+                           std::forward<R>(rg));
+}
+#else
+using std::views::enumerate;
+#endif
+
 template <class Range, class F, class Except = void>
 void parallel_loop_no_spawn(Range&& vals, F&& f,
                             [[maybe_unused]] Except* ex = (void*)(nullptr))
@@ -281,7 +294,7 @@ void parallel_loop_no_spawn(Range&& vals, F&& f,
     bool skip = false;
 
     #pragma omp for schedule(runtime)
-    for (auto&& [i, v] : std::views::enumerate(std::forward<Range>(vals)))
+    for (auto&& [i, v] : enumerate(std::forward<Range>(vals)))
     {
         if constexpr (!std::is_same_v<Except, void>)
         {
