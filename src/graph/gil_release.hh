@@ -20,6 +20,8 @@
 
 #include <boost/python.hpp>
 
+#pragma GCC visibility push(default)
+
 namespace graph_tool
 {
 
@@ -51,5 +53,7 @@ private:
 };
 
 } //graph_tool namespace
+
+#pragma GCC visibility pop
 
 #endif

@@ -21,11 +21,15 @@
 
 #include PYCAIRO_HEADER
 
+#pragma GCC visibility push(default)
+
 extern "C"
 PyObject* gt_PycairoContext_FromContext(cairo_t *ctx, PyTypeObject *type,
                                         PyObject *base)
 {
     return PycairoContext_FromContext(ctx, type, base);
 }
+
+#pragma GCC visibility pop
 
 #endif // HAVE_CAIROMM

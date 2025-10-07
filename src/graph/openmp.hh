@@ -25,6 +25,8 @@
 # include <omp.h>
 #endif
 
+#pragma GCC visibility push(default)
+
 #ifndef _OPENMP
 constexpr
 #endif
@@ -51,5 +53,7 @@ inline int get_thread_num()
 
 size_t get_openmp_min_thresh();
 void set_openmp_min_thresh(size_t);
+
+#pragma GCC visibility pop
 
 #endif // OPENMP_HH

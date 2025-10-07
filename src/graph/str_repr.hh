@@ -22,6 +22,8 @@
 #include <sstream>
 #include <boost/lexical_cast.hpp>
 
+#pragma GCC visibility push(default)
+
 //
 // Data type string representation
 // ===============================
@@ -197,5 +199,7 @@ istream& operator>>(istream& in, std::vector<std::string>& vec)
 }
 
 } // std namespace
+
+#pragma GCC visibility pop
 
 #endif // STR_REPR_HH

@@ -22,6 +22,8 @@
 #ifdef _OPENMP
 # include <omp.h>
 
+#pragma GCC visibility push(default)
+
 class openmp_mutex
 {
 public:
@@ -62,5 +64,7 @@ private:
     void operator=(const openmp_scoped_lock&);
     openmp_scoped_lock(const openmp_scoped_lock&);
  };
+
+#pragma GCC visibility pop
 
 #endif // OPENMP_lOCK_HH

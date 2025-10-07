@@ -20,6 +20,8 @@
 #include "config.h"
 #include <string>
 
+#pragma GCC visibility push(default)
+
 // Exceptions
 // ==========
 //
@@ -54,5 +56,7 @@ public:
 };
 
 } // namespace graph_tool
+
+#pragma GCC visibility pop
 
 #endif // GRAPH_EXCEPTIONS_HH

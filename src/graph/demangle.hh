@@ -20,6 +20,7 @@
 
 #include <string>
 
+__attribute__ ((visibility("default")))
 std::string name_demangle(std::string name);
 
 #endif // DEMANGLE_HH

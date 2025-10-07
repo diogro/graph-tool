@@ -20,6 +20,8 @@
 
 #include "pcg_random.hpp"
 
+#pragma GCC visibility push(default)
+
 //typedef std::mt19937_64 rng_t;
 typedef pcg64_k1024 rng_t;
 
@@ -27,5 +29,7 @@ rng_t& get_rng();
 size_t get_rng_stream();
 
 void seed_rng(size_t seed);
+
+#pragma GCC visibility pop
 
 #endif

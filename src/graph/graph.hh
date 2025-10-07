@@ -44,6 +44,8 @@ using std::iterator_traits;
 
 #include "openmp.hh"
 
+#pragma GCC visibility push(default)
+
 namespace graph_tool
 
 {
@@ -186,6 +188,8 @@ private:
     edge_filter_t _edge_filter_map;
     bool _edge_filter_active;
 };
+
+#pragma GCC visibility pop
 
 } //namespace graph_tool
 

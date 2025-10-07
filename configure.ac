@@ -62,7 +62,7 @@ dnl disable deprecation warning, to silence some harmless BGL-related warnings
 [CXXFLAGS="-Wno-deprecated ${CXXFLAGS}"]
 
 dnl set default visibility
-[CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
+[CXXFLAGS="-fvisibility=hidden -fvisibility-inlines-hidden -fno-semantic-interposition ${CXXFLAGS}"]
 
 dnl Enforce -O3. It makes a substantial difference, e.g. 12x speed improvement
 dnl over -O2 in benchmarks.

@@ -22,6 +22,8 @@
 #include <boost/python.hpp>
 
 // numpy unique symbol weirdness
+#pragma GCC visibility push(default)
+
 #define PY_ARRAY_UNIQUE_SYMBOL graph_tool_numpy
 #ifndef NUMPY_EXPORT
 #define NO_IMPORT_ARRAY
@@ -30,6 +32,8 @@
 #define NPY_API_SYMBOL_ATTRIBUTE // avoid link error with numpy >= 2.1
 #include "numpy/ndarrayobject.h"
 #include "npy_2_compat.h"
+
+#pragma GCC visibility pop
 
 #include <boost/array.hpp>
 #define BOOST_DISABLE_ASSERTS
