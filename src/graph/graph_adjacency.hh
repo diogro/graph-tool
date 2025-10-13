@@ -1554,27 +1554,4 @@ struct hash<boost::detail::adj_edge_descriptor<Vertex>>
 
 } // namespace std
 
-// for hash_map_wrap.hh
-
-template <class Vertex>
-struct empty_key<boost::detail::adj_edge_descriptor<Vertex>>
-{
-    static boost::detail::adj_edge_descriptor<Vertex> get()
-    {
-        return boost::detail::adj_edge_descriptor<Vertex>();
-    }
-};
-
-template <class Vertex>
-struct deleted_key<boost::detail::adj_edge_descriptor<Vertex>>
-{
-    static boost::detail::adj_edge_descriptor<Vertex> get()
-    {
-        boost::detail::adj_edge_descriptor<Vertex> e;
-        e.idx--;
-        return e;
-    }
-};
-
-
 #endif //GRAPH_ADJACENCY_HH

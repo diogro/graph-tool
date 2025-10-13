@@ -30,31 +30,6 @@
 #include <boost/container/static_vector.hpp>
 #include <boost/math/special_functions/zeta.hpp>
 
-template <class T, size_t D>
-struct empty_key<boost::container::static_vector<T,D>>
-{
-    static boost::container::static_vector<T,D> get()
-    {
-        boost::container::static_vector<T,D> x(D);
-        for (size_t i = 0; i < D; ++i)
-            x[i] = empty_key<T>::get();
-        return x;
-    }
-};
-
-template <class T, size_t D>
-struct deleted_key<boost::container::static_vector<T,D>>
-{
-    static boost::container::static_vector<T,D> get()
-    {
-        boost::container::static_vector<T,D> x(D);
-        for (size_t i = 0; i < D; ++i)
-            x[i] = deleted_key<T>::get();
-        return x;
-    }
-};
-
-
 namespace std
 {
 template <class Value, size_t D>

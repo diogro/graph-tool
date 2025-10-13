@@ -25,12 +25,6 @@
 using namespace std;
 using namespace graph_tool;
 
-struct empty_object
-{};
-
-struct deleted_object
-{};
-
 namespace std
 {
 template <>
@@ -42,42 +36,6 @@ struct hash<boost::python::object>
     }
 };
 }
-
-template <>
-struct empty_key<boost::python::object>
-{
-    static boost::python::object get()
-    {
-        return boost::python::object(empty_object());
-    }
-};
-
-template <>
-struct empty_key<std::string>
-{
-    static std::string get()
-    {
-        return "___gt__empty___";
-    }
-};
-
-template <>
-struct deleted_key<boost::python::object>
-{
-    static boost::python::object get()
-    {
-        return boost::python::object(deleted_object());
-    }
-};
-
-template <>
-struct deleted_key<std::string>
-{
-    static std::string get()
-    {
-        return "___gt__deleted___";
-    }
-};
 
 pair<double,double>
 assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
@@ -146,7 +104,4 @@ REGISTER_MOD
  {
      def("assortativity_coefficient", &assortativity_coefficient);
      def("scalar_assortativity_coefficient", &scalar_assortativity_coefficient);
-
-     class_<empty_object>("empty_object");
-     class_<deleted_object>("deleted_object");
  });

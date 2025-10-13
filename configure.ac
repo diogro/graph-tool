@@ -23,9 +23,6 @@ AM_INIT_AUTOMAKE([foreign subdir-objects tar-pax])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([config.h])
 
-# bundled packages
-AC_CONFIG_SUBDIRS([bundled/sparsehash])
-
 AC_USE_SYSTEM_EXTENSIONS
 AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_CXX
@@ -345,7 +342,7 @@ AC_DEFINE([BOOST_BIND_GLOBAL_PLACEHOLDERS], [1], [Suppress Boost warning])
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
                          [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} ${NUMPY_CPPFLAGS}],
+                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS}],
                          [])
 
 AC_CONFIG_FILES([
@@ -387,7 +384,6 @@ echo -e "$(color 3)Python LD flags:        $(color 4)${PYTHON_LIBS}$(reset)"
 echo -e "$(color 3)Boost CPP flags:        $(color 4)${BOOST_CPPFLAGS}$(reset)"
 echo -e "$(color 3)Boost LD flags:         $(color 4)${BOOST_LIBS}$(reset)"
 echo -e "$(color 3)Numpy CPP flags:        $(color 4)${NUMPY_CPPFLAGS}$(reset)"
-echo -e "$(color 3)Sparsehash CPP flags:   $(color 4)${SPARSEHASH_CFLAGS}$(reset)"
 echo -e "$(color 3)CGAL CPP flags:         $(color 4)${CGAL_CPPFLAGS}$(reset)"
 echo -e "$(color 3)CGAL LD flags:          $(color 4)${CGAL_LDFLAGS}$(reset)"
 echo -e "$(color 3)Expat CPP flags:        $(color 4)${EXPAT_CFLAGS}$(reset)"

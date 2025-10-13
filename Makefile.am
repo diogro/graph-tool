@@ -1,9 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# Build the bundled packages first
-SUBDIRS = bundled/sparsehash
-
-AM_CPPFLAGS = $(MOD_CPPFLAGS) -I$(top_srcdir)/bundled/sparsehash/src -I$(top_builddir)/bundled/sparsehash/src
+AM_CPPFLAGS = $(MOD_CPPFLAGS)
 
 AM_CFLAGS = $(AM_CXXFLAGS)
 

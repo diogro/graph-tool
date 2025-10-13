@@ -42,29 +42,6 @@ struct hash<boost::container::small_vector<Value, N>>
 };
 }
 
-template <class Value, size_t N>
-struct empty_key<boost::container::small_vector<Value, N>>
-{
-    static boost::container::small_vector<Value, N> get()
-    {
-        boost::container::small_vector<Value, N> key(1);
-        key[0] = empty_key<Value>::get();
-        return key;
-    }
-};
-
-template <class Value, size_t N>
-struct deleted_key<boost::container::small_vector<Value, N>>
-{
-    static boost::container::small_vector<Value, N> get()
-    {
-        boost::container::small_vector<Value, N> key(1);
-        key[0] = deleted_key<Value>::get();
-        return key;
-    }
-};
-
-
 namespace graph_tool
 {
 
