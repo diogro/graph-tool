@@ -277,7 +277,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
 
                      lock(std::true_type(), s_u, t_u, get_ge);
 
-                     if (!exists)
+                     if (!exists && (is_weighted || compose_weight(w1, w2) > 0))
                      {
                          lock(std::false_type(),
                               s_u, t_u,
@@ -291,43 +291,62 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                                            ueweight[ge] = 0;
                                    }
                               });
+                         exists = true;
                      }
 
-                     if constexpr (is_weighted)
+                     if (exists)
                      {
                          auto w = compose_weight(w1, w2);
-                         ueweight[ge] += w;
+                         if constexpr (is_weighted)
+                         {
+                             if (diff || sym_diff)
+                                 ueweight[ge] = w;
+                             else
+                                 ueweight[ge] += w;
+                         }
+                         else if (w == 0)
+                         {
+                             lock(std::false_type(),
+                                  s_u, t_u,
+                                  [&]()
+                                  {
+                                      remove_edge(ge, ug);
+                                  });
+                         }
                      }
                  }
              });
 
-        parallel_vertex_loop
-            (ug,
-             [&](auto s)
-             {
-                 std::vector<edge_t> res;
-                 lock(std::true_type(), s, s,
-                      [&]()
-                      {
-                          for (auto ge : out_edges_range(s, ug))
-                          {
-                              if (!is_directed(ug) && target(ge, ug) < s)
-                                  continue;
-                              if (ueweight[ge] <= 0)
-                                  res.push_back(ge);
-                          }
-                      });
-
-                 for (auto ge : res)
+        if constexpr (is_weighted)
+        {
+            parallel_vertex_loop
+                (ug,
+                 [&](auto s)
                  {
-                     lock(std::false_type(),
-                          source(ge, ug), target(ge, ug),
+                     gt_hash_set<edge_t> res;
+                     lock(std::true_type(), s, s,
                           [&]()
                           {
-                              remove_edge(ge, ug);
+                              for (auto ge : out_edges_range(s, ug))
+                              {
+                                  if (!is_directed(ug) && target(ge, ug) < s)
+                                      continue;
+                                  if (ueweight[ge] <= 0)
+                                      res.insert(ge);
+                              }
                           });
-                 }
-             });
+
+                     for (auto ge : res)
+                     {
+                         lock(std::false_type(),
+                              source(ge, ug), target(ge, ug),
+                              [&]()
+                              {
+                                  remove_edge(ge, ug);
+                              });
+                     }
+                 });
+        }
 
         if (!simple)
         {
