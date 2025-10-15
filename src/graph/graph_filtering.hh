@@ -36,6 +36,8 @@ using namespace hana::literals;
 #include <type_traits>
 #include <iostream>
 
+#pragma GCC visibility push(default)
+
 namespace graph_tool
 {
 
@@ -479,5 +481,7 @@ bool is_valid_vertex(Vertex v, const Graph& g)
 }
 
 } // namespace boost
+
+#pragma GCC visibility pop
 
 #endif // FILTERING_HH

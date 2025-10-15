@@ -370,11 +370,15 @@ void check_pmap_is_convertible(ToSeq to_seq, const std::any& prop, std::string n
 // Convert property maps
 // =====================
 
+#pragma GCC visibility push(default)
+
 std::any prop_map_as(std::any amap, std::any atgt, bool copy=false);
 std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
 std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
 std::any vprop_map_as_dvelem(std::any amap, std::any atgt);
 std::any eprop_map_as_dvelem(std::any amap, std::any atgt);
+
+#pragma GCC visibility pop
 
 //
 // Extra Property Map Types
