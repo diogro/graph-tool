@@ -1613,24 +1613,29 @@ get(edge_index_t, const adj_list<Vertex>&)
     return adj_edge_index_property_map<Vertex>();
 }
 
-} // namespace boost
-
 // hashing of edge descriptors
+
+namespace detail
+{
+template <class Vertex>
+size_t hash_value(const adj_edge_descriptor<Vertex>& e)
+{
+    return e.idx;
+}
+} // namespace detail
+} // namespace boost
 
 namespace std
 {
-
 template <class Vertex>
 struct hash<boost::detail::adj_edge_descriptor<Vertex>>
 {
     template <class Edge>
     std::size_t operator()(Edge const& e) const
     {
-        return _h(e.idx);
+        return boost::detail::hash_value(e);
     }
-    std::hash<Vertex> _h;
 };
-
-} // namespace std
+}  // namespace std
 
 #endif //GRAPH_ADJACENCY_HH
