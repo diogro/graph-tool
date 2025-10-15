@@ -1687,12 +1687,15 @@ class GraphArtist(matplotlib.artist.Artist):
             ctx.save()
             cp = cp.copy()
             for e in self.g.edges():
+                if e.source() == e.target():
+                    continue
                 s = self.pos[e.source()].a
                 t = self.pos[e.target()].a
                 a = np.arctan2(t[1] - s[1],
                                t[0] - s[0])
                 l = np.sqrt((t[1] - s[1]) ** 2 +
                             (t[0] - s[0]) ** 2)
+
                 c = cp[e]
                 for i in range(len(c) // 2):
                     x = c.a[i*2:(i+1)*2]
@@ -1706,6 +1709,7 @@ class GraphArtist(matplotlib.artist.Artist):
 
                 s = pos[e.source()].a
                 t = pos[e.target()].a
+
                 a = np.arctan2(t[1] - s[1],
                                t[0] - s[0])
                 l = np.sqrt((t[1] - s[1]) ** 2 +
@@ -1719,6 +1723,18 @@ class GraphArtist(matplotlib.artist.Artist):
                     ctx.translate(-s[0], -s[1])
                     x = ctx.user_to_device(x[0], x[1])
                     c.a[i*2:(i+1)*2] = x
+
+            self_loops = label_self_loops(self.g, mark_only=True)
+            if self_loops.fa.max() > 0:
+                parallel_distance = vprops.get("size")
+                if isinstance(parallel_distance, PropertyMap):
+                    parallel_distance = parallel_distance.fa.mean()
+                cts_p = position_parallel_edges(self.g, pos, numpy.nan,
+                                                parallel_distance)
+                gu = GraphView(self.g, efilt=self_loops)
+                for e in gu.edges():
+                    cp[e] = cts_p[e]
+
             ctx.restore()
             eprops["control_points"] = cp
 
