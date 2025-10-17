@@ -1282,7 +1282,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             M = k
         else:
             M = k * self.g.num_vertices()
-        M = max((int(round(M)), 1))
+        M = int(round(M))
         if max_rk is None:
             max_rk = g.num_vertices()
         elif max_rk == "k":
