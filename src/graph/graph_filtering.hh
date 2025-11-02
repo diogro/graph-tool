@@ -35,6 +35,7 @@ using namespace hana::literals;
 
 #include <type_traits>
 #include <iostream>
+#include <print>
 
 #pragma GCC visibility push(default)
 
@@ -100,7 +101,10 @@ struct same_arg_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T x) { return x; }
+    constexpr static auto get(T)
+    {
+        return hana::type_c<typename T::type>;
+    }
 };
 constexpr inline auto same_arg_type = hana::tuple_t<same_arg_t>;
 
@@ -108,9 +112,9 @@ struct vprop_same_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T)
+    constexpr static auto get(T)
     {
-        return hana::type<vprop_map_t<typename T::type::value_type>>();
+        return hana::type_c<vprop_map_t<typename T::type::value_type>>;
     }
 };
 constexpr inline auto vprop_same_type = hana::tuple_t<vprop_same_t>;
@@ -119,9 +123,9 @@ struct eprop_same_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T)
+    constexpr static auto get(T)
     {
-        return hana::type<eprop_map_t<typename T::type::value_type>>();
+        return hana::type_c<eprop_map_t<typename T::type::value_type>>;
     }
 };
 
@@ -131,10 +135,10 @@ struct dynamic_prop_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T)
+    constexpr static auto get(T)
     {
-        return hana::type<DynamicPropertyMapWrap<typename T::type::value_type,
-                                                 typename T::type::key_type>>();
+        return hana::type_c<DynamicPropertyMapWrap<typename T::type::value_type,
+                                                   typename T::type::key_type>>;
     }
 };
 
@@ -144,15 +148,15 @@ struct velem_dprop_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T)
+    constexpr static auto get(T)
     {
         typedef typename T::type::value_type val_t;
         if constexpr (std::is_same_v<val_t, boost::python::object>)
-            return hana::type<DynamicPropertyMapWrap<typename T::type::value_type,
-                                                     typename T::type::key_type>>();
+            return hana::type_c<DynamicPropertyMapWrap<typename T::type::value_type,
+                                                       typename T::type::key_type>>;
         else
-            return hana::type<DynamicPropertyMapWrap<typename T::type::value_type::value_type,
-                                                     typename T::type::key_type>>();
+            return hana::type_c<DynamicPropertyMapWrap<typename T::type::value_type::value_type,
+                                                       typename T::type::key_type>>;
     }
 };
 
@@ -162,13 +166,13 @@ struct velem_vprop_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T)
+    constexpr static auto get(T)
     {
         typedef typename T::type::value_type val_t;
         if constexpr (std::is_same_v<val_t, boost::python::object>)
-            return hana::type<vprop_map_t<typename T::type::value_type>>();
+            return hana::type_c<vprop_map_t<typename T::type::value_type>>;
         else
-            return hana::type<vprop_map_t<typename T::type::value_type::value_type>>();
+            return hana::type_c<vprop_map_t<typename T::type::value_type::value_type>>;
     }
 };
 
@@ -178,17 +182,31 @@ struct velem_eprop_t
     : public type_func_t
 {
     template <class T>
-    static auto get(T)
+    constexpr static auto get(T)
     {
         typedef typename T::type::value_type val_t;
         if constexpr (std::is_same_v<val_t, boost::python::object>)
-            return hana::type<eprop_map_t<typename T::type::value_type>>();
+            return hana::type_c<eprop_map_t<typename T::type::value_type>>;
         else
-            return hana::type<eprop_map_t<typename T::type::value_type::value_type>>();
+            return hana::type_c<eprop_map_t<typename T::type::value_type::value_type>>;
     }
 };
 
 constexpr inline auto velem_eprop_type = hana::tuple_t<velem_eprop_t>;
+
+auto args_sub(auto args)
+{
+    return hana::fold
+        (args, hana::tuple(),
+         [](auto xs, auto x)
+         {
+             typedef typename decltype(+x)::type x_t;
+             if constexpr (std::is_base_of_v<type_func_t, x_t>)
+                 return hana::append(xs, x_t::get(hana::back(xs)));
+             else
+                 return hana::append(xs, x);
+         });
+}
 
 template <bool uncheck=true>
 struct gt_dispatch
@@ -228,17 +246,7 @@ struct gt_dispatch
                             if (found)
                                 return;
 
-                            auto fats
-                                = hana::fold
-                                (ats, hana::tuple(),
-                                 [](auto xs, auto x)
-                                 {
-                                     typedef typename decltype(+x)::type x_t;
-                                     if constexpr (std::is_base_of_v<type_func_t, x_t>)
-                                         return hana::append(xs, x_t::get(hana::back(xs)));
-                                     else
-                                         return hana::append(xs, x);
-                                 });
+                            auto fats = args_sub(ats);
 
                             bool fail = false;
 
@@ -441,7 +449,7 @@ struct run_action
 // Access underlying base graph
 
 template <class Graph>
-auto&& base_graph(Graph&& g)
+decltype(auto) base_graph(Graph&& g)
 {
     if constexpr (is_instance_of_v<std::decay_t<Graph>, boost::adj_list>)
         return g;
