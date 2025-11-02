@@ -18,13 +18,14 @@
 #include "demangle.hh"
 #include <cxxabi.h>
 #include <cstdlib>
+#include <format>
 
 std::string name_demangle(std::string name)
 {
     int status = 0;
     char *realname = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
     if (status != 0)
-        return name + " (cannot demangle symbol)";
+        return std::format("{} (cannot demangle symbol, error: {})", name, status);
     std::string ret(realname);
     std::free(realname);
     return ret;
