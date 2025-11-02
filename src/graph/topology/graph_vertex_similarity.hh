@@ -126,9 +126,9 @@ double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g
        if (mark[target(e, g)] > 0)
        {
            if (is_directed(g))
-               count += dw / log(in_degreeS()(target(e, g), g, weight));
+               count += dw / log(in_degree(target(e, g), g, weight));
            else
-               count += dw / log(out_degreeS()(target(e, g), g, weight));
+               count += dw / log(out_degree(target(e, g), g, weight));
        }
        mark[target(e, g)] -= dw;
     }
@@ -150,9 +150,9 @@ double r_allocation(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
        if (mark[target(e, g)] > 0)
        {
            if (is_directed(g))
-               count += dw / double(in_degreeS()(target(e, g), g, weight));
+               count += dw / double(in_degree(target(e, g), g, weight));
            else
-               count += dw / double(out_degreeS()(target(e, g), g, weight));
+               count += dw / double(out_degree(target(e, g), g, weight));
        }
        mark[target(e, g)] -= dw;
     }

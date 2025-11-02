@@ -231,7 +231,7 @@ bool graph_cmp(Graph& g1, Graph& g2)
     {
         if (out_degree(*v1, g1) != out_degree(*v2, g2))
             return false;
-        if (in_degreeS()(*v1, g1) != in_degreeS()(*v2, g2))
+        if (in_degree(*v1, g1) != in_degree(*v2, g2))
             return false;
 
         std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> out1, out2;
@@ -273,7 +273,7 @@ void get_sig(Graph& g, std::vector<size_t>& sig)
         auto v = vertex(i, g);
         sig[i] = out_degree(v, g);
         if(is_directed(g))
-            sig[i + N] = in_degreeS()(v, g);
+            sig[i + N] = in_degree(v, g);
     }
     sort(sig.begin(), sig.end());
 }

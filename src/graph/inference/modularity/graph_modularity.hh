@@ -82,7 +82,7 @@ public:
         for (auto v : vertices_range(_g))
         {
             auto r = _b[v];
-            _er[r] += out_degreeS()(v, _g, _eweight);
+            _er[r] += out_degree(v, _g, _eweight);
             _wr[r]++;
         }
 

@@ -201,7 +201,7 @@ public:
     block_t get_block(typename graph_traits<Graph>::vertex_descriptor v,
                       const Graph& g) const
     {
-        return make_pair(in_degreeS()(v, g), out_degree(v, g));
+        return make_pair(in_degree(v, g), out_degree(v, g));
     }
 };
 

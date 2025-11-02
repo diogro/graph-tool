@@ -44,7 +44,7 @@ struct get_pagerank
         std::vector<size_t> sinks;
         for (auto v : vertices_range(g))
         {
-            auto k = out_degreeS()(v, g, weight);
+            auto k = out_degree(v, g, weight);
             put(deg, v, k);
             if (k == 0)
                 sinks.push_back(v);

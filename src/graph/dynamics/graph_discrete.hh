@@ -455,7 +455,7 @@ public:
         int32_t t;
         if (is_directed(g))
         {
-            if (in_degreeS()(v, g) == 0)
+            if (in_degree(v, g) == 0)
                 t = s;
             else
                 t = _s[random_in_neighbor(v, g, rng)];
@@ -784,7 +784,7 @@ public:
         for (auto v : vertices_range(g))
         {
             auto k = (is_directed(g)) ?
-                in_degreeS()(v, g) : out_degree(v, g);
+                in_degree(v, g) : out_degree(v, g);
             if (_f.shape()[0] < k || _f.shape()[1] < k)
                 throw ValueException("f matrix should have dimensions at least as large as the largest (in-)degree");
             if (_r.shape()[0] < k || _r.shape()[1] < k)
@@ -983,7 +983,7 @@ public:
         size_t w;
         if (is_directed(g))
         {
-            if (in_degreeS()(v, g) == 0)
+            if (in_degree(v, g) == 0)
                 return 0;
             w = random_in_neighbor(v, g, rng);
         }
@@ -1044,7 +1044,7 @@ public:
         for (auto v : vertices_range(g))
         {
             auto& f_v = _f[v];
-            size_t k = (is_directed(g)) ? in_degreeS()(v, g) : out_degree(v, g);
+            size_t k = (is_directed(g)) ? in_degree(v, g) : out_degree(v, g);
             size_t M = 1 << k;
             for (size_t pos = f_v.size(); pos < M; ++pos)
                 f_v.push_back(random(rng));

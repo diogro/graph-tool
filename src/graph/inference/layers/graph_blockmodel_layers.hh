@@ -1168,7 +1168,7 @@ struct Layers
 
                     auto& state = _layers[l];
 
-                    assert(state._vweight[u] > 0 || total_degreeS()(u, state._g, state._eweight) == 0);
+                    assert(state._vweight[u] > 0 || total_degree(u, state._g, state._eweight) == 0);
 
                     if (state._vweight[u] == 0)
                         continue;

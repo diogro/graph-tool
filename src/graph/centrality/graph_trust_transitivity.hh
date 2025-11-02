@@ -151,7 +151,7 @@ struct get_trust_transitivity
                 // compute the targets weights
                 try
                 {
-                    size_t k = in_degreeS()(tgt, g);
+                    size_t k = in_degree(tgt, g);
                     source_counter<source_map_t,dist_map_t>
                         visitor(source_map, dist_map, k);
                     dijkstra_shortest_paths(fg, src, weight_map(c).

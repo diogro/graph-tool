@@ -136,9 +136,22 @@ struct in_degreeS
     auto get_in_degree(const typename boost::graph_traits<Graph>::vertex_descriptor&,
                        const Graph&, std::false_type, Weight&&)  const
     {
-        return 0;
+        if constexpr (std::is_same_v<std::decay_t<Weight>, detail::no_weightS>)
+        {
+            return 0;
+        }
+        else
+        {
+            typedef typename boost::property_traits<std::decay_t<Weight>>::value_type val_t;
+            return val_t();
+        }
     }
 };
+
+auto in_degree(auto v, const auto& g, const auto& ew)
+{
+    return in_degreeS()(v, g, ew);
+}
 
 struct out_degreeS
 {
@@ -202,6 +215,11 @@ struct out_degreeS
     }
 };
 
+auto out_degree(auto v, const auto& g, const auto& ew)
+{
+    return out_degreeS()(v, g, ew);
+}
+
 struct total_degreeS
 {
     typedef size_t value_type;
@@ -246,6 +264,15 @@ struct total_degreeS
     }
 };
 
+auto total_degree(auto v, const auto& g, const auto& ew)
+{
+    return total_degreeS()(v, g, ew);
+}
+
+auto total_degree(auto v, const auto& g)
+{
+    return total_degreeS()(v, g);
+}
 
 template <class PropertyMap>
 struct scalarS

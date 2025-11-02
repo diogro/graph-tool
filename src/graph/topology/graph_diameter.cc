@@ -45,10 +45,10 @@ public:
         typename graph_traits<Graph>::vertex_descriptor v = target(e,g);
         size_t dist = _dist_map[source(e,g)] + 1;
         if ((dist > _max_dist) ||
-            (dist == _max_dist && total_degreeS()(v, g) <= _min_k))
+            (dist == _max_dist && total_degree(v, g) <= _min_k))
         {
             _max_dist = dist;
-            _min_k = total_degreeS()(v, g);
+            _min_k = total_degree(v, g);
             _v = v;
         }
         _dist_map[v] = dist;
@@ -76,10 +76,10 @@ public:
                         Graph& g)
     {
         if ((_dist_map[v] > _max_dist) ||
-            (_dist_map[v] == _max_dist && total_degreeS()(v, g) <= _min_k))
+            (_dist_map[v] == _max_dist && total_degree(v, g) <= _min_k))
         {
             _max_dist = _dist_map[v];
-            _min_k = total_degreeS()(v, g);
+            _min_k = total_degree(v, g);
             _v = v;
         }
     }

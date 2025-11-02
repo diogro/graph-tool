@@ -43,7 +43,7 @@ size_t
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
            const UnityPropertyMap<Type,GraphInterface::edge_t>&)
 {
-    return out_degreeS()(v, g);
+    return out_degree(v, g);
 }
 
 struct get_transition

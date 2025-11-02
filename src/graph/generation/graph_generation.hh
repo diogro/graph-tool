@@ -391,7 +391,7 @@ struct cmp_out
 template <class Graph>
 pair<size_t, size_t> get_deg(dvertex_t& v, Graph& g)
 {
-    return make_pair(v.in_degree - in_degreeS()(vertex(v.index, g), g),
+    return make_pair(v.in_degree - in_degree(vertex(v.index, g), g),
                      v.out_degree - out_degree(vertex(v.index, g), g));
 }
 
@@ -617,7 +617,7 @@ struct gen_graph
             {
                 deg_t dseq = make_pair(vertices[i].in_degree,
                                        vertices[i].out_degree);
-                deg_t deg = make_pair(in_degreeS()(vertex(i, g), g),
+                deg_t deg = make_pair(in_degree(vertex(i, g), g),
                                       out_degree(vertex(i, g), g));
                 if (deg != dseq)
                     throw GraphException("Graph does not match the desired "
