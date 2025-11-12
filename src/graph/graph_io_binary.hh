@@ -33,7 +33,7 @@ constexpr const uint8_t _version = 1;
 
 // deal with endianness
 
-inline constexpr bool is_bigendian()
+constexpr bool is_bigendian()
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return false;
@@ -284,8 +284,7 @@ struct vertex_range_traits
 
 
     template <class Graph>
-    IterRange<typename boost::graph_traits<Graph>::vertex_iterator>
-    static get_range(Graph& g) { return vertices_range(g); }
+    static auto get_range(Graph& g) { return vertices_range(g); }
 
     static property_type get_property_id() { return property_type::Vertex; }
 };
@@ -298,8 +297,7 @@ struct edge_range_traits
 
 
     template <class Graph>
-    IterRange<typename boost::graph_traits<Graph>::edge_iterator>
-    static get_range(Graph& g) { return edges_range(g); }
+    static auto get_range(Graph& g) { return edges_range(g); }
 
     static property_type get_property_id() { return property_type::Edge; }
 };

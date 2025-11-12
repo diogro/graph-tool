@@ -358,14 +358,14 @@ struct property_map<const reversed_graph<Graph>, Tag>
 };
 
 template <class Graph, class Tag>
-inline auto
+auto
 get(Tag t, reversed_graph<Graph>& g)
 {
     return get(t, g.original_graph());
 }
 
 template <class Graph, class Tag>
-inline auto
+auto
 get(Tag t, const reversed_graph<Graph>& g)
 {
     return get(t, g.original_graph());

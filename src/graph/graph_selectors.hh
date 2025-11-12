@@ -74,7 +74,6 @@ struct in_degreeS
     in_degreeS() {}
 
     template <class Graph>
-    [[gnu::always_inline]] inline
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g) const
     {
@@ -82,7 +81,6 @@ struct in_degreeS
     }
 
     template <class Graph, class Weight>
-    [[gnu::always_inline]] inline
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g, Weight&& weight) const
     {
@@ -93,7 +91,6 @@ struct in_degreeS
     }
 
     template <class Graph>
-    [[gnu::always_inline]] inline
     auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                        const Graph& g, std::true_type,
                        detail::no_weightS) const
@@ -102,7 +99,6 @@ struct in_degreeS
     }
 
     template <class Graph, class Key, class Value>
-    [[gnu::always_inline]] inline
     auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                        const Graph& g, std::true_type,
                        const ConstantPropertyMap<Value, Key>& weight) const
@@ -111,7 +107,6 @@ struct in_degreeS
     }
 
     template <class Graph, class Key, class Value>
-    [[gnu::always_inline]] inline
     auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                        const Graph& g, std::true_type,
                        const UnityPropertyMap<Value, Key>&) const
@@ -132,7 +127,6 @@ struct in_degreeS
     }
 
     template <class Graph, class Weight>
-    [[gnu::always_inline]] inline
     auto get_in_degree(const typename boost::graph_traits<Graph>::vertex_descriptor&,
                        const Graph&, std::false_type, Weight&&)  const
     {
@@ -160,7 +154,6 @@ struct out_degreeS
     out_degreeS() {}
 
     template <class Graph>
-    [[gnu::always_inline]] inline
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g) const
     {
@@ -168,7 +161,6 @@ struct out_degreeS
     }
 
     template <class Graph, class Weight>
-    [[gnu::always_inline]] inline
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g, Weight&& weight) const
     {
@@ -176,7 +168,6 @@ struct out_degreeS
     }
 
     template <class Graph, class Key, class Value>
-    [[gnu::always_inline]] inline
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g,
                         const ConstantPropertyMap<Value, Key>& weight) const
@@ -185,7 +176,6 @@ struct out_degreeS
     }
 
     template <class Graph, class Key, class Value>
-    [[gnu::always_inline]] inline
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g,
                         const UnityPropertyMap<Value, Key>&) const
@@ -194,7 +184,6 @@ struct out_degreeS
     }
 
     template <class Graph, class Weight>
-    inline
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g, const Weight& weight) const
     {
@@ -207,7 +196,6 @@ struct out_degreeS
     }
 
     template <class Graph>
-    [[gnu::always_inline]] inline
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g, detail::no_weightS) const
     {
@@ -226,16 +214,14 @@ struct total_degreeS
 
     total_degreeS() {}
     template <class Graph>
-    [[gnu::always_inline]] inline
-    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+        auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g) const
     {
         return total_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Weight>
-    [[gnu::always_inline]] inline
-    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+        auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g, Weight&& weight) const
     {
         typedef typename std::is_convertible
@@ -246,8 +232,7 @@ struct total_degreeS
     }
 
     template <class Graph, class Weight>
-    [[gnu::always_inline]] inline
-    auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+        auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                           const Graph& g, std::true_type,
                           Weight&& weight) const
     {
@@ -256,8 +241,7 @@ struct total_degreeS
     }
 
     template <class Graph, class Weight>
-    [[gnu::always_inline]] inline
-    auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+        auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                           const Graph& g, std::false_type, Weight&& weight) const
     {
         return out_degreeS()(v, g, std::forward<Weight>(weight));
@@ -283,7 +267,6 @@ struct scalarS
     scalarS(PropertyMap pmap): _pmap(pmap) {}
 
     template <class Descriptor, class Graph>
-    [[gnu::always_inline]] inline
     auto operator()(const Descriptor& d, const Graph&) const
     {
         return get(_pmap, d);
@@ -314,8 +297,7 @@ struct get_degree_selector
 struct get_scalar_selector
 {
     template <class PropertyMap>
-    void operator()(PropertyMap, std::any prop, std::any& sec, bool& found)
-        const
+    void operator()(PropertyMap, std::any prop, std::any& sec, bool& found) const
     {
         try
         {
@@ -360,8 +342,8 @@ struct get_in_edges
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
+
     typedef typename boost::graph_traits<Graph>::in_edge_iterator type;
-    [[gnu::always_inline]] inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -377,8 +359,8 @@ struct get_in_edges<Graph,std::false_type>
                       boost::undirected_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
+
     typedef typename boost::graph_traits<Graph>::out_edge_iterator type;
-    [[gnu::always_inline]] inline
     static std::pair<type,type> get_edges(vertex_descriptor,
                                           const Graph&)
     {
@@ -400,7 +382,7 @@ struct in_edge_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -413,7 +395,7 @@ struct _all_edges_in_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::vertex_descriptor vertex_descriptor;
     typedef typename boost::graph_traits<Graph>::in_edge_iterator type;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -429,7 +411,7 @@ struct out_edge_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -447,7 +429,7 @@ struct all_edges_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    [[gnu::always_inline]] inline
+
     static std::pair<type, type> get_edges(vertex_descriptor v, const Graph& g)
     {
         return all_edges(v, g);
@@ -479,7 +461,7 @@ struct get_in_neighbors
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
     typedef typename Graph::in_adjacency_iterator type;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_neighbors(vertex_descriptor v,
                                               const Graph& g)
     {
@@ -496,9 +478,9 @@ struct get_in_neighbors<Graph,std::false_type>
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
     typedef typename boost::graph_traits<Graph>::adjacency_iterator type;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_neighbors(vertex_descriptor,
-                                               const Graph&)
+                                              const Graph&)
     {
         return make_pair(type(), type());
     }
@@ -518,9 +500,9 @@ struct in_neighbor_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_neighbors(vertex_descriptor v,
-                                               const Graph& g)
+                                              const Graph& g)
     {
         return get_in_neighbors<Graph,is_directed>::get_neighbors(v, g);
     }
@@ -534,9 +516,9 @@ struct out_neighbor_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_neighbors(vertex_descriptor v,
-                                               const Graph& g)
+                                              const Graph& g)
     {
         return out_neighbors(v, g);
     }
@@ -552,9 +534,9 @@ struct all_neighbors_iteratorS
     typedef typename boost::graph_traits<Graph>::adjacency_iterator type;
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    [[gnu::always_inline]] inline
+
     static std::pair<type,type> get_neighbors(vertex_descriptor v,
-                                               const Graph& g)
+                                              const Graph& g)
     {
         return all_neighbors(v, g);
     }
@@ -580,7 +562,7 @@ class IterRange
 {
 public:
     explicit IterRange(std::pair<Iter, Iter>&& range)
-        : _range(std::forward<std::pair<Iter, Iter>>(range)) {}
+        : _range(std::move(range)) {}
     const Iter& begin() { return _range.first; }
     const Iter& end() { return _range.second; }
 private:
@@ -588,28 +570,24 @@ private:
 };
 
 template <class Iter>
-[[gnu::always_inline]] inline
 auto mk_range(std::pair<Iter, Iter>&& range)
 {
     return IterRange<Iter>(std::forward<std::pair<Iter, Iter>>(range));
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto vertices_range(const Graph& g)
 {
     return mk_range(vertices(g));
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto edges_range(const Graph& g)
 {
     return mk_range(edges(g));
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
                              const Graph& g)
 {
@@ -617,7 +595,6 @@ auto adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descrip
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
                      const Graph& g)
 {
@@ -625,16 +602,14 @@ auto out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto out_neighbors_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                          const Graph& g)
+                         const Graph& g)
 {
     return mk_range(out_neighbors(v, g));
 }
 
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
                     const Graph& g)
 {
@@ -642,16 +617,14 @@ auto in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto in_neighbors_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                         const Graph& g)
+                        const Graph& g)
 {
     return mk_range(in_neighbors(v, g));
 }
 
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
                      const Graph& g)
 {
@@ -659,15 +632,13 @@ auto all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto all_neighbors_range(typename all_neighbors_iteratorS<Graph>::vertex_descriptor v,
-                          const Graph& g)
+                         const Graph& g)
 {
     return mk_range(all_neighbors(v, g));
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
                            const Graph& g)
 {
@@ -675,9 +646,8 @@ auto in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_desc
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto in_or_out_neighbors_range(typename in_or_out_neighbors_iteratorS<Graph>::vertex_descriptor v,
-                                const Graph& g)
+                               const Graph& g)
 {
     return mk_range(in_or_out_neighbors_iteratorS<Graph>::get_neighbors(v, g));
 }

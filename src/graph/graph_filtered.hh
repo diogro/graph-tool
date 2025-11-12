@@ -247,35 +247,34 @@ struct graph_bundle_type<filt_graph<Graph, EdgePredicate,
 
 // Helper functions
 template <typename Graph, typename EdgePredicate>
-inline filt_graph<Graph, EdgePredicate>
+filt_graph<Graph, EdgePredicate>
 make_filt_graph(Graph& g, EdgePredicate ep)
 {
     return filt_graph<Graph, EdgePredicate>(g, ep);
 }
 template <typename Graph, typename EdgePredicate, typename VertexPredicate>
-inline filt_graph<Graph, EdgePredicate, VertexPredicate>
+filt_graph<Graph, EdgePredicate, VertexPredicate>
 make_filt_graph(Graph& g, EdgePredicate ep, VertexPredicate vp)
 {
     return filt_graph<Graph, EdgePredicate, VertexPredicate>(g, ep, vp);
 }
 
 template <typename Graph, typename EdgePredicate>
-inline filt_graph<const Graph, EdgePredicate>
+filt_graph<const Graph, EdgePredicate>
 make_filt_graph(const Graph& g, EdgePredicate ep)
 {
     return filt_graph<const Graph, EdgePredicate>(g, ep);
 }
 template <typename Graph, typename EdgePredicate, typename VertexPredicate>
-inline filt_graph<const Graph, EdgePredicate, VertexPredicate>
+filt_graph<const Graph, EdgePredicate, VertexPredicate>
 make_filt_graph(const Graph& g, EdgePredicate ep, VertexPredicate vp)
 {
     return filt_graph<const Graph, EdgePredicate, VertexPredicate>(g, ep, vp);
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] inline
 std::pair<typename filt_graph<G, EP, VP>::vertex_iterator,
-        typename filt_graph<G, EP, VP>::vertex_iterator>
+          typename filt_graph<G, EP, VP>::vertex_iterator>
 vertices(const filt_graph<G, EP, VP>& g)
 {
     typedef filt_graph<G, EP, VP> Graph;
@@ -287,9 +286,8 @@ vertices(const filt_graph<G, EP, VP>& g)
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] inline
 std::pair<typename filt_graph<G, EP, VP>::edge_iterator,
-        typename filt_graph<G, EP, VP>::edge_iterator>
+          typename filt_graph<G, EP, VP>::edge_iterator>
 edges(const filt_graph<G, EP, VP>& g)
 {
     typedef filt_graph<G, EP, VP> Graph;
@@ -314,7 +312,6 @@ edges(const filt_graph<G, EP, VP>& g)
 // assert(std::distance(vi, viend) == num_vertices(g));
 
 template <typename G, typename EP, typename VP>
-inline
 typename filt_graph<G, EP, VP>::vertices_size_type
 num_vertices(const filt_graph<G, EP, VP>& g)
 {
@@ -322,7 +319,6 @@ num_vertices(const filt_graph<G, EP, VP>& g)
 }
 
 template <typename G, typename EP, typename VP>
-inline
 typename filt_graph<G, EP, VP>::edges_size_type
 num_edges(const filt_graph<G, EP, VP>& g)
 {
@@ -330,7 +326,6 @@ num_edges(const filt_graph<G, EP, VP>& g)
 }
 
 template <class G, class EP, class VP>
-inline
 typename filt_graph_base<G>::vertex_descriptor
 vertex(size_t i, const filt_graph<G,EP,VP>& g)
 {
@@ -342,7 +337,6 @@ vertex(size_t i, const filt_graph<G,EP,VP>& g)
 }
 
 template <typename G>
-inline
 typename filt_graph_base<G>::vertex_descriptor
 source(const typename filt_graph_base<G>::edge_descriptor& e,
        const filt_graph_base<G>& g)
@@ -351,7 +345,6 @@ source(const typename filt_graph_base<G>::edge_descriptor& e,
 }
 
 template <typename G>
-inline
 typename filt_graph_base<G>::vertex_descriptor
 target(const typename filt_graph_base<G>::edge_descriptor& e,
        const filt_graph_base<G>& g)
@@ -360,7 +353,6 @@ target(const typename filt_graph_base<G>::edge_descriptor& e,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::out_edge_iterator,
           typename filt_graph<G, EP, VP>::out_edge_iterator>
 out_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -374,7 +366,6 @@ out_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::out_edge_iterator,
           typename filt_graph<G, EP, VP>::out_edge_iterator>
 _all_edges_out(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -388,7 +379,6 @@ _all_edges_out(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-inline
 typename filt_graph<G, EP, VP>::degree_size_type
 out_degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
            const filt_graph<G, EP, VP>& g)
@@ -401,7 +391,6 @@ out_degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-inline
 typename filt_graph<G, EP, VP>::degree_size_type
 degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
        const filt_graph<G, EP, VP>& g)
@@ -410,7 +399,6 @@ degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::adjacency_iterator,
           typename filt_graph<G, EP, VP>::adjacency_iterator>
 out_neighbors(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -424,7 +412,6 @@ out_neighbors(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::in_adjacency_iterator,
           typename filt_graph<G, EP, VP>::in_adjacency_iterator>
 in_neighbors(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -438,7 +425,6 @@ in_neighbors(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::adjacency_iterator,
           typename filt_graph<G, EP, VP>::adjacency_iterator>
 all_neighbors(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -452,7 +438,6 @@ all_neighbors(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::adjacency_iterator,
           typename filt_graph<G, EP, VP>::adjacency_iterator>
 adjacent_vertices(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -462,7 +447,6 @@ adjacent_vertices(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::in_edge_iterator,
         typename filt_graph<G, EP, VP>::in_edge_iterator>
 in_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -476,7 +460,6 @@ in_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::in_edge_iterator,
         typename filt_graph<G, EP, VP>::in_edge_iterator>
 _all_edges_in(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -490,7 +473,6 @@ _all_edges_in(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-inline
 typename filt_graph<G, EP, VP>::degree_size_type
 in_degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
           const filt_graph<G, EP, VP>& g)
@@ -503,7 +485,6 @@ in_degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 std::pair<typename filt_graph<G, EP, VP>::all_edge_iterator,
           typename filt_graph<G, EP, VP>::all_edge_iterator>
 all_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -517,7 +498,6 @@ all_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 
 
 template <typename G, typename EP, typename VP>
-inline
 std::pair<typename filt_graph<G, EP, VP>::edge_descriptor, bool>
 edge(typename filt_graph<G, EP, VP>::vertex_descriptor u,
      typename filt_graph<G, EP, VP>::vertex_descriptor v,
@@ -561,7 +541,6 @@ void edge_range_iter(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 
 
 template <typename G, typename EP, typename VP>
-[[gnu::always_inline]] inline
 std::pair<typename filt_graph<G, EP, VP>::out_edge_iterator,
           typename filt_graph<G, EP, VP>::out_edge_iterator>
 edge_range(typename filt_graph<G, EP, VP>::vertex_descriptor u,
@@ -577,7 +556,6 @@ edge_range(typename filt_graph<G, EP, VP>::vertex_descriptor u,
 }
 
 template <class G, class EP, class VP>
-inline
 std::pair<typename graph_traits
             <filt_graph<G,EP,VP>>::edge_descriptor, bool>
 add_edge(typename graph_traits
@@ -593,7 +571,7 @@ add_edge(typename graph_traits
 }
 
 template <class G, class EP, class VP, class Pred>
-inline void
+void
 clear_vertex(typename boost::graph_traits
              <filt_graph<G,EP,VP>>::vertex_descriptor v,
              filt_graph<G,EP,VP>& g, Pred&& pred)
@@ -606,7 +584,7 @@ clear_vertex(typename boost::graph_traits
 }
 
 template <class G, class EP, class VP>
-inline void
+void
 clear_vertex(typename boost::graph_traits
                  <filt_graph<G,EP,VP>>::vertex_descriptor v,
              filt_graph<G,EP,VP>& g)
@@ -615,7 +593,6 @@ clear_vertex(typename boost::graph_traits
 }
 
 template <class G, class EP, class VP>
-inline
 void remove_edge(const typename boost::graph_traits
                    <filt_graph<G,EP,VP>>::edge_descriptor& e,
                  filt_graph<G,EP,VP>& g)
@@ -624,7 +601,6 @@ void remove_edge(const typename boost::graph_traits
 }
 
 template <class G, class EP, class VP>
-inline
 void remove_vertex(typename boost::graph_traits
                      <filt_graph<G,EP,VP>>::vertex_descriptor v,
                   filt_graph<G,EP,VP>& g)
@@ -635,7 +611,6 @@ void remove_vertex(typename boost::graph_traits
 }
 
 template <class G, class EP, class VP>
-inline
 void remove_vertex_fast(typename boost::graph_traits
                           <filt_graph<G,EP,VP>>::vertex_descriptor v,
                        filt_graph<G,EP,VP>& g)
@@ -646,7 +621,6 @@ void remove_vertex_fast(typename boost::graph_traits
 }
 
 template <class G, class EP, class VP>
-inline
 typename boost::graph_traits<filt_graph<G,EP,VP>>::vertex_descriptor
 add_vertex(filt_graph<G,EP,VP>& g, size_t n = 1)
 {
@@ -667,7 +641,6 @@ struct property_map<filt_graph<G, EP, VP>, Property>
     : property_map<G, Property> {};
 
 template <typename G, typename EP, typename VP, typename Property>
-inline
 typename property_map<G, Property>::type
 get(Property p, filt_graph<G, EP, VP>& g)
 {
@@ -675,7 +648,6 @@ get(Property p, filt_graph<G, EP, VP>& g)
 }
 
 template <typename G, typename EP, typename VP,typename Property>
-inline
 typename property_map<G, Property>::const_type
 get(Property p, const filt_graph<G, EP, VP>& g)
 {
@@ -684,19 +656,15 @@ get(Property p, const filt_graph<G, EP, VP>& g)
 
 template <typename G, typename EP, typename VP, typename Property,
           typename Key>
-inline
-auto&&
-get(Property p, const filt_graph<G, EP, VP>& g, const Key& k)
+auto&& get(Property p, const filt_graph<G, EP, VP>& g, const Key& k)
 {
     return get(p, (const G&)g._g, k);
 }
 
 template <typename G, typename EP, typename VP, typename Property,
           typename Key, typename Value>
-inline
-void
-put(Property p, const filt_graph<G, EP, VP>& g, const Key& k,
-    const Value& val)
+void put(Property p, const filt_graph<G, EP, VP>& g, const Key& k,
+         const Value& val)
 {
     put(p, const_cast<G&>(g._g), k, val);
 }

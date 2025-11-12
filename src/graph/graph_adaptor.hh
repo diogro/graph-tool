@@ -91,7 +91,7 @@ struct graph_traits<const undirected_adaptor<Graph>>
 // source(e,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] [[gnu::pure]] inline
+[[gnu::pure]]
 auto
 source(const typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor& e,
        const undirected_adaptor<Graph>& g)
@@ -103,7 +103,7 @@ source(const typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor&
 // target(e,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] [[gnu::pure]] inline
+[[gnu::pure]]
 auto
 target(const typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor& e,
        const undirected_adaptor<Graph>& g)
@@ -115,7 +115,7 @@ target(const typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor&
 // vertex(n,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] [[gnu::pure]] inline
+[[gnu::pure]]
 auto
 vertex(typename graph_traits<undirected_adaptor<Graph> >::vertices_size_type n,
        const undirected_adaptor<Graph>& g)
@@ -127,7 +127,6 @@ vertex(typename graph_traits<undirected_adaptor<Graph> >::vertices_size_type n,
 // vertices(g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 vertices(const undirected_adaptor<Graph>& g)
 {
@@ -138,7 +137,6 @@ vertices(const undirected_adaptor<Graph>& g)
 // edges(g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 edges(const undirected_adaptor<Graph>& g)
 {
@@ -149,7 +147,6 @@ edges(const undirected_adaptor<Graph>& g)
 // edge(u, v, g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 auto
 edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
      typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor v,
@@ -201,7 +198,6 @@ void edge_range_iter(Vertex s, Vertex t, const undirected_adaptor<Graph>& g, F&&
 // out_edges(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 out_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
           const undirected_adaptor<Graph>& g)
@@ -210,7 +206,6 @@ out_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 _all_edges_out(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
                const undirected_adaptor<Graph>& g)
@@ -222,7 +217,6 @@ _all_edges_out(typename graph_traits<undirected_adaptor<Graph>>::vertex_descript
 // in_edges(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 in_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor,
          const undirected_adaptor<Graph>&)
@@ -233,7 +227,6 @@ in_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor,
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 _all_edges_in(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
                const undirected_adaptor<Graph>& g)
@@ -242,7 +235,6 @@ _all_edges_in(typename graph_traits<undirected_adaptor<Graph>>::vertex_descripto
 }
 
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 all_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
           const undirected_adaptor<Graph>& g)
@@ -254,7 +246,6 @@ all_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
 // out_neighbors(u, g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 out_neighbors(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                const undirected_adaptor<Graph>& g)
@@ -266,7 +257,6 @@ out_neighbors(typename graph_traits<undirected_adaptor<Graph> >::vertex_descript
 // in_neighbors(u, g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 in_neighbors(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
               const undirected_adaptor<Graph>& g)
@@ -278,7 +268,6 @@ in_neighbors(typename graph_traits<undirected_adaptor<Graph> >::vertex_descripto
 // all_neighbors(u, g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 all_neighbors(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                const undirected_adaptor<Graph>& g)
@@ -290,7 +279,6 @@ all_neighbors(typename graph_traits<undirected_adaptor<Graph> >::vertex_descript
 // adjacent_vertices(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 adjacent_vertices
     (typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
@@ -303,7 +291,6 @@ adjacent_vertices
 // num_vertices(g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 num_vertices(const undirected_adaptor<Graph>& g)
 {
@@ -314,7 +301,6 @@ num_vertices(const undirected_adaptor<Graph>& g)
 // num_edges(g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 num_edges(const undirected_adaptor<Graph>& g)
 {
@@ -325,7 +311,6 @@ num_edges(const undirected_adaptor<Graph>& g)
 // out_degree(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 out_degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
            const undirected_adaptor<Graph>& g)
@@ -337,7 +322,6 @@ out_degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor 
 // in_degree(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 in_degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor,
           const undirected_adaptor<Graph>&)
@@ -349,7 +333,6 @@ in_degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor,
 // degree(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::always_inline]] [[gnu::flatten]] inline
 auto
 degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
        const undirected_adaptor<Graph>& g)
@@ -362,7 +345,6 @@ degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
 // add_vertex(g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 auto
 add_vertex(undirected_adaptor<Graph>& g, size_t n = 1)
 {
@@ -373,7 +355,6 @@ add_vertex(undirected_adaptor<Graph>& g, size_t n = 1)
 // add_vertex(vp,g)
 //==============================================================================
 template <class Graph, class VertexProperties>
-[[gnu::flatten]] inline
 auto
 add_vertex(const VertexProperties& p, undirected_adaptor<Graph>& g)
 {
@@ -384,7 +365,6 @@ add_vertex(const VertexProperties& p, undirected_adaptor<Graph>& g)
 // clear_vertex(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 void clear_vertex(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                   undirected_adaptor<Graph>& g)
 {
@@ -395,7 +375,6 @@ void clear_vertex(typename graph_traits<undirected_adaptor<Graph> >::vertex_desc
 // clear_vertex(u,g,pred)
 //==============================================================================
 template <class Graph, class Pred>
-[[gnu::flatten]] inline
 void clear_vertex(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                   undirected_adaptor<Graph>& g, Pred&& pred)
 {
@@ -406,7 +385,6 @@ void clear_vertex(typename graph_traits<undirected_adaptor<Graph> >::vertex_desc
 // remove_vertex(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 void remove_vertex(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                    undirected_adaptor<Graph>& g)
 {
@@ -417,7 +395,6 @@ void remove_vertex(typename graph_traits<undirected_adaptor<Graph> >::vertex_des
 // remove_vertex_fast(u,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 void remove_vertex_fast(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                         undirected_adaptor<Graph>& g)
 {
@@ -428,7 +405,6 @@ void remove_vertex_fast(typename graph_traits<undirected_adaptor<Graph> >::verte
 // add_edge(u,v,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 std::pair<typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor,
           bool>
 add_edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
@@ -442,7 +418,6 @@ add_edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
 // add_edge(u,v,ep,g)
 //==============================================================================
 template <class Graph, class EdgeProperties>
-[[gnu::flatten]] inline
 auto
 add_edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
          typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor v,
@@ -455,7 +430,6 @@ add_edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
 // remove_edge(u,v,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 void remove_edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
                  typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor v,
                  undirected_adaptor<Graph>& g)
@@ -469,7 +443,6 @@ void remove_edge(typename graph_traits<undirected_adaptor<Graph> >::vertex_descr
 // remove_edge(e,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 void remove_edge(typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor e,
                  undirected_adaptor<Graph>& g)
 {
@@ -482,7 +455,6 @@ void remove_edge(typename graph_traits<undirected_adaptor<Graph> >::edge_descrip
 // remove_edge(e_iter,g)
 //==============================================================================
 template <class Graph>
-[[gnu::flatten]] inline
 void remove_edge(const typename graph_traits<undirected_adaptor<Graph> >::out_edge_iterator& iter,
                  undirected_adaptor<Graph>& g)
 {
@@ -493,16 +465,15 @@ void remove_edge(const typename graph_traits<undirected_adaptor<Graph> >::out_ed
 // remove_out_edge_if(v,predicate,g)
 //==============================================================================
 template <class Graph, class Predicate>
-inline
 void remove_out_edge_if(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor v,
                         Predicate predicate, undirected_adaptor<Graph>& g)
 {
     std::vector<typename undirected_adaptor<Graph>::EdgeDescriptor> removed_edges;
     auto edge_range = out_edges(v,g);
-    for(auto iter = edge_range.first; iter != edge_range.second; ++iter)
+    for (auto iter = edge_range.first; iter != edge_range.second; ++iter)
         if (predicate(*iter))
             removed_edges.push_back(*iter);
-    for(auto& e : removed_edges)
+    for (auto& e : removed_edges)
         remove_edge(e, g);
 }
 
@@ -515,10 +486,10 @@ void remove_in_edge_if(typename graph_traits<undirected_adaptor<Graph> >::vertex
 {
     std::vector<typename undirected_adaptor<Graph>::EdgeDescriptor> removed_edges;
     auto edge_range = in_edges(v,g);
-    for(auto iter = edge_range.first; iter != edge_range.second; ++iter)
+    for (auto iter = edge_range.first; iter != edge_range.second; ++iter)
         if (predicate(*iter))
             removed_edges.push_back(*iter);
-    for(auto& e : removed_edges)
+    for (auto& e : removed_edges)
         remove_edge(e, g);
 }
 
@@ -594,7 +565,6 @@ public:
 // get(tag,g)
 //==============================================================================
 template <class PropertyTag, class Graph>
-inline
 typename property_map<undirected_adaptor<Graph>, PropertyTag>::type
 get(PropertyTag tag, undirected_adaptor<Graph>& g)
 {
@@ -605,7 +575,6 @@ get(PropertyTag tag, undirected_adaptor<Graph>& g)
 // const get(tag,g)
 //==============================================================================
 template <class PropertyTag, class Graph>
-inline
 typename property_map<undirected_adaptor<Graph>, PropertyTag>::const_type
 get(PropertyTag tag, const undirected_adaptor<Graph>& g)
 {
@@ -616,7 +585,6 @@ get(PropertyTag tag, const undirected_adaptor<Graph>& g)
 // get(tag,g,v)
 //==============================================================================
 template <class PropertyTag, class Graph>
-inline
 typename property_traits
     <typename property_map<undirected_adaptor<Graph>,
                            PropertyTag>::const_type >::value_type
@@ -630,7 +598,6 @@ get(PropertyTag tag, const undirected_adaptor<Graph>& g,
 // get(tag,g,e)
 //==============================================================================
 template <class PropertyTag, class Graph>
-inline
 typename property_traits
     <typename property_map<undirected_adaptor<Graph>,
                            PropertyTag>::const_type >::value_type
@@ -644,7 +611,6 @@ get(PropertyTag tag, const undirected_adaptor<Graph>& g,
 // put(tag, g, v, value)
 //==============================================================================
 template <class Graph, class PropertyTag, class Value>
-inline
 void put(PropertyTag tag, undirected_adaptor<Graph>& g,
          typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor v,
          const Value& value)
@@ -656,7 +622,6 @@ void put(PropertyTag tag, undirected_adaptor<Graph>& g,
 // put(tag, g, e, value)
 //==============================================================================
 template <class Graph, class PropertyTag, class X, class Value>
-inline
 void put(PropertyTag tag, const undirected_adaptor<Graph>& g,
          const typename graph_traits<undirected_adaptor<Graph> >::edge_descriptor& e,
          const Value &value)
@@ -668,7 +633,6 @@ void put(PropertyTag tag, const undirected_adaptor<Graph>& g,
 // get_property(g,tag)
 //==============================================================================
 template <class Graph, class GraphProperties, class GraphPropertyTag>
-inline
 typename property_value<GraphProperties, GraphPropertyTag>::type&
 get_property(undirected_adaptor<Graph>& g, GraphPropertyTag tag)
 {
@@ -679,7 +643,6 @@ get_property(undirected_adaptor<Graph>& g, GraphPropertyTag tag)
 // const get_property(g,tag)
 //==============================================================================
 template <class Graph, class GraphProperties, class GraphPropertyTag>
-inline
 const typename property_value<GraphProperties, GraphPropertyTag>::type&
 get_property(const undirected_adaptor<Graph>& g, GraphPropertyTag tag)
 {

@@ -468,7 +468,7 @@ public:
         : _filtered_property(&filtered_property) {}
 
     template <class Descriptor>
-    inline bool operator() (Descriptor&& d) const
+    bool operator() (Descriptor&& d) const
     {
         return get(*_filtered_property, d);
     }

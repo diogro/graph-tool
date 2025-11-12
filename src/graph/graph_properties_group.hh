@@ -39,9 +39,9 @@ struct do_group_vector_property
 
     template <class Graph, class VectorPropertyMap, class PropertyMap,
               class Descriptor>
-    inline void dispatch_descriptor(Graph& g, VectorPropertyMap& vector_map,
-                                    PropertyMap& map, const Descriptor& v,
-                                    size_t pos, boost::mpl::true_) const
+    void dispatch_descriptor(Graph& g, VectorPropertyMap& vector_map,
+                             PropertyMap& map, const Descriptor& v,
+                             size_t pos, boost::mpl::true_) const
     {
         for (auto e : out_edges_range(v, g))
         {
@@ -54,9 +54,9 @@ struct do_group_vector_property
 
     template <class Graph, class VectorPropertyMap, class PropertyMap,
               class Descriptor>
-    inline void dispatch_descriptor(Graph&, VectorPropertyMap& vector_map,
-                                    PropertyMap& map, const Descriptor& v,
-                                    size_t pos, boost::mpl::false_) const
+    void dispatch_descriptor(Graph&, VectorPropertyMap& vector_map,
+                             PropertyMap& map, const Descriptor& v,
+                             size_t pos, boost::mpl::false_) const
     {
         if (vector_map[v].size() <= pos)
             vector_map[v].resize(pos + 1);
@@ -64,50 +64,50 @@ struct do_group_vector_property
     }
 
     template <class VectorPropertyMap, class PropertyMap, class Descriptor>
-    inline void group_or_ungroup(VectorPropertyMap& vector_map,
-                                 PropertyMap& map, const Descriptor& v,
-                                 size_t pos, boost::mpl::true_) const
+    void group_or_ungroup(VectorPropertyMap& vector_map,
+                          PropertyMap& map, const Descriptor& v,
+                          size_t pos, boost::mpl::true_) const
     {
         convert(get(map,v),  vector_map[v][pos]);
     }
 
     template <class VectorPropertyMap, class PropertyMap, class Descriptor>
-    inline void group_or_ungroup(VectorPropertyMap& vector_map,
-                                 PropertyMap& map, const Descriptor& v,
-                                 size_t pos, boost::mpl::false_) const
+    void group_or_ungroup(VectorPropertyMap& vector_map,
+                          PropertyMap& map, const Descriptor& v,
+                          size_t pos, boost::mpl::false_) const
     {
         convert(vector_map[v][pos], map[v]);
     }
 
     template <class RetVal, class Value>
-    inline void convert(const Value& v, RetVal& r)  const
+    void convert(const Value& v, RetVal& r)  const
     {
         r = graph_tool::convert<RetVal>(v);
     }
 
     template <class RetVal>
-    inline void convert(const boost::python::object& v, RetVal& r)  const
+    void convert(const boost::python::object& v, RetVal& r)  const
     {
         #pragma omp critical
         r = graph_tool::convert<RetVal>(v);
     }
 
     template <class Value>
-    inline void convert(const Value& v, boost::python::object& r)  const
+    void convert(const Value& v, boost::python::object& r)  const
     {
         #pragma omp critical
         r = boost::python::object(v);
     }
 
     template <class Value>
-    inline void convert(const Value& v, Value& r)  const
+    void convert(const Value& v, Value& r)  const
     {
         r = v;
     }
 
-    inline void convert(const boost::python::object& v, boost::python::object& r)  const
+    void convert(const boost::python::object& v, boost::python::object& r)  const
     {
-       #pragma omp critical
+        #pragma omp critical
         r = v;
     }
 

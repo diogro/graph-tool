@@ -142,7 +142,6 @@ public:
         return pmap;
     }
 
-    [[gnu::always_inline]]
     reference operator[](const key_type& v) const
     {
         auto i = get(_index, v);
@@ -161,7 +160,6 @@ protected:
 };
 
 template <typename T, typename IndexMap>
-[[gnu::always_inline]] inline
 typename checked_vector_property_map<T, IndexMap>::reference
 get(checked_vector_property_map<T, IndexMap>& m,
     const typename checked_vector_property_map<T, IndexMap>::key_type& k)
@@ -170,7 +168,6 @@ get(checked_vector_property_map<T, IndexMap>& m,
 }
 
 template <typename T, typename IndexMap>
-[[gnu::always_inline]] inline
 const typename checked_vector_property_map<T, IndexMap>::reference
 get(const checked_vector_property_map<T, IndexMap>& m,
     const typename checked_vector_property_map<T, IndexMap>::key_type& k)
@@ -179,7 +176,6 @@ get(const checked_vector_property_map<T, IndexMap>& m,
 }
 
 template <typename T, typename IndexMap, typename Val>
-[[gnu::always_inline]] inline
 void put(checked_vector_property_map<T, IndexMap>& m,
          const typename checked_vector_property_map<T, IndexMap>::key_type& k, const Val& v)
 {
@@ -242,7 +238,6 @@ public:
 
     void shrink_to_fit() const { checked_t::shrink_to_fit(); }
 
-    [[gnu::always_inline]] [[gnu::flatten]]
     reference operator[](const key_type& v) const
     {
         return (*checked_t::_store)[get(checked_t::_index, v)];
@@ -274,7 +269,6 @@ public:
 };
 
 template <typename T, typename IndexMap>
-[[gnu::always_inline]] inline
 typename unchecked_vector_property_map<T, IndexMap>::reference
 get(unchecked_vector_property_map<T, IndexMap>& m,
     const typename unchecked_vector_property_map<T, IndexMap>::key_type& k)
@@ -283,7 +277,6 @@ get(unchecked_vector_property_map<T, IndexMap>& m,
 }
 
 template <typename T, typename IndexMap>
-[[gnu::always_inline]] inline
 const typename unchecked_vector_property_map<T, IndexMap>::reference
 get(const unchecked_vector_property_map<T, IndexMap>& m,
     const typename unchecked_vector_property_map<T, IndexMap>::key_type& k)
@@ -292,7 +285,6 @@ get(const unchecked_vector_property_map<T, IndexMap>& m,
 }
 
 template <typename T, typename IndexMap, typename Val>
-[[gnu::always_inline]] inline
 void put(unchecked_vector_property_map<T, IndexMap>& m,
          const typename unchecked_vector_property_map<T, IndexMap>::key_type& k,
          const Val& v)
@@ -316,8 +308,7 @@ get_unchecked(checked_vector_property_map<Type, Index>& prop)
 }
 
 template <class Prop>
-Prop&&
-get_unchecked(Prop&& prop)
+Prop&& get_unchecked(Prop&& prop)
 {
     return std::forward<Prop>(prop);
 }
@@ -330,8 +321,7 @@ get_checked(unchecked_vector_property_map<Type, Index>& prop)
 }
 
 template <class Prop>
-Prop&&
-get_checked(Prop&& prop)
+Prop&& get_checked(Prop&& prop)
 {
     return std::forward<Prop>(prop);
 }
