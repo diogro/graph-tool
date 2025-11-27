@@ -276,6 +276,9 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         self.theta_first = True
 
+    def _reset_m(self):
+        self._dstate.reset_m(self._state)
+
     def set_params(self, params):
         r"""Sets the model parameters via the dictionary ``params``."""
         self.params = dict(self.params, **params)

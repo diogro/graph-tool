@@ -321,12 +321,7 @@ REGISTER_MOD
                                     return python::make_tuple(get<0>(ret), get<1>(ret), get<2>(ret));
                                 })
                           .def("set_dstate", &state_t::set_dstate)
-                          .def("set_params", &state_t::set_params)
-                          .def("reset_m",
-                               +[](state_t&)// state)
-                                {
-                                    //state._dstate->reset_m(state);
-                                });
+                          .def("set_params", &state_t::set_params);
                   });
          });
 }, 5);

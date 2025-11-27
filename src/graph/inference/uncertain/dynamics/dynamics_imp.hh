@@ -83,5 +83,19 @@ REGISTER_MOD
     class_<DState, bases<DStateBase>, std::shared_ptr<DState>,
            boost::noncopyable> dclass(name.c_str(), no_init);
     export_dstate<DState>(dclass);
-
+    dclass.def("reset_m",
+               +[](DState& state, python::object odynamics_state)
+                {
+                    block_state::dispatch
+                        ([&](auto* bs)
+                         {
+                             typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
+                             dynamics_state<block_state_t>::dispatch
+                                 (odynamics_state,
+                                  [&](auto& s)
+                                  {
+                                      state.reset_m(s);
+                                  }, false);
+                         });
+                });
 }, 6);
