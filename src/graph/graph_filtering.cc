@@ -34,6 +34,7 @@ graph_tool::DispatchNotFound::DispatchNotFound(const type_info& dispatch,
         PACKAGE_BUGREPORT ". What follows is debug information.\n\n";
 
     _error += "Dispatch: " + name_demangle(_dispatch.name()) + "\n\n";
+
     for (size_t i = 0; i < _args.size(); ++i)
     {
         _error += "Arg " + lexical_cast<string>(i+1) + ": " +

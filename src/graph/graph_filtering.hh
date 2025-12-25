@@ -208,7 +208,7 @@ auto args_sub(auto args)
          });
 }
 
-template <bool uncheck=true>
+template <bool uncheck=true, bool pass_types=false>
 struct gt_dispatch
 {
     gt_dispatch(bool gil_release=true)
@@ -224,7 +224,7 @@ struct gt_dispatch
     }
 
     template <class Type>
-    static Type&& pmap(Type&& a)
+    static decltype(auto) pmap(Type&& a)
     {
         return std::forward<Type>(a);
     }
@@ -255,7 +255,7 @@ struct gt_dispatch
                                 (hana::zip(fats, hana::make_tuple(std::ref(as)...)),
                                  [&](auto&& tv)
                                  {
-                                     using T = typename decltype(+tv[0_c])::type;
+                                     using T = std::decay_t<typename decltype(+tv[0_c])::type>;
 
                                      if (fail)
                                          return (T*) nullptr;
@@ -284,7 +284,11 @@ struct gt_dispatch
                             if (fail)
                                 return;
 
-                            hana::unpack(args, [&](auto&... vals) { a(pmap(*vals)...); });
+                            if constexpr (!pass_types)
+                                hana::unpack(args, [&](auto&... vals) { a(pmap(*vals)...); });
+                            else
+                                hana::unpack(args, [&](auto&... vals) { a(fats, pmap(*vals)...); });
+
                             found = true;
                         });
 
@@ -451,7 +455,7 @@ struct run_action
 template <class Graph>
 decltype(auto) base_graph(Graph&& g)
 {
-    if constexpr (is_instance_of_v<std::decay_t<Graph>, boost::adj_list>)
+    if constexpr (is_specialization_of_v<std::decay_t<Graph>, boost::adj_list>)
         return g;
     else
         return base_graph(g.original_graph());

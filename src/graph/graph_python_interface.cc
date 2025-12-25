@@ -919,7 +919,7 @@ void export_python_interface()
 {
     using namespace boost::python;
 
-    class_<VertexBase>("VertexBase", no_init);
+    class_<VertexBase, boost::noncopyable>("VertexBase", no_init);
     class_<EdgeBase, boost::noncopyable>("EdgeBase", no_init);
 
     auto const_graph_views

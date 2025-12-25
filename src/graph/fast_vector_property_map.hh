@@ -202,13 +202,22 @@ public:
 
     typedef checked_vector_property_map<T, IndexMap> checked_t;
 
-    template <class... Ts>
-    unchecked_vector_property_map(Ts&&... as)
-        : checked_t(std::forward<Ts>(as)...)
-    {}
+    template <class... As>
+    unchecked_vector_property_map(const IndexMap& idx = IndexMap(), As&&... as)
+        : checked_t(idx, std::forward<As>(as)...) {}
+
+    template <class... As>
+    unchecked_vector_property_map(size_t size, As&&... as)
+        : checked_t(size, std::forward<As>(as)...) {}
 
     unchecked_vector_property_map(const unchecked_vector_property_map&) = default;
     unchecked_vector_property_map& operator=(const unchecked_vector_property_map&) = default;
+
+    unchecked_vector_property_map& operator=(const checked_vector_property_map<T, IndexMap>& o)
+    {
+        *this = o.get_unchecked();
+        return *this;
+    }
 
     typename std::vector<T>::iterator storage_begin()
     {
@@ -255,7 +264,7 @@ public:
         return reinterpret_cast<checked_t&>(*this);
     }
 
-    const checked_t& get_checked_t() const
+    const checked_t& get_checked_c() const
     {
         return reinterpret_cast<const checked_t&>(*this);
     }
@@ -299,31 +308,74 @@ make_unchecked_vector_property_map(IndexMap index)
     return unchecked_vector_property_map<T, IndexMap>(index);
 }
 
+template<typename T>
+concept CheckedPMap =
+    requires(T a)
+    {
+        a.get_unchecked();
+    };
 
-template <class Type, class Index>
-unchecked_vector_property_map<Type, Index>&
-get_unchecked(checked_vector_property_map<Type, Index>& prop)
+template<typename T>
+concept UncheckedPMap =
+    requires(T a)
+    {
+        a.get_checked();
+    };
+
+template <class T>
+struct uncheck
 {
-    return prop.get_unchecked();
+    typedef T type;
+
+    decltype(auto) operator()(auto&& a)
+    {
+        return std::forward<T>(a);
+    }
+};
+
+template <CheckedPMap T>
+struct uncheck<T>
+{
+    typedef typename T::unchecked_t type;
+
+    decltype(auto) operator()(auto&& a)
+    {
+        return a.get_unchecked();
+    }
+};
+
+template <class T>
+struct check
+{
+    typedef T type;
+
+    decltype(auto) operator()(auto&& a)
+    {
+        return std::forward<T>(a);
+    }
+};
+
+template <UncheckedPMap T>
+struct check<T>
+{
+    typedef typename T::checked_t type;
+
+    decltype(auto) operator()(auto&& a)
+    {
+        return a.get_checked();
+    }
+};
+
+template <class PMap>
+decltype(auto) get_unchecked(PMap&& prop)
+{
+    return uncheck<std::decay_t<PMap>>()(std::forward<PMap>(prop));
 }
 
-template <class Prop>
-Prop&& get_unchecked(Prop&& prop)
+template <class PMap>
+decltype(auto) get_checked(PMap&& prop)
 {
-    return std::forward<Prop>(prop);
-}
-
-template <class Type, class Index>
-checked_vector_property_map<Type, Index>&
-get_checked(unchecked_vector_property_map<Type, Index>& prop)
-{
-    return prop.get_checked();
-}
-
-template <class Prop>
-Prop&& get_checked(Prop&& prop)
-{
-    return std::forward<Prop>(prop);
+    return check<std::decay_t<PMap>>()(std::forward<PMap>(prop));
 }
 
 }

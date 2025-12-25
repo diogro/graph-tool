@@ -119,9 +119,15 @@ private:
 
 // forward declaration of PythonEdge
 template <class Graph>
-class PythonEdge;
+struct PythonEdge;
 
-class VertexBase {}; // useful to unite all vertex
+struct VertexBase // useful to unite all vertex types
+{
+public:
+    virtual bool is_valid() const = 0;
+    virtual void check_valid() const = 0;
+    virtual GraphInterface::vertex_t get_descriptor() const = 0;
+};
 
 // below are classes related to the PythonVertex type
 template <class Graph>
@@ -302,9 +308,8 @@ private:
 
 // below are classes related to the PythonEdge type
 
-class EdgeBase // useful to unite all edge types
+struct EdgeBase // useful to unite all edge types
 {
-public:
     virtual bool is_valid() const = 0;
     virtual void check_valid() const = 0;
     virtual void invalidate() = 0;

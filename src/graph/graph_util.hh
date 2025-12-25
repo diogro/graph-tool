@@ -53,10 +53,10 @@ namespace graph_tool
 
 // check if is an instance of a template
 template<class T, template<class...> class U>
-inline constexpr bool is_instance_of_v = std::false_type{};
+inline constexpr bool is_specialization_of_v = std::false_type{};
 
 template<template<class...> class U, class... Vs>
-inline constexpr bool is_instance_of_v<U<Vs...>,U> = std::true_type{};
+inline constexpr bool is_specialization_of_v<U<Vs...>,U> = std::true_type{};
 
 // useful metafunction to determine whether a graph is directed or not
 
@@ -218,33 +218,36 @@ void parallel_vertex_loop(const Graph& g, F&& f,
 }
 
 template <class Graph>
-const auto& get_dir(const Graph& g, std::true_type)
-{ return g; }
-
-template <class Graph>
-const auto& get_dir(const Graph& g, std::false_type)
-{ return g.original_graph(); }
+decltype(auto) get_dir(const Graph& g)
+{
+    if constexpr (is_directed_v<Graph>)
+        return g;
+    else
+        return get_dir(g.original_graph());
+}
 
 template <class Graph, class EPred, class VPred>
-auto get_dir(const boost::filt_graph<Graph, EPred, VPred>& g,
-             std::false_type)
+decltype(auto) get_dir(const boost::filt_graph<Graph, EPred, VPred>& g)
 {
-    typedef typename
-        std::remove_reference<decltype(g._g.original_graph())>::type g_t;
-    return boost::filt_graph<g_t, EPred, VPred>(g._g.original_graph(),
-                                                g._edge_pred,
-                                                g._vertex_pred);
+    if constexpr (is_directed_v<Graph>)
+    {
+        return g;
+    }
+    else
+    {
+        auto&& u = get_dir(g._g.original_graph());
+        typedef std::decay_t<decltype(u)> u_t;
+        return boost::filt_graph<u_t, EPred, VPred>(u, g._edge_pred, g._vertex_pred);
+    }
 }
 
 template <class Graph, class F, class Except = void>
 auto parallel_edge_loop_no_spawn(const Graph& g, F&& f,
                                  [[maybe_unused]] Except* ex = (void*)(nullptr))
 {
-    auto&& u = get_dir(g, typename is_directed_::apply<Graph>::type());
-    typedef typename std::remove_const
-        <typename std::remove_reference<decltype(u)>::type>::type graph_t;
-    static_assert(is_directed_::apply<graph_t>::type::value,
-                  "graph must be directed at this point");
+    auto&& u = get_dir(g);
+    typedef std::decay_t<decltype(u)> u_t;
+    static_assert(is_directed_v<u_t>, "graph must be directed at this point");
 
     auto dispatch =
         [&](auto v)

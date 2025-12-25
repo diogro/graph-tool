@@ -215,14 +215,14 @@ struct total_degreeS
     total_degreeS() {}
     template <class Graph>
         auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                    const Graph& g) const
+                        const Graph& g) const
     {
         return total_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Weight>
         auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                    const Graph& g, Weight&& weight) const
+                        const Graph& g, Weight&& weight) const
     {
         typedef typename std::is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
@@ -233,8 +233,8 @@ struct total_degreeS
 
     template <class Graph, class Weight>
         auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                          const Graph& g, std::true_type,
-                          Weight&& weight) const
+                              const Graph& g, std::true_type,
+                              Weight&& weight) const
     {
         return in_degreeS()(v, g, std::forward<Weight>(weight)) +
             out_degreeS()(v, g, std::forward<Weight>(weight));
@@ -242,7 +242,7 @@ struct total_degreeS
 
     template <class Graph, class Weight>
         auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                          const Graph& g, std::false_type, Weight&& weight) const
+                              const Graph& g, std::false_type, Weight&& weight) const
     {
         return out_degreeS()(v, g, std::forward<Weight>(weight));
     }
@@ -559,6 +559,7 @@ struct in_or_out_neighbors_iteratorS
 
 template <class Iter>
 class IterRange
+    : public std::ranges::view_interface<IterRange<Iter>>
 {
 public:
     explicit IterRange(std::pair<Iter, Iter>&& range)
