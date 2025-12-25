@@ -22,7 +22,6 @@
 #include "graph_filtering.hh"
 #include "graph_util.hh"
 
-#include "idx_map.hh"
 #include "hash_map_wrap.hh"
 #include "demangle.hh"
 
@@ -181,7 +180,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
     }
     else
     {
-        idx_set<size_t> self_loops;
+        gt_hash_set<size_t> self_loops;
         auto eindex = get(edge_index, g);
 
         #pragma omp parallel if (parallel) firstprivate(self_loops)
