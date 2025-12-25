@@ -3534,7 +3534,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, aprops=None,
 
 def contract_parallel_edges(g, weight=None):
     r"""Contract all parallel edges into simple edges, keeping track of their
-    multipliciites.
+    multiplicities.
 
     Parameters
     ----------
@@ -3575,17 +3575,20 @@ def contract_parallel_edges(g, weight=None):
         contract_parallel_edges(g._Graph__graph, _prop("e", g, weight))
     return weight
 
+@_parallel
 def remove_parallel_edges(g):
     """Remove all parallel edges from the graph. Only one edge from each
     parallel edge set is left."""
     libgraph_tool_generation.\
         contract_parallel_edges(g._Graph__graph, _prop("e", g, None))
 
+@_parallel
 def remove_self_loops(g):
     """Remove all self-loops edges from the graph."""
     eprop = label_self_loops(g)
     remove_labeled_edges(g, eprop)
 
+@_parallel
 def expand_parallel_edges(g, weight):
     r"""Expand edge multiplicities into parallel edges.
 
@@ -3620,6 +3623,7 @@ def expand_parallel_edges(g, weight):
     libgraph_tool_generation.\
         expand_parallel_edges(g._Graph__graph, _prop("e", g, weight))
 
+@_parallel
 def remove_labeled_edges(g, label):
     """Remove every edge `e` such that `label[e] != 0`."""
     u = GraphView(g, directed=True, reversed=g.is_reversed(),
@@ -3628,6 +3632,7 @@ def remove_labeled_edges(g, label):
           remove_labeled_edges(u._Graph__graph, _prop("e", g, label))
 
 
+@_parallel
 def label_parallel_edges(g, mark_only=False, eprop=None):
     r"""Label edges which are parallel, i.e, have the same source and target
     vertices. For each parallel edge set :math:`PE`, the labelling starts from 0
@@ -3645,6 +3650,7 @@ def label_parallel_edges(g, mark_only=False, eprop=None):
     return eprop
 
 
+@_parallel
 def label_self_loops(g, mark_only=False, eprop=None):
     """Label edges which are self-loops, i.e, the source and target vertices are
     the same. For each self-loop edge set :math:`SL`, the labelling starts from 0
@@ -3662,12 +3668,14 @@ def label_self_loops(g, mark_only=False, eprop=None):
                            mark_only)
     return eprop
 
+
 class Sampler(libgraph_tool_generation.Sampler):
     def __init__(self, values, probs):
         libgraph_tool_generation.Sampler.__init__(self, values, probs)
 
     def sample(self):
         return libgraph_tool_generation.Sampler.sample(self, _get_rng())
+
 
 class DynamicSampler(libgraph_tool_generation.DynamicSampler):
     def __init__(self, values=None, probs=None):

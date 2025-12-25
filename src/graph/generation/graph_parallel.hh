@@ -20,7 +20,8 @@
 
 #include "hash_map_wrap.hh"
 #include "graph_util.hh"
-#include "idx_map.hh"
+#include "parallel_util.hh"
+#include <boost/scope/scope_exit.hpp>
 
 namespace graph_tool
 {
@@ -107,22 +108,51 @@ void remove_labeled_edges(Graph& g, LabelMap label)
 {
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
     vector<edge_t> r_edges;
-    for (auto v : vertices_range(g))
-    {
-        for (auto e : out_edges_range(v, g))
-        {
-            if (label[e] > 0)
-            {
-                r_edges.push_back(e);
-                label[e] = 0;
-            }
-        }
 
-        for (auto& e : r_edges)
-            remove_edge(e, g);
+    base_graph(g).set_concurrent(true);
+    auto lguard = boost::scope::make_scope_exit([&](){ base_graph(g).set_concurrent(false); });
 
-        r_edges.clear();
-    }
+    std::vector<std::shared_mutex> vmutex(num_vertices(g));
+
+    #pragma omp parallel firstprivate(r_edges)
+    parallel_vertex_loop_no_spawn
+        (g,
+         [&](auto v)
+         {
+             do_slock
+                 ([&]()
+                  {
+                      for (auto e : out_edges_range(v, g))
+                      {
+                          if constexpr (!is_directed_v<Graph>)
+                          {
+                              auto u = target(e, g);
+                              if (u < v)
+                                  continue;
+                          }
+
+                          if (label[e] > 0)
+                          {
+                              r_edges.push_back(e);
+                              label[e] = 0;
+                          }
+                      }
+
+                  }, vmutex[v]);
+
+             for (auto& e : r_edges)
+             {
+                auto u = target(e, g);
+                do_ulock_pair
+                    ([&]()
+                     {
+                         remove_edge(e, g);
+                     },
+                     v, u, vmutex[v], vmutex[u]);
+             }
+
+             r_edges.clear();
+         });
 }
 
 } // graph_tool namespace
