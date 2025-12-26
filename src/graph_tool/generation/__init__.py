@@ -2000,7 +2000,7 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
 
     See Also
     --------
-    graph_union: Union of the edge sets between two graphs.
+    graph_union: Union of the edge (and vertex) sets between two graphs.
     graph_difference: Difference of the edge sets between two graphs.
     graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
     graph_intersection: Intersection of the edge sets between two graphs.
@@ -2260,7 +2260,7 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
     eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
        If provided, this will determine the weights of the edges of graph
        ``g2``. If not provided, each edge will be assumed to have unity weight.
-    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``"identity"``)
        Vertex property map owned by ``g2`` which maps each of its vertices to
        vertex indices belonging to ``g1``, in which case they are considered to
        be identical. Negative values mean no mapping exists, and thus both
@@ -2430,7 +2430,7 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     See Also
     --------
     graph_merge: Merge the edge sets between two graphs.
-    graph_union: Union of the edge sets between two graphs.
+    graph_union: Union of the edge (and vertex) sets between two graphs.
     graph_difference: Difference of the edge sets between two graphs.
     graph_intersection: Intersection of the edge sets between two graphs.
 
@@ -2543,7 +2543,7 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     See Also
     --------
     graph_merge: Merge the edge sets between two graphs.
-    graph_union: Union of the edge sets between two graphs.
+    graph_union: Union of the edge (and vertex) sets between two graphs.
     graph_sym_difference: Symmetric difference of the edge sets between two graphs.
     graph_intersection: Intersection of the edge sets between two graphs.
 
@@ -2662,7 +2662,7 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     See Also
     --------
     graph_merge: Merge the edge sets between two graphs.
-    graph_union: Union of the edge sets between two graphs.
+    graph_union: Union of the edge (and vertex) sets between two graphs.
     graph_difference: Difference of the edge sets between two graphs.
     graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
 
