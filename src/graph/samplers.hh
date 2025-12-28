@@ -146,7 +146,7 @@ auto uniform_sample_iter(Iter begin, const Iter& end, RNG& rng)
 }
 
 template <class Container, class RNG>
-auto uniform_sample_iter(Container& v, RNG& rng)
+auto uniform_sample_iter(Container&& v, RNG& rng)
 {
     return uniform_sample_iter(v.begin(), v.end(), rng);
 }
@@ -160,7 +160,7 @@ uniform_sample(const Iter& begin, const Iter& end, RNG& rng)
 }
 
 template <class Container, class RNG>
-auto&& uniform_sample(Container& v, RNG& rng)
+decltype(auto) uniform_sample(Container&& v, RNG& rng)
 {
     return *uniform_sample_iter(v, rng);
 }
