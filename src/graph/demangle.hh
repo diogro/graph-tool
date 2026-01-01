@@ -18,9 +18,16 @@
 #ifndef DEMANGLE_HH
 #define DEMANGLE_HH
 
+#include <typeinfo>
 #include <string>
 
 __attribute__ ((visibility("default")))
 std::string name_demangle(std::string name);
+
+template <class T>
+std::string get_type_name()
+{
+    return name_demangle(typeid(T).name());
+}
 
 #endif // DEMANGLE_HH
