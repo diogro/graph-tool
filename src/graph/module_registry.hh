@@ -37,8 +37,12 @@
 
 #define REGISTER_MOD static __MOD__::RegisterMod __reg
 
+class ObjNotFound;
+
 namespace __MOD__
 {
+
+// Registry of exposed functions
 
 typedef std::vector<std::tuple<int,std::function<void()>>> reg_t;
 
@@ -52,6 +56,8 @@ reg_t& mod_reg()
 ;
 #endif
 
+// Registry of exposed classes and other objects
+
 typedef std::unordered_map<std::type_index, std::any> creg_t;
 
 creg_t& class_reg()
@@ -64,42 +70,54 @@ creg_t& class_reg()
 ;
 #endif
 
-class ClassNotFound: public std::exception
+// Get existing object from registry; or throw if not found
+
+template <class Obj, class... As>
+Obj& get_obj(As&&... as)
 {
-public:
-    ClassNotFound(const std::type_info& tid)
-    {
-        _msg = std::string("class not found: ") + name_demangle(tid.name());
-    }
-
-    const char* what() const noexcept
-    {
-        return _msg.c_str();
-    }
-
-private:
-    std::string _msg;
-};
-
-template <class... Args, class... As>
-boost::python::class_<Args...>& get_class(As&&... as)
-{
-    typedef boost::python::class_<Args...> class_t;
     auto& creg = class_reg();
-    auto idx = std::type_index(typeid(class_t));
+    auto idx = std::type_index(typeid(Obj));
     auto iter = creg.find(idx);
     if (iter != creg.end())
-        return std::any_cast<class_t&>(iter->second);
+        return std::any_cast<Obj&>(iter->second);
     if constexpr (sizeof...(as) == 0)
     {
-        throw ClassNotFound(typeid(class_t));
+        throw ObjNotFound(typeid(Obj));
     }
     else
     {
         auto& a = creg[idx];
-        a.emplace<class_t>(as...);
-        return std::any_cast<class_t&>(a);
+        a.emplace<Obj>(as...);
+        return std::any_cast<Obj&>(a);
     }
+}
+
+// Especialization for classes
+
+template <class... Args, class... As>
+boost::python::class_<Args...>& get_class(As&&... as)
+{
+    return get_obj<boost::python::class_<Args...>>(std::forward<As>(as)...);
+}
+
+// If object is already registerd do nothing; otherwise register with arguments
+// given argument. Return a callable objext that takes an operator on the
+// registered object (e.g. that can define member functions). The operator is
+// only called if the object has just been registered.
+
+template <class Obj, class... As>
+auto def_obj(As&&... as)
+{
+    Obj* obj = nullptr;
+    try
+    {
+        get_obj<Obj>();
+    }
+    catch (ObjNotFound&)
+    {
+        obj = &get_obj<Obj>(std::forward<As>(as)...);
+    }
+    return [obj](auto&& f){ if (obj != nullptr) f(*obj); };
 }
 
 class RegisterMod
@@ -116,7 +134,7 @@ class EvokeRegistry
 public:
     EvokeRegistry()
     {
-        boost::python::register_exception_translator<ClassNotFound>
+        boost::python::register_exception_translator<ObjNotFound>
             ([](const auto& e)
              {
                  PyObject* error = PyExc_RuntimeError;
@@ -134,5 +152,22 @@ public:
 };
 
 } // namespace __MOD__
+
+class ObjNotFound: public std::exception
+{
+public:
+    ObjNotFound(const std::type_info& tid)
+    {
+        _msg = std::string("class not found: ") + name_demangle(tid.name());
+    }
+
+    const char* what() const noexcept
+    {
+        return _msg.c_str();
+    }
+
+private:
+    std::string _msg;
+};
 
 #endif // MODULE_REGISTRY_HH
