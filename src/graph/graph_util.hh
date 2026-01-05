@@ -347,6 +347,68 @@ void parallel_loop(Range&& vals, F&& f, size_t thres = get_openmp_min_thresh(),
                                      std::forward<F>(f), ex);
 }
 
+//
+// comparisons without warnings
+//
+
+template <class T1, class T2>
+bool quiet_cmp(T1&& x, T2&& y, auto&& f_int, auto&& f)
+{
+    if constexpr (std::is_integral_v<std::decay_t<T1>> &&
+                  std::is_integral_v<std::decay_t<T2>>)
+        return f_int(std::forward<T1>(x), std::forward<T2>(y));
+    else
+        return f(std::forward<T1>(x), std::forward<T2>(y));
+}
+
+template <class T1, class T2>
+bool quiet_equal(T1&& x, T2&& y)
+{
+    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+                     [](auto&& x, auto&& y){return std::cmp_equal(x, y);},
+                     [](auto&& x, auto&& y){return x == y;});
+}
+
+template <class T1, class T2>
+bool quiet_not_equal(T1&& x, T2&& y)
+{
+    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+                     [](auto&& x, auto&& y){return std::cmp_not_equal(x, y);},
+                     [](auto&& x, auto&& y){return x != y;});
+}
+
+template <class T1, class T2>
+bool quiet_less(T1&& x, T2&& y)
+{
+    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+                     [](auto&& x, auto&& y){return std::cmp_less(x, y);},
+                     [](auto&& x, auto&& y){return x < y;});
+}
+
+template <class T1, class T2>
+bool quiet_greater(T1&& x, T2&& y)
+{
+    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+                     [](auto&& x, auto&& y){return std::cmp_greater(x, y);},
+                     [](auto&& x, auto&& y){return x > y;});
+}
+
+template <class T1, class T2>
+bool quiet_less_equal(T1&& x, T2&& y)
+{
+    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+                     [](auto&& x, auto&& y){return std::cmp_less_equal(x, y);},
+                     [](auto&& x, auto&& y){return x <= y;});
+}
+
+template <class T1, class T2>
+bool quiet_greater_equal(T1&& x, T2&& y)
+{
+    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+                     [](auto&& x, auto&& y){return std::cmp_greater_equal(x, y);},
+                     [](auto&& x, auto&& y){return x >= y;});
+}
+
 } // namespace graph_tool
 
 //
@@ -720,7 +782,6 @@ struct hash<std::complex<Value>>
         return seed;
     }
 };
-
 
 }
 
