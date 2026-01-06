@@ -26,6 +26,8 @@
 namespace graph_tool
 {
 
+// Locking patterns
+
 template <template<class> class Lock, bool enable, bool pass_lock,
           class F, class... Mutex>
 decltype(auto) do_lock(F&& f, Mutex&... mutex)
@@ -108,6 +110,97 @@ decltype(auto) do_slock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
         return do_slock<enable>
             (std::forward<std::decay_t<decltype(f)>>(f), mu);
 }
+
+// atomic operations
+
+template <class T1, class T2, class E = std::true_type>
+void atomic_inc(T1&& x, T2&& d, E = E())
+{
+    typedef std::decay_t<T1> TX;
+    typedef std::decay_t<T2> TD;
+    if constexpr (std::is_scalar_v<TX> &&
+                  std::is_scalar_v<TD> && E::value)
+    {
+        #pragma omp atomic
+        x += d;
+    }
+    else if constexpr (std::is_scalar_v<TX> && E::value)
+    {
+        #pragma omp atomic
+        x += TX(d);
+    }
+    else
+    {
+        x += d;
+    }
+}
+
+template <class T1, class T2, class E = std::true_type>
+void atomic_dec(T1&& x, T2&& d, E = E())
+{
+    typedef std::decay_t<T1> TX;
+    typedef std::decay_t<T2> TD;
+    if constexpr (std::is_scalar_v<TX> &&
+                  std::is_scalar_v<TD> && E::value)
+    {
+        #pragma omp atomic
+        x -= d;
+    }
+    else if constexpr (std::is_scalar_v<TX> && E::value)
+    {
+        #pragma omp atomic
+        x -= TX(d);
+    }
+    else
+    {
+        x -= d;
+    }
+}
+
+template <class T1, class T2, class E = std::true_type>
+void atomic_prod(T1&& x, T2&& d, E = E())
+{
+    typedef std::decay_t<T1> TX;
+    typedef std::decay_t<T2> TD;
+    if constexpr (std::is_scalar_v<TX> &&
+                  std::is_scalar_v<TD> && E::value)
+    {
+        #pragma omp atomic
+        x *= d;
+    }
+    else if constexpr (std::is_scalar_v<TX> && E::value)
+    {
+        #pragma omp atomic
+        x *= TX(d);
+    }
+    else
+    {
+        x *= d;
+    }
+}
+
+template <class T1, class T2, class E = std::true_type>
+void atomic_div(T1&& x, T2&& d, E = E())
+{
+    typedef std::decay_t<T1> TX;
+    typedef std::decay_t<T2> TD;
+    if constexpr (std::is_scalar_v<TX> &&
+                  std::is_scalar_v<TD> && E::value)
+    {
+        #pragma omp atomic
+        x /= d;
+    }
+    else if constexpr (std::is_scalar_v<TX> && E::value)
+    {
+        #pragma omp atomic
+        x /= TX(d);
+    }
+    else
+    {
+        x /= d;
+    }
+}
+
 
 } // namespace graph_tool
 
