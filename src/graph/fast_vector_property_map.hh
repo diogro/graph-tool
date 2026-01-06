@@ -73,31 +73,18 @@ public:
     checked_vector_property_map(const checked_vector_property_map&) = default;
     checked_vector_property_map& operator=(const checked_vector_property_map&) = default;
 
-    typename std::vector<T>::iterator storage_begin()
-    {
-        return _store->begin();
-    }
-
-    typename std::vector<T>::iterator storage_end()
-    {
-        return _store->end();
-    }
-
-    typename std::vector<T>::const_iterator storage_begin() const
-    {
-        return _store->begin();
-    }
-
-    typename std::vector<T>::const_iterator storage_end() const
-    {
-        return _store->end();
-    }
-
     template <class... As>
     void reserve(size_t size, As&&... as) const
     {
         if (size > _store->size())
             _store->resize(size, std::forward<As>(as)...);
+    }
+
+    template <class... As>
+    void soft_reserve(size_t size, As&&... as) const
+    {
+        if (size > _store->size())
+            resize(std::max(size, 2 * _store->size()), std::forward<As>(as)...);
     }
 
     template <class... As>
@@ -145,10 +132,8 @@ public:
     reference operator[](const key_type& v) const
     {
         auto i = get(_index, v);
-        auto& store = *_store;
-        if (static_cast<size_t>(i) >= store.size())
-            store.resize(i + 1);
-        return store[i];
+        soft_reserve(i + 1);
+        return (*_store)[i];
     }
 
 protected:
@@ -219,31 +204,15 @@ public:
         return *this;
     }
 
-    typename std::vector<T>::iterator storage_begin()
-    {
-        return checked_t::_store->begin();
-    }
-
-    typename std::vector<T>::iterator storage_end()
-    {
-        return checked_t::_store->end();
-    }
-
-    typename std::vector<T>::const_iterator storage_begin() const
-    {
-        return checked_t::_store->begin();
-    }
-
-    typename std::vector<T>::const_iterator storage_end() const
-    {
-        return checked_t::_store->end();
-    }
-
     template <class... As>
     void reserve(As&&... as) const { checked_t::reserve(std::forward<As>(as)...); }
 
     template <class... As>
+    void soft_reserve(As&&... as) const { checked_t::soft_reserve(std::forward<As>(as)...); }
+
+    template <class... As>
     void resize(As&&... as) const { checked_t::resize(std::forward<As>(as)...); }
+    template <class... As>
 
     void shrink_to_fit() const { checked_t::shrink_to_fit(); }
 
