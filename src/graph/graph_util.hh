@@ -275,13 +275,6 @@ void parallel_edge_loop(const Graph& g, F&& f,
     }
 }
 
-template <class Mutex>
-struct canary_mutex
-    : public Mutex
-{
-    size_t _canary;
-};
-
 #ifdef _LIBCPP_VERSION
 /// work around libc++ poor C++23 support
 template <class R>

@@ -23,10 +23,34 @@
 #include <tuple>
 #include <variant>
 
+#include <boost/scope/scope_exit.hpp>
+
 namespace graph_tool
 {
 
-// Locking patterns
+// Mutex with a "canary" counter, for lock upgrades
+
+template <class Mutex>
+struct canary_mutex
+    : public Mutex
+{
+    size_t _canary;
+};
+
+using shared_canary_mutex = canary_mutex<std::shared_mutex>;
+
+constexpr size_t get_canary(std::monostate&)
+{
+    return 0;
+}
+
+auto& get_canary(auto& lock)
+{
+    return lock.mutex()->_canary;
+}
+
+
+// Joint locking patterns
 
 template <template<class> class Lock, bool enable, bool pass_lock,
           class F, class... Mutex>
@@ -80,12 +104,21 @@ decltype(auto) upgrade_lock(auto&& f, auto&... locks)
     }
     else
     {
-        do_ulock<enable, pass_lock>
+        (locks.unlock(), ...);
+
+        auto lguard =
+            boost::scope::make_scope_exit
+            ([&]()
+             {
+                 if constexpr (sizeof...(locks) > 1)
+                     std::lock(locks...);
+                 else
+                     (locks.lock(), ...);
+             });
+
+        return do_ulock<enable, pass_lock>
             (std::forward<std::decay_t<decltype(f)>>(f),
              *locks.mutex()...);
-
-        if constexpr (relock)
-            std::lock(locks...);
     }
 }
 
@@ -113,18 +146,18 @@ decltype(auto) do_slock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
 
 // atomic operations
 
-template <class T1, class T2, class E = std::true_type>
-void atomic_inc(T1&& x, T2&& d, E = E())
+template <bool enable=true, class T1, class T2>
+void atomic_inc(T1&& x, T2&& d)
 {
     typedef std::decay_t<T1> TX;
     typedef std::decay_t<T2> TD;
     if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && E::value)
+                  std::is_scalar_v<TD> && enable)
     {
         #pragma omp atomic
         x += d;
     }
-    else if constexpr (std::is_scalar_v<TX> && E::value)
+    else if constexpr (std::is_scalar_v<TX> && enable)
     {
         #pragma omp atomic
         x += TX(d);
@@ -135,18 +168,18 @@ void atomic_inc(T1&& x, T2&& d, E = E())
     }
 }
 
-template <class T1, class T2, class E = std::true_type>
-void atomic_dec(T1&& x, T2&& d, E = E())
+template <bool enable=true, class T1, class T2>
+void atomic_dec(T1&& x, T2&& d)
 {
     typedef std::decay_t<T1> TX;
     typedef std::decay_t<T2> TD;
     if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && E::value)
+                  std::is_scalar_v<TD> && enable)
     {
         #pragma omp atomic
         x -= d;
     }
-    else if constexpr (std::is_scalar_v<TX> && E::value)
+    else if constexpr (std::is_scalar_v<TX> && enable)
     {
         #pragma omp atomic
         x -= TX(d);
@@ -157,18 +190,18 @@ void atomic_dec(T1&& x, T2&& d, E = E())
     }
 }
 
-template <class T1, class T2, class E = std::true_type>
-void atomic_prod(T1&& x, T2&& d, E = E())
+template <bool enable=true, class T1, class T2>
+void atomic_prod(T1&& x, T2&& d)
 {
     typedef std::decay_t<T1> TX;
     typedef std::decay_t<T2> TD;
     if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && E::value)
+                  std::is_scalar_v<TD> && enable)
     {
         #pragma omp atomic
         x *= d;
     }
-    else if constexpr (std::is_scalar_v<TX> && E::value)
+    else if constexpr (std::is_scalar_v<TX> && enable)
     {
         #pragma omp atomic
         x *= TX(d);
@@ -179,18 +212,18 @@ void atomic_prod(T1&& x, T2&& d, E = E())
     }
 }
 
-template <class T1, class T2, class E = std::true_type>
-void atomic_div(T1&& x, T2&& d, E = E())
+template <bool enable=true, class T1, class T2>
+void atomic_div(T1&& x, T2&& d)
 {
     typedef std::decay_t<T1> TX;
     typedef std::decay_t<T2> TD;
     if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && E::value)
+                  std::is_scalar_v<TD> && enable)
     {
         #pragma omp atomic
         x /= d;
     }
-    else if constexpr (std::is_scalar_v<TX> && E::value)
+    else if constexpr (std::is_scalar_v<TX> && enable)
     {
         #pragma omp atomic
         x /= TX(d);
