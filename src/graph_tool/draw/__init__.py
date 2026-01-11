@@ -509,13 +509,12 @@ def coarse_graphs(g, method="hybrid", mivs_thres=0.9, ec_thres=0.75,
         else:
             b = groups[len(cg)-1]
         u = _coarse_graph(cg[-1][0], cg[-1][2], cg[-1][3], method, b)
-        if hybrid:
-            thres = mivs_thres if method == "mivs" else ec_thres
-            if u[0].num_vertices() >= thres * cg[-1][0].num_vertices():
-                if method == "ec":
-                    method = "mivs"
-                else:
-                    break
+        thres = mivs_thres if method == "mivs" else ec_thres
+        if u[0].num_vertices() >= thres * cg[-1][0].num_vertices():
+            if hybrid and method == "ec":
+                method = "mivs"
+            else:
+                break
         if u[0].num_vertices() <= 2:
             break
         cg.append(u)
