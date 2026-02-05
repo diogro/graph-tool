@@ -232,7 +232,7 @@ struct gt_dispatch
     template <class Dispatch, class... TRS>
     auto operator()(Dispatch&& a, TRS... trs)
     {
-        return [&](auto&&... as)
+        return [&a, trs..., this](auto&&... as)
                {
                    GILRelease gil(_gil_release);
 

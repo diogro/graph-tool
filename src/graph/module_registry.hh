@@ -37,7 +37,22 @@
 
 #define REGISTER_MOD static __MOD__::RegisterMod __reg
 
-class ObjNotFound;
+class ObjNotFound: public std::exception
+{
+public:
+    ObjNotFound(const std::type_info& tid)
+    {
+        _msg = std::string("class not found: ") + name_demangle(tid.name());
+    }
+
+    const char* what() const noexcept
+    {
+        return _msg.c_str();
+    }
+
+private:
+    std::string _msg;
+};
 
 namespace __MOD__
 {
@@ -152,22 +167,5 @@ public:
 };
 
 } // namespace __MOD__
-
-class ObjNotFound: public std::exception
-{
-public:
-    ObjNotFound(const std::type_info& tid)
-    {
-        _msg = std::string("class not found: ") + name_demangle(tid.name());
-    }
-
-    const char* what() const noexcept
-    {
-        return _msg.c_str();
-    }
-
-private:
-    std::string _msg;
-};
 
 #endif // MODULE_REGISTRY_HH
