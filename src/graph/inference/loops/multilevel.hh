@@ -1110,7 +1110,11 @@ struct Multilevel:
 
         push_b(_vs);
 
+        double Sb = State::entropy();
         _dS = stage_multilevel(_rs, _vs, rng);
+        double Sa = State::entropy();
+
+        cout << Sa << " " << Sb << " " << Sa - Sb << " " << _dS << endl;
 
         size_t nnr = _rs.size();
 
