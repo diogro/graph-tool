@@ -191,7 +191,7 @@ struct MCMC
             else
                 t = uniform_sample(_state._ustate._empty_groups, rng);
 
-            _state._u_c[t] = _state.sample_u(rng);
+            _state._u_c[t] = _state.sample_u(t, rng);
 
             if (inherit)
             {
@@ -285,21 +285,26 @@ struct MCMC
         }
 
         template <class RNG>
-        double sample_group_label(group_t, RNG& rng)
+        auto sample_group_label(group_t r, RNG& rng)
         {
-            return _state.sample_u(rng);
+            return _state.sample_u(r, rng);
         }
 
-        double relabel_group_dS(group_t r, double nu)
+        auto relabel_group_dS(group_t r, int64_t nu)
         {
             auto& state = (_pstates[0] == nullptr) ?
                 _state : *_pstates[get_thread_num()];
             return state.reorder_group_dS(r, nu);
         }
 
-        void relabel_group(group_t r, double nu)
+        void relabel_group(group_t r, int64_t nu)
         {
             _state.reorder_group(r, nu);
+        }
+
+        auto group_label(group_t r)
+        {
+            return _state._u[r];
         }
 
         void relax_update(bool relax)

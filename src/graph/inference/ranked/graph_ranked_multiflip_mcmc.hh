@@ -127,7 +127,7 @@ struct MCMC
             } while (!except.empty() &&
                      std::find(except.begin(), except.end(), t) != except.end());
 
-            _state._u_c[t] = _state.sample_u(rng);
+            _state._u_c[t] = _state.sample_u(t, rng);
 
             auto r = _state._ustate._b[v];
             _state._ustate._bclabel[t] = _state._ustate._bclabel[r];

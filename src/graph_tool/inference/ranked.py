@@ -46,7 +46,7 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         be used.
     u : :class:`~graph_tool.PropertyMap` or iterable (optional, default: ``None``)
         Ordering of the group labels. It should contain a map from each group
-        label to the unit interval :math:`[0,1]`, inidicating how the groups
+        label to an integer label, inidicating how the groups
         should be ordered. If not supplied, the numeric values of the group
         lalbels will be used to initialize the ordering.
     entropy_args: ``dict`` (optional, default: ``{}``)
@@ -61,7 +61,7 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     """
 
-    def __init__(self, g, b=None, u=None, entropy_args={}, **kwargs):
+    def __init__(self, g, b=None, u=None, metric=False, entropy_args={}, **kwargs):
         if not g.is_directed():
             raise ValueError("RankedBlockState can only be used with directed graphs")
 
@@ -69,15 +69,15 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self.g = g
         self.ustate = BlockState(self.g, b=b, **kwargs)
         self.b = self.ustate.b
+        self.metric = metric
 
         if u is None:
-            u = self.ustate.bg.new_vp("double")
-            u.fa = np.linspace(0.1, .9, len(u.fa))
+            u = self.ustate.bg.vertex_index.copy("int64_t")
 
         if isinstance(u, PropertyMap):
-            u = self.ustate.bg.own_property(u)
+            u = self.ustate.bg.own_property(u).copy("int64_t")
         else:
-            u = self.ustate.bg.new_vp("double", vals=u)
+            u = self.ustate.bg.new_vp("int64_t", vals=u)
 
         self.u = u
 
@@ -102,15 +102,16 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def __getstate__(self):
         state = EntropyState.__getstate__(self)
         state = dict(state, **self.ustate.__getstate__())
-        return dict(state, u=self.u.a.copy())
+        return dict(state, u=self.u.a.copy(), metric=self.metric)
 
     def __setstate__(self, state):
         self.__init__(**state)
 
     def __repr__(self):
-        return "<RankedBlockState object with %d blocks, %d upstream, %d downstream, and %d lateral edges,%s for graph %s, at 0x%x>" % \
+        return "<RankedBlockState object with %d blocks, %d upstream, %d downstream, and %d lateral edges,%s%s for graph %s, at 0x%x>" % \
             (self.get_B(), self.get_Es()[0], self.get_Es()[2],
              self.get_Es()[1],
+             " metric variant," if self.metric else "",
              " degree-corrected," if self.ustate.deg_corr else "",
              str(self.g), id(self))
 
@@ -202,7 +203,7 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         direction: ``-1`` (downstream), ``0`` (lateral), ``+1`` (upstream).
         """
 
-        u = self.b.copy("double")
+        u = self.b.copy()
         pmap(u, self.u)
         u_s = edge_endpoint_property(self.g, u, "source")
         u_t = edge_endpoint_property(self.g, u, "target")

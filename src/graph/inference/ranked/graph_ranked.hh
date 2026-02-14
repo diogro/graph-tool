@@ -25,15 +25,18 @@
 #include "../blockmodel/graph_blockmodel_util.hh"
 #include "../support/graph_state.hh"
 
+#include <boost/container/flat_set.hpp>
+
 namespace graph_tool
 {
 using namespace boost;
 using namespace std;
 
-typedef vprop_map_t<double> umap_t;
+typedef vprop_map_t<int64_t> umap_t;
 
 #define RANKED_STATE_params                                                    \
    ((__class__,&, decltype(hana::tuple_t<python::object>), 1))                 \
+   ((metric,, bool, 0))                                                        \
    ((u,, umap_t, 0))
 
 GEN_STATE_BASE(RankedStateBase, RANKED_STATE_params)
@@ -67,15 +70,38 @@ public:
               _eweight(ustate._eweight),
               _m_entries(num_vertices(ustate._bg)),
               _u_c(_u.get_checked()),
+              _ed(num_vertices(ustate._bg)),
+              _edp(num_vertices(ustate._bg)),
               _args(std::forward<ATs>(args)...)
         {
             GILRelease gil_release;
+
+            _u.resize(num_vertices(ustate._bg));
 
             for (auto e : edges_range(_g))
             {
                 auto u = source(e, _g);
                 auto v = target(e, _g);
                 _E[stream_dir(_b[u], _b[v])] += _eweight[e];
+            }
+
+            if (_metric)
+            {
+                for (auto r : vertices_range(ustate._bg))
+                    _u[r] = r;
+
+                for (auto e : edges_range(ustate._bg))
+                {
+                    auto r = source(e, ustate._bg);
+                    auto s = target(e, ustate._bg);
+                    if (r == s)
+                        continue;
+                    size_t ers = _ustate._mrs[e];
+                    auto d = rank_dist(r, s);
+                    _ed[d] += ers;
+                    if (stream_dir(r, s) == 0)
+                        _edp[d] += ers;
+                }
             }
         }
 
@@ -102,6 +128,9 @@ public:
 
         typename u_t::checked_t _u_c;
 
+        idx_map<int64_t, int64_t> _ed, _edp;
+        idx_map<int64_t, int64_t> _ed_d, _edp_d;
+
         args_t _args;
 
         int stream_dir(size_t r, size_t s)
@@ -111,7 +140,7 @@ public:
             return ustream_dir(x, y);
         }
 
-        int ustream_dir(double x, double y)
+        int ustream_dir(int64_t x, int64_t y)
         {
             if (x < y)
                 return 0;   // upstream
@@ -119,6 +148,11 @@ public:
                 return 2;   // downstream
             else
                 return 1;   // lateral
+        }
+
+        size_t rank_dist(size_t r, size_t s)
+        {
+            return std::abs(int64_t(r) - int64_t(s));
         }
 
         void add_block(size_t n)
@@ -153,6 +187,18 @@ public:
             return dE;
         }
 
+        double get_ed_dS()
+        {
+            double dS = 0;
+            for (auto [d, delta] : _ed_d)
+            {
+                auto delta_p = _edp_d[d];
+                dS -= lbinom_fast(_ed[d], _edp[d]) + safelog_fast(_ed[d] + 1);
+                dS += lbinom_fast(_ed[d] + delta, _edp[d] + delta_p) + safelog_fast(_ed[d] + delta + 1);
+            }
+            return dS;
+        }
+
         double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t& ea,
                             m_entries_t& m_entries)
         {
@@ -163,6 +209,8 @@ public:
             uea.edges_dl = false;
 
             double dS = _ustate.virtual_move(v, r, nr, uea, m_entries);
+
+            assert(!std::isnan(dS) && !std::isinf(dS));
 
             if (ea.edges_dl || _ustate._coupled_state != nullptr)
             {
@@ -177,6 +225,8 @@ public:
                 dS -= get_edges_dl({0, 0, 0}, 0);
                 dS += get_edges_dl(m_entries._dE, dB);
 
+                assert(!std::isnan(dS) && !std::isinf(dS));
+
                 m_entries._delta.clear();
                 size_t B = num_vertices(_ustate._bg) + 1;
                 entries_op(m_entries, _ustate._emat,
@@ -186,6 +236,12 @@ public:
                                    return;
                                m_entries._delta[t + B * u] = delta;
                            });
+
+                if (_metric)
+                {
+                    _ed_d.clear();
+                    _edp_d.clear();
+                }
 
                 entries_op(m_entries, _ustate._emat,
                            [&](auto t, auto u, auto& me, auto delta)
@@ -198,6 +254,14 @@ public:
                                size_t eut = get_beprop(u, t, _ustate._mrs,
                                                        _ustate._emat);
 
+                               if (_metric)
+                               {
+                                   auto d = rank_dist(t, u);
+                                   _ed_d[d] += delta;
+                                   if (stream_dir(t, u) == 0)
+                                       _edp_d[d] += delta;
+                               }
+
                                int64_t delta_r = 0;
                                auto iter = m_entries._delta.find(u + B * t);
                                if (iter != m_entries._delta.end())
@@ -209,9 +273,15 @@ public:
                                dS += lbinom_fast(etu + eut, etu);
                                dS -= lbinom_fast(etu + delta + eut + delta_r,
                                                  etu + delta);
+
+                               assert(!std::isnan(dS) && !std::isinf(dS));
                            });
+
+                if (_metric)
+                    dS += get_ed_dS();
             }
 
+            assert(!std::isnan(dS) && !std::isinf(dS));
             return dS;
         }
 
@@ -232,6 +302,20 @@ public:
                 _E[i] += m_entries._dE[i];
 
             _ustate.move_vertex(v, nr, m_entries);
+
+            if (_metric)
+            {
+                entries_op(m_entries, _ustate._emat,
+                           [&](auto t, auto u, auto&, auto delta)
+                           {
+                               if (delta == 0 || t == u)
+                                   return;
+                               auto d = rank_dist(t, u);
+                               _ed[d] += delta;
+                               if (stream_dir(t, u) == 0)
+                                   _edp[d] += delta;
+                           });
+            }
         }
 
         void move_vertex(size_t v, size_t nr)
@@ -247,6 +331,21 @@ public:
                 _E[i] += dE[i];
 
             _ustate.move_vertex(v, nr);
+
+            if (_metric)
+            {
+                entries_op(_ustate._m_entries, _ustate._emat,
+                           [&](auto t, auto u, auto&, auto delta)
+                           {
+                               if (delta == 0 || t == u)
+                                   return;
+                               auto d = rank_dist(t, u);
+                               _ed[d] += delta;
+                               if (stream_dir(t, u) == 0)
+                                   _edp[d] += delta;
+                           });
+            }
+
         }
 
         std::array<int64_t, 3>
@@ -274,8 +373,10 @@ public:
             return dE;
         }
 
-        double reorder_group_dS(size_t r, double nu)
+        double reorder_group_dS(size_t r, int64_t nu)
         {
+            if (_u[r] == nu)
+                return 0;
             auto dE = get_group_dE(r, nu);
             double dS = 0;
             dS -= get_edges_dl({0, 0, 0}, 0);
@@ -283,8 +384,10 @@ public:
             return dS;
         }
 
-        void reorder_group(size_t r, double nu)
+        void reorder_group(size_t r, int64_t nu)
         {
+            if (_u[r] == nu)
+                return;
             auto dE = get_group_dE(r, nu);
             for (size_t i = 0; i < 3; ++i)
                 _E[i] += dE[i];
@@ -296,9 +399,13 @@ public:
             return _ustate.get_empty_block(v, force_add);
         }
 
-        double sample_u(rng_t& rng)
+        int64_t sample_u(size_t r, rng_t& rng)
         {
-            uniform_real_distribution<double> usample;
+            if (_metric)
+                return r;
+            uniform_int_distribution<int64_t>
+                usample(std::numeric_limits<int64_t>::min(),
+                        std::numeric_limits<int64_t>::max());
             return usample(rng);
         }
 
@@ -307,10 +414,7 @@ public:
             auto s = _ustate.sample_block(v, c, d, rng);
 
             if (_ustate._wr[s] == 0)
-            {
-                uniform_real_distribution<double> usample;
-                _u_c[s] = usample(rng);
-            }
+                _u_c[s] = sample_u(s, rng);
 
             return s;
         }
@@ -345,9 +449,17 @@ public:
             for (int i = 0; i < 3; ++i)
                 E[i] = _E[i] + dE[i];
 
-            S += lgamma_fast(E[0] + E[2] + 2);
-            S -= lgamma_fast(E[0] + 1) + lgamma_fast(E[2] + 1);
+            if (_metric)
+            {
+                S += lbinom_fast(_ustate.get_N(), B);
+            }
+            else
+            {
+                S += lgamma_fast(E[0] + E[2] + 2);
+                S -= lgamma_fast(E[0] + 1) + lgamma_fast(E[2] + 1);
+            }
 
+            assert(!std::isnan(S) && !std::isinf(S));
             return S;
         }
 
@@ -375,6 +487,12 @@ public:
 
                          S -= lbinom_fast(ers + esr, ers);
                      });
+
+                if (_metric)
+                {
+                    for (auto& [d, c] : _ed)
+                        S += lbinom_fast(_ed[d], _edp[d]) + safelog_fast(_ed[d] + 1);
+                }
             }
 
             ea.edges_dl = false;
