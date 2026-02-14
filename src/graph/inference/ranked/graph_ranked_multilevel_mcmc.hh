@@ -344,7 +344,7 @@ struct MCMC
                           imap,
                           iset,
                           imap,
-                          gmap_t, false>
+                          gmap_t, false, true>
     {
     public:
         template <class... ATs,
@@ -358,7 +358,7 @@ struct MCMC
                         imap,
                         iset,
                         imap,
-                        gmap_t, false>(as...)
+                        gmap_t, false, true>(as...)
         {}
     };
 };

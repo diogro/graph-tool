@@ -349,13 +349,15 @@ public:
         }
 
         std::array<int64_t, 3>
-        get_group_dE(size_t r, double nu)
+        get_group_dE(size_t r, int64_t nu)
         {
             std::array<int64_t, 3> dE = {0, 0, 0};
 
             for (auto e : out_edges_range(r, _ustate._bg))
             {
                 auto s = target(e, _g);
+                if (s == r)
+                    continue;
                 auto w = _ustate._mrs[e];
                 dE[stream_dir(r, s)] -= w;
                 dE[ustream_dir(nu, _u[s])] += w;
@@ -432,7 +434,7 @@ public:
         }
 
         double get_edges_dl(const std::array<int64_t,3>& dE, int64_t dB,
-                            int dE_tot = 0)
+                            int64_t dE_tot = 0)
         {
             size_t B = 0;
             for (auto& ps : _ustate._partition_stats)

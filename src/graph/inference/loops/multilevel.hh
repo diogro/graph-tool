@@ -33,7 +33,7 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-struct MultivelStateBase
+struct MultilevelStateBase
 {
     //optional
 
@@ -48,6 +48,9 @@ struct MultivelStateBase
 
     template <class Group, class Label>
     double relabel_group_dS(Group, Label) { return 0; }
+
+    template <class Group>
+    int group_label(Group) { return 0; }
 
     template <class Group, class Label>
     void relabel_group(Group, Label) {}
@@ -119,7 +122,14 @@ struct Multilevel:
 
     size_t _nmoves = 0;
 
-    std::vector<std::vector<std::tuple<Node,Group>>> _bstack;
+    typedef std::decay_t<decltype(std::declval<State>().group_label(Group()))>
+        glabel_t;
+
+    std::conditional_t
+        <relabel,
+         std::vector<std::tuple<std::vector<std::tuple<Node,Group>>,
+                                std::vector<std::tuple<Group,glabel_t>>>>,
+         std::vector<std::vector<std::tuple<Node,Group>>>> _bstack;
 
     Sampler<move_t, false> _move_sampler;
 
@@ -129,21 +139,56 @@ struct Multilevel:
         _bstack.emplace_back();
         auto& back = _bstack.back();
         for (const auto& v : vs)
-            back.emplace_back(v, State::get_group(v));
+        {
+            if constexpr (relabel)
+                std::get<0>(back).emplace_back(v, State::get_group(v));
+            else
+                back.emplace_back(v, State::get_group(v));
+        }
+
+        if constexpr (relabel)
+        {
+            State::iter_groups
+                ([&](const auto& r)
+                {
+                    std::get<1>(back).emplace_back(r, State::group_label(r));
+                });
+        }
+
         State::push_state(vs);
     }
 
     void pop_b()
     {
+        auto pop_back =
+            [&](auto& back)
+            {
+                for (auto& vb : back)
+                {
+                    auto& [v, s] = vb;
+                    auto r = State::get_group(v);
+                    if (r == s)
+                        continue;
+                    move_node(v, s);
+                }
+            };
+
         auto& back = _bstack.back();
-        for (auto& vb : back)
+
+        if constexpr (relabel)
+            pop_back(std::get<0>(back));
+        else
+            pop_back(back);
+
+        if constexpr (relabel)
         {
-            auto& [v, s] = vb;
-            auto r = State::get_group(v);
-            if (r == s)
-                continue;
-            move_node(v, s);
+            for (auto& rl : std::get<1>(back))
+            {
+                auto& [r, l] = rl;
+                State::relabel_group(r, l);
+            }
         }
+
         _bstack.pop_back();
         State::pop_state();
     }
@@ -158,7 +203,8 @@ struct Multilevel:
 
     VSet<Node> _visited;
 
-    VMap<Node, Group> _bnext, _bprev, _btemp;
+    VMap<Node, Group> _bnext;
+    GMap<Group, glabel_t> _lnext;
 
     constexpr static size_t _null_move = 1;
 
@@ -705,6 +751,7 @@ struct Multilevel:
         double S_best = std::numeric_limits<double>::infinity();
 
         map<size_t, std::pair<double, std::vector<Group>>> cache;
+        gt_hash_map<size_t, GMap<Group, glabel_t>> lcache;
 
         auto has_cache =
             [&](size_t B)
@@ -723,6 +770,13 @@ struct Multilevel:
                 c.second[i] = State::get_group(vs[i]);
             if (S < S_best)
                 S_best = S;
+
+            if constexpr (relabel)
+            {
+                auto& c = lcache[B];
+                for (auto r : rs)
+                    c[r] = State::group_label(r);
+            }
         };
 
         auto get_cache = [&](size_t B, GSet<Group>& rs)
@@ -738,6 +792,14 @@ struct Multilevel:
                 rs.insert(s);
             }
             assert(rs.size() == B);
+
+            if constexpr (relabel)
+            {
+                auto& c = lcache[B];
+                for (auto r : rs)
+                    State::relabel_group(r, c[r]);
+            }
+
             return c.first;
         };
 
@@ -788,6 +850,7 @@ struct Multilevel:
                     else
                         dS += mh_sweep<true>(vs, rs, _beta, rng, B);
                     S += dS;
+
                     if (std::isinf(_beta) && abs(dS) < 1e-8)
                         break;
                 }
@@ -885,6 +948,7 @@ struct Multilevel:
                 {
                     Bprev = rs.size();
                     double dS = 0;
+
                     if constexpr (relabel)
                     {
                         if (_parallel)
@@ -901,6 +965,7 @@ struct Multilevel:
                         dS += mh_sweep<true>(vs, rs,
                                              (i == 0) ? _init_beta : _beta,
                                              rng, B_min, B_max, true);
+
                     S += dS;
                     if (_verbose)
                         cout << i << " " << ((i == 0) ? _init_beta : _beta)
@@ -1043,9 +1108,7 @@ struct Multilevel:
         for (const auto& r : _rs)
             get_group_vs<false>(r, _vs);
 
-        //push_b(_vs);
-        for (auto& v : _vs)
-            _bprev[v] = State::get_group(v);
+        push_b(_vs);
 
         _dS = stage_multilevel(_rs, _vs, rng);
 
@@ -1054,12 +1117,22 @@ struct Multilevel:
         for (auto& v : _vs)
             _bnext[v] = State::get_group(v);
 
+        if constexpr (relabel)
+        {
+            State::iter_groups
+                ([&](const auto& r)
+                {
+                    _lnext[r] = State::group_label(r);
+                });
+        }
+
         if (_verbose)
             cout << "multilevel proposal: " << nr << "->" << nnr
                  << " (" << _vs.size() << "), dS: " << _dS << endl;
 
-        for (auto& v : _vs)
-            move_node(v, _bprev[v]);
+        pop_b();
+        // for (auto& v : _vs)
+        //     move_node(v, _bprev[v]);
 
         return {0, _nmoves};
     }
@@ -1076,6 +1149,7 @@ struct Multilevel:
         {
             auto r = State::get_group(v);
             auto s = _bnext[v];
+
             if (r == s)
                 continue;
 
@@ -1086,6 +1160,15 @@ struct Multilevel:
 
             if (get_wr(r) == 0)
                 _rlist.erase(r);
+        }
+
+        if constexpr (relabel)
+        {
+            State::iter_groups
+                ([&](const auto& r)
+                {
+                    State::relabel_group(r, _lnext[r]);
+                });
         }
     }
 

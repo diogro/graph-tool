@@ -49,6 +49,8 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         label to an integer label, inidicating how the groups
         should be ordered. If not supplied, the numeric values of the group
         lalbels will be used to initialize the ordering.
+    metric: ``bool`` (optional, default: ``False``)
+        If ``True``, the metric version of the model will be used.
     entropy_args: ``dict`` (optional, default: ``{}``)
         Override default arguments for :meth:`~RankedBlockState.entropy()`
         method and releated operations.
@@ -77,6 +79,8 @@ class RankedBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if isinstance(u, PropertyMap):
             u = self.ustate.bg.own_property(u).copy("int64_t")
         else:
+            if np.issubdtype(u.dtype, np.floating):
+                u = rankdata(u, method='ordinal') - 1
             u = self.ustate.bg.new_vp("int64_t", vals=u)
 
         self.u = u
