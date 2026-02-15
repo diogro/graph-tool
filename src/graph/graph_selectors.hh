@@ -329,7 +329,9 @@ inline constexpr auto all_prop_selectors =
 
 
 // retrieves the appropriate degree selector
+#pragma GCC visibility push(default)
 std::any degree_selector(GraphInterface::deg_t deg);
+#pragma GCC visibility pop
 
 // helper types for in_edge_iteratorS
 
