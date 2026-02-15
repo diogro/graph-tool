@@ -85,11 +85,33 @@ decltype(auto) do_slock(auto&& f, auto&... mutex)
         (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
+template <bool pass_lock=false>
+decltype(auto) do_slock_d(auto&& f, bool enable, auto&... mutex)
+{
+    if (enable)
+        return do_slock<true, pass_lock>
+            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+    else
+        return do_slock<false, pass_lock>
+            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+}
+
 template <bool enable=true, bool pass_lock=false>
 decltype(auto) do_ulock(auto&& f, auto&... mutex)
 {
     return do_lock<std::unique_lock, enable, pass_lock>
         (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+}
+
+template <bool pass_lock=false>
+decltype(auto) do_ulock_d(auto&& f, bool enable, auto&... mutex)
+{
+    if (enable)
+        return do_ulock<true, pass_lock>
+            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+    else
+        return do_ulock<false, pass_lock>
+            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
 template <bool enable=true, bool pass_lock=false, bool relock=true>
@@ -110,16 +132,30 @@ decltype(auto) upgrade_lock(auto&& f, auto&... locks)
             boost::scope::make_scope_exit
             ([&]()
              {
-                 if constexpr (sizeof...(locks) > 1)
-                     std::lock(locks...);
-                 else
-                     (locks.lock(), ...);
+                 if constexpr (relock)
+                 {
+                     if constexpr (sizeof...(locks) > 1)
+                         std::lock(locks...);
+                     else
+                         (locks.lock(), ...);
+                 }
              });
 
         return do_ulock<enable, pass_lock>
             (std::forward<std::decay_t<decltype(f)>>(f),
              *locks.mutex()...);
     }
+}
+
+template <bool pass_lock=false, bool relock=true>
+decltype(auto) upgrade_lock_d(auto&& f, bool enable, auto&... locks)
+{
+    if (enable)
+        return upgrade_lock<true, pass_lock, relock>
+            (std::forward<std::decay_t<decltype(f)>>(f), locks...);
+    else
+        return upgrade_lock<false, pass_lock, relock>
+            (std::forward<std::decay_t<decltype(f)>>(f), locks...);
 }
 
 template <bool enable=true>
