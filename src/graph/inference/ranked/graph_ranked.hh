@@ -70,8 +70,6 @@ public:
               _eweight(ustate._eweight),
               _m_entries(num_vertices(ustate._bg)),
               _u_c(_u.get_checked()),
-              _ed(num_vertices(ustate._bg)),
-              _edp(num_vertices(ustate._bg)),
               _args(std::forward<ATs>(args)...)
         {
             GILRelease gil_release;
@@ -94,13 +92,27 @@ public:
                 {
                     auto r = source(e, ustate._bg);
                     auto s = target(e, ustate._bg);
+
                     if (r == s)
                         continue;
+
                     size_t ers = _ustate._mrs[e];
+                    size_t esr = get_beprop(s, r, _ustate._mrs, _ustate._emat);
+                    size_t mrs = ers + esr;
+
+                    if (r > s)
+                    {
+                        if (esr > 0)
+                            continue;
+                        ers = esr;
+                    }
+
                     auto d = rank_dist(r, s);
-                    _ed[d] += ers;
-                    if (stream_dir(r, s) == 0)
-                        _edp[d] += ers;
+
+                    get<0>(_ed[d]) += get_edp(ers, mrs);
+                    get<1>(_ed[d]) += get_edm(ers, mrs);
+                    _Dp += (ers < floor(mrs/2.));
+                    _Dm += (ers > floor(mrs/2.));
                 }
             }
         }
@@ -118,7 +130,6 @@ public:
                 : bstate_t::m_entries_t(B)
             {}
 
-            gt_hash_map<size_t, int64_t> _delta;
             std::array<int64_t, 3> _dE = {0, 0, 0};
         };
 
@@ -128,8 +139,8 @@ public:
 
         typename u_t::checked_t _u_c;
 
-        idx_map<int64_t, int64_t> _ed, _edp;
-        idx_map<int64_t, int64_t> _ed_d, _edp_d;
+        idx_map<int64_t, std::tuple<int64_t,int64_t>> _ed, _ed_d;
+        int64_t _Dp = 0, _Dm = 0;
 
         args_t _args;
 
@@ -153,6 +164,16 @@ public:
         size_t rank_dist(size_t r, size_t s)
         {
             return std::abs(int64_t(r) - int64_t(s));
+        }
+
+        int64_t get_edp(int64_t ers, int64_t mrs)
+        {
+            return (ers <= floor(mrs/2.)) * ers + (ers >= ceil(mrs/2.)) * (mrs - ers) - (ers == mrs/2.) * ers;
+        }
+
+        int64_t get_edm(int64_t ers, int64_t mrs)
+        {
+            return (ers <= floor(mrs/2.)) * (floor(mrs/2.) - ers) + (ers >= ceil(mrs/2.)) * (ers - ceil(mrs/2.));
         }
 
         void add_block(size_t n)
@@ -192,9 +213,10 @@ public:
             double dS = 0;
             for (auto [d, delta] : _ed_d)
             {
-                auto delta_p = _edp_d[d];
-                dS -= lbinom_fast(_ed[d], _edp[d]) + safelog_fast(_ed[d] + 1);
-                dS += lbinom_fast(_ed[d] + delta, _edp[d] + delta_p) + safelog_fast(_ed[d] + delta + 1);
+                auto& c =_ed[d];
+                dS -= get_Sd(std::get<0>(c), std::get<1>(c));
+                dS += get_Sd(std::get<0>(c) + std::get<0>(delta),
+                             std::get<1>(c) + std::get<1>(delta));
             }
             return dS;
         }
@@ -227,21 +249,9 @@ public:
 
                 assert(!std::isnan(dS) && !std::isinf(dS));
 
-                m_entries._delta.clear();
-                size_t B = num_vertices(_ustate._bg) + 1;
-                entries_op(m_entries, _ustate._emat,
-                           [&](auto t, auto u, auto&, auto delta)
-                           {
-                               if (delta == 0 || t == u)
-                                   return;
-                               m_entries._delta[t + B * u] = delta;
-                           });
-
+                int64_t Dp_d = 0, Dm_d = 0;
                 if (_metric)
-                {
                     _ed_d.clear();
-                    _edp_d.clear();
-                }
 
                 entries_op(m_entries, _ustate._emat,
                            [&](auto t, auto u, auto& me, auto delta)
@@ -254,18 +264,7 @@ public:
                                size_t eut = get_beprop(u, t, _ustate._mrs,
                                                        _ustate._emat);
 
-                               if (_metric)
-                               {
-                                   auto d = rank_dist(t, u);
-                                   _ed_d[d] += delta;
-                                   if (stream_dir(t, u) == 0)
-                                       _edp_d[d] += delta;
-                               }
-
-                               int64_t delta_r = 0;
-                               auto iter = m_entries._delta.find(u + B * t);
-                               if (iter != m_entries._delta.end())
-                                   delta_r = iter->second;
+                               int64_t delta_r = m_entries.get_delta(u, t);
 
                                if (delta_r != 0 && t > u)
                                    return;
@@ -274,11 +273,48 @@ public:
                                dS -= lbinom_fast(etu + delta + eut + delta_r,
                                                  etu + delta);
 
+                               if (_metric && t != u)
+                               {
+                                   auto d = rank_dist(t, u);
+                                   auto mtu = etu + eut;
+                                   auto delta_m = delta + delta_r;
+
+                                   if (t > u)
+                                   {
+                                       etu = eut;
+                                       delta = 0;
+                                   }
+
+                                   if (etu <= floor(mtu/2.))
+                                       dS += lbinom(floor(mtu/2.), etu);
+                                   if (etu >= ceil(mtu/2.))
+                                       dS += lbinom(mtu - ceil(mtu/2.), etu - ceil(mtu/2.));
+
+                                   if (etu + delta <= floor((mtu + delta_m)/2.))
+                                       dS -= lbinom(floor((mtu + delta_m)/2.), etu  + delta);
+                                   if (etu + delta >= ceil((mtu + delta_m)/2.))
+                                       dS -= lbinom((mtu + delta_m) - ceil((mtu + delta_m)/2.), etu + delta - ceil((mtu + delta_m)/2.));
+
+                                   get<0>(_ed_d[d]) -= get_edp(etu, mtu);
+                                   get<1>(_ed_d[d]) -= get_edm(etu, mtu);
+                                   get<0>(_ed_d[d]) += get_edp(etu + delta, mtu + delta_m);
+                                   get<1>(_ed_d[d]) += get_edm(etu + delta, mtu + delta_m);
+
+                                   Dp_d -= (etu < floor(mtu/2.));
+                                   Dm_d -= (etu > floor(mtu/2.));
+                                   Dp_d += (etu + delta < floor((mtu + delta_m)/2.));
+                                   Dm_d += (etu + delta > floor((mtu + delta_m)/2.));
+                               }
+
                                assert(!std::isnan(dS) && !std::isinf(dS));
                            });
 
                 if (_metric)
+                {
                     dS += get_ed_dS();
+                    dS -= get_Sd(_Dp, _Dm);
+                    dS += get_Sd(_Dp + Dp_d, _Dm + Dm_d);
+                }
             }
 
             assert(!std::isnan(dS) && !std::isinf(dS));
@@ -301,21 +337,55 @@ public:
             for (size_t i = 0; i < 3; ++i)
                 _E[i] += m_entries._dE[i];
 
-            _ustate.move_vertex(v, nr, m_entries);
-
             if (_metric)
             {
                 entries_op(m_entries, _ustate._emat,
-                           [&](auto t, auto u, auto&, auto delta)
+                           [&](auto t, auto u, auto& me, auto delta)
                            {
-                               if (delta == 0 || t == u)
+                               if (t == u || delta == 0)
                                    return;
+
+                               int64_t etu = (me != _ustate._emat.get_null_edge()) ?
+                                   _ustate._mrs[me] : 0;
+
+                               int64_t eut = get_beprop(u, t, _ustate._mrs,
+                                                       _ustate._emat);
+
+                               int64_t delta_r = m_entries.get_delta(u, t);
+                               int64_t delta_m = delta + delta_r;
+
                                auto d = rank_dist(t, u);
-                               _ed[d] += delta;
-                               if (stream_dir(t, u) == 0)
-                                   _edp[d] += delta;
+                               auto mtu = etu + eut;
+
+                               if (t > u)
+                               {
+                                   if (delta_r != 0)
+                                       return;
+                                   etu = eut;
+                                   delta = delta_r;
+                               }
+
+                               auto& ed = _ed[d];
+
+                               get<0>(ed) -= get_edp(etu, mtu);
+                               get<0>(ed) += get_edp(etu + delta, mtu + delta_m);
+
+                               assert(get<0>(ed) >= 0);
+
+                               get<1>(ed) -= get_edm(etu, mtu);
+                               get<1>(ed) += get_edm(etu + delta, mtu + delta_m);
+
+                               assert(get<1>(ed) >= 0);
+
+                               _Dp -= (etu < floor(mtu/2.));
+                               _Dp += ((etu + delta) < floor((mtu + delta_m)/2.));
+
+                               _Dm -= (etu > floor(mtu/2.));
+                               _Dm += ((etu + delta) > floor((mtu + delta_m)/2.));
                            });
             }
+
+            _ustate.move_vertex(v, nr, m_entries);
         }
 
         void move_vertex(size_t v, size_t nr)
@@ -328,24 +398,15 @@ public:
             auto dE = get_dE(v, r, nr);
 
             for (size_t i = 0; i < 3; ++i)
-                _E[i] += dE[i];
-
-            _ustate.move_vertex(v, nr);
-
-            if (_metric)
             {
-                entries_op(_ustate._m_entries, _ustate._emat,
-                           [&](auto t, auto u, auto&, auto delta)
-                           {
-                               if (delta == 0 || t == u)
-                                   return;
-                               auto d = rank_dist(t, u);
-                               _ed[d] += delta;
-                               if (stream_dir(t, u) == 0)
-                                   _edp[d] += delta;
-                           });
+                _E[i] += dE[i];
+                _m_entries._dE[i] = 0;
             }
 
+            _ustate.get_move_entries(v, r, nr, _m_entries,
+                                     [](auto&) constexpr {return false;});
+
+            move_vertex(v, nr, _m_entries);
         }
 
         std::array<int64_t, 3>
@@ -465,6 +526,11 @@ public:
             return S;
         }
 
+        double get_Sd(int64_t edp, int64_t edm)
+        {
+            return lgamma_fast(edp + edm + 2) -lgamma_fast(edp + 1) - lgamma_fast(edm + 1);
+        }
+
         double entropy(entropy_args_t ea, bool propagate=false)
         {
             double S = 0;
@@ -486,14 +552,24 @@ public:
 
                          size_t ers = _ustate._mrs[e];
                          size_t esr = get_beprop(s, r, _ustate._mrs, _ustate._emat);
+                         size_t mrs = ers + esr;
 
-                         S -= lbinom_fast(ers + esr, ers);
+                         S -= lbinom_fast(mrs, ers);
+
+                         if (_metric)
+                         {
+                             if (ers <= floor(mrs/2.))
+                                 S -= lbinom(floor(mrs/2.), ers);
+                             if (ers >= ceil(mrs/2.))
+                                 S -= lbinom(mrs - ceil(mrs/2.), ers - ceil(mrs/2.));
+                         }
                      });
 
                 if (_metric)
                 {
                     for (auto& [d, c] : _ed)
-                        S += lbinom_fast(_ed[d], _edp[d]) + safelog_fast(_ed[d] + 1);
+                        S += get_Sd(std::get<0>(c), std::get<1>(c));
+                    S += get_Sd(_Dp, _Dm);
                 }
             }
 
