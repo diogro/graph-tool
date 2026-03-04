@@ -112,7 +112,7 @@ public:
                     get<0>(_ed[d]) += get_edp(ers, mrs);
                     get<1>(_ed[d]) += get_edm(ers, mrs);
                     _Dp += (ers < floor(mrs/2.));
-                    _Dm += (ers > floor(mrs/2.));
+                    _Dm += (ers > ceil(mrs/2.));
                 }
             }
         }
@@ -269,11 +269,13 @@ public:
                                if (delta_r != 0 && t > u)
                                    return;
 
-                               dS += lbinom_fast(etu + eut, etu);
-                               dS -= lbinom_fast(etu + delta + eut + delta_r,
+                               if (!_metric)
+                               {
+                                   dS += lbinom_fast(etu + eut, etu);
+                                   dS -= lbinom_fast(etu + delta + eut + delta_r,
                                                  etu + delta);
-
-                               if (_metric && t != u)
+                               }
+                               else if (t != u)
                                {
                                    auto d = rank_dist(t, u);
                                    auto mtu = etu + eut;
@@ -285,15 +287,15 @@ public:
                                        delta = 0;
                                    }
 
-                                   if (etu <= floor(mtu/2.))
-                                       dS += lbinom(floor(mtu/2.), etu);
-                                   if (etu >= ceil(mtu/2.))
-                                       dS += lbinom(mtu - ceil(mtu/2.), etu - ceil(mtu/2.));
+                                   if (etu < floor(mtu/2.))
+                                       dS += lbinom_fast(floor(mtu/2.), etu);
+                                   if (etu > ceil(mtu/2.))
+                                       dS += lbinom_fast(mtu - ceil(mtu/2.), etu - ceil(mtu/2.));
 
-                                   if (etu + delta <= floor((mtu + delta_m)/2.))
-                                       dS -= lbinom(floor((mtu + delta_m)/2.), etu  + delta);
-                                   if (etu + delta >= ceil((mtu + delta_m)/2.))
-                                       dS -= lbinom((mtu + delta_m) - ceil((mtu + delta_m)/2.), etu + delta - ceil((mtu + delta_m)/2.));
+                                   if (etu + delta < floor((mtu + delta_m)/2.))
+                                       dS -= lbinom_fast(floor((mtu + delta_m)/2.), etu  + delta);
+                                   if (etu + delta > ceil((mtu + delta_m)/2.))
+                                       dS -= lbinom_fast((mtu + delta_m) - ceil((mtu + delta_m)/2.), etu + delta - ceil((mtu + delta_m)/2.));
 
                                    get<0>(_ed_d[d]) -= get_edp(etu, mtu);
                                    get<1>(_ed_d[d]) -= get_edm(etu, mtu);
@@ -301,9 +303,9 @@ public:
                                    get<1>(_ed_d[d]) += get_edm(etu + delta, mtu + delta_m);
 
                                    Dp_d -= (etu < floor(mtu/2.));
-                                   Dm_d -= (etu > floor(mtu/2.));
+                                   Dm_d -= (etu > ceil(mtu/2.));
                                    Dp_d += (etu + delta < floor((mtu + delta_m)/2.));
-                                   Dm_d += (etu + delta > floor((mtu + delta_m)/2.));
+                                   Dm_d += (etu + delta > ceil((mtu + delta_m)/2.));
                                }
 
                                assert(!std::isnan(dS) && !std::isinf(dS));
@@ -380,8 +382,8 @@ public:
                                _Dp -= (etu < floor(mtu/2.));
                                _Dp += ((etu + delta) < floor((mtu + delta_m)/2.));
 
-                               _Dm -= (etu > floor(mtu/2.));
-                               _Dm += ((etu + delta) > floor((mtu + delta_m)/2.));
+                               _Dm -= (etu > ceil(mtu/2.));
+                               _Dm += ((etu + delta) > ceil((mtu + delta_m)/2.));
                            });
             }
 
@@ -528,7 +530,7 @@ public:
 
         double get_Sd(int64_t edp, int64_t edm)
         {
-            return lgamma_fast(edp + edm + 2) -lgamma_fast(edp + 1) - lgamma_fast(edm + 1);
+            return lgamma_fast(edp + edm + 2) - lgamma_fast(edp + 1) - lgamma_fast(edm + 1);
         }
 
         double entropy(entropy_args_t ea, bool propagate=false)
@@ -554,14 +556,16 @@ public:
                          size_t esr = get_beprop(s, r, _ustate._mrs, _ustate._emat);
                          size_t mrs = ers + esr;
 
-                         S -= lbinom_fast(mrs, ers);
-
                          if (_metric)
                          {
-                             if (ers <= floor(mrs/2.))
-                                 S -= lbinom(floor(mrs/2.), ers);
-                             if (ers >= ceil(mrs/2.))
-                                 S -= lbinom(mrs - ceil(mrs/2.), ers - ceil(mrs/2.));
+                             if (ers < floor(mrs/2.))
+                                 S -= lbinom_fast(floor(mrs/2.), ers);
+                             if (ers > ceil(mrs/2.))
+                                 S -= lbinom_fast(mrs - ceil(mrs/2.), ers - ceil(mrs/2.));
+                         }
+                         else
+                         {
+                             S -= lbinom_fast(mrs, ers);
                          }
                      });
 
