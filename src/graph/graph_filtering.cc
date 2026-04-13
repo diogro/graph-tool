@@ -23,27 +23,6 @@ using namespace graph_tool::detail;
 using namespace boost;
 using namespace std;
 
-// Whenever no implementation is called, the following exception is thrown
-graph_tool::DispatchNotFound::DispatchNotFound(const type_info& dispatch,
-                                               const vector<string>& arg_types,
-                                               const vector<bool>& found)
-    : GraphException(""), _dispatch(dispatch), _arg_types(arg_types),
-      _found(found)
-{
-    _error =
-        "No static implementation was found for the desired routine. "
-        "This is a graph_tool bug. :-( Please submit a bug report at "
-        PACKAGE_BUGREPORT ". What follows is debug information.\n\n";
-
-    _error += "Dispatch: " + name_demangle(_dispatch.name()) + "\n\n";
-
-    for (size_t i = 0; i < _arg_types.size(); ++i)
-        _error += std::format("Arg {} {}: {}\n\n", i,
-                              _found[i] ? "(matched)" : "(not matched)",
-                              _arg_types[i]);
-}
-
-
 // gets the correct graph view at run time
 std::any GraphInterface::get_graph_view() const
 {

@@ -892,6 +892,12 @@ bool hasattr(boost::python::object obj, std::string const& attrName)
     return PyObject_HasAttrString(obj.ptr(), attrName.c_str());
 }
 
+std::string repr(boost::python::object obj)
+{
+    return boost::python::extract<std::string>(obj.attr("__repr__")())();
+}
+
+
 } // namespace graph_tool
 
 // register everything

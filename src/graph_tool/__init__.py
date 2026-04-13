@@ -1881,8 +1881,7 @@ class Graph(object):
             else:
                 vprune, eprune, rprune = prune
             if not (vprune or eprune or rprune):
-                gv = GraphView(g, skip_vfilt=True,
-                               skip_efilt=True)
+                gv = GraphView(g, skip_vfilt=True, skip_efilt=True)
                 if not rprune:
                     gv.set_reversed(False)
             else:
@@ -1920,7 +1919,6 @@ class Graph(object):
                         nefilt = self.copy_property(efilt, g=gv)
                 self.set_filters(nefilt, nvfilt)
             else:
-
                 # Copy all internal properties from original graph.
                 vprops = []
                 eprops = []

@@ -66,27 +66,44 @@ using namespace hana::literals;
 // The above line will run my_algorithm with Graph being the appropriate graph
 // view type and ValueType being 'double' and val = 42.0.
 
-#pragma GCC visibility push(default)
-
 namespace graph_tool
 {
+
+#pragma GCC visibility push(default)
 
 class DispatchNotFound
     : public GraphException
 {
 public:
-    DispatchNotFound(const std::type_info& dispatch,
-                     const std::vector<std::string>& arg_types,
-                     const std::vector<bool>& found);
+    DispatchNotFound(const std::string& dispatch,
+                     size_t pos,
+                     const std::vector<std::string>& trs,
+                     const std::string& val)
+    : GraphException(""), _dispatch(dispatch), _pos(pos), _trs(trs),
+      _val(val)
+    {
+        _error =
+            "No static implementation was found for the desired routine. "
+            "This is a graph_tool bug. :-( Please submit a bug report at "
+            PACKAGE_BUGREPORT ". What follows is debug information.\n\n";
+
+        _error += "Dispatch: " + _dispatch + "\n\n";
+
+        _error += std::format("Cannot extract argument number {} of desired types {} from value: {}",
+                              _pos, _trs, _val);
+    }
+
     virtual ~DispatchNotFound() throw () {}
 
-    const auto& get_arg_types() const { return _arg_types; }
-    const auto& get_found() const { return _found; }
+    const auto& get_pos() const { return _pos; }
+    const auto& get_trs() const { return _trs; }
+    const auto& get_val() const { return _val; }
 
 private:
-    const std::type_info& _dispatch;
-    std::vector<std::string> _arg_types;
-    std::vector<bool> _found;
+    std::string _dispatch;
+    size_t _pos;
+    std::vector<std::string> _trs;
+    std::string _val;
 };
 
 #pragma GCC visibility pop
@@ -108,24 +125,25 @@ private:
     std::string _what;
 };
 
-constexpr auto args_sub(auto args)
+std::vector<std::string> print_tr(auto tr)
 {
-    return hana::fold
-        (args, hana::tuple(),
-         [](auto xs, auto x)
-         {
-             typedef typename decltype(+x)::type x_t;
-             if constexpr (std::is_base_of_v<last_type_func_t, x_t>)
-                 return hana::append(xs, x_t::get(hana::back(xs)));
-             else if constexpr (std::is_base_of_v<all_types_func_t, x_t>)
-                 return hana::append(xs, x_t::get(xs));
-             else
-                 return hana::append(xs, x);
-         });
+    std::vector<std::string> trs;
+    hana::for_each(tr,
+                   [&](auto x)
+                   {
+                       trs.push_back(get_type_name<typename decltype(x)::type>());
+                   });
+    return trs;
 }
 
 template <typename T>
-struct print_type;
+std::string print_val(T&& a)
+{
+    if constexpr (std::is_same_v<std::decay_t<T>, std::any>)
+        return name_demangle(a.type().name());
+    else
+        return boost::python::extract<std::string>(a.attr("__repr__")());
+};
 
 struct gt_dispatch_args
 {
@@ -137,6 +155,18 @@ struct gt_dispatch_args
 template <gt_dispatch_args dargs = {}>
 struct gt_dispatch
 {
+    template <class Dispatch, class... TRS>
+    auto operator()(Dispatch&& d, TRS... trs)
+    {
+        return [=](auto&&... as)
+               {
+                   dispatcher(d,
+                              hana::make_tuple(trs...),
+                              hana::make_tuple(std::ref(as)...),
+                              hana::tuple<>());
+               };
+    }
+
     template <class Type, class IndexMap>
     static auto& pmap(boost::checked_vector_property_map<Type,IndexMap>& a)
     {
@@ -152,125 +182,108 @@ struct gt_dispatch
         return std::forward<Type>(a);
     }
 
-    template <class Dispatch, class... TRS>
-    auto operator()(Dispatch&& a, TRS... trs)
+    template <class Dispatch, class TRS, class AS, class XTS, class... XS>
+    void dispatcher(Dispatch&& d, TRS trs, AS as, XTS xts, XS&&... xs)
     {
-        return [=](auto&&... as)
-               {
-                   GILRelease gil(dargs.gil_release);
+        if constexpr (hana::size(trs) == hana::size_c<0>)
+        {
+            GILRelease gil(dargs.gil_release);
+            if constexpr (dargs.pass_types)
+                d(xts, pmap(std::forward<XS>(xs))...);
+            else
+                d(pmap(std::forward<XS>(xs))...);
+        }
+        else
+        {
+            auto& a = as[0_c].get();
+            using a_t = std::decay_t<decltype(a)>;
 
-                   constexpr auto cp = hana::cartesian_product(hana::make_tuple(trs...));
+            bool found = false;
 
-                   std::array<bool, sizeof...(as)> pfound;
-                   bool found = false;
+            constexpr auto tr =
+                hana::transform
+                (hana::front(trs),
+                 [&](auto t)
+                 {
+                     using tr_t = decltype(+t)::type;
+                     if constexpr (std::is_base_of_v<last_type_func_t, tr_t>)
+                     {
+                         static_assert(hana::size(xts) != hana::size_c<0>);
+                         if constexpr (hana::size(xts) != hana::size_c<0>)  // to avoid a clang miscompilation
+                             return tr_t::get(hana::back(xts));
+                     }
+                     else if constexpr (std::is_base_of_v<all_types_func_t, tr_t>)
+                     {
+                         return tr_t::get(xts);
+                     }
+                     else
+                     {
+                         return t;
+                     }
+                 });
 
-                   hana::for_each
-                       (cp,
-                        [&](auto ats)
-                        {
-                            if (found)
-                                return;
+            hana::for_each
+                (tr,
+                 [&](auto t)
+                 {
+                     if (found)
+                         return;
 
-                            constexpr auto fats = args_sub(ats);
+                     auto dispatch =
+                         [&](auto&& val)
+                         {
+                             dispatcher(std::forward<Dispatch>(d),
+                                        hana::drop_front(trs, hana::size_c<1>),
+                                        hana::drop_front(as, hana::size_c<1>),
+                                        hana::append(xts, t),
+                                        std::forward<XS>(xs)...,
+                                        std::forward<decltype(val)>(val));
 
-                            auto args =
-                                hana::transform
-                                (hana::zip(fats, hana::make_tuple(std::ref(as)...)),
-                                 [&](auto&& tv)
-                                 {
-                                     using TR = typename decltype(+tv[0_c])::type;
-                                     using T = std::decay_t<TR>;
+                             found = true;
+                         };
 
-                                     auto& x = tv[1_c].get();
+                     using T_R = typename decltype(+t)::type;
+                     using T = std::decay_t<T_R>;
 
-                                     if constexpr (std::is_same_v<std::decay_t<decltype(x)>, std::any>)
-                                     {
-                                         T* val = std::any_cast<T>(&x);
-                                         if (val == nullptr)
-                                         {
-                                             auto rval = std::any_cast<std::reference_wrapper<T>>(&x);
-                                             if (rval == nullptr)
-                                             {
-                                                 auto sval = std::any_cast<std::shared_ptr<T>>(&x);
-                                                 if (sval != nullptr)
-                                                     val = sval->get();
-                                             }
-                                             else
-                                             {
-                                                 val = &rval->get();
-                                             }
-                                         }
-                                         return val;
-                                     }
-                                     else // boost::python::object
-                                     {
-                                         try
-                                         {
-                                             if constexpr (std::is_reference_v<TR>)
-                                                 return &extract_param<TR>()(x);
-                                             else
-                                                 return std::optional<T>(extract_param<TR>()(x));
-                                         }
-                                         catch (const bad_extract& e)
-                                         {
-                                             if constexpr (std::is_reference_v<TR>)
-                                                 return (T*) nullptr;
-                                             else
-                                                 return std::optional<T>();
-                                         }
-                                     }
-                                 });
+                     if constexpr (std::is_same_v<a_t, std::any>)
+                     {
+                         T* val = std::any_cast<T>(&a);
+                         if (val != nullptr)
+                         {
+                             dispatch(*val);
+                         }
+                         else
+                         {
+                             auto rval = std::any_cast<std::reference_wrapper<T>>(&a);
+                             if (rval != nullptr)
+                             {
+                                 dispatch(rval->get());
+                             }
+                             else
+                             {
+                                 auto sval = std::any_cast<std::shared_ptr<T>>(&a);
+                                 if (sval != nullptr)
+                                     dispatch(**sval);
+                             }
+                         }
+                     }
+                     else // boost::python::object
+                     {
+                         try
+                         {
+                             auto&& val = extract_param<T_R>()(a);
+                             dispatch(val);
+                         }
+                         catch (const bad_extract& e) {};
+                     }
+                 });
 
-                            found = true;
-                            size_t idx = 0;
-                            hana::for_each(args,
-                                           [&](auto v)
-                                           {
-                                               bool vfound = true;
-                                               if constexpr (std::is_pointer_v<decltype(v)>)
-                                               {
-                                                   if (v == nullptr)
-                                                       vfound = false;
-                                               }
-                                               else
-                                               {
-                                                   if (!v)
-                                                       vfound = false;
-                                               }
-                                               if (vfound)
-                                                   pfound[idx] = true;
-                                               if (!vfound)
-                                                   found = false;
-                                               ++idx;
-                                           });
-
-                            if (!found)
-                                return;
-
-                            if constexpr (!dargs.pass_types)
-                                hana::unpack(args, [&](auto&... vals) { a(pmap(*vals)...); });
-                            else
-                                hana::unpack(args, [&](auto&... vals) { a(fats, pmap(*vals)...); });
-                        });
-
-                   if (!found)
-                   {
-                       auto get_type =
-                           [](auto&& a)
-                           {
-                               if constexpr (std::is_same_v<std::decay_t<decltype(a)>, std::any>)
-                                   return name_demangle(a.type().name());
-                               else
-                                   return boost::python::extract<std::string>(a.attr("__repr__")());
-                           };
-                       std::vector<std::string> arg_types{get_type(as)...};
-                       std::vector<bool> afound(pfound.begin(), pfound.end());
-                       throw DispatchNotFound(typeid(Dispatch), arg_types, afound);
-                   }
-               };
+            if (!found)
+                throw DispatchNotFound(get_type_name<Dispatch>(),
+                                       hana::size(xts), print_tr(tr),
+                                       print_val(a));
+        }
     }
-
-    bool _gil_release;
 };
 
 
@@ -372,7 +385,7 @@ struct velem_eprop_t
 constexpr inline auto velem_eprop_type = hana::tuple_t<velem_eprop_t>;
 
 template <class T>
-struct extract_param
+struct extract_param_base
 {
     T operator()(boost::python::object obj)
     {
@@ -388,42 +401,63 @@ struct extract_param
                 aobj = obj.attr("_get_any")();
             else
                 aobj = obj;
-
             boost::python::extract<std::any&> extract(aobj);
             if (!extract.check())
-                throw bad_extract("cannot extract 'any' object");
+                throw_err(obj);
             std::any& aval = extract();
-            typedef std::remove_reference_t<T> val_t;
-            val_t* val = std::any_cast<val_t>(&aval);
-            if (val != nullptr)
+            return (*this)(aval);
+        }
+    }
+
+    T operator()(std::any& aval)
+    {
+        typedef std::remove_reference_t<T> val_t;
+
+        if constexpr (std::is_same_v<val_t, std::any>)
+            return aval;
+
+        val_t* val = std::any_cast<val_t>(&aval);
+        if (val != nullptr)
+        {
+            return *val;
+        }
+        else
+        {
+            typedef std::reference_wrapper<val_t> ref_t;
+            ref_t* rval = std::any_cast<ref_t>(&aval);
+            if (rval != nullptr)
             {
-                return *val;
+                return rval->get();
             }
             else
             {
-                typedef std::reference_wrapper<val_t> ref_t;
-                ref_t* rval = std::any_cast<ref_t>(&aval);
-                if (rval != nullptr)
-                {
-                    return rval->get();
-                }
+                typedef std::shared_ptr<val_t> ptr_t;
+                ptr_t* pval = std::any_cast<ptr_t>(&aval);
+                if (pval != nullptr)
+                    return **pval;
                 else
-                {
-                    typedef std::shared_ptr<val_t> ptr_t;
-                    ptr_t* pval = std::any_cast<ptr_t>(&aval);
-                    if (pval != nullptr)
-                        return **pval;
-                    else
-                        throw bad_extract("has type: " +
-                                          name_demangle(aval.type().name()));
-                }
+                    throw bad_extract(std::format("cannot extract C++ object of type '{}' from std::any, has type: {} ",
+                                                  get_type_name<T>(),
+                                                  name_demangle(aval.type().name())));
             }
         }
     }
+
+    [[noreturn]] void throw_err(boost::python::object obj, std::string extra = "")
+    {
+        throw bad_extract(std::format("cannot extract C++ object of type '{}' from python object: {}{}",
+                                      get_type_name<T>(), print_val(obj), extra));
+    }
 };
+
+template <class T>
+struct extract_param
+    : public extract_param_base<T>
+{};
 
 template <class Type, size_t Dim>
 struct extract_param<boost::multi_array_ref<Type, Dim>>
+    : public extract_param_base<boost::multi_array_ref<Type, Dim>>
 {
     auto operator()(boost::python::object obj)
     {
@@ -433,29 +467,31 @@ struct extract_param<boost::multi_array_ref<Type, Dim>>
         }
         catch (InvalidNumpyConversion& e)
         {
-            throw bad_extract(e.what());
+            this->throw_err(obj, std::format(", reason: {}", e.what()));
         };
     }
 };
 
 template <>
 struct extract_param<std::true_type>
+    : public extract_param_base<std::true_type>
 {
     auto operator()(boost::python::object obj)
     {
         if (!extract_param<bool>()(obj))
-            throw bad_extract();
+            throw_err(obj);
         return std::true_type();
     }
 };
 
 template <>
 struct extract_param<std::false_type>
+    : public extract_param_base<std::false_type>
 {
     auto operator()(boost::python::object obj)
     {
         if (extract_param<bool>()(obj))
-            throw bad_extract();
+            throw_err(obj);
         return std::false_type();
     }
 };

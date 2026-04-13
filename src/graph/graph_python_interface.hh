@@ -737,6 +737,8 @@ private:
 
 bool hasattr(boost::python::object obj, std::string const& attrName);
 
+std::string repr(boost::python::object);
+
 // Exposing and converting vector types
 
 template <class ValueType>
@@ -896,7 +898,6 @@ struct export_vector_types
     {
     }
 };
-
 
 } //graph_tool namespace
 

@@ -31,8 +31,7 @@
 
 using namespace std;
 using namespace graph_tool;
-using namespace boost;
-using namespace boost::python;
+namespace bp = boost::python;
 
 struct LibInfo
 {
@@ -82,169 +81,204 @@ void raise_error(const string& msg)
     throw GraphException(msg);
 }
 
+// to python converters
+
 template <class T1, class T2>
 struct pair_to_tuple
 {
     static PyObject* convert(const pair<T1,T2>& p)
     {
-        boost::python::tuple t = boost::python::make_tuple(p.first,p.second);
-        return incref(t.ptr());
+        bp::tuple t = bp::make_tuple(p.first,p.second);
+        return bp::incref(t.ptr());
     }
 };
 
+// from python converters
+
+template <class Imp>
+struct rval_from_python
+{
+    using type_t = std::decay_t<decltype(Imp::construct(bp::object()))>;
+
+    rval_from_python()
+    {
+        bp::converter::registry::push_back(&convertible, &construct,
+                                           bp::type_id<type_t>());
+    }
+
+    static void* convertible(PyObject* obj_ptr)
+    {
+        bp::handle<> x(bp::borrowed(obj_ptr));
+        bp::object obj(x);
+        if (Imp::convertible(obj))
+            return obj_ptr;
+        return nullptr;
+    }
+
+    static void construct(PyObject* obj_ptr,
+                          bp::converter::rvalue_from_python_stage1_data* data)
+    {
+        bp::handle<> x(bp::borrowed(obj_ptr));
+        bp::object obj(x);
+        type_t val = Imp::construct(obj);
+        void* storage =
+            reinterpret_cast<bp::converter::rvalue_from_python_storage<type_t>*>(data)->storage.bytes;
+        new (storage) type_t(val);
+        data->convertible = storage;
+    }
+};
+
+
+// r-value
 template <class T1, class T2>
 struct pair_from_tuple
 {
-    pair_from_tuple()
+    static bool convertible(bp::object o)
     {
-        converter::registry::push_back(&convertible, &construct,
-                                       boost::python::type_id<pair<T1,T2> >());
-    }
-
-    static void* convertible(PyObject* obj_ptr)
-    {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        if (boost::python::len(o) < 2)
-            return 0;
-        extract<T1> first(o[0]);
-        extract<T2> second(o[1]);
+        if (bp::len(o) < 2)
+            return false;
+        bp::extract<T1> first(o[0]);
+        bp::extract<T2> second(o[1]);
         if (!first.check() || !second.check())
-            return 0;
-        return obj_ptr;
+            return false;
+        return true;
     }
 
-    static void construct(PyObject* obj_ptr,
-                          converter::rvalue_from_python_stage1_data* data)
+    static auto construct(bp::object o)
     {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        pair<T1,T2> value;
-        value.first = extract<T1>(o[0])();
-        value.second = extract<T2>(o[1])();
-        void* storage =
-            ( (boost::python::converter::rvalue_from_python_storage
-               <pair<T1,T2> >*) data)->storage.bytes;
-        new (storage) pair<T1,T2>(value);
-        data->convertible = storage;
+        std::pair<T1,T2> value;
+        value.first = bp::extract<T1>(o[0])();
+        value.second = bp::extract<T2>(o[1])();
+        return value;
     }
 };
 
+// r-value
 template <class ValueType>
 struct variant_from_python
+
 {
-    variant_from_python()
+    static bool convertible(bp::object o)
     {
-        converter::registry::push_back
-            (&convertible, &construct,
-             boost::python::type_id<GraphInterface::deg_t>());
-    }
-
-    static void* convertible(PyObject* obj_ptr)
-    {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        extract<ValueType> str(o);
+        bp::extract<ValueType> str(o);
         if (!str.check())
-            return 0;
-        return obj_ptr;
+            return false;
+        return true;
     }
 
-    static void construct(PyObject* obj_ptr,
-                          converter::rvalue_from_python_stage1_data* data)
+    static auto construct(bp::object o)
     {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        extract<ValueType> str(o);
+        bp::extract<ValueType> str(o);
         ValueType value = str();
         GraphInterface::deg_t deg = value;
-        void* storage =
-            ((boost::python::converter::rvalue_from_python_storage
-              <GraphInterface::deg_t>*) data)->storage.bytes;
-        new (storage) GraphInterface::deg_t(deg);
-        data->convertible = storage;
+        return deg;
     }
 };
 
+// r-value
 template <class T>
 struct integer_from_convertible
 {
-    integer_from_convertible()
+    static bool convertible(bp::object o)
     {
-        converter::registry::push_back(&convertible, &construct,
-                                       boost::python::type_id<T>());
+        return hasattr(o, "__int__");
     }
 
-    static void* convertible(PyObject* obj_ptr)
+    static auto construct(bp::object o)
     {
-        if (PyObject_HasAttrString(obj_ptr, "__int__"))
-            return obj_ptr;
-        return 0;
-    }
-
-    static void construct(PyObject* obj_ptr,
-                          converter::rvalue_from_python_stage1_data* data)
-    {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        T value = extract<T>(o.attr("__int__")())();
-        void* storage =
-            ( (boost::python::converter::rvalue_from_python_storage<T>*) data)->storage.bytes;
-        new (storage) T(value);
-        data->convertible = storage;
+        T val = bp::extract<T>(o.attr("__int__")())();
+        return val;
     }
 };
 
+// r-value
 template <class T>
 struct float_from_convertible
 {
-    float_from_convertible()
+    static bool convertible(bp::object o)
     {
-        converter::registry::push_back(&convertible, &construct,
-                                       boost::python::type_id<T>());
+        return hasattr(o, "__float__");
     }
 
-    static void* convertible(PyObject* obj_ptr)
+    static auto construct(bp::object o)
     {
-        if (PyObject_HasAttrString(obj_ptr, "__float__"))
-            return obj_ptr;
-        return 0;
-    }
-
-    static void construct(PyObject* obj_ptr,
-                          converter::rvalue_from_python_stage1_data* data)
-    {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        T value = extract<T>(o.attr("__float__")())();
-        void* storage =
-            ( (boost::python::converter::rvalue_from_python_storage<T>*) data)->storage.bytes;
-        new (storage) T(value);
-        data->convertible = storage;
+        T val = bp::extract<T>(o.attr("__float__")())();
+        return val;
     }
 };
 
+// r-value
+struct any_from_python
+{
+    static bool convertible(bp::object obj)
+    {
+        return hasattr(obj, "_get_any") || obj.is_none();
+    }
+
+    static auto construct(bp::object obj)
+    {
+        std::any val;
+        if (!obj.is_none())
+        {
+            auto o = obj.attr("_get_any")();
+            val = bp::extract<std::any>(o)();
+        }
+        return val;
+    }
+};
+
+template <class Imp>
+struct lval_from_python
+{
+    using type_t = std::remove_pointer_t<decltype(Imp::convert(bp::object()))>;
+
+    lval_from_python()
+    {
+        bp::converter::registry::insert(&convert,
+                                        bp::type_id<type_t>());
+    }
+
+    static void* convert(PyObject* obj_ptr)
+    {
+        bp::handle<> x(bp::borrowed(obj_ptr));
+        bp::object obj(x);
+        return Imp::convert(obj);
+    }
+};
+
+// l-value
+
+struct graph_from_python
+{
+    static GraphInterface* convert(bp::object obj)
+    {
+        if (!hasattr(obj, "_Graph__graph"))
+            return nullptr;
+        auto o = obj.attr("_Graph__graph");
+        return &bp::extract<GraphInterface&>(o)();
+    }
+};
 
 // persistent python object IO
 namespace graph_tool
 {
-extern python::object object_pickler;
-extern python::object object_unpickler;
+extern bp::object object_pickler;
+extern bp::object object_unpickler;
 }
 
-void set_pickler(boost::python::object o)
+void set_pickler(bp::object o)
 {
     graph_tool::object_pickler = o;
 }
 
-void set_unpickler(boost::python::object o)
+void set_unpickler(bp::object o)
 {
     graph_tool::object_unpickler = o;
 }
 
-boost::python::list get_property_types()
+bp::list get_property_types()
 {
-    boost::python::list plist;
+    bp::list plist;
     for (size_t i = 0; i < hana::length(value_types).value; ++i)
         plist.append(string(type_names[i]));
     return plist;
@@ -283,10 +317,10 @@ void ungroup_vector_property(GraphInterface& g, std::any vector_prop,
 void group_vector_property(GraphInterface& g, std::any vector_prop,
                            std::any prop, size_t pos, bool edge);
 void property_map_values(GraphInterface& g, std::any src_prop,
-                         std::any tgt_prop, boost::python::object mapper,
+                         std::any tgt_prop, bp::object mapper,
                          bool edge);
 void infect_vertex_property(GraphInterface& gi, std::any prop,
-                            boost::python::object val);
+                            bp::object val);
 void edge_endpoint(GraphInterface& gi, std::any prop,
                    std::any eprop, std::string endpoint);
 void out_edges_op(GraphInterface& gi, std::any eprop, std::any vprop,
@@ -298,9 +332,9 @@ void perfect_ehash(GraphInterface& gi, std::any prop, std::any hprop,
 void perfect_vhash(GraphInterface& gi, std::any prop, std::any hprop,
                    std::any& dict);
 void set_vertex_property(GraphInterface& gi, std::any prop,
-                         boost::python::object val);
+                         bp::object val);
 void set_edge_property(GraphInterface& gi, std::any prop,
-                       boost::python::object val);
+                       bp::object val);
 
 void copy_external_edge_property(const GraphInterface& src,
                                  const GraphInterface& tgt,
@@ -320,7 +354,8 @@ void export_openmp();
 
 BOOST_PYTHON_MODULE(libgraph_tool_core)
 {
-    python::docstring_options dopt(true, false);
+    using namespace bp;
+    docstring_options dopt(true, false);
 
     // numpy
     PyArray_ImportNumPyAPI();
@@ -344,6 +379,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .def("has_value", &std::any::has_value)
         .def("type",  &std::any::type,
              return_value_policy<reference_existing_object>());
+    rval_from_python<any_from_python>();
+
     class_<std::type_info, boost::noncopyable>("type_info", no_init)
         .def("name", &std::type_info::name)
         .def("hash_code", &std::type_info::hash_code);
@@ -360,8 +397,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     export_vector_types<>()(bool(), "bool");
 
     class_<GraphInterface>("GraphInterface", init<>())
-        .def(init<GraphInterface,bool,boost::python::object,
-                  boost::python::object, boost::python::object>())
+        .def(init<GraphInterface,bool,bp::object,
+                  bp::object, bp::object>())
         .def("get_num_vertices", &GraphInterface::get_num_vertices)
         .def("get_num_edges", &GraphInterface::get_num_edges)
         .def("set_directed", &GraphInterface::set_directed)
@@ -399,6 +436,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .def("get_graph_ptr", &GraphInterface::get_graph_ptr)
         .def("get_graph_view", &GraphInterface::get_graph_view);
 
+    lval_from_python<graph_from_python>();
+
     class_<GraphInterface::vertex_index_map_t>("vertex_index_map", no_init);
     class_<GraphInterface::edge_index_map_t>("edge_index_map", no_init);
     class_<GraphInterface::graph_index_map_t>("graph_index_map", no_init);
@@ -413,18 +452,18 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     to_python_converter<pair<string,bool>, pair_to_tuple<string,bool> >();
     to_python_converter<pair<size_t,size_t>, pair_to_tuple<size_t,size_t> >();
     to_python_converter<pair<double,double>, pair_to_tuple<double,double> >();
-    pair_from_tuple<double,double>();
-    pair_from_tuple<size_t,size_t>();
-    integer_from_convertible<uint8_t>();
-    integer_from_convertible<int32_t>();
-    integer_from_convertible<int64_t>();
-    integer_from_convertible<uint32_t>();
-    integer_from_convertible<uint64_t>();
-    integer_from_convertible<size_t>();
-    integer_from_convertible<bool>();
-    float_from_convertible<float>();
-    float_from_convertible<double>();
-    float_from_convertible<long double>();
+    rval_from_python<pair_from_tuple<double,double>>();
+    rval_from_python<pair_from_tuple<size_t,size_t>>();
+    rval_from_python<integer_from_convertible<uint8_t>>();
+    rval_from_python<integer_from_convertible<int32_t>>();
+    rval_from_python<integer_from_convertible<int64_t>>();
+    rval_from_python<integer_from_convertible<uint32_t>>();
+    rval_from_python<integer_from_convertible<uint64_t>>();
+    rval_from_python<integer_from_convertible<size_t>>();
+    rval_from_python<integer_from_convertible<bool>>();
+    rval_from_python<float_from_convertible<float>>();
+    rval_from_python<float_from_convertible<double>>();
+    rval_from_python<float_from_convertible<long double>>();
 
     class_<std::shared_ptr<GraphInterface::multigraph_t>>
         ("shared_ptr<multigraph_t>", no_init)
@@ -465,5 +504,5 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     def("get_graph_type", &get_graph_type);
 
     def("get_null_vertex",
-        +[](){ return graph_traits<GraphInterface::multigraph_t>::null_vertex();});
+        +[](){ return boost::graph_traits<GraphInterface::multigraph_t>::null_vertex();});
 }

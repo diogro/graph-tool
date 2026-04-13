@@ -98,7 +98,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
              return get_all_motifs(collect_vmaps, plist[0], comp_iso, fill_list,
                                    rng)(graph, k, list, phist, vmaps, samp);
          },
-         hana::tuple_t<sample_all, sample_some>)(sampler);
+         hana::tuple_t<sample_all&, sample_some&>)(sampler);
 
     for (size_t i = 0; i < phist.size(); ++i)
         hist.append(phist[i]);
