@@ -85,13 +85,13 @@ struct do_get_radial
             vorder.resize(num_vertices(g));
             std::vector<size_t> vs(vertices(g).first, vertices(g).second);
             std::sort(vs.begin(), vs.end(),
-                      [&] (vertex_t u, vertex_t v) { return order[u] < order[v]; });
+                      [&] (auto u, auto v) { return bool(order[u] < order[v]); });
 
             for (size_t i = 0; i < vs.size(); ++i)
                 vorder[vs[i]] = i;
 
             std::sort(vs.begin(), vs.end(),
-                      [&] (vertex_t u, vertex_t v) { return level[u] > level[v]; });
+                      [&] (vertex_t u, vertex_t v) { return bool(level[u] > level[v]); });
 
             for (auto v : vs)
             {
@@ -139,7 +139,7 @@ struct do_get_radial
                     std::sort(new_layer.end() - out_degree(v, g),
                               new_layer.end(),
                               [&] (vertex_t u, vertex_t v)
-                              { return order[u] < order[v]; });
+                              { return bool(order[u] < order[v]); });
                 }
 
                 if (out_degree(v, g) == 0)
