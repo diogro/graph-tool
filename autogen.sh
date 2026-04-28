@@ -21,6 +21,3 @@ else
 fi
 automake --add-missing --copy || exit $?
 autoconf || exit $?
-
-cd $srcdir/bundled/sparsehash
-./autogen.sh
