@@ -34,7 +34,7 @@ template <class Mutex>
 struct canary_mutex
     : public Mutex
 {
-    size_t _canary;
+    size_t _canary = 0;
 };
 
 using shared_canary_mutex = canary_mutex<std::shared_mutex>;
@@ -178,6 +178,57 @@ decltype(auto) do_slock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
     else
         return do_slock<enable>
             (std::forward<std::decay_t<decltype(f)>>(f), mu);
+}
+
+// visit or emplace
+
+template <bool pass_lock=false>
+void visit_or_emplace(auto&& m, auto&& k, auto&& f, auto&& g,
+                      auto& lock)
+{
+    auto dispatch =
+        [&](auto&& h, auto&& x, auto&& lock)
+        {
+            if constexpr (pass_lock)
+                h(x, lock);
+            else
+                h(x);
+        };
+
+    auto iter = m.find(k);
+    if (iter == m.end())
+    {
+        auto& canary = get_canary(lock);
+        auto stamp = canary;
+        upgrade_lock<true, true>
+            ([&](auto& ulock)
+             {
+                 if (stamp == canary) [[likely]]
+                 {
+                     iter = m.try_emplace(k).first;
+                     dispatch(g, iter->second, ulock);
+                 }
+                 else                 [[unlikely]]
+                 {
+                     // lost race; search again
+                     iter = m.find(k);
+                     if (iter == m.end()) [[likely]]
+                     {
+                         iter = m.try_emplace(k).first;
+                         dispatch(g, iter->second, ulock);
+                     }
+                     else                 [[unlikely]]
+                     {
+                         dispatch(f, iter->second, ulock);
+                     }
+                 }
+                 canary++;
+             }, lock);
+    }
+    else
+    {
+        dispatch(f, iter->second, lock);
+    }
 }
 
 // atomic operations
