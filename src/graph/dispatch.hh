@@ -158,7 +158,7 @@ struct gt_dispatch
     template <class Dispatch, class... TRS>
     auto operator()(Dispatch&& d, TRS... trs)
     {
-        return [=](auto&&... as)
+        return [=,this](auto&&... as)
                {
                    dispatcher(d,
                               hana::make_tuple(trs...),
