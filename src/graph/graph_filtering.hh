@@ -99,13 +99,20 @@ struct graph_view
 template <bool directed, bool reversed, bool filtered>
 using graph_view_t = typename graph_view<directed, reversed, filtered>::type;
 
-
 template <class Directed, class Reversed, class Filtered>
 constexpr auto get_graph_views(Directed dir = hana::tuple_t<std::true_type, std::false_type>,
-                               Reversed rev = hana::tuple_t<std::true_type, std::false_type>,
-                               Filtered filt = hana::tuple_t<std::true_type, std::false_type>)
+                               [[maybe_unused]] Reversed rev = hana::tuple_t<std::true_type, std::false_type>,
+                               [[maybe_unused]] Filtered filt = hana::tuple_t<std::true_type, std::false_type>)
 {
-    auto prod = hana::cartesian_product(hana::make_tuple(dir, rev, filt));
+    auto prod =
+#ifndef DISABLE_GRAPH_FILTERING
+        hana::cartesian_product(hana::make_tuple(dir, rev, filt));
+#else
+        hana::cartesian_product(hana::make_tuple(dir,
+                                                 hana::tuple_t<std::false_type>,
+                                                 hana::tuple_t<std::false_type>));
+#endif
+
     auto cp = hana::filter(prod,
                            [](auto const& view)
                            {
