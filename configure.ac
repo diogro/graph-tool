@@ -293,7 +293,9 @@ AC_DEFINE_UNQUOTED([PYTHON_DIR], "${PYTHON_SITE_PKG}", [The directory name for t
 
 AC_DEFINE_UNQUOTED([CXXFLAGS],"${CXXFLAGS}", [c++ compilation options])
 AC_DEFINE_UNQUOTED([MOD_CXXFLAGS],"${MOD_CXXFLAGS}", [overrideable c++ compilation options])
+AC_DEFINE_UNQUOTED([EXTRA_CXXFLAGS],"${EXTRA_CXXFLAGS}", [extra c++ compilation options])
 AC_DEFINE_UNQUOTED([CPPFLAGS],"${CPPFLAGS}", [c++ preprocessor compilation options])
+AC_DEFINE_UNQUOTED([EXTRA_CPPFLAGS],"${EXTRA_CXXFLAGS}", [extra c++ preprocessor compilation options])
 AC_DEFINE_UNQUOTED([LDFLAGS],"${LDFLAGS}", [linker options])
 
 AC_DEFINE_UNQUOTED([PACKAGE_DATA_DIR], "${PACKAGE_DATA_DIR}", [package data dir])
@@ -318,9 +320,17 @@ AC_DEFINE([GCC_VERSION], [(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATC
 [MOD_CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
 AC_SUBST(MOD_CPPFLAGS)
 
-# extra CCXX flags for submodules
+# extra CPP flags
+[EXTRA_CPPFLAGS="${EXTRA_CPPFLAGS}"]
+AC_SUBST(EXTRA_CPPFLAGS)
+
+# extra CXX flags for submodules
 [MOD_CXXFLAGS="${MOD_CXXFLAGS}"]
 AC_SUBST(MOD_CXXFLAGS)
+
+# extra CXX flags
+[EXTRA_CXXFLAGS="${EXTRA_CXXFLAGS}"]
+AC_SUBST(EXTRA_CXXFLAGS)
 
 # extra LIBADD flags for submodules
 [MOD_LIBADD="${PYTHON_LIBS} ${BOOST_LIBS} ${EXPAT_LIBS} ${EXPAT_LDFLAGS} ${OPENMP_LDFLAGS}"]
@@ -336,6 +346,12 @@ AS_CASE([${host_os}],
         MOD_LDFLAGS="-module -dynamiclib"
 ])
 AC_SUBST(MOD_LDFLAGS)
+
+# subvert flag predecence
+[CPPFLAGS_="${CPPFLAGS}"]
+AC_SUBST(CPPFLAGS_)
+[CXXFLAGS_="${CXXFLAGS}"]
+AC_SUBST(CXXFLAGS_)
 
 AC_DEFINE([BOOST_BIND_GLOBAL_PLACEHOLDERS], [1], [Suppress Boost warning])
 

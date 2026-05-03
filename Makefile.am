@@ -1,8 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = $(MOD_CPPFLAGS)
-
+AM_CPPFLAGS = $(CPPFLAGS_) $(MOD_CPPFLAGS) $(EXTRA_CPPFLAGS)
+AM_CXXFLAGS = $(CXXFLAGS_) $(MOD_CXXFLAGS) $(EXTRA_CXXFLAGS)
 AM_CFLAGS = $(AM_CXXFLAGS)
+
+CXXFLAGS = $(AM_CXXFLAGS)
+CPPFLAGS =
 
 graphtooldocdir = ${PACKAGE_DOC_DIR}
 nobase_dist_graphtooldoc_DATA = \
