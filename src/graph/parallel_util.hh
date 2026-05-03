@@ -44,7 +44,14 @@ constexpr size_t get_canary(std::monostate&)
     return 0;
 }
 
-auto& get_canary(auto& lock)
+template <class Mutex>
+auto& get_canary(canary_mutex<Mutex>& lock)
+{
+    return lock._canary;
+}
+
+template <class Lock>
+auto& get_canary(Lock& lock)
 {
     return lock.mutex()->_canary;
 }
@@ -52,15 +59,14 @@ auto& get_canary(auto& lock)
 
 // Joint locking patterns
 
-template <template<class> class Lock, bool enable, bool pass_lock,
-          class F, class... Mutex>
-decltype(auto) do_lock(F&& f, Mutex&... mutex)
+template <bool enable, bool pass_lock, class... Lock>
+decltype(auto) do_lock(auto&& f, auto&... mutex)
 {
     if constexpr (enable)
     {
-        std::tuple<Lock<Mutex>...>
-            locks(Lock<Mutex>(mutex, std::defer_lock_t())...);
-        if constexpr (sizeof...(Mutex) > 1)
+        std::tuple<Lock...>
+            locks(Lock(mutex, std::defer_lock_t())...);
+        if constexpr (sizeof...(Lock) > 1)
             std::apply([&](auto&... as){ std::lock(as...); }, locks);
         else
             std::get<0>(locks).lock();
@@ -81,7 +87,8 @@ decltype(auto) do_lock(F&& f, Mutex&... mutex)
 template <bool enable=true, bool pass_lock=false>
 decltype(auto) do_slock(auto&& f, auto&... mutex)
 {
-    return do_lock<std::shared_lock, enable, pass_lock>
+    return do_lock<enable, pass_lock,
+                   std::shared_lock<std::decay_t<decltype(mutex)>>...>
         (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
@@ -99,7 +106,8 @@ decltype(auto) do_slock_d(auto&& f, bool enable, auto&... mutex)
 template <bool enable=true, bool pass_lock=false>
 decltype(auto) do_ulock(auto&& f, auto&... mutex)
 {
-    return do_lock<std::unique_lock, enable, pass_lock>
+    return do_lock<enable, pass_lock,
+                   std::unique_lock<std::decay_t<decltype(mutex)>>...>
         (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
