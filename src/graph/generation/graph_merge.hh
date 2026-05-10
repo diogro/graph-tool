@@ -21,6 +21,7 @@
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
+#include "parallel_util.hh"
 
 #include "hash_map_wrap.hh"
 #include "demangle.hh"
@@ -120,49 +121,25 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
         }
     }
 
-    std::vector<std::shared_mutex> vmutex(parallel ? num_vertices(ug) : 0);
+    std::vector<shared_canary_mutex> vmutex(parallel ? num_vertices(ug) : 0);
 
-    auto lock
-        = [&]<class shared>(shared, size_t u, size_t v, auto&& f)
-          {
-              if (parallel)
-              {
-                  if constexpr (shared::value)
-                  {
-                      if (u == v)
-                      {
-                          std::shared_lock slock(vmutex[u]);
-                          f();
-                      }
-                      else
-                      {
-                          std::shared_lock slock_u(vmutex[u], std::defer_lock_t());
-                          std::shared_lock slock_v(vmutex[v], std::defer_lock_t());
-                          std::scoped_lock slock(slock_u, slock_v);
-                          f();
-                      }
-                  }
-                  else
-                  {
-                      if (u == v)
-                      {
-                          std::unique_lock slock(vmutex[u]);
-                          f();
-                      }
-                      else
-                      {
-                          std::unique_lock ulock_u(vmutex[u], std::defer_lock_t());
-                          std::unique_lock ulock_v(vmutex[v], std::defer_lock_t());
-                          std::scoped_lock ulock(ulock_u, ulock_v);
-                          f();
-                      }
-                  }
-              }
-              else
-              {
-                  f();
-              }
-          };
+    auto slock =
+        [&](size_t u, size_t v, auto&& f)
+        {
+            if (parallel)
+                do_slock_pair<{.pass_lock=true}>(f, u, v, vmutex[u], vmutex[v]);
+            else
+                f(dummy_mutex());
+        };
+
+    auto ulock =
+        [&](size_t u, size_t v, auto&& f)
+        {
+            if (parallel)
+                do_ulock_pair<{.pass_lock=true}>(f, u, v, vmutex[u], vmutex[v]);
+            else
+                f();
+        };
 
     if (multiset)
     {
@@ -248,7 +225,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                      bool exists = false;
 
                      auto get_ge =
-                         [&]()
+                         [&](auto&...)
                          {
                              w1 = 0;
                              if (simple)
@@ -274,27 +251,31 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                              }
                          };
 
-                     lock(std::true_type(), s_u, t_u, get_ge);
-
-                     if (!exists && (is_weighted || compose_weight(w1, w2) > 0))
-                     {
-                         lock(std::false_type(),
-                              s_u, t_u,
-                              [&]()
-                              {
-                                   get_ge(); // re-check to avoid race
-                                   if (!exists)
-                                   {
-                                       ge = add_edge(s_u, t_u, ug).first;
-                                       if constexpr (is_weighted)
-                                           ueweight[ge] = 0;
-                                   }
-                              });
-                         exists = true;
-                     }
+                     slock(s_u, t_u,
+                           [&](auto&&... locks)
+                           {
+                               get_ge();
+                               if (!exists && (is_weighted || compose_weight(w1, w2) > 0))
+                               {
+                                   upgrade_canary_lock_d<{.ula={.relock=false}}>
+                                       ([&](bool succ)
+                                        {
+                                            if (!succ)
+                                                get_ge(); // re-check to avoid race
+                                            if (!exists)
+                                            {
+                                                ge = add_edge(s_u, t_u, ug).first;
+                                                if constexpr (is_weighted)
+                                                    ueweight[ge] = 0;
+                                            }
+                                        }, parallel, locks...);
+                                   exists = true;
+                              }
+                           });
 
                      if (exists)
                      {
+                         emap[e] = ge;
                          auto w = compose_weight(w1, w2);
                          if constexpr (is_weighted)
                          {
@@ -305,12 +286,12 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                          }
                          else if (w == 0)
                          {
-                             lock(std::false_type(),
-                                  s_u, t_u,
-                                  [&]()
-                                  {
+                             emap[e] = edge_t();
+                             ulock(s_u, t_u,
+                                   [&](auto&...)
+                                   {
                                       remove_edge(ge, ug);
-                                  });
+                                   });
                          }
                      }
                  }
@@ -323,26 +304,25 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                  [&](auto s)
                  {
                      gt_hash_set<edge_t> res;
-                     lock(std::true_type(), s, s,
-                          [&]()
-                          {
-                              for (auto ge : out_edges_range(s, ug))
-                              {
-                                  if (!is_directed(ug) && target(ge, ug) < s)
-                                      continue;
-                                  if (ueweight[ge] <= 0)
-                                      res.insert(ge);
-                              }
-                          });
+                     slock(s, s,
+                           [&](auto&&...)
+                           {
+                               for (auto ge : out_edges_range(s, ug))
+                               {
+                                   if (!is_directed(ug) && target(ge, ug) < s)
+                                       continue;
+                                   if (ueweight[ge] <= 0)
+                                       res.insert(ge);
+                               }
+                           });
 
                      for (auto ge : res)
                      {
-                         lock(std::false_type(),
-                              source(ge, ug), target(ge, ug),
-                              [&]()
-                              {
+                         ulock(source(ge, ug), target(ge, ug),
+                               [&](auto&...)
+                               {
                                   remove_edge(ge, ug);
-                              });
+                               });
                      }
                  });
         }
@@ -377,82 +357,81 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                      if (!is_directed(g))
                          self_loops.clear();
 
-                     lock(std::true_type(), s, s,
-                          [&]()
-                          {
-                              for (auto e : out_edges_range(s, ug))
-                              {
-                                  auto t = target(e, ug);
-                                  std::shared_lock tlock(vmutex[t]);
+                     slock(s, s,
+                           [&](auto&&...)
+                           {
+                               for (auto e : out_edges_range(s, ug))
+                               {
+                                   auto t = target(e, ug);
+                                   std::shared_lock tlock(vmutex[t]);
 
-                                  if (!is_directed_v<UnionGraph>)
-                                  {
-                                      if (s > t)
-                                          continue;
-                                      if (t == s)
-                                      {
-                                          auto iter = self_loops.find(eindex[e]);
-                                          if (iter != self_loops.end())
-                                              continue;
-                                          self_loops.insert(eindex[e]);
-                                      }
-                                  }
+                                   if (!is_directed_v<UnionGraph>)
+                                   {
+                                       if (s > t)
+                                           continue;
+                                       if (t == s)
+                                       {
+                                           auto iter = self_loops.find(eindex[e]);
+                                           if (iter != self_loops.end())
+                                               continue;
+                                           self_loops.insert(eindex[e]);
+                                       }
+                                   }
 
-                                  if (edge(s, t, g).second)
-                                      continue;
+                                   if (edge(s, t, g).second)
+                                       continue;
 
-                                  std::decay_t<decltype(ueweight[e])> w1 = 0;
+                                   std::decay_t<decltype(ueweight[e])> w1 = 0;
 
-                                  if (simple)
-                                  {
-                                      w1 = ueweight[e];
-                                  }
-                                  else
-                                  {
-                                      bool first = true;
-                                      bool skip = false;
-                                      edge_range_iter(s, t, ug,
-                                                      [&](const auto& ge)
-                                                      {
-                                                          if (first && ge != e)
-                                                          {
-                                                              skip = true;
-                                                              return false;
-                                                          }
-                                                          first = false;
-                                                          w1 += ueweight[ge];
-                                                          return true;
-                                                      });
-                                      if (skip)
-                                          continue;
-                                  }
+                                   if (simple)
+                                   {
+                                       w1 = ueweight[e];
+                                   }
+                                   else
+                                   {
+                                       bool first = true;
+                                       bool skip = false;
+                                       edge_range_iter(s, t, ug,
+                                                       [&](const auto& ge)
+                                                       {
+                                                           if (first && ge != e)
+                                                           {
+                                                               skip = true;
+                                                               return false;
+                                                           }
+                                                           first = false;
+                                                           w1 += ueweight[ge];
+                                                           return true;
+                                                       });
+                                       if (skip)
+                                           continue;
+                                   }
 
-                                  auto w = compose_weight(w1, 0);
+                                   auto w = compose_weight(w1, 0);
 
-                                  if (w <= 0)
-                                  {
-                                      if (simple)
-                                          res.push_back(e);
-                                      else
-                                          edge_range_iter(s, t, ug,
-                                                          [&](const auto& ge)
-                                                          {
-                                                              res.push_back(ge);
-                                                          });
-                                  }
-                              }
-                          });
+                                   if (w <= 0)
+                                   {
+                                       if (simple)
+                                           res.push_back(e);
+                                       else
+                                           edge_range_iter(s, t, ug,
+                                                           [&](const auto& ge)
+                                                           {
+                                                               res.push_back(ge);
+                                                           });
+                                   }
+                               }
+                           });
 
                      if (!res.empty())
                      {
                          for (auto e : res)
                          {
-                             lock(std::false_type(),
-                                  source(e, ug), target(e, ug),
-                                  [&]()
-                                  {
-                                      remove_edge(e, ug);
-                                  });
+                             ulock(source(e, ug), target(e, ug),
+                                   [&](auto&&...)
+                                   {
+                                       remove_edge(e, ug);
+                                   });
                          }
                      }
                  });
