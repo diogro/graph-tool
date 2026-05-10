@@ -156,9 +156,9 @@ template <gt_dispatch_args dargs = {}>
 struct gt_dispatch
 {
     template <class Dispatch, class... TRS>
-    auto operator()(Dispatch&& d, TRS... trs)
+    static auto operator()(Dispatch&& d, TRS... trs)
     {
-        return [=,this](auto&&... as)
+        return [=](auto&&... as)
                {
                    dispatcher(d,
                               hana::make_tuple(trs...),
@@ -183,7 +183,7 @@ struct gt_dispatch
     }
 
     template <class Dispatch, class TRS, class AS, class XTS, class... XS>
-    void dispatcher(Dispatch&& d, TRS trs, AS as, XTS xts, XS&&... xs)
+    static void dispatcher(Dispatch&& d, TRS trs, AS as, XTS xts, XS&&... xs)
     {
         if constexpr (hana::size(trs) == hana::size_c<0>)
         {
