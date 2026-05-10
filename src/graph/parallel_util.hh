@@ -39,11 +39,6 @@ struct canary_mutex
 
 using shared_canary_mutex = canary_mutex<std::shared_mutex>;
 
-constexpr size_t get_canary(std::monostate&)
-{
-    return 0;
-}
-
 template <class Mutex>
 auto& get_canary(canary_mutex<Mutex>& lock)
 {
@@ -56,13 +51,31 @@ auto& get_canary(Lock& lock)
     return lock.mutex()->_canary;
 }
 
+struct dummy_mutex
+{
+    void lock() {}
+    void unlock() {}
+    auto* mutex() { return this; }
+    constexpr static inline size_t _canary = 0;
+};
+
+constexpr size_t get_canary(const dummy_mutex&)
+{
+    return 0;
+}
 
 // Joint locking patterns
 
-template <bool enable, bool pass_lock, class... Lock>
+struct lock_args
+{
+    bool enable = true;
+    bool pass_lock = false;
+};
+
+template <lock_args largs, class... Lock>
 decltype(auto) do_lock(auto&& f, auto&... mutex)
 {
-    if constexpr (enable)
+    if constexpr (largs.enable)
     {
         std::tuple<Lock...>
             locks(Lock(mutex, std::defer_lock_t())...);
@@ -70,65 +83,70 @@ decltype(auto) do_lock(auto&& f, auto&... mutex)
             std::apply([&](auto&... as){ std::lock(as...); }, locks);
         else
             std::get<0>(locks).lock();
-        if constexpr (pass_lock)
+        if constexpr (largs.pass_lock)
             return std::apply(f, locks);
         else
             return f();
     }
     else
     {
-        if constexpr (pass_lock)
+        if constexpr (largs.pass_lock)
             return f(mutex...);
         else
             return f();
     }
 }
 
-template <bool enable=true, bool pass_lock=false>
+template <lock_args largs = {}>
 decltype(auto) do_slock(auto&& f, auto&... mutex)
 {
-    return do_lock<enable, pass_lock,
-                   std::shared_lock<std::decay_t<decltype(mutex)>>...>
+    return do_lock<largs, std::shared_lock<std::decay_t<decltype(mutex)>>...>
         (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
-template <bool pass_lock=false>
+template <lock_args largs = {}>
 decltype(auto) do_slock_d(auto&& f, bool enable, auto&... mutex)
 {
     if (enable)
-        return do_slock<true, pass_lock>
+        return do_slock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
     else
-        return do_slock<false, pass_lock>
+        return do_slock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
-template <bool enable=true, bool pass_lock=false>
+template <lock_args largs = {}>
 decltype(auto) do_ulock(auto&& f, auto&... mutex)
 {
-    return do_lock<enable, pass_lock,
+    return do_lock<largs,
                    std::unique_lock<std::decay_t<decltype(mutex)>>...>
         (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
-template <bool pass_lock=false>
+template <lock_args largs = {}>
 decltype(auto) do_ulock_d(auto&& f, bool enable, auto&... mutex)
 {
     if (enable)
-        return do_ulock<true, pass_lock>
+        return do_ulock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
     else
-        return do_ulock<false, pass_lock>
+        return do_ulock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
 }
 
-template <bool enable=true, bool pass_lock=false, bool relock=true>
+struct upgrade_lock_args
+{
+    lock_args la;
+    bool relock = true;
+};
+
+template <upgrade_lock_args largs = {}>
 decltype(auto) upgrade_lock(auto&& f, auto&... locks)
 {
-    if constexpr (!enable)
+    if constexpr (!largs.la.enable)
     {
-        if constexpr (pass_lock)
-            return f((locks, std::monostate())...);
+        if constexpr (largs.la.pass_lock)
+            return f((locks, dummy_mutex())...);
         else
             return f();
     }
@@ -140,7 +158,7 @@ decltype(auto) upgrade_lock(auto&& f, auto&... locks)
             boost::scope::make_scope_exit
             ([&]()
              {
-                 if constexpr (relock)
+                 if constexpr (largs.relock)
                  {
                      if constexpr (sizeof...(locks) > 1)
                          std::lock(locks...);
@@ -149,93 +167,142 @@ decltype(auto) upgrade_lock(auto&& f, auto&... locks)
                  }
              });
 
-        return do_ulock<enable, pass_lock>
+        return do_ulock<largs.la>
             (std::forward<std::decay_t<decltype(f)>>(f),
              *locks.mutex()...);
     }
 }
 
-template <bool pass_lock=false, bool relock=true>
+template <upgrade_lock_args largs = {}>
 decltype(auto) upgrade_lock_d(auto&& f, bool enable, auto&... locks)
 {
     if (enable)
-        return upgrade_lock<true, pass_lock, relock>
+        return upgrade_lock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), locks...);
     else
-        return upgrade_lock<false, pass_lock, relock>
+        return upgrade_lock<{.la={.enable=false, .pass_lock=largs.la.pass_lock},
+                             .relock=largs.relock}>
             (std::forward<std::decay_t<decltype(f)>>(f), locks...);
 }
 
-template <bool enable=true>
+struct upgrade_canary_lock_args
+{
+    upgrade_lock_args ula;
+    bool any = true;
+};
+
+template <upgrade_canary_lock_args largs = {}>
+decltype(auto) upgrade_canary_lock(auto&& f, auto&... locks)
+{
+    if constexpr (largs.ula.la.enable)
+    {
+        std::array<size_t, sizeof...(locks)> stamp = {get_canary(locks)...};
+        return upgrade_lock<largs.ula>
+            ([&](auto&&... ls)
+             {
+                 auto lguard =
+                     boost::scope::make_scope_exit
+                     ([&]()
+                      {
+                          auto inc = [](auto&& x)
+                                     {
+                                         if constexpr (requires { x++; })
+                                             x++;
+                                     };
+                          (inc(get_canary(locks)), ...);
+                      });
+                 std::array<size_t, sizeof...(locks)> canary = {get_canary(locks)...};
+                 bool succ;
+                 if constexpr (largs.any)
+                     succ = std::ranges::any_of(std::views::zip(stamp, canary),
+                                                [](auto&& sc){ return std::get<0>(sc) == std::get<1>(sc); });
+                 else
+                     succ = std::ranges::all_of(std::views::zip(stamp, canary),
+                                                [](auto&& sc){ return std::get<0>(sc) == std::get<1>(sc); });
+                return f(ls..., succ);
+             }, locks...);
+    }
+    else
+    {
+        return upgrade_lock<largs.ula>
+            ([&](auto&&... ls)
+             {
+                return f(ls..., true);
+             }, locks...);
+    }
+}
+
+template <upgrade_canary_lock_args largs = {}>
+decltype(auto) upgrade_canary_lock_d(auto&& f, bool enable, auto&... locks)
+{
+    if (enable)
+        return upgrade_canary_lock<largs>(std::forward<std::decay_t<decltype(f)>>(f), locks...);
+    else
+        return f(true);
+}
+
+
+template <lock_args largs = {}>
 decltype(auto) do_ulock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
 {
     if (u != v)
-        return do_ulock<enable>
+        return do_ulock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mu, mv);
     else
-        return do_ulock<enable>
+        return do_ulock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mu);
 }
 
-template <bool enable=true>
+template <lock_args largs = {}>
 decltype(auto) do_slock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
 {
     if (u != v)
-        return do_slock<enable>
+        return do_slock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mu, mv);
     else
-        return do_slock<enable>
+        return do_slock<largs>
             (std::forward<std::decay_t<decltype(f)>>(f), mu);
 }
 
 // visit or emplace
 
-template <bool pass_lock=false>
+template <upgrade_canary_lock_args largs = {}>
 void visit_or_emplace(auto&& m, auto&& k, auto&& f, auto&& g,
                       auto& lock)
 {
-    auto dispatch =
-        [&](auto&& h, auto&& x, auto&& lock)
-        {
-            if constexpr (pass_lock)
-                h(x, lock);
-            else
-                h(x);
-        };
-
     auto iter = m.find(k);
     if (iter == m.end())
     {
-        auto& canary = get_canary(lock);
-        auto stamp = canary;
-        upgrade_lock<true, true>
-            ([&](auto& ulock)
+        upgrade_canary_lock<largs>
+            ([&](auto&&... ls, bool succ)
              {
-                 if (stamp == canary) [[likely]]
+                 if (succ)           [[likely]]
                  {
                      iter = m.try_emplace(k).first;
-                     dispatch(g, iter->second, ulock);
+                     g(iter->second, ls...);
                  }
-                 else                 [[unlikely]]
+                 else                [[unlikely]]
                  {
                      // lost race; search again
                      iter = m.find(k);
                      if (iter == m.end()) [[likely]]
                      {
                          iter = m.try_emplace(k).first;
-                         dispatch(g, iter->second, ulock);
+                         g(iter->second, ls...);
                      }
                      else                 [[unlikely]]
                      {
-                         dispatch(f, iter->second, ulock);
+                         f(iter->second, ls...);
                      }
                  }
-                 canary++;
              }, lock);
     }
     else
     {
-        dispatch(f, iter->second, lock);
+        if constexpr (largs.ula.la.pass_lock)
+            f(iter->second, lock);
+        else
+            f(iter->second);
     }
 }
 
