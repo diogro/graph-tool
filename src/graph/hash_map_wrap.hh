@@ -182,25 +182,27 @@ struct deleted_key<std::tuple<>>
 
 template<class Key,
          class Hash = std::hash<Key>,
-         class Pred = std::equal_to<Key>>
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<Key>>
 class gt_hash_set:
 #ifdef HAVE_SPARSEHASH
-    public google::dense_hash_set<Key, Hash, Pred>
+    public google::dense_hash_set<Key, Hash, Pred, Alloc>
 #else
-    public std::unordered_set<Key, Hash, Pred>
+    public std::unordered_set<Key, Hash, Pred, Alloc>
 #endif
 {
 public:
 #ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_set<Key, Hash, Pred> base_t;
+    typedef google::dense_hash_set<Key, Hash, Pred, Alloc> base_t;
 #else
-    typedef std::unordered_set<Key, Hash, Pred> base_t;
+    typedef std::unordered_set<Key, Hash, Pred, Alloc> base_t;
 #endif
 
     gt_hash_set(size_t n = 0,
                 const Hash& hf = Hash(),
-                const Pred& eql = Pred())
-        : base_t(n, hf, eql)
+                const Pred& eql = Pred(),
+                const Alloc& alloc = Alloc() )
+        : base_t(n, hf, eql, alloc)
     {
 #ifdef HAVE_SPARSEHASH
         base_t::set_empty_key(empty_key<Key>::get());
@@ -208,20 +210,21 @@ public:
 #endif
     }
 
-    //explicit gt_hash_set (const Alloc& alloc): base_t(alloc) {}
+    explicit gt_hash_set (const Alloc& alloc): base_t(alloc) {}
 
     template <class InputIterator>
     gt_hash_set (InputIterator first, InputIterator last,
                  size_t n = 0,
                  const Hash& hf = Hash(),
-                 const Pred& eql = Pred())
+                 const Pred& eql = Pred(),
+                 const Alloc& alloc = Alloc() )
 #ifdef HAVE_SPARSEHASH
-        : base_t(first, last, empty_key<Key>::get(), n, hf, eql)
+        : base_t(first, last, empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
 #else
-        : base_t(first, last, n, hf, eql) {}
+        : base_t(first, last, n, hf, eql, alloc) {}
 
 #endif
     // gt_hash_set(const gt_hash_set& gmp): base_t(gmp) {}
@@ -231,14 +234,15 @@ public:
     gt_hash_set(std::initializer_list<typename base_t::value_type> il,
                 size_t n = 0,
                 const Hash& hf = Hash(),
-                const Pred& eql = Pred())
+                const Pred& eql = Pred(),
+                const Alloc& alloc = Alloc() )
 #ifdef HAVE_SPARSEHASH
-        : base_t(il.begin(), il.end(), empty_key<Key>::get(), n, hf, eql)
+        : base_t(il.begin(), il.end(), empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
 #else
-        : base_t(il, n, hf, eql) { }
+        : base_t(il, n, hf, eql, alloc) { }
 #endif
 
 #ifndef HAVE_SPARSEHASH
@@ -250,25 +254,27 @@ public:
 template<class Key,
          class Value,
          class Hash = std::hash<Key>,
-         class Pred = std::equal_to<Key>>
+         class Pred = std::equal_to<Key>,
+         class Alloc = std::allocator<std::pair<const Key, Value>>>
 class gt_hash_map:
 #ifdef HAVE_SPARSEHASH
-    public google::dense_hash_map<Key, Value, Hash, Pred>
+    public google::dense_hash_map<Key, Value, Hash, Pred, Alloc>
 #else
-    public std::unordered_map<Key, Value, Hash, Pred>
+    public std::unordered_map<Key, Value, Hash, Pred, Alloc>
 #endif
 {
 public:
 #ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<Key, Value, Hash, Pred> base_t;
+    typedef google::dense_hash_map<Key, Value, Hash, Pred, Alloc> base_t;
 #else
-    typedef std::unordered_map<Key, Value, Hash, Pred> base_t;
+    typedef std::unordered_map<Key, Value, Hash, Pred, Alloc> base_t;
 #endif
 
     gt_hash_map(size_t n = 0,
                 const Hash& hf = Hash(),
-                const Pred& eql = Pred())
-        : base_t(n, hf, eql)
+                const Pred& eql = Pred(),
+                const Alloc& alloc = Alloc() )
+        : base_t(n, hf, eql, alloc)
     {
 #ifdef HAVE_SPARSEHASH
         base_t::set_empty_key(empty_key<Key>::get());
@@ -276,20 +282,21 @@ public:
 #endif
     }
 
-    //explicit gt_hash_map (const Alloc& alloc): base_t(alloc) {}
+    explicit gt_hash_map (const Alloc& alloc): base_t(alloc) {}
 
     template <class InputIterator>
     gt_hash_map (InputIterator first, InputIterator last,
                  size_t n = 0,
                  const Hash& hf = Hash(),
-                 const Pred& eql = Pred())
+                 const Pred& eql = Pred(),
+                 const Alloc& alloc = Alloc() )
 #ifdef HAVE_SPARSEHASH
-        : base_t(first, last, empty_key<Key>::get(), n, hf, eql)
+        : base_t(first, last, empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
 #else
-        : base_t(first, last, n, hf, eql) {}
+        : base_t(first, last, n, hf, eql, alloc) {}
 
 #endif
     // gt_hash_map(const gt_hash_map& gmp): base_t(gmp) {}
@@ -299,14 +306,15 @@ public:
     gt_hash_map(std::initializer_list<typename base_t::value_type> il,
                 size_t n = 0,
                 const Hash& hf = Hash(),
-                const Pred& eql = Pred())
+                const Pred& eql = Pred(),
+                const Alloc& alloc = Alloc() )
 #ifdef HAVE_SPARSEHASH
-        : base_t(il.begin(), il.end(), empty_key<Key>::get(), n, hf, eql)
+        : base_t(il.begin(), il.end(), empty_key<Key>::get(), n, hf, eql, alloc)
     {
         base_t::set_deleted_key(deleted_key<Key>::get());
     }
 #else
-        : base_t(il, n, hf, eql) { }
+        : base_t(il, n, hf, eql, alloc) { }
 #endif
 
 #ifndef HAVE_SPARSEHASH
