@@ -55,6 +55,9 @@ AC_ARG_ENABLE([debug],
               [CPPFLAGS="-DNDEBUG ${CPPFLAGS}"]
               [AC_MSG_RESULT(no)])
 
+dnl enable explicit C++17 support
+[CXXFLAGS="--std=gnu++17 ${CXXFLAGS}"]
+
 dnl turn on warnings
 [CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
 
