@@ -54,7 +54,7 @@ public:
     static void python_export()
     {
         python::class_<WrappedCState<Graph,State>>
-            (name_demangle(typeid(WrappedCState<Graph,State>).name()).c_str(),
+            (get_type_name<WrappedCState<Graph,State>>().c_str(),
              python::init<Graph&, smap_t, smap_t, python::dict, rng_t&>())
             .def("get_diff_sync", &WrappedCState<Graph,State>::get_diff_sync);
     }

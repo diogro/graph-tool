@@ -234,7 +234,7 @@ inline constexpr auto edge_floating_vector_properties =
 
 // this will return the name of a given type
 template <class Type>
-std::string get_type_name()
+std::string get_ptype_name()
 {
     if constexpr (hana::find(value_types, hana::type<Type>()) ==
                   hana::just(hana::type<Type>()))
@@ -246,7 +246,7 @@ std::string get_type_name()
     }
     else
     {
-        return name_demangle(typeid(Type).name());
+        return get_type_name<Type>();
     }
 }
 
@@ -280,7 +280,7 @@ std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_typ
                        typedef typename decltype(+t)::type T;
                        if constexpr (pmap)
                        {
-                           type_names.push_back(get_type_name<typename boost::property_traits<T>::value_type>());
+                           type_names.push_back(get_ptype_name<typename boost::property_traits<T>::value_type>());
                            if constexpr (std::is_same_v<typename boost::property_traits<T>::key_type,
                                                         typename boost::property_traits<edge_index_map_t>::key_type>)
                                key_names.push_back("edge");
@@ -289,7 +289,7 @@ std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_typ
                        }
                        else
                        {
-                           type_names.push_back(get_type_name<T>());
+                           type_names.push_back(get_ptype_name<T>());
                        }
                        if constexpr (std::is_same_v<T, vertex_index_map_t> ||
                                      std::is_same_v<T, edge_index_map_t>)

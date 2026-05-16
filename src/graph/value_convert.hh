@@ -163,8 +163,8 @@ auto convert(const From& v)
     }
     catch (boost::bad_lexical_cast&)
     {
-        std::string name1 = name_demangle(typeid(To).name());
-        std::string name2 = name_demangle(typeid(From).name());
+        std::string name1 = get_type_name<To>();
+        std::string name2 = get_type_name<From>();
         std::string val_name;
         try
         {

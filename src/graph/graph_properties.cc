@@ -58,7 +58,7 @@ std::tuple<std::string, std::string, bool> get_pmap_type(const std::any& prop)
                                key_type = "edge";
                            else
                                key_type = "vertex";
-                           type_name = get_type_name<value_t>();
+                           type_name = get_ptype_name<value_t>();
                            writable = (!std::is_same_v<T, vertex_index_map_t> &&
                                        !std::is_same_v<T, edge_index_map_t>);
                        }

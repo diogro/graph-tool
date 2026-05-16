@@ -87,7 +87,7 @@ public:
     static void python_export()
     {
         python::class_<WrappedState<Graph,State>>
-            (name_demangle(typeid(WrappedState<Graph,State>).name()).c_str(),
+            (get_type_name<WrappedState<Graph,State>>().c_str(),
              python::init<Graph&, smap_t, smap_t, python::dict, rng_t&>())
             .def("reset_active", &WrappedState<Graph,State>::reset_active)
             .def("get_active", &WrappedState<Graph,State>::get_active)

@@ -238,7 +238,7 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
         std::string type_name = boost::python::extract<std::string>(boost::python::str(dtype));
         std::string error = "invalid array value type: " + type_name;
         error += " (id: " + boost::lexical_cast<std::string>(PyArray_DESCR(pa)->type_num) + ")";
-        error += ", wanted: " + name_demangle(typeid(ValueType).name());
+        error += ", wanted: " + get_type_name<ValueType>();
         error += " (id: " + boost::lexical_cast<std::string>(boost::mpl::at<numpy_types,ValueType>::type::value) + ")";
         throw InvalidNumpyConversion(error);
     }

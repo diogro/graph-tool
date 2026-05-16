@@ -285,7 +285,7 @@ public:
 
     std::string get_graph_type() const
     {
-        return name_demangle(typeid(Graph).name());
+        return get_type_name<Graph>();
     }
 
     template <class OGraph>
@@ -399,7 +399,7 @@ public:
 
     std::string get_graph_type() const
     {
-        return name_demangle(typeid(Graph).name());
+        return get_type_name<Graph>();
     }
 
     template <class OGraph>
@@ -502,7 +502,7 @@ public:
     std::string get_type() const
     {
         if constexpr (hana::find(value_types, hana::type<value_type>()) != hana::just(hana::type<value_type>()))
-            return name_demangle(typeid(value_type).name());
+            return get_type_name<value_type>();
         else
             return type_names[hana::index_if(value_types, hana::equal.to(hana::type<value_type>())).value().value];
     }
@@ -843,7 +843,7 @@ struct export_vector_types
     void operator()(ValueType, std::string type_name = "") const
     {
         if (type_name.empty())
-            type_name = get_type_name<ValueType>();
+            type_name = get_ptype_name<ValueType>();
         std::replace(type_name.begin(), type_name.end(), ' ', '_');
         std::string name = "Vector_" + type_name;
         boost::python::class_<std::vector<ValueType> > vc(name.c_str());

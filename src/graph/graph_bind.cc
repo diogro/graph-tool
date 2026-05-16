@@ -290,7 +290,7 @@ struct graph_type_name
     template <class Graph>
     void operator()(const Graph&, string& name) const
     {
-        name = name_demangle(typeid(Graph).name());
+        name = get_type_name<Graph>();
     }
 };
 

@@ -39,7 +39,7 @@ struct export_vertex_property_map
         if constexpr (hana::find(value_types, hana::type<typename pmap_t::value_type>()) !=
                       hana::just(hana::type<typename pmap_t::value_type>()))
             type_name =
-                name_demangle(typeid(typename pmap_t::value_type).name());
+                get_type_name<typename pmap_t::value_type>();
         else
             type_name =
                 type_names[hana::index_if(value_types,
@@ -131,7 +131,7 @@ struct export_edge_property_map
         if constexpr (hana::find(value_types, hana::type<typename pmap_t::value_type>()) !=
                       hana::just(hana::type<typename pmap_t::value_type>()))
             type_name =
-                name_demangle(typeid(typename pmap_t::value_type).name());
+                get_type_name<typename pmap_t::value_type>();
         else
             type_name =
                 type_names[hana::index_if(value_types,

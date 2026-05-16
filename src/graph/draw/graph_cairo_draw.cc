@@ -321,7 +321,7 @@ public:
         catch (std::bad_any_cast&)
         {
             throw ValueException("Error getting attribute " + lexical_cast<string>(k) +
-                                 ", wanted: " + name_demangle(typeid(Value).name()) +
+                                 ", wanted: " + get_type_name<Value>() +
                                  ", got: " + name_demangle(_defaults[k].type().name()));
         }
     }
