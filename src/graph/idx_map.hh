@@ -22,8 +22,14 @@
 #include <utility>
 #include <limits>
 
-template <class Key, class T, bool shared_pos = false, bool check_size = true,
-          bool shared_tpos = false>
+struct idx_map_args
+{
+    bool shared_pos = false;
+    bool check_size = true;
+    bool shared_tpos = false;
+};
+
+template <class Key, class T, idx_map_args args = {}>
 class idx_map
 {
 public:
@@ -35,7 +41,7 @@ public:
 
     idx_map(size_t size = 0)
     {
-        if constexpr (shared_pos)
+        if constexpr (args.shared_pos)
             _pos = nullptr;
         else
             _pos.resize(size, _null);
@@ -45,7 +51,7 @@ public:
 
     auto& get_pos()
     {
-        if constexpr (shared_pos)
+        if constexpr (args.shared_pos)
             return *_pos;
         else
             return _pos;
@@ -57,22 +63,22 @@ public:
     }
 
     template <class... Args>
-    std::pair<iterator, bool> emplace(const Key& k, Args&&... args)
+    std::pair<iterator, bool> emplace(const Key& k, Args&&... as)
     {
-        return insert_or_emplace<false>(k, std::forward<Args>(args)...);
+        return insert_or_emplace<false>(k, std::forward<Args>(as)...);
     }
 
     size_t erase(const Key& k)
     {
         auto& pos = get_pos();
         size_t& idx = pos[k];
-        if (idx == _null && !shared_pos)
+        if (idx == _null && !args.shared_pos)
             return 0;
         auto& back = _items.back();
         pos[back.first] = idx;
         _items[idx] = back;
         _items.pop_back();
-        if constexpr (!shared_pos)
+        if constexpr (!args.shared_pos)
             idx = _null;
         return 1;
     }
@@ -89,7 +95,7 @@ public:
         auto iter = find(key);
         if (iter == end())
         {
-            if constexpr (shared_tpos)
+            if constexpr (args.shared_tpos)
                 iter = insert(std::make_pair(key, T(_tpos))).first;
             else
                 iter = insert(std::make_pair(key, T())).first;
@@ -100,13 +106,13 @@ public:
     iterator find(const Key& key)
     {
         auto& pos = get_pos();
-        if constexpr (check_size)
+        if constexpr (args.check_size)
         {
             if (size_t(key) >= pos.size())
                 return end();
         }
         size_t idx = pos[key];
-        if constexpr (shared_pos)
+        if constexpr (args.shared_pos)
         {
             if (idx >= _items.size() || _items[idx].first != key)
                 return end();
@@ -127,7 +133,7 @@ public:
     void clear()
     {
         auto& pos = get_pos();
-        if constexpr (shared_pos || !check_size)
+        if constexpr (args.shared_pos || !args.check_size)
         {
             for (auto k : _items)
                 pos[k.first] = _null;
@@ -143,7 +149,7 @@ public:
     {
         auto& pos = get_pos();
         _items.shrink_to_fit();
-        if (_items.empty() && !check_size)
+        if (_items.empty() && !args.check_size)
             pos.clear();
         pos.shrink_to_fit();
     }
@@ -159,17 +165,17 @@ public:
 private:
     template <bool insert, class A, class... Args>
     std::pair<iterator, bool> insert_or_emplace(const Key& k, A&& a,
-                                                Args&&... args)
+                                                Args&&... as)
     {
         auto& pos = get_pos();
-        if constexpr (check_size)
+        if constexpr (args.check_size)
         {
             if (pos.size() <= size_t(k))
                 pos.resize(2 * size_t(k + 1), _null);
         }
 
         size_t& idx = pos[k];
-        if (idx == _null || shared_pos)
+        if (idx == _null || args.shared_pos)
         {
             idx = _items.size();
             if constexpr (insert)
@@ -177,7 +183,7 @@ private:
             else
                 _items.emplace_back(std::piecewise_construct,
                                     std::forward_as_tuple(k),
-                                    std::forward_as_tuple(a, args...));
+                                    std::forward_as_tuple(a, as...));
             return std::make_pair(begin() + idx, true);
         }
         else
@@ -188,23 +194,29 @@ private:
                 _items.emplace(_items.begin() + idx,
                                std::piecewise_construct,
                                std::forward_as_tuple(k),
-                               std::forward_as_tuple(a, args...));
+                               std::forward_as_tuple(a, as...));
             return std::make_pair(begin() + idx, false);
         }
     }
 
     std::vector<std::pair<Key,T>> _items;
-    std::conditional_t<shared_pos,
+    std::conditional_t<args.shared_pos,
                        std::vector<size_t>*,
                        std::vector<size_t>> _pos;
     inline static constexpr size_t _null = std::numeric_limits<size_t>::max();
     struct empty_t {};
-    std::conditional_t<shared_tpos,
+    std::conditional_t<args.shared_tpos,
                        std::vector<size_t>,
                        empty_t> _tpos;
 };
 
-template <class Key, bool shared_pos=false, bool check_size=true>
+struct idx_set_args
+{
+    bool shared_pos = false;
+    bool check_size = true;
+};
+
+template <class Key, idx_set_args args = {}>
 class idx_set
 {
 public:
@@ -216,7 +228,7 @@ public:
 
     idx_set(size_t size = 0)
     {
-        if constexpr (shared_pos)
+        if constexpr (args.shared_pos)
             _pos = nullptr;
         else
             _pos.resize(size, _null);
@@ -226,7 +238,7 @@ public:
 
     const pos_t& get_pos() const
     {
-        if constexpr (shared_pos)
+        if constexpr (args.shared_pos)
             return *_pos;
         else
             return _pos;
@@ -235,13 +247,13 @@ public:
     std::pair<const_iterator,bool> insert(const Key& k)
     {
         pos_t& pos = const_cast<pos_t&>(get_pos());
-        if constexpr (check_size)
+        if constexpr (args.check_size)
         {
             if (pos.size() <= size_t(k))
                 pos.resize(2 * size_t(k + 1), _null);
         }
         size_t& idx = pos[k];
-        if (idx == _null || shared_pos)
+        if (idx == _null || args.shared_pos)
         {
             idx = _items.size();
             _items.push_back(k);
@@ -257,13 +269,13 @@ public:
     {
         pos_t& pos = const_cast<pos_t&>(get_pos());
         size_t& idx = pos[k];
-        if (idx == _null && !shared_pos)
+        if (idx == _null && !args.shared_pos)
             return 0;
         auto& back = _items.back();
         pos[back] = idx;
         _items[idx] = back;
         _items.pop_back();
-        if constexpr (!shared_pos)
+        if constexpr (!args.shared_pos)
             idx = _null;
         return 1;
     }
@@ -278,7 +290,7 @@ public:
     const_iterator find(const Key& key) const
     {
         const auto& pos = get_pos();
-        if constexpr (check_size)
+        if constexpr (args.check_size)
         {
             if (size_t(key) >= pos.size())
                 return end();
@@ -292,7 +304,7 @@ public:
     void clear()
     {
         auto& pos = const_cast<pos_t&>(get_pos());
-        if constexpr (shared_pos || !check_size)
+        if constexpr (args.shared_pos || !args.check_size)
         {
             for (auto k : _items)
                 pos[k] = _null;
@@ -308,7 +320,7 @@ public:
     {
         auto& pos = const_cast<pos_t&>(get_pos());
         _items.shrink_to_fit();
-        if (_items.empty() && !check_size)
+        if (_items.empty() && !args.check_size)
             pos.clear();
         pos.shrink_to_fit();
     }
@@ -321,7 +333,7 @@ public:
 
 private:
     std::vector<Key> _items;
-    std::conditional_t<shared_pos, pos_t*, pos_t> _pos;
+    std::conditional_t<args.shared_pos, pos_t*, pos_t> _pos;
     inline static constexpr size_t _null = std::numeric_limits<size_t>::max();
 };
 

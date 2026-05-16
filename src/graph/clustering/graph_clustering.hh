@@ -160,7 +160,7 @@ auto get_global_clustering_sampled(const Graph& g, size_t m, RNG& rng)
 {
     std::vector<size_t> vs;
     std::vector<double> probs;
-    idx_set<size_t, false, false> us(num_vertices(g));
+    idx_set<size_t, {.check_size=false}> us(num_vertices(g));
 
     for (auto v : vertices_range(g))
     {
