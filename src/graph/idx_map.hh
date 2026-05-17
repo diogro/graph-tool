@@ -96,9 +96,9 @@ public:
         if (iter == end())
         {
             if constexpr (args.shared_tpos)
-                iter = insert(std::make_pair(key, T(_tpos))).first;
+                iter = emplace(key, _tpos).first;
             else
-                iter = insert(std::make_pair(key, T())).first;
+                iter = emplace(key).first;
         }
         return iter->second;
     }
@@ -163,9 +163,8 @@ public:
     bool empty() { return _items.empty(); }
 
 private:
-    template <bool insert, class A, class... Args>
-    std::pair<iterator, bool> insert_or_emplace(const Key& k, A&& a,
-                                                Args&&... as)
+    template <bool insert, class... Args>
+    std::pair<iterator, bool> insert_or_emplace(const Key& k, Args&&... as)
     {
         auto& pos = get_pos();
         if constexpr (args.check_size)
@@ -179,22 +178,22 @@ private:
         {
             idx = _items.size();
             if constexpr (insert)
-                _items.emplace_back(k, a);
+                _items.emplace_back(k, std::forward<Args>(as)...);
             else
                 _items.emplace_back(std::piecewise_construct,
                                     std::forward_as_tuple(k),
-                                    std::forward_as_tuple(a, as...));
+                                    std::forward_as_tuple(as...));
             return std::make_pair(begin() + idx, true);
         }
         else
         {
             if constexpr (insert)
-                _items[idx].second = a;
+                _items[idx].second = (as,...);
             else
                 _items.emplace(_items.begin() + idx,
                                std::piecewise_construct,
                                std::forward_as_tuple(k),
-                               std::forward_as_tuple(a, as...));
+                               std::forward_as_tuple(as...));
             return std::make_pair(begin() + idx, false);
         }
     }
