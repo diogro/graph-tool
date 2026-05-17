@@ -40,9 +40,9 @@
 class ObjNotFound: public std::exception
 {
 public:
-    ObjNotFound(const std::type_info& tid)
+    ObjNotFound(const std::string& name)
     {
-        _msg = std::string("class not found: ") + name_demangle(tid.name());
+        _msg = std::format("class not found: {}", name);
     }
 
     const char* what() const noexcept
@@ -97,7 +97,7 @@ Obj& get_obj(As&&... as)
         return std::any_cast<Obj&>(iter->second);
     if constexpr (sizeof...(as) == 0)
     {
-        throw ObjNotFound(typeid(Obj));
+        throw ObjNotFound(get_type_name<Obj>());
     }
     else
     {
