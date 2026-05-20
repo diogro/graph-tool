@@ -59,7 +59,11 @@ public:
                 }
             }
         }
-        norm_f();
+
+        if (!norm_f())
+            throw ValueException("Invalid Potts interaction matrix f: "
+                                 "normalization sum is zero or non-finite");
+
         base_t::reset_m(state);
     }
 
@@ -183,7 +187,7 @@ public:
 
     size_t get_q() { return _q; }
 
-    void norm_f()
+    bool norm_f()
     {
         double Z = 0;
         for (size_t r = 0; r < _q; ++r)
@@ -196,9 +200,15 @@ public:
                 Z += _f[r][s];
             }
         }
+
+        if (Z <= 0 || !std::isfinite(Z))
+            return false;
+
         for (size_t r = 0; r < _q; ++r)
             for (size_t s = 0; s < _q; ++s)
                 _f[r][s] /= Z;
+
+        return true;
     }
 
     double sample_f(size_t r, size_t s, double beta, dentropy_args_t& ea,
@@ -215,17 +225,20 @@ public:
                     _f[r][s] = _f[s][r] = x;
                 else
                     _f[r][s] = x;
-                norm_f();
+                return norm_f();
             };
 
         auto f =
             [=,this](auto x)
             {
-                set_x(x);
-                double S = _state.entropy(ea);
-                if (verbose)
-                    std::cout << x << " " << S << std::endl;
-                return S;
+                if (!set_x(x))
+                {
+                    _f = f_temp;
+                    if (verbose)
+                        std::println("reject invalid normalization for f matrix: {} {} {}", r, s, x);
+                    return std::numeric_limits<double>::infinity();
+                }
+                return _state.entropy(ea);
             };
 
         BisectionSampler<> sampler(f, ba);
@@ -241,7 +254,7 @@ public:
         nx = sampler.sample(beta, 0, rng);
         double dS = sampler.f(nx) - sampler.f(x);
 
-        if (std::isinf(beta) && dS > 0)
+        if ((std::isinf(beta) && dS > 0) || !std::isfinite(dS))
         {
             _f = f_temp;
             return 0;
@@ -261,6 +274,7 @@ public:
         }
 
         set_x(nx);
+
         return dS;
     }
 
