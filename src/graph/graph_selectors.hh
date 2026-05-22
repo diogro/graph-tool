@@ -655,6 +655,20 @@ auto in_or_out_neighbors_range(typename in_or_out_neighbors_iteratorS<Graph>::ve
     return mk_range(in_or_out_neighbors_iteratorS<Graph>::get_neighbors(v, g));
 }
 
+template <class Graph>
+auto _all_edges_in_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
+                         const Graph& g)
+{
+    return mk_range(_all_edges_in(v, g));
+}
+
+template <class Graph>
+auto _all_edges_out_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
+                          const Graph& g)
+{
+    return mk_range(_all_edges_out(v, g));
+}
+
 } //namespace graph_tool
 
 #endif
