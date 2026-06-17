@@ -22,6 +22,8 @@
 #include <iostream>
 #include <unordered_set>
 
+#include <boost/math/special_functions/gamma.hpp>
+
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
@@ -559,7 +561,7 @@ public:
                 auto v = e_d.first.second;
                 int d = e_d.second;
                 size_t m = get_count(u,  v,  _nmap, _g);
-                a -= lgamma(m + 1) - lgamma((m + 1) + d);
+                a -= boost::math::lgamma(m + 1) - boost::math::lgamma((m + 1) + d);
                 if (!is_directed(_g) && u == v)
                     a += d * log(2);
             }
