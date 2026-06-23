@@ -1944,15 +1944,10 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
     g = state.g
 
-    overlap = state.levels[0].overlap
+    overlap = isinstance(state.levels[0], OverlapBlockState)
     if overlap:
-        ostate = state.levels[0]
-        bv, bcin, bcout, bc = ostate.get_overlap_blocks()
-        be = ostate.get_edge_blocks()
-        orig_state = state
-        state = state.copy()
-        b = ostate.get_majority_blocks()
-        state.levels[0] = BlockState(g, b=b)
+        bv, bcin, bcout, bc = state.levels[0].get_overlap_groups()
+        b = state.levels[0].get_majority_groups()
     else:
         b = state.levels[0].b
 
@@ -2079,7 +2074,6 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         for e in gu.edges():
             cts[e] = cts_p[e]
 
-
     vprops = _convert_props(vprops, "v", g, kwargs.get("vcmap", None),
                             kwargs.get("vcnorm", None), pmap_default=True)
 
@@ -2154,18 +2148,6 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         gradient = group_vector_property([gradient])
         ecolor = eprops.get("ecolor", _edefaults["color"])
         eprops["gradient"] = gradient
-        if overlap:
-            for e in g.edges():                       # ******** SLOW *******
-                r, s = be[e]
-                if not g.is_directed() and e.source() > e.target():
-                    r, s = s, r
-                gradient[e] = [0] + list(vcmap(r / (B - 1))) + \
-                              [1] + list(vcmap(s / (B - 1)))
-                if isinstance(ecolor, PropertyMap):
-                    gradient[e][4] = gradient[e][9] = ecolor[e][3]
-                else:
-                    gradient[e][4] = gradient[e][9] = ecolor[3]
-
 
     t_orig = t
     t = GraphView(t,
@@ -2313,7 +2295,7 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
     if state.levels[0].overlap:
         g = state.g
         ostate = state.levels[0]
-        bv, bcin, bcout, bc = ostate.get_overlap_blocks()
+        bv, bcin, bcout, bc = ostate.get_overlap_groups()
         be = ostate.get_edge_blocks()
 
         n_r = zeros(ostate.get_B())
