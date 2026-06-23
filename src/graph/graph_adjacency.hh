@@ -175,6 +175,13 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
 
 namespace detail
 {
+
+template <class V>
+void soft_resize(V&& v, size_t size)
+{
+    v.resize(std::max(2 * v.size(), size));
+}
+
 template <class Vertex>
 struct adj_edge_descriptor
 {
@@ -655,7 +662,7 @@ private:
     void set_epos(Vertex idx, const std::pair<size_t, size_t>& epos)
     {
         if (idx >= _epos.size())
-            _epos.resize(idx + 1);
+            boost::detail::soft_resize(_epos, idx + 1);
         _epos[idx] = epos;
     }
 
@@ -719,7 +726,7 @@ private:
         auto& es = _ehash[e.s][e.t];
         es.push_back(e.idx);
         if (_ehpos.size() <= e.idx)
-            _ehpos.resize(e.idx + 1);
+            boost::detail::soft_resize(_ehpos, e.idx + 1);
         _ehpos[e.idx] = es.size() - 1;
     }
 
