@@ -139,7 +139,7 @@ def edmonds_karp_max_flow(g, source, target, capacity, residual=None):
     >>> src, tgt = g.vertex(0), g.vertex(1)
     >>> res = gt.edmonds_karp_max_flow(g, src, tgt, cap)
     >>> res.a = cap.a - res.a  # the actual flow
-    >>> max_flow = sum(res[e] for e in tgt.in_edges())
+    >>> max_flow = sum([res[e] for e in tgt.in_edges()])
     >>> print(max_flow)
     44.8905957841...
     >>> pos = g.vertex_properties["pos"]
@@ -220,7 +220,7 @@ def push_relabel_max_flow(g, source, target, capacity, residual=None):
     >>> src, tgt = g.vertex(0), g.vertex(1)
     >>> res = gt.push_relabel_max_flow(g, src, tgt, cap)
     >>> res.a = cap.a - res.a  # the actual flow
-    >>> max_flow = sum(res[e] for e in tgt.in_edges())
+    >>> max_flow = sum([res[e] for e in tgt.in_edges()])
     >>> print(max_flow)
     44.8905957841...
     >>> pos = g.vertex_properties["pos"]
@@ -302,7 +302,7 @@ def boykov_kolmogorov_max_flow(g, source, target, capacity, residual=None):
     >>> src, tgt = g.vertex(0), g.vertex(1)
     >>> res = gt.boykov_kolmogorov_max_flow(g, src, tgt, cap)
     >>> res.a = cap.a - res.a  # the actual flow
-    >>> max_flow = sum(res[e] for e in tgt.in_edges())
+    >>> max_flow = sum([res[e] for e in tgt.in_edges()])
     >>> print(max_flow)
     44.8905957841...
     >>> pos = g.vertex_properties["pos"]
