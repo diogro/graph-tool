@@ -111,7 +111,7 @@ void get_kruskal_spanning_tree(GraphInterface& gi, std::any weight_map,
     if (!weight_map.has_value())
         weight_map = cweight_t();
 
-    auto weight_maps = hana::append(writable_edge_scalar_properties,
+    auto weight_maps = hana::append(writable_scalar_edge_properties,
                                     hana::type<cweight_t>());
 
     run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
@@ -124,7 +124,7 @@ void get_kruskal_spanning_tree(GraphInterface& gi, std::any weight_map,
                   std::forward<decltype(a3)>(a3));
          },
          weight_maps,
-         writable_edge_scalar_properties)(weight_map, tree_map);
+         writable_scalar_edge_properties)(weight_map, tree_map);
 }
 
 void get_prim_spanning_tree(GraphInterface& gi, size_t root,
@@ -135,7 +135,7 @@ void get_prim_spanning_tree(GraphInterface& gi, size_t root,
     if (!weight_map.has_value())
         weight_map = cweight_t();
 
-    auto weight_maps = hana::append(writable_edge_scalar_properties,
+    auto weight_maps = hana::append(writable_scalar_edge_properties,
                                     hana::type<cweight_t>());
     auto tree_properties = hana::tuple_t<eprop_map_t<uint8_t>>;
 

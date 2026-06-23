@@ -35,14 +35,14 @@ void adjacency(GraphInterface& g, std::any index, std::any weight,
                python::object odata, python::object oi,
                python::object oj)
 {
-    if (!belongs(vertex_scalar_properties, index))
+    if (!belongs(scalar_vertex_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     typedef UnityPropertyMap<double, GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
-    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(scalar_edge_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(!weight.has_value())
@@ -60,20 +60,20 @@ void adjacency(GraphInterface& g, std::any index, std::any weight,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), data, i, j);
          },
-         vertex_scalar_properties, weight_props_t)(index, weight);
+         scalar_vertex_properties, weight_props_t)(index, weight);
 }
 
 void adjacency_matvec(GraphInterface& g, std::any index, std::any weight,
                       python::object ov, python::object oret)
 {
-    if (!belongs(vertex_scalar_properties, index))
+    if (!belongs(scalar_vertex_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     typedef UnityPropertyMap<double, GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
-    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(scalar_edge_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(!weight.has_value())
@@ -88,20 +88,20 @@ void adjacency_matvec(GraphInterface& g, std::any index, std::any weight,
          {
              return adj_matvec(graph, vi, w, v, ret);
          },
-         vertex_scalar_properties, weight_props_t)(index, weight);
+         scalar_vertex_properties, weight_props_t)(index, weight);
 }
 
 void adjacency_matmat(GraphInterface& g, std::any index, std::any weight,
                       python::object ov, python::object oret)
 {
-    if (!belongs(vertex_scalar_properties, index))
+    if (!belongs(scalar_vertex_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     typedef UnityPropertyMap<double, GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
-    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(scalar_edge_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(!weight.has_value())
@@ -116,7 +116,7 @@ void adjacency_matmat(GraphInterface& g, std::any index, std::any weight,
          {
              return adj_matmat(graph, vi, w, v, ret);
          },
-         vertex_scalar_properties, weight_props_t)(index, weight);
+         scalar_vertex_properties, weight_props_t)(index, weight);
 }
 
 #define __MOD__ spectral

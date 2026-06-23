@@ -170,7 +170,7 @@ void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
                                  double ti, double tf, size_t max_iter)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto edge_props_t = hana::append(edge_scalar_properties,
+    auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
     if(!weight.has_value())
@@ -184,7 +184,7 @@ void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
                      (g, pos, weight, make_pair(a, r), scale,
                       grid, make_pair(ti, tf), max_iter);
              },
-             vertex_floating_vector_properties, edge_props_t)(pos, weight);
+             floating_vector_vector_properties, edge_props_t)(pos, weight);
     else
         run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
             (g,
@@ -194,7 +194,7 @@ void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
                      (g, pos, weight, make_pair(a, r), scale,
                       grid, make_pair(ti, tf), max_iter);
              },
-             vertex_floating_vector_properties, edge_props_t)(pos, weight);
+             floating_vector_vector_properties, edge_props_t)(pos, weight);
 }
 
 #include <boost/python.hpp>

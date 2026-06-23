@@ -247,6 +247,6 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi, std::any otpos,
                      max_depth);
             },
             graph_tool::all_graph_views, graph_tool::always_directed,
-            vertex_scalar_vector_properties)(gi.get_graph_view(),
+            scalar_vector_vertex_properties)(gi.get_graph_view(),
                                                tgi.get_graph_view(), otpos);
 }

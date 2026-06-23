@@ -80,7 +80,7 @@ void get_random_spanning_tree(GraphInterface& gi, size_t root,
     if (!weight_map.has_value())
         weight_map = cweight_t();
 
-    auto weight_maps = hana::append(writable_edge_scalar_properties,
+    auto weight_maps = hana::append(writable_scalar_edge_properties,
                                     hana::type<cweight_t>());
     auto tree_properties = hana::tuple_t<eprop_map_t<uint8_t>>;
 

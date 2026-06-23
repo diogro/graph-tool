@@ -98,7 +98,7 @@ void random_matching(GraphInterface& gi, std::any weight, std::any match,
                      bool minimize, rng_t& rng)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto edge_props_t = hana::append(edge_scalar_properties,
+    auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
     if(!weight.has_value())
@@ -113,7 +113,7 @@ void random_matching(GraphInterface& gi, std::any weight, std::any match,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), minimize, rng);
          },
-         edge_props_t, writable_vertex_scalar_properties)(weight, match);
+         edge_props_t, writable_scalar_vertex_properties)(weight, match);
 }
 
 #include <boost/python.hpp>

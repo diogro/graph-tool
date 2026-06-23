@@ -34,21 +34,21 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
     emap_t emap = std::any_cast<emap_t>(aemap);
 
     auto owedge_sum_properties =
-        hana::append(hana::concat(writable_edge_scalar_properties,
-                                  edge_scalar_vector_properties),
+        hana::append(hana::concat(writable_scalar_edge_properties,
+                                  scalar_vector_edge_properties),
                      hana::type<eprop_map_t<python::object>>());
 
     auto oedge_sum_properties =
-        hana::append(hana::concat(edge_scalar_properties,
-                                  edge_scalar_vector_properties),
+        hana::append(hana::concat(scalar_edge_properties,
+                                  scalar_vector_edge_properties),
                      hana::type<eprop_map_t<python::object>>());
 
-    auto oedge_scalar_vector_properties =
-        hana::append(edge_scalar_vector_properties,
+    auto oscalar_vector_edge_properties =
+        hana::append(scalar_vector_edge_properties,
                      hana::type<eprop_map_t<python::object>>());
 
-    auto osedge_scalar_vector_properties =
-        hana::concat(oedge_scalar_vector_properties,
+    auto osscalar_vector_edge_properties =
+        hana::concat(oscalar_vector_edge_properties,
                      hana::tuple_t<eprop_map_t<std::string>,
                                    eprop_map_t<vector<std::string>>>);
 
@@ -114,9 +114,9 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
              eprop_map_as_dynamic(aprop, uprop));
         break;
     case merge_t::idx_inc:
-        check_belongs(edge_scalar_vector_properties, uprop);
-        check_belongs(hana::concat(edge_scalar_properties,
-                                   edge_scalar_vector_properties), aprop);
+        check_belongs(scalar_vector_edge_properties, uprop);
+        check_belongs(hana::concat(scalar_edge_properties,
+                                   scalar_vector_edge_properties), aprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
@@ -126,20 +126,20 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
              always_directed_never_reversed,
              always_directed_never_reversed,
              vmap_ts,
-             edge_scalar_vector_properties,
+             scalar_vector_edge_properties,
              hana::tuple_t<eprop_map_t<int32_t>, edprop_map_t<int32_t>,
                            eprop_map_t<vector<double>>, edprop_map_t<vector<double>>>)
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              avmap,
              uprop,
-             belongs(edge_scalar_properties, aprop) ?
+             belongs(scalar_edge_properties, aprop) ?
                  eprop_map_as_dynamic(aprop, eprop_map_t<int32_t>()) :
                  eprop_map_as_dynamic(aprop, eprop_map_t<vector<double>>()));
         break;
     case merge_t::append:
-        check_belongs(oedge_scalar_vector_properties, uprop);
-        check_belongs(hana::append(edge_scalar_properties,
+        check_belongs(oscalar_vector_edge_properties, uprop);
+        check_belongs(hana::append(scalar_edge_properties,
                                    hana::type<eprop_map_t<python::object>>()),
                       aprop);
         gt_dispatch<{.gil_release=false}>()
@@ -151,7 +151,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
              always_directed_never_reversed,
              always_directed_never_reversed,
              vmap_ts,
-             oedge_scalar_vector_properties,
+             oscalar_vector_edge_properties,
              hana::concat(velem_dprop_type, velem_eprop_type))
             (ugi.get_graph_view(),
              gi.get_graph_view(),
@@ -160,8 +160,8 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
              eprop_map_as_dvelem(aprop, uprop));
         break;
     case merge_t::concat:
-        check_belongs(osedge_scalar_vector_properties, uprop);
-        check_belongs(osedge_scalar_vector_properties, aprop);
+        check_belongs(osscalar_vector_edge_properties, uprop);
+        check_belongs(osscalar_vector_edge_properties, aprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
@@ -171,7 +171,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
              always_directed_never_reversed,
              always_directed_never_reversed,
              vmap_ts,
-             osedge_scalar_vector_properties,
+             osscalar_vector_edge_properties,
              hana::concat(dynamic_prop_type, eprop_same_type))
             (ugi.get_graph_view(),
              gi.get_graph_view(),

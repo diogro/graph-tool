@@ -82,7 +82,7 @@ void planar_layout(GraphInterface& gi, std::any aembed_map, std::any apos)
                   });
 
          },
-         vertex_scalar_vector_properties, vertex_scalar_vector_properties)
+         scalar_vector_vertex_properties, scalar_vector_vertex_properties)
         (aembed_map, apos);
 }
 

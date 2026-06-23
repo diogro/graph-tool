@@ -212,7 +212,7 @@ void get_radial(GraphInterface& gi, std::any otpos, std::any olevels,
                   std::forward<decltype(a3)>(a3), weight, root, weighted, r,
                   order_propagate);
          },
-         vertex_scalar_vector_properties, vertex_properties)(otpos, oorder);
+         scalar_vector_vertex_properties, vertex_properties)(otpos, oorder);
 }
 
 #include <boost/python.hpp>

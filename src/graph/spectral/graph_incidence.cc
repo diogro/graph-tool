@@ -35,9 +35,9 @@ void incidence(GraphInterface& g, std::any vindex, std::any eindex,
                python::object odata, python::object oi,
                python::object oj)
 {
-    if (!belongs(vertex_scalar_properties, vindex))
+    if (!belongs(scalar_vertex_properties, vindex))
         throw ValueException("index vertex property must have a scalar value type");
-    if (!belongs(edge_scalar_properties, eindex))
+    if (!belongs(scalar_edge_properties, eindex))
         throw ValueException("index edge property must have a scalar value type");
 
     multi_array_ref<double,1> data = get_array<double,1>(odata);
@@ -52,13 +52,13 @@ void incidence(GraphInterface& g, std::any vindex, std::any eindex,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), data, i, j);
          },
-         vertex_scalar_properties, edge_scalar_properties)(vindex, eindex);
+         scalar_vertex_properties, scalar_edge_properties)(vindex, eindex);
 }
 
 void incidence_matvec(GraphInterface& g, std::any vindex, std::any eindex,
                       python::object ov, python::object oret, bool transpose)
 {
-    if (!belongs(vertex_scalar_properties, vindex))
+    if (!belongs(scalar_vertex_properties, vindex))
         throw ValueException("index vertex property must have a scalar value type");
 
     multi_array_ref<double,1> v = get_array<double,1>(ov);
@@ -70,13 +70,13 @@ void incidence_matvec(GraphInterface& g, std::any vindex, std::any eindex,
          {
              return inc_matvec(graph, vi, ei, v, ret, transpose);
          },
-         vertex_scalar_properties, edge_scalar_properties)(vindex, eindex);
+         scalar_vertex_properties, scalar_edge_properties)(vindex, eindex);
 }
 
 void incidence_matmat(GraphInterface& g, std::any vindex, std::any eindex,
                       python::object ov, python::object oret, bool transpose)
 {
-    if (!belongs(vertex_scalar_properties, vindex))
+    if (!belongs(scalar_vertex_properties, vindex))
         throw ValueException("index vertex property must have a scalar value type");
 
     multi_array_ref<double,2> v = get_array<double,2>(ov);
@@ -88,7 +88,7 @@ void incidence_matmat(GraphInterface& g, std::any vindex, std::any eindex,
          {
              return inc_matmat(graph, vi, ei, v, ret, transpose);
          },
-         vertex_scalar_properties, edge_scalar_properties)(vindex, eindex);
+         scalar_vertex_properties, scalar_edge_properties)(vindex, eindex);
 }
 
 #define __MOD__ spectral

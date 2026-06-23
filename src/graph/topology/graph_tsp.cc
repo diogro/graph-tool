@@ -46,7 +46,7 @@ vector<int32_t> get_tsp(GraphInterface& gi, size_t src, std::any weight_map)
     if (!weight_map.has_value())
         weight_map = cweight_t();
 
-    auto weight_maps = hana::append(edge_scalar_properties,
+    auto weight_maps = hana::append(scalar_edge_properties,
                                     hana::type<cweight_t>());
 
     run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()

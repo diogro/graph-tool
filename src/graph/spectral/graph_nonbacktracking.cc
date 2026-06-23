@@ -34,12 +34,12 @@ using namespace graph_tool;
 void nonbacktracking(GraphInterface& gi, std::any index,
                      std::vector<int64_t>& i, std::vector<int64_t>& j)
 {
-    if (!belongs(edge_scalar_properties, index))
+    if (!belongs(scalar_edge_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     run_action<>()
         (gi, [&](auto& g, auto idx){ get_nonbacktracking(g, idx, i, j);},
-         edge_scalar_properties)(index);
+         scalar_edge_properties)(index);
 
 }
 
@@ -47,7 +47,7 @@ void nonbacktracking_matvec(GraphInterface& g, std::any index,
                             python::object ov, python::object oret,
                             bool transpose)
 {
-    if (!belongs(edge_scalar_properties, index))
+    if (!belongs(scalar_edge_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     multi_array_ref<double,1> v = get_array<double,1>(ov);
@@ -62,14 +62,14 @@ void nonbacktracking_matvec(GraphInterface& g, std::any index,
              else
                  nbt_matvec<true>(graph, ei, v, ret);
          },
-         edge_scalar_properties)(index);
+         scalar_edge_properties)(index);
 }
 
 void nonbacktracking_matmat(GraphInterface& g, std::any index,
                             python::object ov, python::object oret,
                             bool transpose)
 {
-    if (!belongs(edge_scalar_properties, index))
+    if (!belongs(scalar_edge_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     multi_array_ref<double,2> v = get_array<double,2>(ov);
@@ -84,7 +84,7 @@ void nonbacktracking_matmat(GraphInterface& g, std::any index,
              else
                  nbt_matmat<true>(graph, ei, v, ret);
          },
-         edge_scalar_properties)(index);
+         scalar_edge_properties)(index);
 }
 
 void compact_nonbacktracking(GraphInterface& gi, std::vector<int64_t>& i,
@@ -99,7 +99,7 @@ void compact_nonbacktracking_matvec(GraphInterface& g, std::any index,
                                     python::object ov, python::object oret,
                                     bool transpose)
 {
-    if (!belongs(vertex_scalar_properties, index))
+    if (!belongs(scalar_vertex_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     multi_array_ref<double,1> v = get_array<double,1>(ov);
@@ -114,14 +114,14 @@ void compact_nonbacktracking_matvec(GraphInterface& g, std::any index,
              else
                  cnbt_matvec<true>(graph, ei, v, ret);
          },
-         vertex_scalar_properties)(index);
+         scalar_vertex_properties)(index);
 }
 
 void compact_nonbacktracking_matmat(GraphInterface& g, std::any index,
                                     python::object ov, python::object oret,
                                     bool transpose)
 {
-    if (!belongs(vertex_scalar_properties, index))
+    if (!belongs(scalar_vertex_properties, index))
         throw ValueException("index vertex property must have a scalar value type");
 
     multi_array_ref<double,2> v = get_array<double,2>(ov);
@@ -136,7 +136,7 @@ void compact_nonbacktracking_matmat(GraphInterface& g, std::any index,
              else
                  cnbt_matmat<true>(graph, ei, v, ret);
          },
-         vertex_scalar_properties)(index);
+         scalar_vertex_properties)(index);
 }
 
 #define __MOD__ spectral

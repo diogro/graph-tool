@@ -35,7 +35,7 @@ void do_kcore_decomposition(GraphInterface& gi, std::any prop)
          {
              kcore_decomposition(g, core);
          },
-         all_graph_views, writable_vertex_scalar_properties)
+         all_graph_views, writable_scalar_vertex_properties)
         (gi.get_graph_view(), prop);
 }
 

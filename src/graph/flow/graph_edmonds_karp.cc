@@ -77,8 +77,8 @@ void edmonds_karp_max_flow_dispatch(GraphInterface& gi, size_t src, size_t sink,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3));
          },
-         writable_edge_scalar_properties,
-         writable_edge_scalar_properties)(capacity, res);
+         writable_scalar_edge_properties,
+         writable_scalar_edge_properties)(capacity, res);
 }
 
 #include <boost/python.hpp>

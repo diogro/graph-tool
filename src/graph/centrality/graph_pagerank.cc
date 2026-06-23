@@ -30,24 +30,24 @@ using namespace graph_tool;
 size_t pagerank(GraphInterface& g, std::any rank, std::any pers,
                 std::any weight, double d, double epsilon, size_t max_iter)
 {
-    if (!belongs(vertex_floating_properties, rank))
+    if (!belongs(floating_vertex_properties, rank))
         throw ValueException("rank vertex property must have a floating-point value type");
 
-    if (pers.has_value() && !belongs(vertex_scalar_properties, pers))
+    if (pers.has_value() && !belongs(scalar_vertex_properties, pers))
         throw ValueException("personalization vertex property must have a scalar value type");
 
     typedef ConstantPropertyMap<double, GraphInterface::vertex_t> pers_map_t;
-    auto pers_props = hana::append(vertex_scalar_properties,
+    auto pers_props = hana::append(scalar_vertex_properties,
                                    hana::type<pers_map_t>());
 
     if (!pers.has_value())
         pers = pers_map_t(1.0 / g.get_num_vertices());
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props = hana::append(writable_edge_scalar_properties,
+    auto weight_props = hana::append(writable_scalar_edge_properties,
                                     hana::type<weight_map_t>());
 
-    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(scalar_edge_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if (!weight.has_value())
@@ -64,7 +64,7 @@ size_t pagerank(GraphInterface& g, std::any rank, std::any pers,
                   std::forward<decltype(a3)>(a3),
                   std::forward<decltype(a4)>(a4), d, epsilon, max_iter, iter);
          },
-         vertex_floating_properties, pers_props,
+         floating_vertex_properties, pers_props,
          weight_props)(rank, pers, weight);
     return iter;
 }

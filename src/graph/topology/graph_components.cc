@@ -41,7 +41,7 @@ python::object do_label_components(GraphInterface& gi, std::any prop)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), hist);
          },
-         writable_vertex_scalar_properties)(prop);
+         writable_scalar_vertex_properties)(prop);
     return wrap_vector_owned(hist);
 }
 
@@ -59,8 +59,8 @@ do_label_biconnected_components(GraphInterface& gi, std::any comp,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), hist);
          },
-         writable_edge_scalar_properties,
-         writable_vertex_scalar_properties)(comp, art);
+         writable_scalar_edge_properties,
+         writable_scalar_vertex_properties)(comp, art);
     return wrap_vector_owned(hist);
 }
 
@@ -74,7 +74,7 @@ void do_label_out_component(GraphInterface& gi, size_t root, std::any prop)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), root);
          },
-         writable_vertex_scalar_properties)(prop);
+         writable_scalar_vertex_properties)(prop);
 }
 
 void do_label_attractors(GraphInterface& gi, std::any cprop, python::object oavec)
@@ -90,7 +90,7 @@ void do_label_attractors(GraphInterface& gi, std::any cprop, python::object oave
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), avec);
          },
-         vertex_scalar_properties)(cprop);
+         scalar_vertex_properties)(cprop);
 }
 
 #define __MOD__ topology

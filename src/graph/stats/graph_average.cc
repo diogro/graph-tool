@@ -37,8 +37,8 @@ get_vertex_average(GraphInterface& gi, GraphInterface::deg_t deg)
     size_t count;
 
     auto vertex_numeric_properties_c =
-        hana::concat(vertex_scalar_properties,
-                     vertex_scalar_vector_properties);
+        hana::concat(scalar_vertex_properties,
+                     scalar_vector_vertex_properties);
 
     auto python_properties =
         hana::tuple_t<vprop_map_t<python::object>>;
@@ -63,8 +63,8 @@ python::object
 get_edge_average(GraphInterface& gi, std::any prop)
 {
     auto edge_numeric_properties_c =
-        hana::concat(edge_scalar_properties,
-                     edge_scalar_vector_properties);
+        hana::concat(scalar_edge_properties,
+                     scalar_vector_edge_properties);
 
     auto python_properties =
         hana::tuple_t<eprop_map_t<python::object>>;

@@ -109,9 +109,9 @@ bool is_planar(GraphInterface& gi, std::any embed_map, std::any kur_map)
     if (!kur_map.has_value())
         kur_map = dummy_property_map();
 
-    auto edge_map_types = hana::append(writable_edge_scalar_properties,
+    auto edge_map_types = hana::append(writable_scalar_edge_properties,
                                        hana::type<dummy_property_map>());
-    auto vertex_map_types = hana::append(vertex_scalar_vector_properties,
+    auto vertex_map_types = hana::append(scalar_vector_vertex_properties,
                                          hana::type<dummy_property_map>());
 
     run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()

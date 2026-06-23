@@ -73,5 +73,5 @@ void perfect_ehash(GraphInterface& gi, std::any prop, std::any hprop,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), dict);
          },
-         edge_properties, writable_edge_scalar_properties)(prop, hprop);
+         edge_properties, writable_scalar_edge_properties)(prop, hprop);
 }

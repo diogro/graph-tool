@@ -75,7 +75,7 @@ void perfect_vhash(GraphInterface& gi, std::any prop, std::any hprop,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), dict);
          },
-         vertex_properties, writable_vertex_scalar_properties)(prop, hprop);
+         vertex_properties, writable_scalar_vertex_properties)(prop, hprop);
 }
 
 struct do_set_vertex_property

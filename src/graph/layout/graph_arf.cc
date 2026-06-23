@@ -30,7 +30,7 @@ void arf_layout(GraphInterface& g, std::any pos, std::any weight, double d,
                 size_t dim)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto edge_props_t = hana::append(edge_scalar_properties,
+    auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
     if(!weight.has_value())
@@ -43,7 +43,7 @@ void arf_layout(GraphInterface& g, std::any pos, std::any weight, double d,
              return get_arf_layout()(g, pos, weight, a, d, dt, epsilon,
                                      max_iter, dim);
          },
-         vertex_floating_vector_properties, edge_props_t)(pos, weight);
+         floating_vector_vector_properties, edge_props_t)(pos, weight);
 }
 
 #include <boost/python.hpp>

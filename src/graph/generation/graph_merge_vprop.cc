@@ -38,20 +38,20 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
     emap_t emap = std::any_cast<emap_t>(aemap);
 
     auto owvertex_sum_properties =
-        hana::append(hana::concat(writable_vertex_scalar_properties,
-                                  vertex_scalar_vector_properties),
+        hana::append(hana::concat(writable_scalar_vertex_properties,
+                                  scalar_vector_vertex_properties),
                      hana::type<vprop_map_t<python::object>>());
     auto overtex_sum_properties =
-        hana::append(hana::concat(vertex_scalar_properties,
-                                  vertex_scalar_vector_properties),
+        hana::append(hana::concat(scalar_vertex_properties,
+                                  scalar_vector_vertex_properties),
                      hana::type<vprop_map_t<python::object>>());
 
-    auto overtex_scalar_vector_properties =
-        hana::append(vertex_scalar_vector_properties,
+    auto oscalar_vector_vertex_properties =
+        hana::append(scalar_vector_vertex_properties,
                      hana::type<vprop_map_t<python::object>>());
 
-    auto osvertex_scalar_vector_properties =
-        hana::concat(overtex_scalar_vector_properties,
+    auto osscalar_vector_vertex_properties =
+        hana::concat(oscalar_vector_vertex_properties,
                      hana::tuple_t<vprop_map_t<std::string>,
                                    vprop_map_t<vector<std::string>>>);
 
@@ -116,9 +116,9 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
              vprop_map_as_dynamic(aprop, uprop));
         break;
     case merge_t::idx_inc:
-        check_belongs(vertex_scalar_vector_properties, uprop);
-        check_belongs(hana::concat(vertex_scalar_properties,
-                                   vertex_scalar_vector_properties), aprop);
+        check_belongs(scalar_vector_vertex_properties, uprop);
+        check_belongs(hana::concat(scalar_vertex_properties,
+                                   scalar_vector_vertex_properties), aprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
@@ -128,20 +128,20 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
              always_directed_never_reversed,
              always_directed_never_reversed,
              vmap_ts,
-             vertex_scalar_vector_properties,
+             scalar_vector_vertex_properties,
              hana::tuple_t<vprop_map_t<int32_t>, vdprop_map_t<int32_t>,
                            vprop_map_t<vector<double>>, vdprop_map_t<vector<double>>>)
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              vprop_map_as_dynamic(avmap, vprop_map_t<int64_t>()),
              uprop,
-             belongs(vertex_scalar_properties, aprop) ?
+             belongs(scalar_vertex_properties, aprop) ?
                  vprop_map_as_dynamic(aprop, vprop_map_t<int32_t>()) :
                  vprop_map_as_dynamic(aprop, vprop_map_t<vector<double>>()));
         break;
     case merge_t::append:
-        check_belongs(overtex_scalar_vector_properties, uprop);
-        check_belongs(hana::append(vertex_scalar_properties,
+        check_belongs(oscalar_vector_vertex_properties, uprop);
+        check_belongs(hana::append(scalar_vertex_properties,
                                    hana::type<vprop_map_t<python::object>>()),
                       aprop);
         gt_dispatch<{.gil_release=false}>()
@@ -153,7 +153,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
              always_directed_never_reversed,
              always_directed_never_reversed,
              vmap_ts,
-             overtex_scalar_vector_properties,
+             oscalar_vector_vertex_properties,
              hana::concat(velem_dprop_type, velem_vprop_type))
             (ugi.get_graph_view(),
              gi.get_graph_view(),
@@ -162,8 +162,8 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
              vprop_map_as_dvelem(aprop, uprop));
         break;
     case merge_t::concat:
-        check_belongs(osvertex_scalar_vector_properties, uprop);
-        check_belongs(osvertex_scalar_vector_properties, uprop);
+        check_belongs(osscalar_vector_vertex_properties, uprop);
+        check_belongs(osscalar_vector_vertex_properties, uprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
@@ -173,7 +173,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
              always_directed_never_reversed,
              always_directed_never_reversed,
              vmap_ts,
-             osvertex_scalar_vector_properties,
+             osscalar_vector_vertex_properties,
              hana::concat(dynamic_prop_type, same_arg_type))
             (ugi.get_graph_view(),
              gi.get_graph_view(),

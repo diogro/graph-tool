@@ -37,7 +37,7 @@ void generate_triadic_closure(GraphInterface& gi,
     run_action<>()(gi,
                    [&](auto& g, auto Es) { gen_triadic_closure(g, curr, ego, Es,
                                                                probs, rng); },
-                   vertex_scalar_properties)(aEs);
+                   scalar_vertex_properties)(aEs);
 }
 
 using namespace boost::python;

@@ -32,7 +32,7 @@ void predecessor_graph(GraphInterface& gi, GraphInterface& gpi,
          {
              return get_predecessor_graph()(g, gpi.get_graph(), pred);
          },
-         vertex_scalar_properties)(pred_map);
+         scalar_vertex_properties)(pred_map);
 }
 
 #include <boost/python.hpp>

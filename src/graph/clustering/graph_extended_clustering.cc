@@ -47,7 +47,7 @@ void extended_clustering(GraphInterface& g, boost::python::list aprops)
              return get_extended_clustering()
                  (graph, get(vertex_index_t(), graph), props);
          },
-         writable_vertex_scalar_properties)(aprop);
+         writable_scalar_vertex_properties)(aprop);
 }
 
 #define __MOD__ clustering

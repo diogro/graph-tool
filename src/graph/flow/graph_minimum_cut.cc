@@ -52,7 +52,7 @@ double min_cut(GraphInterface& gi, std::any weight, std::any part_map)
     if (!weight.has_value())
         weight = cweight_t();
 
-    auto weight_maps = hana::append(writable_edge_scalar_properties,
+    auto weight_maps = hana::append(writable_scalar_edge_properties,
                                     hana::type<cweight_t>());
 
     run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
@@ -64,7 +64,7 @@ double min_cut(GraphInterface& gi, std::any weight, std::any part_map)
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), mc);
          },
-         weight_maps, writable_vertex_scalar_properties)(weight, part_map);
+         weight_maps, writable_scalar_vertex_properties)(weight, part_map);
     return mc;
 }
 
@@ -94,7 +94,7 @@ void get_residual_graph(GraphInterface& gi, std::any capacity,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), augment);
          },
-         edge_scalar_properties, edge_scalar_properties)(capacity, res);
+         scalar_edge_properties, scalar_edge_properties)(capacity, res);
 }
 
 #include <boost/python.hpp>

@@ -30,24 +30,24 @@ using namespace graph_tool;
 void katz(GraphInterface& g, std::any w, std::any c, std::any beta,
           long double alpha, double epsilon, size_t max_iter)
 {
-    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_scalar_edge_properties, w))
         throw ValueException("edge property must be writable");
-    if (!belongs(vertex_floating_properties, c))
+    if (!belongs(floating_vertex_properties, c))
         throw ValueException("centrality vertex property must be of floating point"
                              " value type");
-    if (beta.has_value() && !belongs(vertex_floating_properties, beta))
+    if (beta.has_value() && !belongs(floating_vertex_properties, beta))
         throw ValueException("personalization vertex property must be of floating point"
                              " value type");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props = hana::append(writable_edge_scalar_properties,
+    auto weight_props = hana::append(writable_scalar_edge_properties,
                                     hana::type<weight_map_t>());
 
     if (!w.has_value())
         w = weight_map_t();
 
     typedef UnityPropertyMap<int,GraphInterface::vertex_t> beta_map_t;
-    auto beta_props = hana::append(vertex_floating_properties,
+    auto beta_props = hana::append(floating_vertex_properties,
                                      hana::type<beta_map_t>());
 
     if (!beta.has_value())
@@ -63,7 +63,7 @@ void katz(GraphInterface& g, std::any w, std::any c, std::any beta,
                   std::forward<decltype(a3)>(a3),
                   std::forward<decltype(a4)>(a4), alpha, epsilon, max_iter);
          },
-         weight_props, vertex_floating_properties,
+         weight_props, floating_vertex_properties,
          beta_props)(w, c, beta);
 }
 

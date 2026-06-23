@@ -66,7 +66,7 @@ void a_star_search_implicit(GraphInterface& gi, size_t source,
                                   AStarCmb(cmb), python::extract<dtype_t>(inf),
                                   python::extract<dtype_t>(zero));
          },
-         writable_vertex_scalar_properties, writable_vertex_properties, same_arg_type)
+         writable_scalar_vertex_properties, writable_vertex_properties, same_arg_type)
          (apred, adist, acost);
 }
 

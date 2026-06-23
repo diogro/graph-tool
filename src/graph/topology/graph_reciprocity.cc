@@ -60,7 +60,7 @@ struct get_reciprocity
 double reciprocity(GraphInterface& gi, std::any aw)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
     if (!aw.has_value())

@@ -43,7 +43,7 @@ boost::python::tuple graph_merge_dispatch(GraphInterface& ugi, GraphInterface& g
                                         simple);
 
     auto writable_weight_props =
-        hana::append(writable_edge_scalar_properties,
+        hana::append(writable_scalar_edge_properties,
                      hana::type<null_weight_map_t>());
 
     if (!aw1.has_value())
@@ -66,7 +66,7 @@ boost::python::tuple graph_merge_dispatch(GraphInterface& ugi, GraphInterface& g
          },
          always_directed,
          always_directed,
-         vertex_integer_properties,
+         integer_vertex_properties,
          writable_weight_props,
          same_arg_type)
         (ugi.get_graph_view(), gi.get_graph_view(),

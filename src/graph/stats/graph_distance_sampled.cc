@@ -59,7 +59,7 @@ python::object sampled_distance_histogram(GraphInterface& gi, std::any weight,
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       n_samples, bins, ret, rng);
              },
-             edge_scalar_properties)(weight);
+             scalar_edge_properties)(weight);
     }
     return ret;
 }

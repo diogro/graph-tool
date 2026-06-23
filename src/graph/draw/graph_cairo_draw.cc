@@ -1700,9 +1700,9 @@ boost::python::object cairo_draw(GraphInterface& gi,
                           oedefaults, edefaults);
                  })();
 
-            auto vorder_t = hana::append(vertex_scalar_properties,
+            auto vorder_t = hana::append(scalar_vertex_properties,
                                          hana::type<no_order>());
-            auto eorder_t = hana::append(edge_scalar_properties,
+            auto eorder_t = hana::append(scalar_edge_properties,
                                          hana::type<no_order>());
 
             if (!vorder.has_value())
@@ -1732,7 +1732,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                               vdefaults, edefaults, mtime, dt, count, cr,
                               yield);
                      },
-                     vertex_scalar_vector_properties,
+                     scalar_vector_vertex_properties,
                      vorder_t)(pos, vorder);
 
             run_action<{.dargs={.gil_release=false}}>()
@@ -1746,7 +1746,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                           vdefaults, edefaults, res, mtime, dt, count, cr,
                           yield);
                  },
-                 vertex_scalar_vector_properties, eorder_t)(pos, eorder);
+                 scalar_vector_vertex_properties, eorder_t)(pos, eorder);
 
             if (!nodesfirst)
             {
@@ -1761,7 +1761,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                               vdefaults, edefaults, mtime, dt, count, cr,
                               yield);
                      },
-                     vertex_scalar_vector_properties,
+                     scalar_vector_vertex_properties,
                      vorder_t)(pos, vorder);
             }
         };
@@ -1801,7 +1801,7 @@ void apply_transforms(GraphInterface& gi, std::any pos, double xx, double yx,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), m);
          },
-         vertex_scalar_vector_properties)(pos);
+         scalar_vector_vertex_properties)(pos);
 }
 
 struct do_put_parallel_splines
@@ -1939,11 +1939,11 @@ void put_parallel_splines(GraphInterface& gi, std::any opos,
                           double parallel_distance)
 {
     DynamicPropertyMapWrap<vector<double>, GraphInterface::vertex_t>
-        pos(opos, vertex_scalar_vector_properties);
+        pos(opos, scalar_vector_vertex_properties);
     DynamicPropertyMapWrap<int, GraphInterface::edge_t>
-        l(ol, edge_scalar_properties);
+        l(ol, scalar_edge_properties);
     DynamicPropertyMapWrap<double, GraphInterface::vertex_t>
-        angle(loop_angle, vertex_scalar_properties);
+        angle(loop_angle, scalar_vertex_properties);
 
     run_action<>()
         (gi,
@@ -1953,7 +1953,7 @@ void put_parallel_splines(GraphInterface& gi, std::any opos,
                  (std::forward<decltype(graph)>(graph), pos, l,
                   std::forward<decltype(a2)>(a2), angle, parallel_distance);
          },
-         edge_scalar_vector_properties)(splines);
+         scalar_vector_edge_properties)(splines);
 }
 
 

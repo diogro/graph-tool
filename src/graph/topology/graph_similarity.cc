@@ -61,7 +61,7 @@ python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
          all_graph_views,
          weight_props_t,
          same_arg_type,
-         vertex_scalar_properties,
+         scalar_vertex_properties,
          same_arg_type)
         (gi1.get_graph_view(), gi2.get_graph_view(), weight1, weight2,
          label1, label2);

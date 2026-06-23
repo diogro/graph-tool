@@ -461,7 +461,7 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                               pmap.get_unchecked(num_vertices(gi.get_graph())),
                               max_dist, reached);
                      },
-                     writable_vertex_scalar_properties)(dist_map);
+                     writable_scalar_vertex_properties)(dist_map);
             };
         if (get_pred && get_reached)
             dispatch(do_bfs_search<true, true>());
@@ -486,8 +486,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                           pmap.get_unchecked(num_vertices(gi.get_graph())),
                           std::forward<decltype(a3)>(a3));
                  },
-                 writable_vertex_scalar_properties,
-                 edge_scalar_properties)(dist_map, weight);
+                 writable_scalar_vertex_properties,
+                 scalar_edge_properties)(dist_map, weight);
         }
         else
         {
@@ -505,8 +505,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                                   std::forward<decltype(a3)>(a3), max_dist, reached,
                                   dag);
                          },
-                         writable_vertex_scalar_properties,
-                         edge_scalar_properties)(dist_map, weight);
+                         writable_scalar_vertex_properties,
+                         scalar_edge_properties)(dist_map, weight);
                 };
 
             if (get_reached)
@@ -562,7 +562,7 @@ void do_get_all_preds(GraphInterface& gi, std::any adist, std::any apred,
     preds_map_t preds = std::any_cast<preds_map_t>(apreds);
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
     if (!aweight.has_value())
@@ -573,7 +573,7 @@ void do_get_all_preds(GraphInterface& gi, std::any adist, std::any apred,
              {get_all_preds(g, dist, pred.get_unchecked(num_vertices(g)),
                             weight, preds.get_unchecked(num_vertices(g)),
                             epsilon);},
-         vertex_scalar_properties, weight_props_t)(adist, aweight);
+         scalar_vertex_properties, weight_props_t)(adist, aweight);
 }
 
 
@@ -656,7 +656,7 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 {
 #ifdef HAVE_BOOST_COROUTINE
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
     if (!aweight.has_value())
@@ -668,7 +668,7 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
                 (gi, [&](auto& gp, auto pred, auto weight)
                      {get_all_shortest_paths(gp, s, t, pred, weight, edges,
                                              yield);},
-                    vertex_scalar_vector_properties,
+                    scalar_vector_vertex_properties,
                     weight_props_t)(apred, aweight);
         };
     return python::object(CoroGenerator(dispatch));

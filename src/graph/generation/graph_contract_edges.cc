@@ -25,11 +25,11 @@ using namespace graph_tool;
 
 void _contract_parallel_edges(GraphInterface& gi, std::any w)
 {
-    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_scalar_edge_properties, w))
         throw ValueException("edge weight property must be scalar and writable");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_maps_t = hana::append(writable_edge_scalar_properties,
+    auto weight_maps_t = hana::append(writable_scalar_edge_properties,
                                       hana::type<weight_map_t>());
 
     if (!w.has_value())
@@ -43,11 +43,11 @@ void _contract_parallel_edges(GraphInterface& gi, std::any w)
 
 void _expand_parallel_edges(GraphInterface& gi, std::any w)
 {
-    if (w.has_value() && !belongs(edge_scalar_properties, w))
+    if (w.has_value() && !belongs(scalar_edge_properties, w))
         throw ValueException("edge weight property must be scalar");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_maps_t = hana::append(writable_edge_scalar_properties,
+    auto weight_maps_t = hana::append(writable_scalar_edge_properties,
                                       hana::type<weight_map_t>());
 
     if (!w.has_value())

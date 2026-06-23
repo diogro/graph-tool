@@ -132,7 +132,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            H = state.energy(g, s);
-                       }, vertex_scalar_properties)(as);
+                       }, scalar_vertex_properties)(as);
                   return H;
               })
          .def("energies",
@@ -144,7 +144,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            H = state.energies(g, s);
-                       }, vertex_scalar_vector_properties)(as);
+                       }, scalar_vector_vertex_properties)(as);
                   return H;
               })
          .def("marginal_lprob",
@@ -156,7 +156,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            L = state.marginal_lprob(g, s);
-                       }, vertex_scalar_properties)(as);
+                       }, scalar_vertex_properties)(as);
                   return L;
               })
          .def("marginal_lprobs",
@@ -168,7 +168,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            L = state.marginal_lprobs(g, s);
-                       }, vertex_scalar_vector_properties)(as);
+                       }, scalar_vector_vertex_properties)(as);
                   return L;
               })
          .def("marginal_sample",
@@ -179,7 +179,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            state.marginal_sample(g, s, rng);
-                       }, writable_vertex_scalar_properties)(as);
+                       }, writable_scalar_vertex_properties)(as);
               });
 
      def("make_normal_bp_state", &make_normal_bp_state);

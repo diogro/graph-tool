@@ -167,31 +167,31 @@ inline constexpr auto vertex_properties =
 inline constexpr auto writable_vertex_properties =
     get_vprop_types(value_types);
 
-inline constexpr auto vertex_scalar_properties =
+inline constexpr auto scalar_vertex_properties =
     hana::append(get_vprop_types(scalar_types), hana::type<vertex_index_map_t>());
 
-inline constexpr auto writable_vertex_scalar_properties =
+inline constexpr auto writable_scalar_vertex_properties =
     get_vprop_types(scalar_types);
 
-inline constexpr auto vertex_integer_properties =
+inline constexpr auto integer_vertex_properties =
     hana::append(get_vprop_types(integer_types), hana::type<vertex_index_map_t>());
 
-inline constexpr auto writable_vertex_integer_properties =
+inline constexpr auto writable_integer_vertex_properties =
     get_vprop_types(integer_types);
 
-inline constexpr auto vertex_floating_properties =
+inline constexpr auto floating_vertex_properties =
     get_vprop_types(floating_types);
 
-inline constexpr auto vertex_vector_properties =
+inline constexpr auto vector_vertex_properties =
     get_vprop_types(vector_types);
 
-inline constexpr auto vertex_scalar_vector_properties =
+inline constexpr auto scalar_vector_vertex_properties =
     get_vprop_types(scalar_vector_types);
 
-inline constexpr auto vertex_integer_vector_properties =
+inline constexpr auto integer_vector_vertex_properties =
     get_vprop_types(integer_vector_types);
 
-inline constexpr auto vertex_floating_vector_properties =
+inline constexpr auto floating_vector_vector_properties =
     get_vprop_types(floating_vector_types);
 
 inline constexpr auto edge_properties =
@@ -200,31 +200,31 @@ inline constexpr auto edge_properties =
 inline constexpr auto writable_edge_properties =
     get_eprop_types(value_types);
 
-inline constexpr auto edge_scalar_properties =
+inline constexpr auto scalar_edge_properties =
     hana::append(get_eprop_types(scalar_types), hana::type<edge_index_map_t>());
 
-inline constexpr auto writable_edge_scalar_properties =
+inline constexpr auto writable_scalar_edge_properties =
     get_eprop_types(scalar_types);
 
-inline constexpr auto edge_integer_properties =
+inline constexpr auto integer_edge_properties =
     hana::append(get_eprop_types(integer_types), hana::type<edge_index_map_t>());
 
-inline constexpr auto writable_edge_integer_properties =
+inline constexpr auto writable_integer_edge_properties =
     get_eprop_types(integer_types);
 
-inline constexpr auto edge_floating_properties =
+inline constexpr auto floating_edge_properties =
     get_eprop_types(floating_types);
 
-inline constexpr auto edge_vector_properties =
+inline constexpr auto vector_edge_properties =
     get_eprop_types(vector_types);
 
-inline constexpr auto edge_scalar_vector_properties =
+inline constexpr auto scalar_vector_edge_properties =
     get_eprop_types(scalar_vector_types);
 
-inline constexpr auto edge_integer_vector_properties =
+inline constexpr auto integer_vector_edge_properties =
     get_eprop_types(integer_vector_types);
 
-inline constexpr auto edge_floating_vector_properties =
+inline constexpr auto floating_vector_edge_properties =
     get_eprop_types(floating_vector_types);
 
 // Property map manipulation

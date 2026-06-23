@@ -26,11 +26,11 @@ using namespace graph_tool;
 void _add_random_edges(GraphInterface& gi, size_t E, bool parallel,
                        bool self_loops, bool filtered, std::any w, rng_t& rng)
 {
-    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_scalar_edge_properties, w))
         throw ValueException("edge weight property must be scalar and writable");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(writable_edge_scalar_properties,
+    auto weight_props_t = hana::append(writable_scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
     if (!w.has_value())
@@ -46,11 +46,11 @@ void _add_random_edges(GraphInterface& gi, size_t E, bool parallel,
 void _remove_random_edges(GraphInterface& gi, size_t E, std::any w,
                           bool counts, rng_t& rng)
 {
-    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_scalar_edge_properties, w))
         throw ValueException("edge weight property must be scalar and writeable");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props_t = hana::append(writable_edge_scalar_properties,
+    auto weight_props_t = hana::append(writable_scalar_edge_properties,
                                        hana::type<weight_map_t>());
 
     if (!w.has_value())

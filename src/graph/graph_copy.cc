@@ -299,6 +299,6 @@ GraphInterface::GraphInterface(const GraphInterface& gi, bool keep_ref,
                  _vertex_index, gi._edge_index, _edge_index,
                  std::forward<decltype(a2)>(a2), vprops, eprops);
          },
-         vertex_scalar_properties)(avorder);
+         scalar_vertex_properties)(avorder);
     // filters will be copied in python
 }

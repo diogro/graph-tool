@@ -35,7 +35,7 @@ python::object similarity_fast(GraphInterface& gi1, GraphInterface& gi2,
                                double norm, bool asym)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> ecmap_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<ecmap_t>());
 
     if (!weight1.has_value())

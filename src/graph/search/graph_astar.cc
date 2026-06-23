@@ -191,8 +191,8 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
                           AStarGeneratorVisitor<decltype(gp)>(gp, yield),
                           make_pair(zero, inf), h);
                  },
-                 writable_vertex_scalar_properties,
-                 edge_scalar_properties)(dist_map, weight);
+                 writable_scalar_vertex_properties,
+                 scalar_edge_properties)(dist_map, weight);
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else
@@ -261,8 +261,8 @@ boost::python::object astar_search_array_fast(GraphInterface& g,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), vis, make_pair(zero, inf), h);
          },
-         writable_vertex_scalar_properties,
-         edge_scalar_properties)(dist_map, weight);
+         writable_scalar_vertex_properties,
+         scalar_edge_properties)(dist_map, weight);
     return wrap_vector_owned<size_t,2>(edges);
 }
 

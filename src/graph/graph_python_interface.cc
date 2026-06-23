@@ -244,7 +244,7 @@ python::object GraphInterface::degree_map(string deg, std::any weight) const
 
     python::object deg_map;
 
-    auto weight_t = hana::append(edge_scalar_properties,
+    auto weight_t = hana::append(scalar_edge_properties,
                                  hana::type<detail::no_weightS>());;
     if (!weight.has_value())
         weight = detail::no_weightS();
@@ -313,14 +313,14 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
     for (int i = 0; i < python::len(ovprops); ++i)
     {
         avprops.push_back(python::extract<std::any>(ovprops[i])());
-        if (!belongs(vertex_scalar_properties, avprops.back()))
+        if (!belongs(scalar_vertex_properties, avprops.back()))
             throw ValueException("vertex property map must be of scalar type");
     }
 
     size_t vtype =
         hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
     if (!avprops.empty())
-        vtype = value_type_promotion<decltype(vertex_scalar_properties)>(avprops);
+        vtype = value_type_promotion<decltype(scalar_vertex_properties)>(avprops);
 
     python::object ret;
     auto dispatch =
@@ -338,7 +338,7 @@ python::object get_vertex_list(GraphInterface& gi, size_t v,
                         converted_map_t;
                     std::vector<converted_map_t> vprops;
                     for (auto& aep: avprops)
-                        vprops.emplace_back(aep, vertex_scalar_properties);
+                        vprops.emplace_back(aep, scalar_vertex_properties);
 
                     std::vector<t_t> vlist;
                     run_action<>()(gi,
@@ -462,7 +462,7 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
     for (int i = 0; i < python::len(oeprops); ++i)
     {
         aeprops.push_back(python::extract<std::any>(oeprops[i])());
-        if (!belongs(edge_scalar_properties, aeprops.back()))
+        if (!belongs(scalar_edge_properties, aeprops.back()))
             throw ValueException("edge property map must be of scalar type");
     }
 
@@ -470,7 +470,7 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
         hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
 
     if (!aeprops.empty())
-        etype = value_type_promotion<decltype(edge_scalar_properties)>(aeprops);
+        etype = value_type_promotion<decltype(scalar_edge_properties)>(aeprops);
 
     python::object ret;
     auto dispatch =
@@ -487,7 +487,7 @@ python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
                         converted_map_t;
                     std::vector<converted_map_t> eprops;
                     for (auto& aep: aeprops)
-                        eprops.emplace_back(aep, edge_scalar_properties);
+                        eprops.emplace_back(aep, scalar_edge_properties);
 
                     std::vector<t_t> elist;
                     run_action<>()(gi,
@@ -624,7 +624,7 @@ python::object get_edge_range_list(GraphInterface& gi, size_t u, size_t v,
     for (int i = 0; i < python::len(oeprops); ++i)
     {
         aeprops.push_back(python::extract<std::any>(oeprops[i])());
-        if (!belongs(edge_scalar_properties, aeprops.back()))
+        if (!belongs(scalar_edge_properties, aeprops.back()))
             throw ValueException("edge property map must be of scalar type");
     }
 
@@ -632,7 +632,7 @@ python::object get_edge_range_list(GraphInterface& gi, size_t u, size_t v,
         hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
 
     if (!aeprops.empty())
-        etype = value_type_promotion<decltype(edge_scalar_properties)>(aeprops);
+        etype = value_type_promotion<decltype(scalar_edge_properties)>(aeprops);
 
     python::object ret;
     hana::for_each
@@ -646,7 +646,7 @@ python::object get_edge_range_list(GraphInterface& gi, size_t u, size_t v,
                 converted_map_t;
             std::vector<converted_map_t> eprops;
             for (auto& aep: aeprops)
-                eprops.emplace_back(aep, edge_scalar_properties);
+                eprops.emplace_back(aep, scalar_edge_properties);
 
             std::vector<t_t> elist;
             run_action<>()(gi,
@@ -678,10 +678,10 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
 
     if (!eprop.has_value())
         eprop = empty_t();
-    else if (!belongs(edge_scalar_properties, eprop))
+    else if (!belongs(scalar_edge_properties, eprop))
         throw ValueException("edge weight property map must be of scalar type");
 
-    auto eprops_t = hana::append(edge_scalar_properties,
+    auto eprops_t = hana::append(scalar_edge_properties,
                                  hana::type<empty_t>());
 
     auto get_degs = [&](auto deg)

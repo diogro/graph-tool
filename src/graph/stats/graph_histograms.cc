@@ -31,7 +31,7 @@ struct deg_check
 {
     void operator()(std::any a) const
     {
-        if (!belongs(vertex_scalar_properties, a))
+        if (!belongs(scalar_vertex_properties, a))
             throw ValueException("Vertex property must be of scalar type.");
     }
 
@@ -62,7 +62,7 @@ python::object
 get_edge_histogram(GraphInterface& gi, std::any prop,
                    const vector<long double>& bins)
 {
-    if (!belongs(edge_scalar_properties, prop))
+    if (!belongs(scalar_edge_properties, prop))
         throw ValueException("Edge property must be of scalar type.");
 
     python::object hist;
@@ -72,7 +72,7 @@ get_edge_histogram(GraphInterface& gi, std::any prop,
     gi.set_directed(true);
     run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>, .dargs={.gil_release=false}}>()
         (gi, get_histogram<EdgeHistogramFiller>(hist, bins, ret_bins),
-         edge_scalar_properties)(prop);
+         scalar_edge_properties)(prop);
     gi.set_directed(directed);
 
     return python::make_tuple(hist, ret_bins);

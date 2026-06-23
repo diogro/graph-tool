@@ -131,11 +131,11 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                  std::any edge_betweenness,
                  std::any vertex_betweenness)
 {
-    if (!belongs(edge_floating_properties, edge_betweenness))
+    if (!belongs(floating_edge_properties, edge_betweenness))
         throw ValueException("edge property must be of floating point value"
                              " type");
 
-    if (!belongs(vertex_floating_properties, vertex_betweenness))
+    if (!belongs(floating_vertex_properties, vertex_betweenness))
         throw ValueException("vertex property must be of floating point value"
                              " type");
 
@@ -151,7 +151,7 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                       std::forward<decltype(a3)>(a3), weight,
                       g.get_edge_index_range());
              },
-             edge_floating_properties, vertex_floating_properties)
+             floating_edge_properties, floating_vertex_properties)
             (edge_betweenness, vertex_betweenness);
     }
     else
@@ -165,7 +165,7 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                       g.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3));
              },
-             edge_floating_properties, vertex_floating_properties)
+             floating_edge_properties, floating_vertex_properties)
             (edge_betweenness, vertex_betweenness);
     }
 }
@@ -174,11 +174,11 @@ void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
                       std::any edge_betweenness,
                       std::any vertex_betweenness)
 {
-    if (!belongs(edge_floating_properties, edge_betweenness))
+    if (!belongs(floating_edge_properties, edge_betweenness))
         throw ValueException("edge property must be of floating point value"
                              " type");
 
-    if (!belongs(vertex_floating_properties, vertex_betweenness))
+    if (!belongs(floating_vertex_properties, vertex_betweenness))
         throw ValueException("vertex property must be of floating point value"
                              " type");
 
@@ -188,8 +188,8 @@ void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
             {
                 normalize_betweenness(g, pivots, ep, vp, n);
             },
-         edge_floating_properties,
-         vertex_floating_properties)
+         floating_edge_properties,
+         floating_vertex_properties)
         (edge_betweenness, vertex_betweenness);
 }
 
@@ -216,7 +216,7 @@ double central_point(GraphInterface& g,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), c);
          },
-         vertex_scalar_properties)(vertex_betweenness);
+         scalar_vertex_properties)(vertex_betweenness);
     return c;
 }
 

@@ -30,9 +30,9 @@ using namespace graph_tool;
 void trust_transitivity(GraphInterface& g, int64_t source, int64_t target,
                     std::any c, std::any t)
 {
-    if (!belongs(edge_floating_properties, c))
+    if (!belongs(floating_edge_properties, c))
         throw ValueException("edge property must be of floating point value type");
-    if (!belongs(vertex_floating_vector_properties, t))
+    if (!belongs(floating_vector_vector_properties, t))
         throw ValueException("vertex property must be of floating point valued vector type");
 
     run_action<>()
@@ -44,7 +44,7 @@ void trust_transitivity(GraphInterface& g, int64_t source, int64_t target,
                   source, target, std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3));
          },
-         edge_floating_properties, vertex_floating_vector_properties)(c, t);
+         floating_edge_properties, floating_vector_vector_properties)(c, t);
 }
 
 #define __MOD__ centrality

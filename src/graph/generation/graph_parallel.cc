@@ -38,7 +38,7 @@ void do_label_parallel_edges(GraphInterface& gi, std::any property,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), mark_only);
          },
-         writable_edge_scalar_properties)(property);
+         writable_scalar_edge_properties)(property);
 }
 
 void do_label_self_loops(GraphInterface& gi, std::any property,
@@ -52,7 +52,7 @@ void do_label_self_loops(GraphInterface& gi, std::any property,
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), mark_only);
          },
-         writable_edge_scalar_properties)(property);
+         writable_scalar_edge_properties)(property);
 }
 
 void do_remove_labeled_edges(GraphInterface& gi, std::any property)
@@ -65,7 +65,7 @@ void do_remove_labeled_edges(GraphInterface& gi, std::any property)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2));
          },
-         writable_edge_scalar_properties)(property);
+         writable_scalar_edge_properties)(property);
 }
 
 using namespace boost::python;

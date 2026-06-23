@@ -49,7 +49,7 @@ size_t sequential_coloring(GraphInterface& gi, std::any order,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), nc);
          },
-         vertex_integer_properties, int_properties)(order, color);
+         integer_vertex_properties, int_properties)(order, color);
     return nc;
 }
 

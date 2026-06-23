@@ -122,8 +122,8 @@ std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity)
 
 std::any vprop_map_as_dvelem(std::any amap, std::any atgt)
 {
-    auto overtex_scalar_vector_properties =
-        hana::append(vertex_scalar_vector_properties,
+    auto oscalar_vector_vertex_properties =
+        hana::append(scalar_vector_vertex_properties,
                      hana::type<vprop_map_t<python::object>>());
 
     std::any rmap;
@@ -150,14 +150,14 @@ std::any vprop_map_as_dvelem(std::any amap, std::any atgt)
              }
          },
          vertex_properties,
-         overtex_scalar_vector_properties)(amap, atgt);
+         oscalar_vector_vertex_properties)(amap, atgt);
     return rmap;
 }
 
 std::any eprop_map_as_dvelem(std::any amap, std::any atgt)
 {
-    auto oedge_scalar_vector_properties =
-        hana::append(edge_scalar_vector_properties,
+    auto oscalar_vector_edge_properties =
+        hana::append(scalar_vector_edge_properties,
                      hana::type<eprop_map_t<python::object>>());
 
     std::any rmap;
@@ -184,7 +184,7 @@ std::any eprop_map_as_dvelem(std::any amap, std::any atgt)
              }
          },
          edge_properties,
-         oedge_scalar_vector_properties)(amap, atgt);
+         oscalar_vector_edge_properties)(amap, atgt);
     return rmap;
 }
 
@@ -412,5 +412,5 @@ void mark_edges(GraphInterface& gi, std::any prop)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2));
          },
-         writable_edge_scalar_properties)(prop);
+         writable_scalar_edge_properties)(prop);
 }

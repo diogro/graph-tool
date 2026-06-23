@@ -26,14 +26,14 @@ using namespace graph_tool;
 long double eigenvector(GraphInterface& g, std::any w, std::any c,
                         double epsilon, size_t max_iter)
 {
-    if (w.has_value() && !belongs(writable_edge_scalar_properties, w))
+    if (w.has_value() && !belongs(writable_scalar_edge_properties, w))
         throw ValueException("edge property must be writable");
-    if (!belongs(vertex_floating_properties, c))
+    if (!belongs(floating_vertex_properties, c))
         throw ValueException("vertex property must be of floating point"
                              " value type");
 
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
-    auto weight_props = hana::append(writable_edge_scalar_properties,
+    auto weight_props = hana::append(writable_scalar_edge_properties,
                                     hana::type<weight_map_t>());
 
     if (!w.has_value())
@@ -49,7 +49,7 @@ long double eigenvector(GraphInterface& g, std::any w, std::any c,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), epsilon, max_iter, eig);
          },
-         weight_props, vertex_floating_properties)(w, c);
+         weight_props, floating_vertex_properties)(w, c);
     return eig;
 }
 

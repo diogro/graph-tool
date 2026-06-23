@@ -39,10 +39,10 @@ using namespace graph_tool;
 boost::python::tuple global_clustering(GraphInterface& g, std::any weight)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
-    auto weight_props = hana::append(edge_scalar_properties,
+    auto weight_props = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
-    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(scalar_edge_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if (!weight.has_value())
@@ -80,10 +80,10 @@ double global_clustering_sampled(GraphInterface& g, size_t m, rng_t& rng)
 void local_clustering(GraphInterface& g, std::any prop, std::any weight)
 {
     typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
-    auto weight_props = hana::append(edge_scalar_properties,
+    auto weight_props = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
-    if (weight.has_value() && !belongs(edge_scalar_properties, weight))
+    if (weight.has_value() && !belongs(scalar_edge_properties, weight))
         throw ValueException("weight edge property must have a scalar value type");
 
     if(!weight.has_value())
@@ -97,7 +97,7 @@ void local_clustering(GraphInterface& g, std::any prop, std::any weight)
                                         std::forward<decltype(a2)>(a2),
                                         std::forward<decltype(a3)>(a3));
          },
-         weight_props, writable_vertex_scalar_properties)(weight, prop);
+         weight_props, writable_scalar_vertex_properties)(weight, prop);
 }
 
 using namespace boost::python;

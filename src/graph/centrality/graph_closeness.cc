@@ -41,7 +41,7 @@ void do_get_closeness(GraphInterface& gi, std::any weight,
                       gi.get_vertex_index(), no_weightS(),
                       std::forward<decltype(a2)>(a2), harmonic, norm);
              },
-             writable_vertex_scalar_properties)(closeness);
+             writable_scalar_vertex_properties)(closeness);
     }
     else
     {
@@ -54,8 +54,8 @@ void do_get_closeness(GraphInterface& gi, std::any weight,
                       gi.get_vertex_index(), std::forward<decltype(a2)>(a2),
                       std::forward<decltype(a3)>(a3), harmonic, norm);
              },
-             edge_scalar_properties,
-             writable_vertex_scalar_properties)(weight, closeness);
+             scalar_edge_properties,
+             writable_scalar_vertex_properties)(weight, closeness);
     }
 }
 

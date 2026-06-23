@@ -41,7 +41,7 @@ void group_vector_property(GraphInterface& g, std::any vector_prop,
                      std::forward<decltype(a2)>(a2),
                      std::forward<decltype(a3)>(a3), pos);
              },
-             edge_vector_properties, edge_properties)(vector_prop, prop);
+             vector_edge_properties, edge_properties)(vector_prop, prop);
     else
         run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>}>()
             (g,
@@ -53,6 +53,6 @@ void group_vector_property(GraphInterface& g, std::any vector_prop,
                      std::forward<decltype(a2)>(a2),
                      std::forward<decltype(a3)>(a3), pos);
              },
-             vertex_vector_properties,
+             vector_vertex_properties,
              vertex_properties)(vector_prop, prop);
 }

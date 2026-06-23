@@ -54,7 +54,7 @@ get_vertex_correlation_histogram(GraphInterface& gi,
         wrapped_weight_t;
 
     if (weight.has_value())
-        weight_prop = wrapped_weight_t(weight, edge_scalar_properties);
+        weight_prop = wrapped_weight_t(weight, scalar_edge_properties);
     else
         weight_prop = cweight_map_t();
 

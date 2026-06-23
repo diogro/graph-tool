@@ -105,7 +105,7 @@ void get_max_weighted_matching(GraphInterface& gi, std::any oweight,
                      matching[v] = match[v];
              }
          },
-         edge_scalar_properties)(oweight);
+         scalar_edge_properties)(oweight);
 }
 
 void get_max_bip_weighted_matching(GraphInterface& gi, std::any opartition,
@@ -116,7 +116,7 @@ void get_max_bip_weighted_matching(GraphInterface& gi, std::any opartition,
     vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
 
     typedef UnityPropertyMap<int, GraphInterface::edge_t> ecmap_t;
-    auto weight_props_t = hana::append(edge_scalar_properties,
+    auto weight_props_t = hana::append(scalar_edge_properties,
                                        hana::type<ecmap_t>());
 
     if (!oweight.has_value())

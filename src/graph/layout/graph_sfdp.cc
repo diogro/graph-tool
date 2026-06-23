@@ -39,9 +39,9 @@ void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
 {
     typedef UnityPropertyMap<int,GraphInterface::vertex_t> vweight_map_t;
     typedef UnityPropertyMap<int,GraphInterface::edge_t> eweight_map_t;
-    auto vertex_props_t = hana::append(vertex_scalar_properties,
+    auto vertex_props_t = hana::append(scalar_vertex_properties,
                                        hana::type<vweight_map_t>());
-    auto edge_props_t = hana::append(edge_scalar_properties,
+    auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<eweight_map_t>());
 
     double C = python::extract<double>(spring_parms[0]);
@@ -86,7 +86,7 @@ void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
                                     step_schedule, max_level, epsilon, max_iter,
                                     adaptive, verbose, rng);
          },
-         vertex_floating_vector_properties, vertex_props_t,
+         floating_vector_vector_properties, vertex_props_t,
          edge_props_t)(pos, vweight, eweight);
 }
 
@@ -142,7 +142,7 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, std::any vmap,
                      std::forward<decltype(a4)>(a4), cpos, delta, rng);
             },
             all_graph_views, all_graph_views, vmaps_t,
-            vertex_floating_vector_properties)(
+            floating_vector_vector_properties)(
             gi.get_graph_view(), cgi.get_graph_view(), vmap, pos);
 }
 
@@ -206,8 +206,8 @@ void propagate_pos_mivs(GraphInterface& gi, std::any mivs, std::any pos,
                   std::forward<decltype(a2)>(a2),
                   std::forward<decltype(a3)>(a3), delta, rng);
          },
-         vertex_scalar_properties,
-         vertex_floating_vector_properties)(mivs, pos);
+         scalar_vertex_properties,
+         floating_vector_vector_properties)(mivs, pos);
 }
 
 
@@ -248,7 +248,7 @@ double avg_dist(GraphInterface& gi, std::any pos)
                  (std::forward<decltype(graph)>(graph),
                   std::forward<decltype(a2)>(a2), d);
          },
-         vertex_scalar_vector_properties)(pos);
+         scalar_vector_vertex_properties)(pos);
     return d;
 }
 
@@ -265,7 +265,7 @@ void sanitize_pos(GraphInterface& gi, std::any apos)
                       pos[v].resize(2);
                   });
          },
-         vertex_scalar_vector_properties)(apos);
+         scalar_vector_vertex_properties)(apos);
 }
 
 #include <boost/python.hpp>

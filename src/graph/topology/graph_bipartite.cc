@@ -78,7 +78,7 @@ bool is_bipartite_dispatch(GraphInterface& gi, std::any part_map, bool find_cycl
         part_map = dummy_property_map();
 
     auto vertex_map_types =
-        hana::append(writable_vertex_scalar_properties,
+        hana::append(writable_scalar_vertex_properties,
                      hana::type<dummy_property_map>());
 
     run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()

@@ -177,7 +177,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            H = state.sample_energy(g, s);
-                       }, vertex_scalar_properties)(as);
+                       }, scalar_vertex_properties)(as);
                   return H;
               })
          .def("sample_energies",
@@ -189,7 +189,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            H = state.sample_energies(g, s);
-                       }, vertex_scalar_vector_properties)(as);
+                       }, scalar_vector_vertex_properties)(as);
                   return H;
               })
          .def("bethe_lprob",
@@ -201,7 +201,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            L = state.bethe_lprob(g, s);
-                       }, vertex_scalar_properties)(as);
+                       }, scalar_vertex_properties)(as);
                   return L;
               })
          .def("marginal_lprob",
@@ -213,7 +213,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            L = state.marginal_lprob(g, s);
-                       }, vertex_scalar_properties)(as);
+                       }, scalar_vertex_properties)(as);
                   return L;
               })
          .def("marginal_lprobs",
@@ -225,7 +225,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            L = state.marginal_lprobs(g, s);
-                       }, vertex_scalar_vector_properties)(as);
+                       }, scalar_vector_vertex_properties)(as);
                   return L;
               })
          .def("marginal_pair_lprob",
@@ -253,7 +253,7 @@ REGISTER_MOD
                        {
                            state.sample(g, vorder, s, parallel, maxint, epsilon,
                                         rng);
-                       }, writable_vertex_scalar_properties)(as);
+                       }, writable_scalar_vertex_properties)(as);
               })
          .def("marginal_sample",
               +[](PottsBPState& state, GraphInterface& gi, std::any as, rng_t& rng)
@@ -263,7 +263,7 @@ REGISTER_MOD
                        [&](auto& g, auto s)
                        {
                            state.marginal_sample(g, s, rng);
-                       }, writable_vertex_scalar_properties)(as);
+                       }, writable_scalar_vertex_properties)(as);
               });
 
      def("make_potts_bp_state", &make_potts_bp_state);
