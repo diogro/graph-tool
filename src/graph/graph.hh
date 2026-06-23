@@ -73,7 +73,7 @@ public:
 
     // general "degree" type, i.e., either a degree_t above or a string
     // representing a scalar vertex property
-    typedef boost::variant<degree_t, std::any> deg_t;
+    typedef std::variant<degree_t, std::any> deg_t;
 
     //
     // Basic manipulation

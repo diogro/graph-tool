@@ -156,7 +156,6 @@ struct pair_from_tuple
 // r-value
 template <class ValueType>
 struct variant_from_python
-
 {
     static bool convertible(bp::object o)
     {
@@ -447,11 +446,11 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .value("Out", GraphInterface::OUT_DEGREE)
         .value("Total", GraphInterface::TOTAL_DEGREE);
 
-    variant_from_python<std::any>();
-    variant_from_python<GraphInterface::degree_t>();
-    to_python_converter<pair<string,bool>, pair_to_tuple<string,bool> >();
-    to_python_converter<pair<size_t,size_t>, pair_to_tuple<size_t,size_t> >();
-    to_python_converter<pair<double,double>, pair_to_tuple<double,double> >();
+    to_python_converter<pair<string,bool>, pair_to_tuple<string,bool>>();
+    to_python_converter<pair<size_t,size_t>, pair_to_tuple<size_t,size_t>>();
+    to_python_converter<pair<double,double>, pair_to_tuple<double,double>>();
+    rval_from_python<variant_from_python<std::any>>();
+    rval_from_python<variant_from_python<GraphInterface::degree_t>>();
     rval_from_python<pair_from_tuple<double,double>>();
     rval_from_python<pair_from_tuple<size_t,size_t>>();
     rval_from_python<integer_from_convertible<uint8_t>>();
