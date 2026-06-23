@@ -30,38 +30,6 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-
-struct do_astar_search
-{
-    template <class GP, class DistanceMap, class Visitor>
-    void operator()(GP& gp, size_t s, DistanceMap dist, pair<std::any,
-                    std::any> pc, std::any aweight, Visitor vis,
-                    pair<AStarCmp, AStarCmb> cmp, pair<python::object,
-                    python::object> range, python::object h) const
-    {
-        typedef std::remove_reference_t<decltype(*gp)> g_t;
-        auto& g = *gp;
-
-        typedef typename property_traits<DistanceMap>::value_type dtype_t;
-        typedef typename graph_traits<g_t>::edge_descriptor edge_t;
-        dtype_t z = python::extract<dtype_t>(range.first);
-        dtype_t i = python::extract<dtype_t>(range.second);
-
-        checked_vector_property_map<default_color_type,
-                                    decltype(get(vertex_index, g))>
-            color(get(vertex_index, g));
-        typedef vprop_map_t<int64_t> pred_t;
-        DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
-                                                       edge_properties);
-        astar_search_no_init(g, vertex(s, g),
-                             AStarH<GP, dtype_t>(gp, h), vis,
-                             std::any_cast<pred_t>(pc.first),
-                             std::any_cast<DistanceMap>(pc.second), dist, weight,
-                             color, get(vertex_index, g), cmp.first,
-                             cmp.second, i, z);
-    }
-};
-
 inline constexpr auto graph_view_ptrs =
     hana::transform(all_graph_views,
                     [](auto t)
@@ -69,25 +37,37 @@ inline constexpr auto graph_view_ptrs =
                         return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
                     });
 
-void a_star_search_implicit(GraphInterface& g, size_t source,
-                            std::any dist_map, std::any pred,
-                            std::any cost, std::any weight,
+void a_star_search_implicit(GraphInterface& gi, size_t source,
+                            std::any adist, std::any apred,
+                            std::any acost, std::any aweight,
                             python::object vis, python::object cmp,
                             python::object cmb, python::object zero,
                             python::object inf, python::object h)
 {
-    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
-        (g,
-         [&](auto&& gp, auto&& a2)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>,
+                .dargs={ .uncheck=false, .gil_release=false}}>()
+        (gi,
+         [&](auto&& gp, auto&& pred, auto&& dist, auto&& cost)
          {
-             return do_astar_search()
-                 (gp, source,
-                  std::forward<decltype(a2)>(a2), make_pair(pred, cost), weight,
-                  AStarVisitorWrapper<decltype(gp)>(gp, vis),
-                  make_pair(AStarCmp(cmp), AStarCmb(cmb)), make_pair(zero, inf),
-                  h);
+             checked_vector_property_map<default_color_type,
+                                         decltype(get(vertex_index, *gp))>
+                    color(get(vertex_index, *gp));
+             typedef typename property_traits<std::decay_t<decltype(dist)>>::value_type
+                 dtype_t;
+             typedef std::remove_reference_t<decltype(*gp)> g_t;
+             typedef typename graph_traits<g_t>::edge_descriptor edge_t;
+             DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
+                                                            edge_properties);
+             astar_search_no_init(*gp, source,
+                                  AStarH<std::decay_t<decltype(gp)>,dtype_t>(gp, h),
+                                  AStarVisitorWrapper<std::decay_t<decltype(gp)>>(gp, vis),
+                                  pred, cost, dist, weight,
+                                  color, get(vertex_index, *gp), AStarCmp(cmp),
+                                  AStarCmb(cmb), python::extract<dtype_t>(inf),
+                                  python::extract<dtype_t>(zero));
          },
-         writable_vertex_properties)(dist_map);
+         writable_vertex_scalar_properties, writable_vertex_properties, same_arg_type)
+         (apred, adist, acost);
 }
 
 #define __MOD__ search

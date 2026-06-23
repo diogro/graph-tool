@@ -110,7 +110,7 @@ private:
 class AStarCmb
 {
 public:
-    AStarCmb() {}
+    AStarCmb() = default;
     AStarCmb(python::object cmb): _cmb(cmb) {}
 
     template <class Value1, class Value2 >
@@ -127,7 +127,7 @@ template <class GP, class Value>
 class AStarH
 {
 public:
-    AStarH() {}
+    AStarH() = default;
     AStarH(GP& gp, python::object h)
         : _h(h), _gp(gp) {}
 
