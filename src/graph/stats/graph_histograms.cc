@@ -27,7 +27,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-struct deg_check : public boost::static_visitor<>
+struct deg_check
 {
     void operator()(std::any a) const
     {
@@ -44,7 +44,7 @@ python::object
 get_vertex_histogram(GraphInterface& gi, GraphInterface::deg_t deg,
                      const vector<long double>& bins)
 {
-    boost::apply_visitor(deg_check(), deg);
+    std::visit(deg_check(), deg);
 
     python::object hist;
     python::object ret_bins;
