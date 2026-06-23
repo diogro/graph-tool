@@ -101,7 +101,7 @@ template <lock_args largs = {}>
 decltype(auto) do_slock(auto&& f, auto&... mutex)
 {
     return do_lock<largs, std::shared_lock<std::decay_t<decltype(mutex)>>...>
-        (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+        (std::forward<decltype(f)>(f), mutex...);
 }
 
 template <lock_args largs = {}>
@@ -109,10 +109,10 @@ decltype(auto) do_slock_d(auto&& f, bool enable, auto&... mutex)
 {
     if (enable)
         return do_slock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+            (std::forward<decltype(f)>(f), mutex...);
     else
         return do_slock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+            (std::forward<decltype(f)>(f), mutex...);
 }
 
 template <lock_args largs = {}>
@@ -120,7 +120,7 @@ decltype(auto) do_ulock(auto&& f, auto&... mutex)
 {
     return do_lock<largs,
                    std::unique_lock<std::decay_t<decltype(mutex)>>...>
-        (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+        (std::forward<decltype(f)>(f), mutex...);
 }
 
 template <lock_args largs = {}>
@@ -128,10 +128,10 @@ decltype(auto) do_ulock_d(auto&& f, bool enable, auto&... mutex)
 {
     if (enable)
         return do_ulock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+            (std::forward<decltype(f)>(f), mutex...);
     else
         return do_ulock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+            (std::forward<decltype(f)>(f), mutex...);
 }
 
 struct upgrade_lock_args
@@ -168,7 +168,7 @@ decltype(auto) upgrade_lock(auto&& f, auto&... locks)
              });
 
         return do_ulock<largs.la>
-            (std::forward<std::decay_t<decltype(f)>>(f),
+            (std::forward<decltype(f)>(f),
              *locks.mutex()...);
     }
 }
@@ -178,11 +178,11 @@ decltype(auto) upgrade_lock_d(auto&& f, bool enable, auto&... locks)
 {
     if (enable)
         return upgrade_lock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), locks...);
+            (std::forward<decltype(f)>(f), locks...);
     else
         return upgrade_lock<{.la={.enable=false, .pass_lock=largs.la.pass_lock},
                              .relock=largs.relock}>
-            (std::forward<std::decay_t<decltype(f)>>(f), locks...);
+            (std::forward<decltype(f)>(f), locks...);
 }
 
 struct upgrade_canary_lock_args
@@ -236,7 +236,7 @@ template <upgrade_canary_lock_args largs = {}>
 decltype(auto) upgrade_canary_lock_d(auto&& f, bool enable, auto&... locks)
 {
     if (enable)
-        return upgrade_canary_lock<largs>(std::forward<std::decay_t<decltype(f)>>(f), locks...);
+        return upgrade_canary_lock<largs>(std::forward<decltype(f)>(f), locks...);
     else
         return f(true);
 }
@@ -247,10 +247,10 @@ decltype(auto) do_ulock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
 {
     if (u != v)
         return do_ulock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mu, mv);
+            (std::forward<decltype(f)>(f), mu, mv);
     else
         return do_ulock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mu);
+            (std::forward<decltype(f)>(f), mu);
 }
 
 template <lock_args largs = {}>
@@ -258,10 +258,10 @@ decltype(auto) do_slock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
 {
     if (u != v)
         return do_slock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mu, mv);
+            (std::forward<decltype(f)>(f), mu, mv);
     else
         return do_slock<largs>
-            (std::forward<std::decay_t<decltype(f)>>(f), mu);
+            (std::forward<decltype(f)>(f), mu);
 }
 
 // visit or emplace
