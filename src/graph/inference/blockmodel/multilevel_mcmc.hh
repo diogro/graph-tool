@@ -90,7 +90,7 @@ struct MCMC
             if constexpr (std::is_same_v<typename State::coupled_state_t::m_entries_t,
                                          typename State::m_entries_t>)
             {
-                for (auto&& [i, mes] : std::views::enumerate(_m_entries))
+                for (auto&& [i, mes] : enumerate(_m_entries))
                 {
                     mes.resize(L);
                     for (size_t l = 0; l < L - 1; ++l)
@@ -107,7 +107,7 @@ struct MCMC
                         mes[l]._next = &mes[l+1];
                 }
 
-                for (auto&& [i, mes] : std::views::enumerate(_m_entries))
+                for (auto&& [i, mes] : enumerate(_m_entries))
                 {
                     mes.resize(1);
                     mes[0]._next = &_m_entries_coupled[i][0];

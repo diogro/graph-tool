@@ -205,7 +205,7 @@ struct RankedBlockStateSpec
             {
                 if (_unique)
                 {
-                    for (auto&& [i, r] : std::views::enumerate(_u))
+                    for (auto&& [i, r] : enumerate(_u))
                         r = i;
                 }
 
