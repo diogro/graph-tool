@@ -15,8 +15,8 @@ network of American football teams, which we load from the
 
 ```{testsetup} football
 mkchdir(DOC_DIR + "/demos/inference/output")
-np.random.seed(43)
-gt.seed_rng(43)
+np.random.seed(42)
+gt.seed_rng(42)
 ```
 
 ```{testcode} football

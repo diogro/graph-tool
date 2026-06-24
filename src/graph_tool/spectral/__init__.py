@@ -226,7 +226,7 @@ def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
     return m
 
 class AdjacencyOperator(scipy.sparse.linalg.LinearOperator):
-    def __init__(self, g, weight=None, vindex=None):
+    def __init__(self, g, weight=None, vindex=None, dtype="float64"):
         r"""A :class:`scipy.sparse.linalg.LinearOperator` representing the adjacency
         matrix of a graph. See :func:`adjacency` for details."""
         self.g = g
@@ -247,8 +247,8 @@ class AdjacencyOperator(scipy.sparse.linalg.LinearOperator):
             else:
                 N = vindex.fa.max() + 1
 
-        self.shape = (N, N)
-        self.dtype = numpy.dtype("float")
+        scipy.sparse.linalg.LinearOperator.__init__(self, dtype=dtype,
+                                                    shape=(N, N))
 
     def _matvec(self, x):
         y = numpy.zeros(self.shape[0])
@@ -469,7 +469,8 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
 class LaplacianOperator(scipy.sparse.linalg.LinearOperator):
 
     @_limit_args({"deg": ["total", "in", "out"]})
-    def __init__(self, g, weight=None, deg="out", r=1, norm=False, vindex=None):
+    def __init__(self, g, weight=None, deg="out", r=1, norm=False, vindex=None,
+                 dtype="float64"):
         r"""A :class:`scipy.sparse.linalg.LinearOperator` representing the laplacian
         matrix of a graph. See :func:`laplacian` for details."""
 
@@ -492,7 +493,6 @@ class LaplacianOperator(scipy.sparse.linalg.LinearOperator):
             else:
                 N = vindex.fa.max() + 1
 
-        self.shape = (N, N)
         self.deg = deg
         self.d = self.g.degree_property_map(deg, weight)
         if norm:
@@ -503,7 +503,9 @@ class LaplacianOperator(scipy.sparse.linalg.LinearOperator):
         else:
             self.d = self.d.copy("double")
         self.norm = norm
-        self.dtype = numpy.dtype("float")
+
+        scipy.sparse.linalg.LinearOperator.__init__(self, dtype=dtype,
+                                                    shape=(N, N))
 
     def _matvec(self, x):
         y = numpy.zeros(self.shape[0])
@@ -679,14 +681,13 @@ def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
 
 class IncidenceOperator(scipy.sparse.linalg.LinearOperator):
 
-    def __init__(self, g, vindex=None, eindex=None, transpose=False):
+    def __init__(self, g, vindex=None, eindex=None, transpose=False, dtype="float"):
         r"""A :class:`scipy.sparse.linalg.LinearOperator` representing the incidence
         matrix of a graph. See :func:`incidence` for details.
         """
 
         self.g = g
         self.transpose = transpose
-        self.dtype = numpy.dtype("float")
 
         if vindex is None:
             if g.get_vertex_filter() is not None:
@@ -719,9 +720,12 @@ class IncidenceOperator(scipy.sparse.linalg.LinearOperator):
                 E = self.eindex.fa.max() + 1
 
         if not transpose:
-            self.shape = (N, E)
+            shape = (N, E)
         else:
-            self.shape = (E, N)
+            shape = (E, N)
+
+        scipy.sparse.linalg.LinearOperator.__init__(self, dtype=dtype,
+                                                    shape=shape)
 
     def _matvec(self, x):
         y = numpy.zeros(self.shape[0])
@@ -860,7 +864,8 @@ def transition(g, weight=None, vindex=None, operator=False, csr=True):
 
 class TransitionOperator(scipy.sparse.linalg.LinearOperator):
 
-    def __init__(self, g, weight=None, transpose=False, inv_d=None, vindex=None):
+    def __init__(self, g, weight=None, transpose=False, inv_d=None, vindex=None,
+                 dtype="float64"):
         r"""A :class:`scipy.sparse.linalg.LinearOperator` representing the transition
         matrix of a graph. See :func:`transition` for details.
         """
@@ -883,7 +888,6 @@ class TransitionOperator(scipy.sparse.linalg.LinearOperator):
             else:
                 N = vindex.fa.max() + 1
 
-        self.shape = (N, N)
         if inv_d is None:
             d = self.g.degree_property_map("out", weight)
             nd = g.new_vp("double")
@@ -892,8 +896,11 @@ class TransitionOperator(scipy.sparse.linalg.LinearOperator):
             self.d = nd
         else:
             self.d = inv_d.copy("double")
-        self.dtype = numpy.dtype("float")
         self.transpose = transpose
+
+        scipy.sparse.linalg.LinearOperator.__init__(self, dtype=dtype,
+                                                    shape=(N, N))
+
 
     def _matvec(self, x):
         y = numpy.zeros(self.shape[0])
@@ -1177,7 +1184,7 @@ def hashimoto(g, index=None, compact=False, operator=False, csr=True):
 
 class HashimotoOperator(scipy.sparse.linalg.LinearOperator):
 
-    def __init__(self, g, eindex=None, transpose=False):
+    def __init__(self, g, eindex=None, transpose=False, dtype="float64"):
         r"""A :class:`scipy.sparse.linalg.LinearOperator` representing the hashimoto
         matrix of a graph. See :func:`hashimoto` for details.
         """
@@ -1197,13 +1204,14 @@ class HashimotoOperator(scipy.sparse.linalg.LinearOperator):
                 E = g.edge_index_range
             else:
                 E = self.eindex.fa.max() + 1
-        if g.is_directed():
-            self.shape = (E, E)
-        else:
-            self.shape = (2 * E, 2 * E)
 
-        self.dtype = numpy.dtype("float")
         self.transpose = transpose
+        if g.is_directed():
+            shape = (E, E)
+        else:
+            shape = (2 * E, 2 * E)
+        scipy.sparse.linalg.LinearOperator.__init__(self, dtype=dtype,
+                                                    shape=shape)
 
     def _matvec(self, x):
         y = numpy.zeros(self.shape[0])
@@ -1230,7 +1238,7 @@ class HashimotoOperator(scipy.sparse.linalg.LinearOperator):
 
 class CompactHashimotoOperator(scipy.sparse.linalg.LinearOperator):
 
-    def __init__(self, g, vindex=None, transpose=False):
+    def __init__(self, g, vindex=None, transpose=False, dtype="float64"):
         r"""A :class:`scipy.sparse.linalg.LinearOperator` representing the compact
         hashimoto matrix of a graph. See :func:`hashimoto` for details.
         """
@@ -1251,9 +1259,9 @@ class CompactHashimotoOperator(scipy.sparse.linalg.LinearOperator):
             else:
                 N = vindex.fa.max() + 1
 
-        self.shape = (2 * N, 2 * N)
-        self.dtype = numpy.dtype("float")
         self.transpose = transpose
+        scipy.sparse.linalg.LinearOperator.__init__(self, dtype=dtype,
+                                                    shape=(2 * N, 2 * N))
 
     def _matvec(self, x):
         y = numpy.zeros(self.shape[0])
