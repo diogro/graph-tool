@@ -15,8 +15,8 @@ network of American football teams, which we load from the
 
 ```{testsetup} football
 mkchdir(DOC_DIR + "/demos/inference/output")
-np.random.seed(42)
-gt.seed_rng(42)
+np.random.seed(44)
+gt.seed_rng(44)
 ```
 
 ```{testcode} football
@@ -88,7 +88,7 @@ print(r)
 which yields:
 
 ```{testoutput} football
-33
+105
 ```
 
 :::{note}
