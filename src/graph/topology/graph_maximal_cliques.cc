@@ -30,7 +30,7 @@ boost::python::object get_max_cliques(GraphInterface& gi)
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
-            run_action<>(false)
+            run_action<{.dargs={.gil_release=false}}>()
                 (gi,
                  [&](auto& g)
                  {

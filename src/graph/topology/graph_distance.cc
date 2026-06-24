@@ -664,7 +664,7 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 
     auto dispatch = [&](auto& yield)
         {
-            run_action<decltype(graph_view_ptrs)>(false)
+            run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
                 (gi, [&](auto& gp, auto pred, auto weight)
                      {get_all_shortest_paths(gp, s, t, pred, weight, edges,
                                              yield);},
@@ -819,7 +819,7 @@ python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
     vprop_t visited = std::any_cast<vprop_t>(avisited);
     auto dispatch = [&](auto& yield)
         {
-            run_action<decltype(graph_view_ptrs)>(false)
+            run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
                 (gi, [&](auto& gp)
                 {
                     if (edges)

@@ -111,7 +111,7 @@ void do_dfs(Graph& g, size_t s, Visitor&& vis)
 
 void dfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
-    run_action<decltype(graph_view_ptrs), false>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi, [&](auto& gp) { do_dfs(*gp, s, DFSVisitorWrapper<decltype(gp)>(gp, vis));})();
 }
 
@@ -143,7 +143,7 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
-            run_action<decltype(graph_view_ptrs), false>(false)
+            run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
                 (g, [&](auto& gp) { do_dfs(*gp, s, DFSGeneratorVisitor<decltype(gp)>(gp, yield)); })();
         };
     return boost::python::object(CoroGenerator(dispatch));
@@ -172,7 +172,7 @@ boost::python::object dfs_search_array(GraphInterface& g, size_t s)
 {
     std::vector<std::array<size_t, 2>> edges;
     DFSArrayVisitor vis(edges);
-    run_action<decltype(graph_tool::all_graph_views), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::all_graph_views)>, .dargs={.gil_release=false}}>()
         (g, [&](auto &g){ do_dfs(g, s, vis); })();
     return wrap_vector_owned<size_t,2>(edges);
 }

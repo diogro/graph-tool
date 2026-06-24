@@ -66,7 +66,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
     case merge_t::set:
         check_belongs(writable_vertex_properties, uprop);
         check_belongs(vertex_properties, aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::set>()
@@ -87,7 +87,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
     case merge_t::diff:
         check_belongs(owvertex_sum_properties, uprop);
         check_belongs(overtex_sum_properties, aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  switch (merge)
@@ -119,7 +119,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
         check_belongs(vertex_scalar_vector_properties, uprop);
         check_belongs(hana::concat(vertex_scalar_properties,
                                    vertex_scalar_vector_properties), aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::idx_inc>()
@@ -144,7 +144,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
         check_belongs(hana::append(vertex_scalar_properties,
                                    hana::type<vprop_map_t<python::object>>()),
                       aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::append>()
@@ -164,7 +164,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
     case merge_t::concat:
         check_belongs(osvertex_scalar_vector_properties, uprop);
         check_belongs(osvertex_scalar_vector_properties, uprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::concat>()

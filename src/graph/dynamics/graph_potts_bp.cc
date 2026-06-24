@@ -55,7 +55,7 @@ python::object make_potts_bp_state(GraphInterface& gi, boost::python::object of,
     auto f = get_array<double, 2>(of);
 
     python::object state;
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto& g)
          {

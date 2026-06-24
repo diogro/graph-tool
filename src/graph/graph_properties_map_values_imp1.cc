@@ -32,7 +32,8 @@ using namespace graph_tool;
 void edge_property_map_values(GraphInterface& g, std::any src_prop,
                               std::any tgt_prop, boost::python::object mapper)
 {
-    run_action<decltype(graph_tool::always_directed_never_reversed)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>,
+                .dargs={.gil_release=false}}>()
         (g,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

@@ -51,7 +51,7 @@ void percolate_edge(GraphInterface& gi, std::any tree, std::any size,
     multi_array_ref<uint64_t, 2> es = get_array<uint64_t, 2>(edges);
     multi_array_ref<uint64_t, 1> ms = get_array<uint64_t, 1>(max_size);
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi, [&](auto& g){ edge_percolate(g, tree_map, size_map, ms, es, second); })();
 }
 
@@ -96,7 +96,7 @@ void percolate_vertex(GraphInterface& gi, std::any tree, std::any size,
     multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(vertices);
     multi_array_ref<uint64_t, 1> ms = get_array<uint64_t, 1>(max_size);
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi, [&](auto& g){ vertex_percolate(g, tree_map, size_map, visited_map,
                                             ms, vs, second); })();
 }

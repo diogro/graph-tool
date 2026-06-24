@@ -147,7 +147,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
 
     if (strat == "erdos")
     {
-        run_action<decltype(never_reversed)>(false)
+        run_action<{.tr=graph_tool::type<decltype(never_reversed)>, .dargs={.gil_release=false}}>()
             (gi,
              [&](auto&& graph)
              {
@@ -160,7 +160,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "configuration")
     {
-        run_action<decltype(never_reversed)>(false)
+        run_action<{.tr=graph_tool::type<decltype(never_reversed)>, .dargs={.gil_release=false}}>()
             (gi,
              [&](auto&& graph)
              {
@@ -175,7 +175,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         if (!block.has_value())
         {
-            run_action<decltype(never_reversed)>(false)
+            run_action<{.tr=graph_tool::type<decltype(never_reversed)>, .dargs={.gil_release=false}}>()
                 (gi,
                  [&](auto&& graph)
                  {
@@ -189,7 +189,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         }
         else
         {
-            run_action<decltype(never_reversed)>(false)
+            run_action<{.tr=graph_tool::type<decltype(never_reversed)>, .dargs={.gil_release=false}}>()
                 (gi,
                  [&](auto&& graph, auto&& a2)
                  {
@@ -206,7 +206,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "probabilistic-configuration")
     {
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (gi,
              [&](auto&& graph)
              {
@@ -219,7 +219,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     }
     else if (strat == "blockmodel")
     {
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (gi,
              [&](auto&& graph, auto&& a2)
              {

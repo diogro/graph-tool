@@ -76,7 +76,7 @@ void a_star_search_implicit(GraphInterface& g, size_t source,
                             python::object cmb, python::object zero,
                             python::object inf, python::object h)
 {
-    run_action<decltype(graph_view_ptrs), false>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (g,
          [&](auto&& gp, auto&& a2)
          {

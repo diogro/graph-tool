@@ -176,7 +176,7 @@ void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
     if(!weight.has_value())
         weight = weight_map_t();
     if (square)
-        run_action<decltype(graph_tool::never_directed)>()
+        run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
             (g,
              [&](auto&& g, auto pos, auto weight)
              {
@@ -186,7 +186,7 @@ void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
              },
              vertex_floating_vector_properties, edge_props_t)(pos, weight);
     else
-        run_action<decltype(graph_tool::never_directed)>()
+        run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
             (g,
              [&](auto& g, auto pos, auto weight)
              {

@@ -49,7 +49,8 @@ boost::python::tuple global_clustering(GraphInterface& g, std::any weight)
         weight = weight_map_t();
 
     boost::python::tuple oret;
-    run_action<decltype(graph_tool::never_directed)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>,
+                .dargs={.gil_release=false}}>()
         (g,
          [&](auto&& graph, auto&& a2)
          {
@@ -67,7 +68,7 @@ boost::python::tuple global_clustering(GraphInterface& g, std::any weight)
 double global_clustering_sampled(GraphInterface& g, size_t m, rng_t& rng)
 {
     double c = 0;
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (g,
          [&](auto&& graph)
          {

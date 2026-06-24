@@ -55,7 +55,7 @@ double min_cut(GraphInterface& gi, std::any weight, std::any part_map)
     auto weight_maps = hana::append(writable_edge_scalar_properties,
                                     hana::type<cweight_t>());
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

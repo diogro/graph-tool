@@ -64,7 +64,7 @@ struct do_perfect_ehash
 void perfect_ehash(GraphInterface& gi, std::any prop, std::any hprop,
                    std::any& dict)
 {
-    run_action<decltype(graph_tool::always_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>}>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

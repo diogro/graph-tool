@@ -114,7 +114,7 @@ bool is_planar(GraphInterface& gi, std::any embed_map, std::any kur_map)
     auto vertex_map_types = hana::append(vertex_scalar_vector_properties,
                                          hana::type<dummy_property_map>());
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi, std::bind(get_planar_embedding(), std::placeholders::_1,
                        std::placeholders::_2, std::placeholders::_3,
                        std::ref(is_planar)),

@@ -155,7 +155,7 @@ bool bellman_ford_search(GraphInterface& g, size_t source, std::any dist_map,
                          python::object inf)
 {
     bool ret = false;
-    run_action<decltype(graph_view_ptrs), false>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (g,
          [&](auto&& gp, auto&& a2)
          {

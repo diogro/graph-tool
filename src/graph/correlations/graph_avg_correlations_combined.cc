@@ -42,7 +42,7 @@ get_vertex_avg_combined_correlation(GraphInterface& gi,
     boost::python::object avg, dev;
     boost::python::object ret_bins;
 
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi, get_avg_correlation<GetCombinedPair>
          (avg, dev, bins, ret_bins),
          all_selectors, all_selectors,

@@ -46,7 +46,7 @@ get_vertex_combined_correlation_histogram(GraphInterface& gi,
     bins[0] = xbin;
     bins[1] = ybin;
 
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi, get_correlation_histogram<GetCombinedPair>(hist, bins,
                                                         ret_bins),
          all_selectors, all_selectors,

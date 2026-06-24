@@ -58,7 +58,7 @@ python::object make_normal_bp_state(GraphInterface& gi, std::any ax,
         std::any_cast<NormalBPState::vfmap_t::checked_t>(afrozen).get_unchecked();
 
     python::object state;
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto& g)
          {

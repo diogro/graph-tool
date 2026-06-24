@@ -25,8 +25,10 @@ using namespace std;
 
 // Whenever no implementation is called, the following exception is thrown
 graph_tool::DispatchNotFound::DispatchNotFound(const type_info& dispatch,
-                                               const vector<const type_info*>& args)
-    : GraphException(""), _dispatch(dispatch), _args(args)
+                                               const vector<string>& arg_types,
+                                               const vector<bool>& found)
+    : GraphException(""), _dispatch(dispatch), _arg_types(arg_types),
+      _found(found)
 {
     _error =
         "No static implementation was found for the desired routine. "
@@ -35,11 +37,10 @@ graph_tool::DispatchNotFound::DispatchNotFound(const type_info& dispatch,
 
     _error += "Dispatch: " + name_demangle(_dispatch.name()) + "\n\n";
 
-    for (size_t i = 0; i < _args.size(); ++i)
-    {
-        _error += "Arg " + lexical_cast<string>(i+1) + ": " +
-            name_demangle(_args[i]->name()) + "\n\n";
-    }
+    for (size_t i = 0; i < _arg_types.size(); ++i)
+        _error += std::format("Arg {} {}: {}\n\n", i,
+                              _found[i] ? "(matched)" : "(not matched)",
+                              _arg_types[i]);
 }
 
 

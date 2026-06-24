@@ -55,7 +55,7 @@ void geometric(GraphInterface& gi, python::object opoints, double r,
                         hana::tuple_t<std::false_type>,
                         hana::tuple_t<std::false_type>);
 
-    run_action<decltype(gviews)>()
+    run_action<{.tr=graph_tool::type<decltype(gviews)>}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {

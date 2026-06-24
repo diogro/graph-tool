@@ -64,7 +64,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
     case merge_t::set:
         check_belongs(writable_edge_properties, uprop);
         check_belongs(edge_properties, aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::set>()
@@ -85,7 +85,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
     case merge_t::diff:
         check_belongs(owedge_sum_properties, uprop);
         check_belongs(oedge_sum_properties, aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  switch (merge)
@@ -117,7 +117,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
         check_belongs(edge_scalar_vector_properties, uprop);
         check_belongs(hana::concat(edge_scalar_properties,
                                    edge_scalar_vector_properties), aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::idx_inc>()
@@ -142,7 +142,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
         check_belongs(hana::append(edge_scalar_properties,
                                    hana::type<eprop_map_t<python::object>>()),
                       aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::append>()
@@ -162,7 +162,7 @@ void edge_property_merge(GraphInterface& ugi, GraphInterface& gi,
     case merge_t::concat:
         check_belongs(osedge_scalar_vector_properties, uprop);
         check_belongs(osedge_scalar_vector_properties, aprop);
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
                  graph_tool::property_merge<merge_t::concat>()

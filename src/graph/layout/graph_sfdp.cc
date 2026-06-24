@@ -73,7 +73,7 @@ void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
     typedef vprop_map_t<uint8_t> pin_map_t;
     pin_map_t pin_map = std::any_cast<pin_map_t>(pin);
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (g,
          [&](auto&& graph, auto&& pos, auto&& vweight, auto&& eweight)
          {

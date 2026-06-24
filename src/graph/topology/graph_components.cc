@@ -33,7 +33,7 @@ using namespace graph_tool;
 python::object do_label_components(GraphInterface& gi, std::any prop)
 {
     vector<size_t> hist;
-    run_action<decltype(graph_tool::all_graph_views), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::all_graph_views)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -50,7 +50,7 @@ do_label_biconnected_components(GraphInterface& gi, std::any comp,
                                 std::any art)
 {
     vector<size_t> hist;
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -66,7 +66,7 @@ do_label_biconnected_components(GraphInterface& gi, std::any comp,
 
 void do_label_out_component(GraphInterface& gi, size_t root, std::any prop)
 {
-    run_action<decltype(graph_tool::all_graph_views), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::all_graph_views)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {

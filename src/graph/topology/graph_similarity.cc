@@ -49,7 +49,7 @@ python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
 
     python::object s;
 
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](const auto& g1, const auto& g2, auto ew1, auto ew2, auto l1, auto l2)
          {
              GILRelease gil_release;

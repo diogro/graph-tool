@@ -33,7 +33,7 @@ bipartite_projection_dispatch(GraphInterface& ugi, GraphInterface& gi,
 
     bool is_object = belongs(hana::tuple_t<vprop_map_t<python::object>>, apmap);
 
-    gt_dispatch<false>(false)
+    gt_dispatch<{.uncheck=false, .gil_release=false}>()
         ([&](auto& ug, auto& g, auto& pmap, auto& vmap, auto& evmap)
          {
              GILRelease gil(!is_object);
@@ -56,7 +56,7 @@ void projection_copy_eprop(GraphInterface& ugi, std::any aevmap,
                            std::any uprop, std::any prop)
 {
     bool is_object = belongs(hana::tuple_t<eprop_map_t<python::object>>, uprop);
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& ug, auto& evmap, auto& uprop, auto& prop)
          {
              GILRelease gil(!is_object);
@@ -81,7 +81,7 @@ void projection_copy_reprop(GraphInterface& ugi, std::any aemap,
     typedef eprop_map_t<GraphInterface::edge_t> emap_t;
 
     bool is_object = belongs(hana::tuple_t<eprop_map_t<python::object>>, uprop);
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& ug, auto& emap, auto& uprop, auto& prop)
          {
              GILRelease gil(!is_object);
@@ -104,7 +104,7 @@ void projection_copy_vprop(GraphInterface& gi, std::any avmap,
                            std::any uprop, std::any prop)
 {
     bool is_object = belongs(hana::tuple_t<vprop_map_t<python::object>>, uprop);
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g, auto& vmap, auto& uprop, auto& prop)
          {
              GILRelease gil(!is_object);

@@ -52,7 +52,7 @@ get_vertex_average(GraphInterface& gi, GraphInterface::deg_t deg)
                      hana::transform(vertex_numeric_properties,
                                      [](auto t){ return hana::type<scalarS<typename decltype(+t)::type>>(); }));
 
-    run_action<>(false)(gi, get_average<VertexAverageTraverse>(a,dev,count),
+    run_action<{.dargs={.gil_release=false}}>()(gi, get_average<VertexAverageTraverse>(a,dev,count),
                         numeric_selectors)(degree_selector(deg));
     return python::make_tuple(a, dev, count);
 }
@@ -74,7 +74,7 @@ get_edge_average(GraphInterface& gi, std::any prop)
 
     python::object a, dev;
     size_t count;
-    run_action<decltype(graph_tool::always_directed)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>, .dargs={.gil_release=false}}>()
         (gi, get_average<EdgeAverageTraverse>(a, dev, count),
          edge_numeric_properties)(prop);
     return python::make_tuple(a, dev, count);

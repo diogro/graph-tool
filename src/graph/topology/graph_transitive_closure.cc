@@ -36,7 +36,7 @@ struct get_transitive_closure
 
 void transitive_closure_dispatch(GraphInterface& gi, GraphInterface& tcgi)
 {
-    run_action<decltype(graph_tool::always_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>}>()
         (gi,
          [&](auto&& graph)
          {

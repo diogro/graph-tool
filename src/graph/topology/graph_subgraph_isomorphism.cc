@@ -243,7 +243,7 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
 #ifdef HAVE_BOOST_COROUTINE
         auto dispatch = [&](auto& yield)
         {
-            run_action<>(false)
+            run_action<{.dargs={.gil_release=false}}>()
                 (gi1,
                  [&](auto&& graph, auto&& a2, auto&& a3, auto&& a4)
                  {

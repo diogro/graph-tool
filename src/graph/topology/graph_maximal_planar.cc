@@ -82,7 +82,7 @@ struct do_maximal_planar
 
 void maximal_planar(GraphInterface& gi)
 {
-    run_action<decltype(graph_tool::never_directed), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph)
          {

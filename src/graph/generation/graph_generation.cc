@@ -66,7 +66,7 @@ void generate_graph(GraphInterface& gi, size_t N,
     if (undirected)
         gi.set_directed(false);
 
-    run_action<decltype(gviews)>(false)
+    run_action<{.tr=graph_tool::type<decltype(gviews)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph)
          {

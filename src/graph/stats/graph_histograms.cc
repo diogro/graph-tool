@@ -49,7 +49,7 @@ get_vertex_histogram(GraphInterface& gi, GraphInterface::deg_t deg,
     python::object hist;
     python::object ret_bins;
 
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          get_histogram<VertexHistogramFiller>(hist, bins, ret_bins),
          all_selectors)(degree_selector(deg));
@@ -70,7 +70,7 @@ get_edge_histogram(GraphInterface& gi, std::any prop,
 
     bool directed = gi.get_directed();
     gi.set_directed(true);
-    run_action<decltype(graph_tool::always_directed)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>, .dargs={.gil_release=false}}>()
         (gi, get_histogram<EdgeHistogramFiller>(hist, bins, ret_bins),
          edge_scalar_properties)(prop);
     gi.set_directed(directed);

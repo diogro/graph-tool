@@ -110,7 +110,7 @@ python::object make_state(GraphInterface& gi, std::any as, std::any as_temp,
     smap_t s_temp = std::any_cast<smap_t>(as_temp);
 
     python::object state;
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto& g)
          {

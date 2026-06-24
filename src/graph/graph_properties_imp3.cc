@@ -66,7 +66,7 @@ struct do_perfect_vhash
 void perfect_vhash(GraphInterface& gi, std::any prop, std::any hprop,
                    std::any& dict)
 {
-    run_action<decltype(graph_tool::always_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>}>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {
@@ -95,7 +95,7 @@ struct do_set_vertex_property
 void set_vertex_property(GraphInterface& gi, std::any prop,
                          boost::python::object val)
 {
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
@@ -123,7 +123,7 @@ struct do_set_edge_property
 void set_edge_property(GraphInterface& gi, std::any prop,
                        boost::python::object val)
 {
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {

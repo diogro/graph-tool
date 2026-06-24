@@ -30,7 +30,7 @@ void ungroup_vector_property(GraphInterface& g, std::any vector_prop,
                              std::any prop, size_t pos, bool edge)
 {
     if (edge)
-        run_action<decltype(graph_tool::always_directed_never_reversed)>()
+        run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>}>()
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {
@@ -43,7 +43,7 @@ void ungroup_vector_property(GraphInterface& g, std::any vector_prop,
              edge_vector_properties,
              writable_edge_properties)(vector_prop, prop);
     else
-        run_action<decltype(graph_tool::always_directed_never_reversed)>()
+        run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>}>()
             (g,
              [&](auto&& graph, auto&& a2, auto&& a3)
              {

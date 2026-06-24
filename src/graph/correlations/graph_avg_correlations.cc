@@ -50,7 +50,7 @@ get_vertex_avg_correlation(GraphInterface& gi,
     else
         weight_prop = cweight_map_t();
 
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi, get_avg_correlation<GetNeighborsPairs>
          (avg, dev, bins, ret_bins),
          all_selectors, all_selectors,

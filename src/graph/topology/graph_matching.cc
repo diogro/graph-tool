@@ -40,7 +40,7 @@ void get_max_matching(GraphInterface& gi, std::string initial_matching,
 
     vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi,
          [&](auto& g)
          {
@@ -83,7 +83,7 @@ void get_max_weighted_matching(GraphInterface& gi, std::any oweight,
 
     vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi,
          [&](auto& g, auto w)
          {
@@ -122,7 +122,7 @@ void get_max_bip_weighted_matching(GraphInterface& gi, std::any opartition,
     if (!oweight.has_value())
         oweight = ecmap_t();
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi,
          [&](auto& g, auto part, auto w)
          {
@@ -153,7 +153,7 @@ void match_edges(GraphInterface& gi, std::any omatching,
     vprop_t::unchecked_t matching = std::any_cast<vprop_t>(omatching).get_unchecked();
     eprop_t::unchecked_t ematching = std::any_cast<eprop_t>(oematching).get_unchecked();
 
-    run_action<decltype(graph_tool::never_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
         (gi,
          [&](auto& g)
          {

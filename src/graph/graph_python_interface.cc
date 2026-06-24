@@ -41,7 +41,7 @@ inline constexpr auto graph_view_ptrs =
 python::object get_vertices(GraphInterface& gi)
 {
     python::object iter;
-    run_action<decltype(graph_view_ptrs)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& gp)
          {
@@ -56,7 +56,7 @@ python::object get_vertices(GraphInterface& gi)
 python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
 {
     python::object v;
-    run_action<decltype(graph_view_ptrs)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& gp)
          {
@@ -92,7 +92,7 @@ python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
 python::object get_edges(GraphInterface& gi)
 {
     python::object iter;
-    run_action<decltype(graph_view_ptrs)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& gp)
          {
@@ -108,7 +108,7 @@ python::object get_edges(GraphInterface& gi)
 python::object add_vertex(GraphInterface& gi, size_t n)
 {
     python::object v;
-    run_action<decltype(graph_view_ptrs)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& gp)
          {
@@ -166,7 +166,7 @@ void clear_vertex(GraphInterface& gi, size_t v)
 python::object add_edge(GraphInterface& gi, size_t s, size_t t)
 {
     python::object new_e;
-    run_action<decltype(graph_view_ptrs)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& gp)
          {
@@ -182,14 +182,14 @@ void remove_edge(GraphInterface& gi, EdgeBase& e)
 {
     e.check_valid();
     auto edge = e.get_descriptor();
-    run_action<>(false)(gi, [&](auto& g) { remove_edge(edge, g); })();
+    run_action<{.dargs={.gil_release=false}}>()(gi, [&](auto& g) { remove_edge(edge, g); })();
     e.invalidate();
 }
 
 python::object get_edge(GraphInterface& gi, size_t s, size_t t, bool all_edges)
 {
     python::list es;
-    run_action<decltype(graph_view_ptrs)>(false)
+    run_action<{.tr=graph_tool::type<decltype(graph_view_ptrs)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto& gp)
          {
@@ -250,7 +250,7 @@ python::object GraphInterface::degree_map(string deg, std::any weight) const
         weight = detail::no_weightS();
 
     if (deg == "in")
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (const_cast<GraphInterface&>(*this),
              [&](auto&& graph, auto&& a2)
              {
@@ -260,7 +260,7 @@ python::object GraphInterface::degree_map(string deg, std::any weight) const
              },
              weight_t)(weight);
     else if (deg == "out")
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (const_cast<GraphInterface&>(*this),
              [&](auto&& graph, auto&& a2)
              {
@@ -270,7 +270,7 @@ python::object GraphInterface::degree_map(string deg, std::any weight) const
              },
              weight_t)(weight);
     else if (deg == "total")
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (const_cast<GraphInterface&>(*this),
              [&](auto&& graph, auto&& a2)
              {
@@ -289,7 +289,7 @@ size_t value_type_promotion(std::vector<std::any>& props)
         hana::index_if(value_types, hana::equal.to(hana::type<int64_t>())).value().value;
     for (auto& aep : props)
     {
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&](auto ep)
              {
                  typedef decltype(ep) pmap_t;
@@ -400,7 +400,7 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                 {
                     if (python::len(ovprops) == 0)
                     {
-                        run_action<>(false)
+                        run_action<{.dargs={.gil_release=false}}>()
                             (gi,
                              [&](auto& g)
                              {
@@ -419,7 +419,7 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                         for (int i = 0; i < python::len(ovprops); ++i)
                             vprops.emplace_back(python::extract<std::any>(ovprops[i])(),
                                                 vertex_properties);
-                        run_action<>(false)
+                        run_action<{.dargs={.gil_release=false}}>()
                             (gi,
                              [&](auto& g)
                              {
@@ -543,7 +543,7 @@ python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
                     for (int i = 0; i < python::len(oeprops); ++i)
                         eprops.emplace_back(python::extract<std::any>(oeprops[i])(),
                                             edge_properties);
-                    run_action<>(false)
+                    run_action<{.dargs={.gil_release=false}}>()
                         (gi,
                          [&](auto& g)
                          {
@@ -597,7 +597,7 @@ python::object get_edge_range_iter(GraphInterface& gi, size_t s, size_t t,
             for (int i = 0; i < python::len(oeprops); ++i)
                 eprops.emplace_back(python::extract<std::any>(oeprops[i])(),
                                     edge_properties);
-            run_action<>(false)
+            run_action<{.dargs={.gil_release=false}}>()
                 (gi,
                  [&](auto& g)
                  {
@@ -686,7 +686,7 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
 
     auto get_degs = [&](auto deg)
         {
-            run_action<>(false)(gi,
+            run_action<{.dargs={.gil_release=false}}>()(gi,
                            [&](auto& g, auto ew)
                            {
                                GILRelease gil_release;

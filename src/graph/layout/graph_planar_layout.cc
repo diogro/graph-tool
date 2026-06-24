@@ -33,7 +33,7 @@ struct point_t
 
 void planar_layout(GraphInterface& gi, std::any aembed_map, std::any apos)
 {
-    run_action<decltype(graph_tool::never_directed), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>, .dargs={.gil_release=false}}>()
         (gi,
          [](auto& g, auto _embed, auto _pos)
          {

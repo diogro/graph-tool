@@ -83,7 +83,7 @@ struct get_push_relabel_max_flow
 void push_relabel_max_flow_dispatch(GraphInterface& gi, size_t src, size_t sink,
                                     std::any capacity, std::any res)
 {
-    run_action<decltype(graph_tool::always_directed), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>, .dargs={.uncheck=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

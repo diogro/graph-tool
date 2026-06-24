@@ -202,7 +202,7 @@ void get_radial(GraphInterface& gi, std::any otpos, std::any olevels,
 
     wmap_t weight = std::any_cast<wmap_t>(oweight);
 
-    run_action<decltype(graph_tool::always_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>}>()
         (gi,
          [&](auto&& graph, auto&& a2, auto&& a3)
          {

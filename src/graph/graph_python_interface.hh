@@ -119,9 +119,9 @@ private:
 
 // forward declaration of PythonEdge
 template <class Graph>
-struct PythonEdge;
+class PythonEdge;
 
-struct VertexBase // useful to unite all vertex types
+class VertexBase // useful to unite all vertex types
 {
 public:
     virtual bool is_valid() const = 0;
@@ -199,7 +199,7 @@ public:
         boost::python::object in_deg;
         if (!belongs(edge_scalar_properties, pmap))
             throw ValueException("edge weight property must be of scalar type");
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&g, &in_deg, this](auto const & v)
              {
                  return get_degree<in_degreeS>()(g, _v, v, in_deg);
@@ -226,7 +226,7 @@ public:
         boost::python::object out_deg;
         if (!belongs(edge_scalar_properties, pmap))
             throw ValueException("edge weight property must be of scalar type");
-        gt_dispatch<>(false)
+        gt_dispatch<{.gil_release=false}>()
             ([&g, &out_deg, this](auto const & v)
              {
                  return get_degree<out_degreeS>()(g, _v, v, out_deg);

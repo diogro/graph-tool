@@ -70,7 +70,7 @@ std::any prop_map_as(std::any amap, std::any atgt, bool copy)
 {
     std::any rmap;
 
-    gt_dispatch<false>(false)
+    gt_dispatch<{.uncheck=false, .gil_release=false}>()
         ([&](auto map, auto tgt)
          {
              typedef typename decltype(tgt)::value_type tval_t;
@@ -92,7 +92,7 @@ std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity)
     if (identity && amap.type() == atgt.type())
         return amap;
     std::any rmap;
-    gt_dispatch<false>(false)
+    gt_dispatch<{.uncheck=false, .gil_release=false}>()
         ([&](auto tgt)
          {
              typedef typename decltype(tgt)::value_type val_t;
@@ -109,7 +109,7 @@ std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity)
         return amap;
 
     std::any rmap;
-    gt_dispatch<false>(false)
+    gt_dispatch<{.uncheck=false, .gil_release=false}>()
         ([&](auto tgt)
          {
              typedef typename decltype(tgt)::value_type val_t;
@@ -127,7 +127,7 @@ std::any vprop_map_as_dvelem(std::any amap, std::any atgt)
                      hana::type<vprop_map_t<python::object>>());
 
     std::any rmap;
-    gt_dispatch<false>(false)
+    gt_dispatch<{.uncheck=false, .gil_release=false}>()
         ([&](auto src, auto tgt)
          {
              typedef typename decltype(src)::value_type sval_t;
@@ -161,7 +161,7 @@ std::any eprop_map_as_dvelem(std::any amap, std::any atgt)
                      hana::type<eprop_map_t<python::object>>());
 
     std::any rmap;
-    gt_dispatch<false>(false)
+    gt_dispatch<{.uncheck=false, .gil_release=false}>()
         ([&](auto src, auto tgt)
          {
              typedef typename decltype(src)::value_type sval_t;
@@ -367,7 +367,7 @@ struct do_infect_vertex_property
 void infect_vertex_property(GraphInterface& gi, std::any prop,
                             boost::python::object val)
 {
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {

@@ -36,7 +36,7 @@ void arf_layout(GraphInterface& g, std::any pos, std::any weight, double d,
     if(!weight.has_value())
         weight = weight_map_t();
 
-    run_action<decltype(graph_tool::never_directed), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>, .dargs={.gil_release=false}}>()
         (g,
          [&](auto& g, auto pos, auto weight)
          {

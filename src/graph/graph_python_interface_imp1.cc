@@ -101,7 +101,7 @@ void do_add_edge_list(GraphInterface& gi, python::object aedge_list,
                               int8_t, int16_t, int32_t, int64_t, uint64_t, double,
                               long double>;
     bool found = false;
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto& graph)
          {
@@ -182,7 +182,7 @@ void add_edge_list_iter(Graph& g, python::object& edge_list,
 void do_add_edge_list_iter(GraphInterface& gi, python::object edge_list,
                            python::object eprops)
 {
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto& graph)
          {
@@ -355,7 +355,8 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
                              std::any& vertex_map,
                              python::object eprops)
 {
-    run_action<decltype(all_graph_views), false>(false)
+    run_action<{.tr=graph_tool::type<decltype(all_graph_views)>,
+                .dargs={.uncheck=false, .gil_release=false}}>()
         (gi,
          [&](auto& graph, auto& vmap)
          {

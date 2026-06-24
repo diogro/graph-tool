@@ -43,7 +43,7 @@ boost::python::tuple graph_merge_dispatch_imp(GraphInterface& ugi, GraphInterfac
     emap_t emap(gi.get_edge_index());
     emap.reserve(gi.get_edge_index_range());
 
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& ug, auto& g, auto& vmap, auto& w1, auto& w2)
          {
              graph_merge(ug, g, vmap, emap, w1, w2,

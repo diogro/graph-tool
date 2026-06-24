@@ -38,7 +38,7 @@ void dominator_tree(GraphInterface& gi, size_t entry, std::any pred_map)
 {
     auto pred_properties = hana::tuple_t<vprop_map_t<int32_t>>;
 
-    run_action<decltype(graph_tool::always_directed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {

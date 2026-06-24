@@ -35,7 +35,7 @@ python::object distance_histogram(GraphInterface& gi, std::any weight,
 
     if (!weight.has_value())
     {
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (gi,
              [&](auto&& graph)
              {
@@ -46,7 +46,7 @@ python::object distance_histogram(GraphInterface& gi, std::any weight,
     }
     else
     {
-        run_action<>(false)
+        run_action<{.dargs={.gil_release=false}}>()
             (gi,
              [&](auto&& graph, auto&& a2)
              {

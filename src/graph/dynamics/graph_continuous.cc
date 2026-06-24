@@ -73,7 +73,7 @@ python::object make_state(GraphInterface& gi, std::any as, std::any as_diff,
     smap_t s_diff = std::any_cast<smap_t>(as_diff);
 
     python::object state;
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi,
          [&](auto& g)
          {

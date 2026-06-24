@@ -29,7 +29,7 @@ void GraphInterface::copy_vertex_property(const GraphInterface& src,
                                           std::any prop_src,
                                           std::any prop_tgt)
 {
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g, auto tgt, auto src)
          {
              bool is_python =
@@ -64,7 +64,7 @@ void GraphInterface::copy_edge_property(const GraphInterface& src,
                                         std::any prop_src,
                                         std::any prop_tgt)
 {
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g, auto tgt, auto src)
          {
              bool is_python =
@@ -101,7 +101,7 @@ bool compare_vertex_properties(const GraphInterface& src,
                                std::any prop_tgt)
 {
     bool ret = true;
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g, auto tgt, auto src)
          {
              bool is_python =
@@ -144,7 +144,7 @@ bool compare_edge_properties(const GraphInterface& src,
                              std::any prop_tgt)
 {
     bool ret = true;
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& g, auto tgt, auto src)
          {
              bool is_python =

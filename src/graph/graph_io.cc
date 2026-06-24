@@ -516,7 +516,7 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
                          return generate_index()
                              (std::forward<decltype(graph)>(graph), index_map);
                      })();
-                run_action<>(false)
+                run_action<{.dargs={.gil_release=false}}>()
                     (*this,
                      [&](auto&& graph)
                      {
@@ -528,7 +528,7 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
             }
             else
             {
-                run_action<>(false)
+                run_action<{.dargs={.gil_release=false}}>()
                     (*this,
                      [&](auto&& graph)
                      {
@@ -558,7 +558,7 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
             {
                 // vertex indices must be between the [0, HardNumVertices(g)] range
                 vector_property_map<size_t> index_map(_vertex_index);
-                run_action<>(false)
+                run_action<{.dargs={.gil_release=false}}>()
                     (*this,
                      [&](auto&& graph)
                      {
@@ -568,7 +568,7 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
                 if (format == "dot")
                     graphviz_insert_index(dp, index_map);
 
-                run_action<>(false)
+                run_action<{.dargs={.gil_release=false}}>()
                     (*this,
                      [&](auto&& graph)
                      {
@@ -582,7 +582,7 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
                 if (format == "dot")
                     graphviz_insert_index(dp, _vertex_index);
 
-                run_action<>(false)
+                run_action<{.dargs={.gil_release=false}}>()
                     (*this,
                      [&](auto&& graph)
                      {

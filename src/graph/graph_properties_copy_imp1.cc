@@ -30,7 +30,7 @@ void copy_external_edge_property(const GraphInterface& src,
                                  std::any prop_src,
                                  std::any prop_tgt)
 {
-    gt_dispatch<>(false)
+    gt_dispatch<{.gil_release=false}>()
         ([&](auto& tgt, auto& src, auto tgt_map, auto src_map)
          {
              copy_external_edge_property_dispatch(tgt, src,tgt_map, src_map);

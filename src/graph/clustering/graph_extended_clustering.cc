@@ -33,7 +33,7 @@ void extended_clustering(GraphInterface& g, boost::python::list aprops)
 {
     std::any aprop = boost::python::extract<std::any>(aprops[0])();
 
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (g,
          [&](auto&& graph, auto&& prop)
          {

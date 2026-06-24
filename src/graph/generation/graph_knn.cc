@@ -52,7 +52,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                 return sqrt(d);
             };
 
-        run_action<decltype(gviews)>()
+        run_action<{.tr=graph_tool::type<decltype(gviews)>}>()
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -72,7 +72,7 @@ void generate_knn(GraphInterface& gi, boost::python::object om, size_t k,
                 return d;
             };
 
-        run_action<decltype(gviews)>(false)
+        run_action<{.tr=graph_tool::type<decltype(gviews)>, .dargs={.gil_release=false}}>()
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -107,7 +107,7 @@ void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
     try
     {
         auto m = get_array<double, 2>(om);
-        run_action<decltype(gviews)>()
+        run_action<{.tr=graph_tool::type<decltype(gviews)>}>()
             (gi, [&](auto& g) { gen_knn_exact<true>(g,
                                                     [&](auto u, auto v)
                                                     { return euclidean(u, v, m); },
@@ -115,7 +115,7 @@ void generate_knn_exact(GraphInterface& gi, boost::python::object om, size_t k,
     }
     catch (InvalidNumpyConversion&)
     {
-        run_action<decltype(gviews)>(false)
+        run_action<{.tr=graph_tool::type<decltype(gviews)>, .dargs={.gil_release=false}}>()
             (gi, [&](auto& g) { gen_knn_exact<false>(g,
                                               [&](auto u, auto v)
                                               {
@@ -147,7 +147,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                 return euclidean(u, v, m);
             };
 
-        run_action<decltype(gviews)>()
+        run_action<{.tr=graph_tool::type<decltype(gviews)>}>()
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -167,7 +167,7 @@ void generate_k_nearest(GraphInterface& gi, boost::python::object om, size_t k,
                 return d;
             };
 
-        run_action<decltype(gviews)>(false)
+        run_action<{.tr=graph_tool::type<decltype(gviews)>, .dargs={.gil_release=false}}>()
             (gi, [&](auto& g)
                  {
                      typedef std::remove_reference_t<decltype(g)> g_t;
@@ -188,7 +188,7 @@ void generate_k_nearest_exact(GraphInterface& gi, boost::python::object om, size
     try
     {
         auto m = get_array<double, 2>(om);
-        run_action<decltype(gviews)>
+        run_action<{.tr=graph_tool::type<decltype(gviews)>}>
 ()
             (gi, [&](auto& g) { gen_k_nearest_exact<true>(g,
                                                           [&](auto u, auto v)
@@ -197,7 +197,7 @@ void generate_k_nearest_exact(GraphInterface& gi, boost::python::object om, size
     }
     catch (InvalidNumpyConversion&)
     {
-        run_action<decltype(gviews)>(false)
+        run_action<{.tr=graph_tool::type<decltype(gviews)>, .dargs={.gil_release=false}}>()
             (gi, [&](auto& g) { gen_k_nearest_exact<false>(g,
                                                            [&](auto u, auto v)
                                                            {

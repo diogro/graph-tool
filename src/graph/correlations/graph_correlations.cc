@@ -58,7 +58,7 @@ get_vertex_correlation_histogram(GraphInterface& gi,
     else
         weight_prop = cweight_map_t();
 
-    run_action<>(false)
+    run_action<{.dargs={.gil_release=false}}>()
         (gi, get_correlation_histogram<GetNeighborsPairs>
          (hist, bins, ret_bins),
          all_selectors, all_selectors,

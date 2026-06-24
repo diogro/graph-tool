@@ -208,7 +208,7 @@ double central_point(GraphInterface& g,
                      std::any vertex_betweenness)
 {
     double c = 0.0;
-    run_action<decltype(graph_tool::never_reversed)>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_reversed)>}>()
         (g,
          [&](auto&& graph, auto&& a2)
          {

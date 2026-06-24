@@ -57,7 +57,7 @@ void do_label_self_loops(GraphInterface& gi, std::any property,
 
 void do_remove_labeled_edges(GraphInterface& gi, std::any property)
 {
-    run_action<decltype(graph_tool::always_directed_never_reversed), false>()
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>, .dargs={.gil_release=false}}>()
         (gi,
          [&](auto&& graph, auto&& a2)
          {
