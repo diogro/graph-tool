@@ -17,7 +17,7 @@ void kcore_bind(GraphInterface& gi, std::any core_map)
     // considered for every argument of the function passed in the first
     // argument. In the case below 'all_graph_views()' represents all possible
     // graph views (directed, undirected, filtered, reversed, etc.) and
-    // 'writable_vertex_scalar_properties' represents all vertex property maps
+    // 'writable_scalar_vertex_properties' represents all vertex property maps
     // with scalar types that are writable (this excludes the vertex index
     // map). If we had more graphs or property maps to pass, we would simply
     // increase the parameter list accordingly.
@@ -29,7 +29,7 @@ void kcore_bind(GraphInterface& gi, std::any core_map)
 
     gt_dispatch<>()
         ([&](auto& g, auto core){ kcore_decomposition(g, core); },
-         all_graph_views, writable_vertex_scalar_properties)
+         all_graph_views, writable_scalar_vertex_properties)
         (gi.get_graph_view(), core_map);
 };
 

@@ -56,8 +56,8 @@ print("Number of accepted vertex moves:", nmoves)
 ```
 
 ```{testoutput} model-averaging
-Change in description length: -80.840379...
-Number of accepted vertex moves: 72451
+Change in description length: -67.85912755850084
+Number of accepted vertex moves: 69531
 ```
 
 Although the above is sufficient to implement sampling from the
@@ -191,8 +191,8 @@ print("Number of accepted vertex moves:", nmoves)
 ```
 
 ```{testoutput} nested-model-averaging
-Change in description length: -70.783750...
-Number of accepted vertex moves: 286321
+Change in description length: -67.478032...
+Number of accepted vertex moves: 316214
 ```
 
 :::{warning}
@@ -378,16 +378,16 @@ def collect_partitions(s):
    global bs
    bs.append(s.get_bs())
 
-# We will collect only partitions 1000 partitions. For more accurate
+# We will collect only partitions 2000 partitions. For more accurate
 # results, this number should be increased.
-gt.mcmc_equilibrate(state, force_niter=1000, mcmc_args=dict(niter=10),
+gt.mcmc_equilibrate(state, force_niter=2000, mcmc_args=dict(niter=10),
                     callback=collect_partitions)
 
 # Infer partition modes
 pmode = gt.ModeClusterState(bs, nested=True)
 
 # Minimize the mode state itself
-gt.mcmc_equilibrate(pmode, wait=1, mcmc_args=dict(niter=1, beta=np.inf))
+gt.mcmc_equilibrate(pmode, wait=10, mcmc_args=dict(niter=1, beta=np.inf))
 
 # Get inferred modes
 modes = pmode.get_modes()
@@ -406,11 +406,10 @@ Running the above code gives us the relative size of each mode,
 corresponding to their collective posterior probability.
 
 ```{testoutput} partition-modes
-Mode 0 with size 0.346346...
-Mode 1 with size 0.309309...
-Mode 2 with size 0.292292...
-Mode 3 with size 0.051051...
-Mode 4 with size 0.001001...
+Mode 0 with size 0.450225...
+Mode 1 with size 0.330165...
+Mode 2 with size 0.141070...
+Mode 3 with size 0.078539...
 ```
 
 Below are the marginal node distributions representing the partitions that belong to each inferred mode:

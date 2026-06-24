@@ -88,7 +88,7 @@ print(r)
 which yields:
 
 ```{testoutput} football
-76
+8
 ```
 
 :::{note}
@@ -195,10 +195,10 @@ state.print_summary()
 ```
 
 ```{testoutput} celegans
-l: 0, N: 297, B: 27
-l: 1, N: 27, B: 10
-l: 2, N: 10, B: 4
-l: 3, N: 4, B: 1
+l: 0, N: 297, B: 19
+l: 1, N: 19, B: 7
+l: 2, N: 7, B: 2
+l: 3, N: 2, B: 1
 l: 4, N: 1, B: 1
 ```
 
@@ -215,11 +215,11 @@ for s in levels:
 ```
 
 ```{testoutput} celegans
-<BlockState object with 297 blocks (27 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges, 2 internal vertex properties, 1 internal edge property, 2 internal graph properties, at 0x...>, at 0x...>
-<BlockState object with 51 blocks (10 nonempty), for graph <Graph object, directed, with 297 vertices and 325 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-<BlockState object with 11 blocks (4 nonempty), for graph <Graph object, directed, with 51 vertices and 83 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-<BlockState object with 5 blocks (1 nonempty), for graph <Graph object, directed, with 11 vertices and 15 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-<BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 5 vertices and 1 edge, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 19 groups (297 nominal), degree corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges, 2 internal vertex properties, 1 internal edge property, 2 internal graph properties, at 0x...>, at 0x...>
+<BlockState object with 7 groups (23 nominal), for graph <Graph object, directed, with 297 vertices and 171 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 2 groups (7 nominal), for graph <Graph object, directed, with 23 vertices and 42 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 1 group (2 nominal), for graph <Graph object, directed, with 7 vertices and 4 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 1 group (1 nominal), for graph <Graph object, directed, with 2 vertices and 1 edge, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
 ```
 
 This means that we can inspect the hierarchical partition just as before:
@@ -234,9 +234,9 @@ print(r)
 ```
 
 ```{testoutput} celegans
-274
-5
-10
+3
+17
+3
 ```
 
 ## Refinements using merge-split MCMC
@@ -270,7 +270,7 @@ print("Improvement:", S2 - S1)
 ```
 
 ```{testoutput} celegans-mcmc
-Improvement: -272.636993...
+Improvement: -66.280045...
 ```
 
 Whenever possible, this procedure should be repeated several times, and

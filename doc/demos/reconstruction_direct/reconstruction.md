@@ -181,9 +181,9 @@ print("Estimated average local clustering: %g ± %g" % (np.mean(cs), np.std(cs))
 Which yields the following output:
 
 ```{testoutput} measured
-Posterior probability of edge (11, 36): 0.845384...
-Posterior probability of non-edge (15, 73): 0.088808...
-Estimated average local clustering: 0.571504 ± 0.005642...
+Posterior probability of edge (11, 36): 0.787278...
+Posterior probability of non-edge (15, 73): 0.105010...
+Estimated average local clustering: 0.572521 ± 0.005327...
 ```
 
 We have a successful reconstruction, where both ambiguous adjacency
@@ -214,7 +214,7 @@ for e in g.edges():
 # u, for visualization purposes.
 
 bstate = state.get_block_state()
-bstate = bstate.levels[0].copy(g=u)
+bstate = bstate.levels[0].copy(g=u, eweight=None)
 
 # Disambiguate partitions and obtain marginals
 pmode = gt.PartitionModeState(bs, converge=True)
@@ -302,9 +302,9 @@ print("Estimated average local clustering: %g ± %g" % (np.mean(cs), np.std(cs))
 Which yields:
 
 ```{testoutput} measured
-Posterior probability of edge (11, 36): 0.667966...
-Posterior probability of non-edge (15, 73): 0.032503...
-Estimated average local clustering: 0.56885 ± 0.009045...
+Posterior probability of edge (11, 36): 0.690569...
+Posterior probability of non-edge (15, 73): 0.042004...
+Estimated average local clustering: 0.570164 ± 0.007302...
 ```
 
 The results are very similar to the ones obtained with the uniform model
@@ -422,9 +422,9 @@ print("Estimated average local clustering: %g ± %g" % (np.mean(cs), np.std(cs))
 The above yields the output:
 
 ```{testoutput} uncertain
-Posterior probability of edge (11, 36): 0.879187...
-Posterior probability of non-edge (15, 73): 0.039903...
-Estimated average local clustering: 0.558853 ± 0.020339...
+Posterior probability of edge (11, 36): 0.915491...
+Posterior probability of non-edge (15, 73): 0.041904...
+Estimated average local clustering: 0.556574 ± 0.018865...
 ```
 
 The reconstruction is accurate, despite the two ambiguous entries having
@@ -451,7 +451,7 @@ for e in g.edges():
             edash[ne] = [.1, .1, 0]
 
 bstate = state.get_block_state()
-bstate = bstate.levels[0].copy(g=u)
+bstate = bstate.levels[0].copy(g=u, eweight=None)
 
 # Disambiguate partitions and obtain marginals
 pmode = gt.PartitionModeState(bs, converge=True)
@@ -529,7 +529,7 @@ for e in u.edges():
     ew[e] = (wcount[e].a * arange(len(wcount[e].a))).sum() / wcount[e].a.sum()
 
 bstate = state.get_block_state()
-bstate = bstate.levels[0].copy(g=u)
+bstate = bstate.levels[0].copy(g=u, eweight=None)
 
 # Disambiguate partitions and obtain marginals
 pmode = gt.PartitionModeState(bs, converge=True)
@@ -600,7 +600,7 @@ u = us[0]             # marginal seminal edges
 pmode = gt.PartitionModeState(bs, converge=True)
 pv = pmode.get_marginal(u)
 
-bstate = state.bstate.levels[0].copy(g=u)
+bstate = state.bstate.levels[0].copy(g=u, eweight=None)
 
 # edge width
 ew = u.ep.eprob.copy()
@@ -697,9 +697,9 @@ Which yields the following output:
 
 ```{testoutput} measured-closure
 
-Posterior probability of edge (11, 36): 0.988098...
-Posterior probability of non-edge (15, 73): 0.037603...
-Estimated average local clustering: 0.574193 ± 0.004381...
+Posterior probability of edge (11, 36): 0.992599...
+Posterior probability of non-edge (15, 73): 0.015801...
+Estimated average local clustering: 0.573783 ± 0.003850...
 ```
 
 ```{include} _prediction.md

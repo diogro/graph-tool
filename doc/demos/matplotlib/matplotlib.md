@@ -70,7 +70,7 @@ gt.seed_rng(44)
 import graph_tool.all as gt
 import matplotlib.pyplot as plt
 
-plt.switch_backend("cairo")   # to enable vector drawing
+# plt.switch_backend("cairo")   # to enable vector drawing
 
 fig, ax = plt.subplots(2, 2, figsize=(12, 11.5))
 

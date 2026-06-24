@@ -33,7 +33,7 @@ ew = gt.contract_parallel_edges(g)
 
 # We will use a nested SBM, with the base state being the ordered SBM.
 
-state = gt.NestedBlockState(g, base_type=gt.RankedBlockState, state_args=dict(eweight=ew))
+state = gt.NestedBlockState(g, base_state=gt.RankedBlockState, base_state_args=dict(eweight=ew))
 
 # The number of iterations below is sufficient for a good estimate of
 # the ground state for this network.

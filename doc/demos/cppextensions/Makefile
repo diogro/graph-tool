@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-O3 -fopenmp -std=gnu++17 -Wall -fPIC `pkg-config --cflags --libs graph-tool-py` -shared -DBOOST_ALLOW_DEPRECATED_HEADERS
+CXXFLAGS=-O3 -fopenmp -std=gnu++23 -Wall -fPIC `pkg-config --cflags --libs graph-tool-py` -shared -DBOOST_ALLOW_DEPRECATED_HEADERS
 ALL: libkcore.so
 
 libkcore.so: kcore.hh kcore.cc

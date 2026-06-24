@@ -134,16 +134,16 @@ for i in range(10):
 This outputs the following deltas, indicating that convergence was achieved.
 
 ```{testoutput} dynamics
- -4686.196037213296
- -3286.049921543921
- -818.8563094596482
- -115.3160422147071
- -19.18297219710969
- -2.427082044189543
- -0.002041309916862133
- -0.0029370158383912326
- -0.0002670763882761662
- -2.5721647034515627e-12
+    -4651.276868370843
+    -3085.235729407331
+    -954.0080441931219
+    -105.57251044929195
+    -0.5788826912084679
+    -0.0019125098304755284
+    -3.836930773104541e-13
+    -3.694822225952521e-13
+    -4.405364961712621e-13
+    0.0
 ```
 
 We can compare the reconstructed network using the {func}`~graph_tool.topology.similarity` function, as follows
@@ -159,7 +159,7 @@ print(gt.similarity(g, u, w, w_r))
 which gives:
 
 ```{testoutput} dynamics
-0.908651...
+0.908818...
 ```
 
 We can visualize the reconstruction with:

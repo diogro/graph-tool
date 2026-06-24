@@ -78,9 +78,8 @@ and any of the other discrete distributions for the magnitude,
 $y_{ij} = \operatorname{abs}(x_{ij})$.
 
 The support for weighted networks is activated by passing the parameters
-`recs` and `rec_types` to
-{class}`~graph_tool.inference.BlockState` (or
-{class}`~graph_tool.inference.OverlapBlockState`),
+`rec` and `rec_types` to
+{class}`~graph_tool.inference.WeightedBlockState`,
 that specify the edge covariates (an edge
 {class}`~graph_tool.PropertyMap`) and their types (a string from the
 table above), respectively. Note that these parameters expect *lists*,
@@ -107,8 +106,9 @@ g = gt.collection.ns["train_terrorists"]
 # "weight" that contains the strength of interactions. The values
 # integers in the range [0, 3].
 
-state = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[g.ep.weight],
-                                                            rec_types=["discrete-binomial"]))
+state = gt.minimize_nested_blockmodel_dl(g, base_state=gt.WeightedBlockState, 
+                                         base_state_args=dict(rec=[g.ep.weight],
+                                                              rec_types=["discrete-binomial"]))
 
 # improve solution with merge-split
 
@@ -157,8 +157,9 @@ g = gt.collection.ns["foodweb_baywet"]
 # "weight" that contains the energy flow between species. The values
 # are continuous in the range [0, infinity].
 
-state = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[g.ep.weight],
-                                                            rec_types=["real-exponential"]))
+state = gt.minimize_nested_blockmodel_dl(g, base_state=gt.WeightedBlockState, 
+                                         base_state_args=dict(rec=[g.ep.weight],
+                                                              rec_types=["real-exponential"]))
 
 # improve solution with merge-split
 
@@ -196,8 +197,10 @@ can fit this alternative model simply by using the transformed weights:
 y = g.ep.weight.copy()
 y.a = log(y.a)
 
-state_ln = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[y],
-                                                               rec_types=["real-normal"]))
+state_ln = gt.minimize_nested_blockmodel_dl(g,
+                                            base_state=gt.WeightedBlockState, 
+                                            base_state_args=dict(rec=[y],
+                                                                 rec_types=["real-normal"]))
 
 # improve solution with merge-split
 
@@ -249,10 +252,10 @@ print(u"ln \u039b: ", L2 - L1)
 ```{testoutput} food-web
 :options: +NORMALIZE_WHITESPACE
 
-ln Λ: -70.657644...
+ln Λ: -129.899486...
 ```
 
-A value of $\Lambda \approx \mathrm{e}^{70} \approx 10^{30}$ in
+A value of $\Lambda \approx \mathrm{e}^{138} \approx 10^{60}$ in
 favor the exponential model indicates that the log-normal model does not
 provide a better fit for this particular data.
 
@@ -265,7 +268,9 @@ initialization, e.g..
 ```{testcode} weighted-model
 g = gt.collection.ns["foodweb_baywet"]
 
-state = gt.NestedBlockState(g, state_args=dict(recs=[g.ep.weight], rec_types=["real-exponential"]))
+state = gt.NestedBlockState(g, base_state=gt.WeightedBlockState,
+                            base_state_args=dict(rec=[g.ep.weight],
+                                                 rec_types=["real-exponential"]))
 
 gt.mcmc_equilibrate(state, force_niter=100, mcmc_args=dict(niter=10))
 ```

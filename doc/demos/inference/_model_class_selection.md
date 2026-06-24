@@ -104,8 +104,8 @@ for deg_corr in [True, False]:
 ```
 
 ```{testoutput} model-evidence
-Model log-evidence for deg_corr = True: -680.709748...
-Model log-evidence for deg_corr = False: -670.79211...
+Model log-evidence for deg_corr = True: -677.976938...
+Model log-evidence for deg_corr = False: -670.564178...
 ```
 
 The outcome shows a slight preference for the non-degree-corrected model.
@@ -124,7 +124,7 @@ from scipy.special import gammaln
 g = gt.collection.data["lesmis"]
 
 for deg_corr in [True, False]:
-    state = gt.NestedBlockState(g, state_args=dict(deg_corr=deg_corr))
+    state = gt.NestedBlockState(g, base_state_args=dict(deg_corr=deg_corr))
 
     # Equilibrate
     gt.mcmc_equilibrate(state, force_niter=1000, mcmc_args=dict(niter=10))
@@ -153,7 +153,7 @@ for deg_corr in [True, False]:
     H = pmode.posterior_entropy()
 
     # log(B!) term
-    logB = mean([sum(gammaln(len(np.unique(bl))+1) for bl in b) for b in bs])
+    logB = mean([sum([gammaln(len(np.unique(bl))+1) for bl in b]) for b in bs])
 
     # Evidence
     L = -mean(dls) + logB + H
@@ -162,8 +162,8 @@ for deg_corr in [True, False]:
 ```
 
 ```{testoutput} nested-model-evidence
-Model log-evidence for deg_corr = True: -670.572583...
-Model log-evidence for deg_corr = False: -662.13989...
+Model log-evidence for deg_corr = True: -665.427813...
+Model log-evidence for deg_corr = False: -660.750926...
 ```
 
 The situation is the same: The non-degree-corrected model possesses the largest

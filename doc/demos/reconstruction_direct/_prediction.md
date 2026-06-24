@@ -61,7 +61,7 @@ g = gt.collection.data["football"].copy()
 color = g.new_vp("string", val="#cccccc")
 ecolor = g.new_ep("string", val="#cccccc")
 ewidth = g.new_ep("double", 1)
-e = g.add_edge(101, 102)
+e = g.add_edge(0, 101)
 ecolor[e] = "#a40000"
 ewidth[e] = 5
 e = g.add_edge(17, 56)
@@ -80,7 +80,7 @@ gt.graph_draw(g, pos=g.vp.pos, vertex_color=color,
 :width: 350px
 
 Two non-existing edges in the football network (in red):
-$(101,102)$ in the middle, and $(17,56)$ in the upper
+$(0,101)$ in the middle, and $(17,56)$ in the upper
 right region of the figure.
 :::
 
@@ -89,10 +89,9 @@ gt.seed_rng(7)
 ```
 
 ```{testcode} missing-edges
-
 g = gt.collection.data["football"]
 
-missing_edges = [(101, 102), (17, 56)]
+missing_edges = [(0, 101), (17, 56)]
 
 L = 10
 
@@ -101,8 +100,8 @@ state = gt.minimize_nested_blockmodel_dl(g)
 probs = ([], [])
 
 def collect_edge_probs(s):
-    p1 = s.get_edges_prob([missing_edges[0]], entropy_args=dict(partition_dl=False))
-    p2 = s.get_edges_prob([missing_edges[1]], entropy_args=dict(partition_dl=False))
+    p1 = -s.levels[0].modify_edge_dS(*missing_edges[0], dm=1)
+    p2 = -s.levels[0].modify_edge_dS(*missing_edges[1], dm=1)
     probs[0].append(p1)
     probs[1].append(p2)
 
@@ -110,32 +109,27 @@ def collect_edge_probs(s):
 gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),
                     callback=collect_edge_probs)
 
+from scipy.special import logsumexp
 
-def get_avg(p):
-   p = np.array(p)
-   pmax = p.max()
-   p -= pmax
-   return pmax + log(exp(p).mean())
+p1 = logsumexp(probs[0])
+p2 = logsumexp(probs[1])
 
-p1 = get_avg(probs[0])
-p2 = get_avg(probs[1])
+Z = logsumexp([p1, p2])
 
-p_sum = get_avg([p1, p2]) + log(2)
-
-l1 = p1 - p_sum
-l2 = p2 - p_sum
+l1 = p1 - Z
+l2 = p2 - Z
 
 print("likelihood-ratio for %s: %g" % (missing_edges[0], exp(l1)))
 print("likelihood-ratio for %s: %g" % (missing_edges[1], exp(l2)))
 ```
 
 ```{testoutput} missing-edges
-likelihood-ratio for (101, 102): 0.0201412
-likelihood-ratio for (17, 56): 0.979859
+likelihood-ratio for (0, 101): 0.273606
+likelihood-ratio for (17, 56): 0.726394
 ```
 
 From which we can conclude that edge $(17, 56)$ is more likely
-than $(101, 102)$ to be a missing edge.
+than $(0, 101)$ to be a missing edge.
 
 The prediction using the non-nested model can be performed in an
 entirely analogous fashion.
