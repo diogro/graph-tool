@@ -579,10 +579,12 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 	src/graph/inference/blockmodel/layered/deg_stats.hh \
 	src/graph/inference/blockmodel/layered/entropy.hh \
 	src/graph/inference/blockmodel/layered/spec.hh \
+	src/graph/inference/blockmodel/layered/spec_base.hh \
 	src/graph/inference/blockmodel/layered/types.hh \
 	src/graph/inference/blockmodel/layered/vec_ref.hh \
 	src/graph/inference/blockmodel/layered_overlap/entropy.hh \
 	src/graph/inference/blockmodel/layered_overlap/spec.hh \
+	src/graph/inference/blockmodel/layered_overlap/spec_base.hh \
 	src/graph/inference/blockmodel/layered_overlap/types.hh \
 	src/graph/inference/blockmodel/mcmc.hh \
 	src/graph/inference/blockmodel/multiflip_mcmc.hh \
@@ -592,9 +594,11 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 	src/graph/inference/blockmodel/overlap/partition.hh \
 	src/graph/inference/blockmodel/overlap/partition_simple.hh \
 	src/graph/inference/blockmodel/overlap/spec.hh \
+	src/graph/inference/blockmodel/overlap/spec_base.hh \
 	src/graph/inference/blockmodel/overlap/types.hh \
 	src/graph/inference/blockmodel/weighted_overlap/entropy.hh \
 	src/graph/inference/blockmodel/weighted_overlap/spec.hh \
+	src/graph/inference/blockmodel/weighted_overlap/spec_base.hh \
 	src/graph/inference/blockmodel/weighted_overlap/types.hh \
 	src/graph/inference/blockmodel/deg_partition.hh \
 	src/graph/inference/blockmodel/partition.hh \
@@ -602,15 +606,19 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 	src/graph/inference/blockmodel/ranked/entropy.hh \
 	src/graph/inference/blockmodel/ranked/label_mcmc.hh \
 	src/graph/inference/blockmodel/ranked/spec.hh \
+	src/graph/inference/blockmodel/ranked/spec_base.hh \
 	src/graph/inference/blockmodel/ranked/types.hh \
 	src/graph/inference/blockmodel/weighted/entropy.hh \
 	src/graph/inference/blockmodel/weighted/spec.hh \
+	src/graph/inference/blockmodel/weighted/spec_base.hh \
 	src/graph/inference/blockmodel/weighted/types.hh \
 	src/graph/inference/blockmodel/layered_weighted/entropy.hh \
 	src/graph/inference/blockmodel/layered_weighted/spec.hh \
+	src/graph/inference/blockmodel/layered_weighted/spec_base.hh \
 	src/graph/inference/blockmodel/layered_weighted/types.hh \
 	src/graph/inference/blockmodel/layered_weighted_overlap/entropy.hh \
 	src/graph/inference/blockmodel/layered_weighted_overlap/spec.hh \
+	src/graph/inference/blockmodel/layered_weighted_overlap/spec_base.hh \
 	src/graph/inference/blockmodel/layered_weighted_overlap/types.hh \
 	src/graph/inference/cliques/graph_clique_decomposition.hh \
 	src/graph/inference/graph_latent_multigraph.hh \
