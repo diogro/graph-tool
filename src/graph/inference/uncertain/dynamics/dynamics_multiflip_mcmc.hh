@@ -150,7 +150,7 @@ struct MCMC
             return do_lock_dispatch
                 ([&]()
                  {
-                     if constexpr (std::is_same_v<typename std::result_of<F&()>::type,void>)
+                     if constexpr (std::is_same_v<std::invoke_result_t<F>,void>)
                      {
                          f();
                          return 0;
