@@ -18,55 +18,95 @@
 #ifndef PARALLEL_UTIL_HH
 #define PARALLEL_UTIL_HH
 
+#include <mutex>
 #include <shared_mutex>
-#include <utility>
+#include <tuple>
+#include <variant>
 
 namespace graph_tool
 {
 
-template <class Mutex>
-class slock
+template <template<class> class Lock, bool enable, bool pass_lock,
+          class F, class... Mutex>
+decltype(auto) do_lock(F&& f, Mutex&... mutex)
 {
-public:
-    slock(Mutex& mutex, bool lock=true)
-        : _lock(mutex, std::defer_lock_t())
+    if constexpr (enable)
     {
-        if (lock)
-            _lock.lock();
+        std::tuple<Lock<Mutex>...>
+            locks(Lock<Mutex>(mutex, std::defer_lock_t())...);
+        if constexpr (sizeof...(Mutex) > 1)
+            std::apply([&](auto&... as){ std::lock(as...); }, locks);
+        else
+            std::get<0>(locks).lock();
+        if constexpr (pass_lock)
+            return std::apply(f, locks);
+        else
+            return f();
     }
-
-private:
-    std::shared_lock<Mutex> _lock;
-};
-
-template <class Mutex>
-class ulock
-{
-public:
-    ulock(Mutex& mutex, bool lock=true)
-        : _lock(mutex, std::defer_lock_t())
+    else
     {
-        if (lock)
-            _lock.lock();
+        if constexpr (pass_lock)
+            return f(mutex...);
+        else
+            return f();
     }
-
-private:
-    std::unique_lock<Mutex> _lock;
-};
-
-
-template <class F, class Mutex>
-auto do_slock(F&& f, Mutex& mutex, bool lock=true)
-{
-    slock<Mutex> lock_guard(mutex, lock);
-    return f();
 }
 
-template <class F, class Mutex>
-auto do_ulock(F&& f, Mutex& mutex, bool lock=true)
+template <bool enable=true, bool pass_lock=false>
+decltype(auto) do_slock(auto&& f, auto&... mutex)
 {
-    ulock<Mutex> lock_guard(mutex, lock);
-    return f();
+    return do_lock<std::shared_lock, enable, pass_lock>
+        (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+}
+
+template <bool enable=true, bool pass_lock=false>
+decltype(auto) do_ulock(auto&& f, auto&... mutex)
+{
+    return do_lock<std::unique_lock, enable, pass_lock>
+        (std::forward<std::decay_t<decltype(f)>>(f), mutex...);
+}
+
+template <bool enable=true, bool pass_lock=false, bool relock=true>
+decltype(auto) upgrade_lock(auto&& f, auto&... locks)
+{
+    if constexpr (!enable)
+    {
+        if constexpr (pass_lock)
+            return f((locks, std::monostate())...);
+        else
+            return f();
+    }
+    else
+    {
+        do_ulock<enable, pass_lock>
+            (std::forward<std::decay_t<decltype(f)>>(f),
+             *locks.mutex()...);
+
+        if constexpr (relock)
+            std::lock(locks...);
+    }
+}
+
+template <bool enable=true>
+decltype(auto) do_ulock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
+{
+    if (u != v)
+        return do_ulock<enable>
+            (std::forward<std::decay_t<decltype(f)>>(f), mu, mv);
+    else
+        return do_ulock<enable>
+            (std::forward<std::decay_t<decltype(f)>>(f), mu);
+}
+
+template <bool enable=true>
+decltype(auto) do_slock_pair(auto&& f, auto u, auto v, auto& mu, auto& mv)
+{
+    if (u != v)
+        return do_slock<enable>
+            (std::forward<std::decay_t<decltype(f)>>(f), mu, mv);
+    else
+        return do_slock<enable>
+            (std::forward<std::decay_t<decltype(f)>>(f), mu);
 }
 
 } // namespace graph_tool
