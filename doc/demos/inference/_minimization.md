@@ -88,7 +88,7 @@ print(r)
 which yields:
 
 ```{testoutput} football
-8
+33
 ```
 
 :::{note}

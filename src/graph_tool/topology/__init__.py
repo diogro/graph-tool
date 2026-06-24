@@ -928,7 +928,7 @@ def max_cliques(g):
     --------
 
     >>> g = gt.collection.data["polblogs"]
-    >>> sum(1 for c in gt.max_cliques(g))
+    >>> len(list(gt.max_cliques(g)))
     49618
 
     References
