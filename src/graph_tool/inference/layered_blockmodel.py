@@ -32,8 +32,19 @@ import numpy
 
 @entropy_state_signature
 class LayeredBlockState(BlockState):
-    r"""The stochastic block model state of a given graph.
+    r"""The layered stochastic block model state of a given graph.
 
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    ec : :class:`~graph_tool.EdgePropertyMap`
+        Discrete-valued edge layer memberships.
+    independent : ``bool`` (optional, default: ``True```)
+        If ``True`` the "conditionally independent layer" version of model will
+        be used; otherwise the "edge covariates" version will be used.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
     """
 
     @kwargs_wrap
@@ -70,6 +81,7 @@ class LayeredBlockState(BlockState):
 
     @property
     def eweight(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with edge multiplicities"""
         if self._mk_override:
             if isinstance(self._eweight, libcore.any):
                 return self._eweight
@@ -78,6 +90,7 @@ class LayeredBlockState(BlockState):
 
     @property
     def vweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with node multiplicities"""
         if self._mk_override:
             return self._vweight
         vweight = self.g.new_vp("int64_t")
@@ -86,21 +99,24 @@ class LayeredBlockState(BlockState):
 
     @property
     def cvweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with node multiplicities"""
         return self._cvweight
 
     @property
+    def mrs(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with with edge counts between groups"""
+        if self._mk_override:
+            return (self.bg, self.b_ec, self._mrs, self.independent)
+        return self._mrs
+
+    @property
     def wr(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with with group sizes"""
         if self._mk_override or not self.independent:
             return self._wr
         wr = self.bg.new_vp("int64_t")
         self._state.get_wr(wr)
         return wr
-
-    @property
-    def mrs(self):
-        if self._mk_override:
-            return (self.bg, self.b_ec, self._mrs, self.independent)
-        return self._mrs
 
     def _repr_extra(self):
         return f" with {pl(self._state.get_C(), ('independent' if self.independent else 'conditioned') + ' layer')},"
@@ -109,18 +125,19 @@ class LayeredBlockState(BlockState):
         r"Returns the total number of nonempty blocks."
         return self._state.get_B()
 
-    def get_wr(self):
-        wr = self.bg.new_vp("int64_t")
-        self._state.get_wr(wr)
-        return wr
-
     def get_lvweight(self):
+        r"""Returns a pair vector-valued :class:`~graph_tool.VertexPropertyMap`s
+        containing for each node, respectively, the layers to which they belong
+        and their weight on each layer."""
         ls = self.g.new_vp("vector<int64_t>")
         cs = self.g.new_vp("vector<int64_t>")
         self._state.get_lvweight(ls, cs)
         return ls, cs
 
     def get_lwr(self):
+        r"""Returns a pair vector-valued :class:`~graph_tool.VertexPropertyMap`s
+        containing for each group, respectively, the layers to which they belong
+        and their size on each layer."""
         ls = self.bg.new_vp("vector<int64_t>")
         cs = self.bg.new_vp("vector<int64_t>")
         self._state.get_lwr(ls, cs)
@@ -141,11 +158,23 @@ class LayeredBlockState(BlockState):
         return state
 
     def get_N(self):
+        r"""Return the number of nodes."""
         return self._state.get_N()
 
     def _entropy(self, lmemb=True, **kwargs):
         r"""Calculate the description length (a.k.a. negative joint
         log-likelihood) associated with the current block partition.
+
+        Parameters
+        ----------
+        lmemb : ``bool`` (optional, default: ``True``)
+            If ``True``, the contribution for the layer memberships of the edges
+            will be considered.
+
+        Notes
+        -----
+        For the documentation on the remaining parameters, consult the base
+        classes.
         """
 
         return BlockState._entropy(**dict(locals(), **kwargs))
@@ -153,9 +182,22 @@ class LayeredBlockState(BlockState):
 
 @entropy_state_signature
 class LayeredWeightedBlockState(LayeredBlockState, WeightedBlockState):
+    r"""The layered and weighted  stochastic block model state of a given graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    ec : :class:`~graph_tool.EdgePropertyMap`
+        Discrete-valued edge layer memberships.
+    rec : list of :class:`~graph_tool.EdgePropertyMap` instances (optional, default: ``[]``)
+        List of real or discrete-valued edge covariates.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.LayeredBlockState` and :class:`~graph_tool.inference.WeightedBlockState`.
+    """
 
     @kwargs_wrap
-    def __init__(self, g, rec=[], **kwargs):
+    def __init__(self, g, ec, rec=[], **kwargs):
         recdx = kw_pop(kwargs, "recdx", libinference.rcount_vec())
         Lrecdx = kw_pop(kwargs, "Lrecdx", libinference.rcount_vec())
 
@@ -163,7 +205,7 @@ class LayeredWeightedBlockState(LayeredBlockState, WeightedBlockState):
             if "vector" not in rec[i].value_type():
                 rec[i] = group_vector_property([rec[i]], value_type="double")
 
-        LayeredBlockState.__init__(self, g, **kwargs)
+        LayeredBlockState.__init__(self, g, ec=ec, **kwargs)
         WeightedBlockState.__init__(self, g, rec=rec, rvtype="vector<double>",
                                     **kwargs)
 
@@ -176,6 +218,7 @@ class LayeredWeightedBlockState(LayeredBlockState, WeightedBlockState):
 
     @property
     def eweight(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with edge multiplicities"""
         if self._mk_override:
             if isinstance(self._eweight, libcore.any):
                 return self._eweight
@@ -186,6 +229,7 @@ class LayeredWeightedBlockState(LayeredBlockState, WeightedBlockState):
 
     @property
     def mrs(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with with edge counts between groups"""
         if self._mk_override:
             b_ew = (self.bg, self.b_ec, self._mrs,
                     WeightedBlockState.mrs.fget(self))

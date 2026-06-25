@@ -85,7 +85,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     dense_bg : ``bool`` (optional, default: ``False``)
         If ``True`` a dense matrix is used for the block graph, otherwise a
         sparse matrix will be used.
-    entropy_args: ``dict`` (optional, default: ``{}``)
+    entropy_args: ``keyword parameters`` (optional, default: ``empty``)
         Override default arguments for :meth:`~BlockState.entropy()` method and
         releated operations.
     """
@@ -194,30 +194,37 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     @property
     def eweight(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with edge multiplicities"""
         return self._eweight
 
     @property
     def vweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with node multiplicities"""
         return self._vweight
 
     @property
     def mrs(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with with edge counts between groups"""
         return self._mrs
 
     @property
     def wr(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with with group sizes"""
         return self._wr
 
     @property
     def mrp(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with with sums of out-degrees per group"""
         return self._mrp
 
     @property
     def mrm(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with with sums of in-degrees per group"""
         return self._mrm
 
     @property
     def B(self):
+        r"""Nominal number of groups"""
         return int(self.b.fa.max()) + 1
 
     @contextmanager
@@ -1058,10 +1065,13 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
 @entropy_state_signature
 class WeightedBlockState(BlockState):
-    r"""The stochastic block model state of a given graph.
+    r"""The weighted stochastic block model state of a given graph (i.e. with
+    edge covariates).
 
     Parameters
     ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
     rec : list of :class:`~graph_tool.EdgePropertyMap` instances (optional, default: ``[]``)
         List of real or discrete-valued edge covariates.
     rec_types : list of edge covariate types (optional, default: ``[]``)
@@ -1104,6 +1114,8 @@ class WeightedBlockState(BlockState):
             prior. If unspecified, the defaults are: ``m0 = rec.fa.mean()``,
             ``k0 = 1``, ``v0 = rec.fa.std() ** 2``, and ``nu0 = 3``, where
             ``rec`` is the corresponding edge covariate property map.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
     """
 
     @kwargs_wrap
@@ -1158,6 +1170,7 @@ class WeightedBlockState(BlockState):
 
     @property
     def eweight(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with edge multiplicities"""
         if self._mk_override:
             if isinstance(self._eweight, libcore.any):
                 return self._eweight
@@ -1168,6 +1181,7 @@ class WeightedBlockState(BlockState):
 
     @property
     def mrs(self):
+        r""":class:`~graph_tool.EdgePropertyMap` with with edge counts between groups"""
         if self._mk_override:
             return (self._mrs, self.brec, self.bdrec, self.rec_types)
         return self._mrs
@@ -1295,10 +1309,6 @@ class WeightedBlockState(BlockState):
         rec_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the edge covariate description
             length will be included.
-
-        Notes
-        -----
-
 
         References
         ----------

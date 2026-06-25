@@ -55,8 +55,13 @@ State classes
    :template: class.rst
 
    BlockState
+   WeightedBlockState
    OverlapBlockState
+   WeightedOverlapBlockState
    LayeredBlockState
+   LayeredWeightedBlockState
+   LayeredOverlapBlockState
+   LayeredWeightedOverlapBlockState
    NestedBlockState
    PPBlockState
    RankedBlockState
@@ -90,6 +95,8 @@ Sampling and minimization
    :nosignatures:
    :toctree: autosummary
 
+   minimize_blockmodel_dl
+   minimize_nested_blockmodel_dl
    mcmc_equilibrate
    mcmc_anneal
 

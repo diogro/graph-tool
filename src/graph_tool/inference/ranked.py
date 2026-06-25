@@ -49,11 +49,17 @@ class RankedBlockState(BlockState):
         label to an integer label, inidicating how the groups
         should be ordered. If not supplied, the numeric values of the group
         lalbels will be used to initialize the ordering.
-    distance: ``bool`` (optional, default: ``False``)
+    distance : ``bool`` (optional, default: ``False``)
         If ``True``, the distance-based version of the model will be used.
-    entropy_args: ``dict`` (optional, default: ``{}``)
-        Override default arguments for :meth:`~RankedBlockState.entropy()`
-        method and releated operations.
+    unique : ``bool`` (optional, default: ``True``)
+        If ``True``, the model version with unique group positions will be used.
+        Otherwise, groups are allowed to have the same position.
+    M : ``int`` (optional, default: ``None``)
+        If ``unique == True``, this parameter will determine the number of
+        positions available. If the value ``None`` is passed (the default), the
+        value will correspond to the number of nodes.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
 
     References
     ----------
@@ -248,8 +254,19 @@ class RankedBlockState(BlockState):
         return self._state.get_Es()
 
     def _entropy(self, label_dl=True, **kwargs):
-        r"""Return the description length (negative joint log-likelihood). See
-        :meth:`BlockState.entropy` for documentation."""
+        r"""Return the description length (negative joint log-likelihood).
+
+        Parameters
+        ----------
+        label_dl : ``bool`` (optional, default: ``True``)
+            If ``True``, the contribution for the group label assignment will be
+            included.
+
+        Notes
+        -----
+        For the documentation on the remaining parameters, consult the base
+        class: :meth:`BlockState.entropy`
+        """
 
         return BlockState._entropy(**dict(locals(), **kwargs))
 

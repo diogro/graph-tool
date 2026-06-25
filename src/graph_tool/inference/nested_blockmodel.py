@@ -40,9 +40,13 @@ class NestedBlockState(object):
         single-group hierarchy of length :math:`\lceil\log_2(N)\rceil`.
     base_state : ``type`` (optional, default: :class:`~graph_tool.inference.BlockState`)
         State type for lowermost level
-        (e.g. :class:`~graph_tool.inference.BlockState`,
-        :class:`~graph_tool.inference.OverlapBlockState` or
-        :class:`~graph_tool.inference.LayeredBlockState`)
+        (one of :class:`~graph_tool.inference.BlockState`,
+        :class:`~graph_tool.inference.WeightedBlockState`,
+        :class:`~graph_tool.inference.OverlapBlockState`,
+        :class:`~graph_tool.inference.LayeredBlockState`,
+        :class:`~graph_tool.inference.LayeredOverlapBlockState`,
+        :class:`~graph_tool.inference.WeightedOverlapBlockState`,
+        :class:`~graph_tool.inference.LayeredWeightedOverlapBlockState`)
     base_state_args : ``dict`` (optional, default: ``{}``)
         Keyword arguments to be passed to base type constructor.
     **kwargs :  keyword arguments

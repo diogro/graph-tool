@@ -32,11 +32,37 @@ from . layered_blockmodel import *
 
 @entropy_state_signature
 class OverlapBlockState(BlockState):
-    r"""The stochastic block model state of a given graph."""
+    r"""The overlapping (mixed-membership) stochastic block model state of a given graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    b : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Initial block labels on the **half-edges**, i.e two values per edge.
+    clabel : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Constraint labels on the half-edges. If supplied, vertices with different
+        label values will not be clustered in the same group.
+    pclabel : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Partition constraint labels on the half-edges. This has the same
+        interpretation as ``clabel``, but will be used to compute the partition
+        description length.
+    bfield : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Local field acting as a prior for the node partition. This should be a
+        vector property map of type ``vector<double>``, and contain the
+        log-probability for each half-edge to be placed in each group.
+    vweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Half-edge multiplicities.
+    gen_overlap : ``bool`` (optional, default: ``True``)
+         If ``True``, the generalized overlap partition prior will be used.
+         Otherwise, a simplified (but faster) prior will be used instead.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
+    """
 
     @kwargs_wrap
     def __init__(self, g, b=None, clabel=None, pclabel=None, bfield=None,
-                 vweight=None, gen_overlap=False, **kwargs):
+                 vweight=None, gen_overlap=True, **kwargs):
 
         BlockState.__init__(self, g, **kwargs)
 
@@ -70,12 +96,14 @@ class OverlapBlockState(BlockState):
 
     @property
     def vweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with node multiplicities"""
         if self._mk_override:
             return self.g
         return self._vweight
 
     @property
     def B(self):
+        r"""Nominal number of groups"""
         b_s, b_t = ungroup_vector_property(self.b)
         return max(b_s.fa.max(), b_t.fa.max()) + 1
 
@@ -108,11 +136,6 @@ class OverlapBlockState(BlockState):
     def get_N(self):
         r"Returns the total number of nodes."
         return self.g.num_vertices()
-
-    def get_wr(self):
-        wr = self.bg.new_vp("int64_t")
-        self._state.get_wr(wr._get_any())
-        return wr
 
     def _get_bweight(self):
         return self.bg.new_vp("int64_t", self.get_wr().a > 0)
@@ -184,6 +207,15 @@ class OverlapBlockState(BlockState):
 
 @entropy_state_signature
 class WeightedOverlapBlockState(WeightedBlockState, OverlapBlockState):
+    r"""The weighted overlapping stochastic block model state of a given graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.WeightedBlockState` and :class:`~graph_tool.inference.OverlapBlockState`.
+    """
 
     @kwargs_wrap
     def __init__(self, g, **kwargs):
@@ -199,6 +231,15 @@ class WeightedOverlapBlockState(WeightedBlockState, OverlapBlockState):
 
 @entropy_state_signature
 class LayeredOverlapBlockState(OverlapBlockState, LayeredBlockState):
+    r"""The layered overlapping stochastic block model state of a given graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.LayeredBlockState` and :class:`~graph_tool.inference.OverlapBlockState`.
+    """
 
     @kwargs_wrap
     def __init__(self, g, **kwargs):
@@ -211,12 +252,14 @@ class LayeredOverlapBlockState(OverlapBlockState, LayeredBlockState):
 
     @property
     def cvweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with half-edge multiplicities"""
         if self._mk_override:
             return self.g
         return self._cvweight
 
     @property
     def vweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with half-edge multiplicities on each layer"""
         if self._mk_override:
             return self.g
         vweight = self.g.new_ep("vector<int64_t>")
@@ -234,6 +277,16 @@ class LayeredOverlapBlockState(OverlapBlockState, LayeredBlockState):
 class LayeredWeightedOverlapBlockState(OverlapBlockState,
                                        LayeredWeightedBlockState):
 
+    r"""The layered weigthed overlapping stochastic block model state of a given graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        Parameters to be passed to :class:`~graph_tool.inference.LayeredWeightedBlockState` and :class:`~graph_tool.inference.OverlapBlockState`.
+    """
+
     @kwargs_wrap
     def __init__(self, g, **kwargs):
         OverlapBlockState.__init__(self, g, **kwargs)
@@ -245,6 +298,7 @@ class LayeredWeightedOverlapBlockState(OverlapBlockState,
 
     @property
     def cvweight(self):
+        r""":class:`~graph_tool.VertexPropertyMap` with half-edge multiplicities"""
         if self._mk_override:
             return self.g
         return self._cvweight
