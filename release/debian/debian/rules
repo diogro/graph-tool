@@ -18,4 +18,4 @@ export MOD_CXXFLAGS = -flto=auto
 	dh $@
 
 override_dh_auto_configure:
-	dh_auto_configure -- --docdir=/usr/share/doc/python3-graph-tool
+	dh_auto_configure -- --prefix=/usr --with-python-module-path=/usr/lib/python3/dist-packages --docdir=/usr/share/doc/python3-graph-tool
