@@ -107,6 +107,15 @@ class OverlapBlockState(BlockState):
         b_s, b_t = ungroup_vector_property(self.b)
         return max(b_s.fa.max(), b_t.fa.max()) + 1
 
+    @property
+    def wr(self):
+        r"""Group sizes"""
+        if self._mk_override:
+            return self._wr
+        wr = self.bg.new_vp("int64_t")
+        self._state.get_wr(wr)
+        return wr
+
     def _repr_extra(self):
         return " with generalized overlapping partition," if self.gen_overlap else ""
 
@@ -138,7 +147,7 @@ class OverlapBlockState(BlockState):
         return self.g.num_vertices()
 
     def _get_bweight(self):
-        return self.bg.new_vp("int64_t", self.get_wr().a > 0)
+        return self.bg.new_vp("int64_t", self.wr.a > 0)
 
     def get_bclabel(self, clabel=None):
         r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint

@@ -320,7 +320,13 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     @property
     def B(self):
+        r"""Nominal number of groups"""
         return int(self.b.a.max()) + 1
+
+    @property
+    def get_wr(self):
+        r"""Group sizes."""
+        return np.array(np.bincount(self.b))
 
     def get_mode(self, r):
         r"""Return the mode in cluster ``r`` as an instance of
@@ -337,10 +343,6 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if sort:
             modes = list(sorted(modes, key=lambda m: -m.get_M()))
         return modes
-
-    def get_wr(self):
-        r"""Return cluster sizes. """
-        return np.array(np.bincount(self.b))
 
     def get_B(self):
         r"Returns the total number of clusters."

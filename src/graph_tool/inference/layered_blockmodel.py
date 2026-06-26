@@ -144,7 +144,7 @@ class LayeredBlockState(BlockState):
         return ls, cs
 
     def _get_bweight(self):
-        return self.get_wr().t(lambda x: x > 0)
+        return self.wr.t(lambda x: x > 0)
 
     def _get_block_state(self, b, final=False, couple=True, **kwargs):
         state = BlockState._get_block_state(self, b, final=final,
