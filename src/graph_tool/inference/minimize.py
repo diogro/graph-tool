@@ -24,7 +24,8 @@ from . blockmodel import *
 from . nested_blockmodel import *
 
 def minimize_blockmodel_dl(g, state=BlockState, state_args={},
-                           multilevel_mcmc_args={}):
+                           multilevel_mcmc_args={}, refine=True,
+                           epsilon=0.001):
     r"""Fit the stochastic block model, by minimizing its description length using an
     agglomerative heuristic.
 
@@ -39,6 +40,12 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
         :class:`~graph_tool.inference.BlockState`)
     multilevel_mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :meth:`~graph_tool.inference.MultilevelMCMCState.multilevel_mcmc_sweep`.
+    refine : ``bool`` (optional, default: ``True``)
+        If ``True``, a refinement loop will be run as a final step, controlled
+        by the relative convergence criterion ``epsilon``.
+    epsilon : ``float`` (optional, default: ``0.001``)
+        If ``refine == True``, this value determines the relative convergence
+        criterion of the refinement step.
 
     Returns
     -------
@@ -123,6 +130,7 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
     .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and greedy
        heuristic for the inference of stochastic block models", Phys. Rev. E 89,
        012804 (2014), :doi:`10.1103/PhysRevE.89.012804`, :arxiv:`1310.4378`.
+
     """
 
     state = state(g, **state_args)
@@ -132,14 +140,17 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
 
     state.multilevel_mcmc_sweep(**args)
 
+    if refine:
+        refine_loop(state, args, epsilon)
+
     return state
 
-def minimize_nested_blockmodel_dl(g, init_bs=None,
-                                  state=NestedBlockState,
-                                  base_state=BlockState,
-                                  state_args={},
-                                  base_state_args={},
-                                  multilevel_mcmc_args={}):
+def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
+                                  base_state=BlockState, state_args={},
+                                  base_state_args={}, multilevel_mcmc_args={},
+                                  simple_init=False, base_factor=10.,
+                                  B_min_base=1000, top_factor=2., refine=True,
+                                  epsilon=0.001):
     r"""Fit the nested stochastic block model, by minimizing its description length
     using an agglomerative heuristic.
 
@@ -147,8 +158,6 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
     ----------
     g : :class:`~graph_tool.Graph`
         The graph.
-    init_bs : iterable of iterable of ``int``s (optional, default: ``None``)
-        Initial hierarchical partition.
     state : nested SBM state class (optional, default: :class:`~graph_tool.inference.NestedBlockState`)
         Type of next model that will be used.
     base_state : base SBM state class (optional, default: :class:`~graph_tool.inference.BlockState`)
@@ -161,6 +170,30 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
         :class:`~graph_tool.inference.BlockState`)
     multilevel_mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :meth:`~graph_tool.inference.MultilevelMCMCState.multilevel_mcmc_sweep`.
+    simple_init : ``bool`` (optional, default: ``False``)
+        If ``True``, a simple initialization scheme will be used, where the
+        hierarchy shape will be upper bounded by an initial guess based on the
+        number of nodes and the paramters ``base_factor``, ``top_factor``, and
+        ``B_min_base``. This is meant to be used with ``refine == True`` for an
+        alternative to the more expensive multilevel minimization algorithm.
+    base_factor : ``float`` (optional, default: ``10.``)
+        If ``simple_init == True``, this will determine the minimum number of
+        groups at the lowest level of the hierarchy as ``N/base_factor``, where
+        ``N`` is the number of vertices at the base level.
+    B_min_base : ``int`` (optional, default: ``1000``)
+        If ``simple_init == True``, this will determine the smallest minimum number
+        of groups at the lowest level during initialization, regardless of the
+        value of ``base_factor``.
+    top_factor : ``float`` (optional, default: ``2.``)
+        If ``simple_init == True``, this will determine the minimum number of
+        groups at the upper levels of the hierarchy as ``N/top_factor``, where
+        ``N`` is the number of vertices at a particular level.
+    refine : ``bool`` (optional, default: ``True``)
+        If ``True``, a refinement loop will be run as a final step, controlled
+        by the relative convergence criterion ``epsilon``.
+    epsilon : ``float`` (optional, default: ``0.001``)
+        If ``refine == True``, this value determines the relative convergence
+        criterion of the refinement step.
 
     Returns
     -------
@@ -232,23 +265,42 @@ def minimize_nested_blockmodel_dl(g, init_bs=None,
 
     """
 
-    state = state(g, bs=init_bs, base_state=base_state,
+    state = state(g, base_state=base_state,
                   base_state_args=base_state_args, **state_args)
 
     args = dict(niter=1, beta=numpy.inf)
     args.update(multilevel_mcmc_args)
 
-    l = 0
-    while l >= 0:
+    if simple_init:
+        for l, s in enumerate(state.levels):
+            if l == 0:
+                B = max(s.get_N() / base_factor, B_min_base)
+            else:
+                B = s.get_N() / top_factor
+                B = max(B, 1)
+                s.multilevel_mcmc_sweep(**dict(args, B_min=B,
+                                               force_accept=True,
+                                               fibonacci=False))
+    else:
+        l = 0
+        while l >= 0:
+            ret = state.multilevel_mcmc_sweep(ls=[l], **args)
+            if args.get("verbose", False):
+                print(l, ret, state)
+            if abs(ret[0]) < 1e-8:
+                l -= 1
+            else:
+                l = min((l + 1, len(state.levels) - 1))
 
-        ret = state.multilevel_mcmc_sweep(ls=[l], **args)
-
-        if args.get("verbose", False):
-            print(l, ret, state)
-
-        if abs(ret[0]) < 1e-8:
-            l -= 1
-        else:
-            l = min((l + 1, len(state.levels) - 1))
+    if refine:
+        refine_loop(state, args, epsilon)
 
     return state
+
+def refine_loop(state, mcmc_args, epsilon):
+    eargs = mcmc_args.get("entropy_args", {})
+    delta = epsilon + 1
+    while delta > epsilon:
+        delta = state.multilevel_mcmc_sweep(**dict(mcmc_args, refine=True,
+                                                   force_accept=False))[0]
+        delta = abs(delta / state.entropy(**eargs))
