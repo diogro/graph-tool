@@ -317,7 +317,7 @@ AC_DEFINE([GCC_VERSION], [(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATC
 # set automake variables
 
 # extra CPP flags for submodules
-[MOD_CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
+[MOD_CPPFLAGS="${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS} -I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir)"]
 AC_SUBST(MOD_CPPFLAGS)
 
 # extra CPP flags
@@ -408,9 +408,10 @@ echo -e "$(color 3)Cairomm CPP flags:      $(color 4)${CAIROMM_CFLAGS}$(reset)"
 echo -e "$(color 3)Cairomm LD flags:       $(color 4)${CAIROMM_LIBS}$(reset)"
 echo -e "$(color 3)OpenMP compiler flags:  $(color 4)${OPENMP_CXXFLAGS}$(reset)"
 echo -e "$(color 3)OpenMP LD flags:        $(color 4)${OPENMP_LDFLAGS}$(reset)"
+echo -e "$(color 3)MOD_CPPFLAGS:           $(color 4)${MOD_CPPFLAGS}$(reset)"
+echo -e "$(color 3)MOD_CXXFLAGS:           $(color 4)${MOD_CXXFLAGS}$(reset)"
 echo -e "$(color 3)Extra CPPFLAGS:         $(color 4)${CPPFLAGS}$(reset)"
 echo -e "$(color 3)Extra CXXFLAGS:         $(color 4)${CXXFLAGS}$(reset)"
-echo -e "$(color 3)Extra MOD_CXXFLAGS:     $(color 4)${MOD_CXXFLAGS}$(reset)"
 echo -e "$(color 3)Extra LDFLAGS:          $(color 4)${LDFLAGS}$(reset)\n"
 echo -n -e "$(color 3)Using OpenMP:           "
 if test ${USING_OPENMP} = yes; then
