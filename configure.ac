@@ -68,8 +68,11 @@ dnl Enforce -O3. It makes a substantial difference, e.g. 12x speed improvement
 dnl over -O2 in benchmarks.
 [CXXFLAGS="${CXXFLAGS} -O3"]
 
+dnl local search paths should take precedence
+[CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${CPPFLAGS}"]
+
 dnl disable annoying boost warnings
-[CPPFLAGS="-DBOOST_ALLOW_DEPRECATED_HEADERS ${CPPFLAGS}"]
+[CPPFLAGS="${CPPFLAGS} -DBOOST_ALLOW_DEPRECATED_HEADERS"]
 
 dnl OpenMP
 AC_MSG_CHECKING(whether to enable parallel algorithms with openmp)
@@ -317,7 +320,7 @@ AC_DEFINE([GCC_VERSION], [(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATC
 # set automake variables
 
 # extra CPP flags for submodules
-[MOD_CPPFLAGS="${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS} -I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir)"]
+[MOD_CPPFLAGS="-DHAVE_CONFIG_H ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
 AC_SUBST(MOD_CPPFLAGS)
 
 # extra CPP flags
@@ -358,7 +361,7 @@ AC_DEFINE([BOOST_BIND_GLOBAL_PLACEHOLDERS], [1], [Suppress Boost warning])
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
                          [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp -I${MOD_DIR}/include/src/graph ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS}],
+                         [${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp -I${MOD_DIR}/include/src/graph],
                          [])
 
 AC_CONFIG_FILES([
