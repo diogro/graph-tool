@@ -71,7 +71,7 @@ size_t get_next_size(T n)
 }
 
 template <class T, class F, class Cache>
-[[gnu::const]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double get_cached(T x, F&& f, Cache& cache)
 {
     if (std::cmp_greater_equal(x, cache.size())) [[unlikely]]
@@ -95,7 +95,7 @@ void init_cache(T x, F&& f, Cache& cache)
 }
 
 template <Scalar T>
-[[gnu::const]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double safelog(T x)
 {
     if (x == 0)
@@ -104,7 +104,7 @@ inline double safelog(T x)
 }
 
 template <Scalar T>
-[[gnu::const]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double safelog_fast(T x)
 {
     return get_cached(x, [](T x) { return safelog(x); }, __safelog_cache);
@@ -117,14 +117,14 @@ inline void init_safelog_fast(T x)
 }
 
 template <Scalar T>
-[[gnu::const]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double xlogx(T x)
 {
     return x * safelog(x);
 }
 
 template <Scalar T>
-[[gnu::const]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double xlogx_fast(T x)
 {
     return get_cached(x, [](T x) { return xlogx(x); }, __xlogx_cache);
@@ -137,7 +137,7 @@ void init_xlogx_fast(T x)
 }
 
 template <Scalar T>
-[[gnu::const]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double lgamma_fast(T x)
 {
     return get_cached(x, [](T x) { return safe_lgamma(x); }, __lgamma_cache);

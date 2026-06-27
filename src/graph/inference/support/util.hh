@@ -29,7 +29,7 @@ namespace graph_tool
 using namespace boost;
 
 template <Scalar T1, Scalar T2>
-//[[gnu::const]]
+[[gnu::const]]
 double lbinom(T1 N, T2 k)
 {
     if (N == 0 || k == 0 || T1(k) >= N)
@@ -38,7 +38,7 @@ double lbinom(T1 N, T2 k)
 }
 
 template <Scalar T1, Scalar T2>
-//[[gnu::const]] [[gnu::always_inline]]
+[[gnu::const]] [[gnu::always_inline]]
 inline double lbinom_fast(T1 N, T2 k)
 {
     if (N == 0 || k == 0 || std::cmp_greater_equal(k, N))
@@ -47,7 +47,7 @@ inline double lbinom_fast(T1 N, T2 k)
 }
 
 template <Scalar T1, Scalar T2>
-//[[gnu::const]]
+[[gnu::const]]
 double lbinom_careful(T1 N, T2 k)
 {
     if (N == 0 || k == 0 || T1(k) >= N)
@@ -68,14 +68,14 @@ double lbinom_careful(T1 N, T2 k)
 }
 
 template <Scalar T>
-//[[gnu::const]]
+[[gnu::const]]
 auto lbeta(T x, T y)
 {
     return (boost::math::lgamma(x) + boost::math::lgamma(y)) - boost::math::lgamma(x + y);
 }
 
 template <Scalar T, bool handle_inf=true>
-//[[gnu::const]]
+[[gnu::const]]
 auto log_sum_exp(T a, T b)
 {
     if constexpr (handle_inf)
@@ -90,7 +90,7 @@ auto log_sum_exp(T a, T b)
 }
 
 template <Scalar T, Scalar... Ts>
-//[[gnu::const]]
+[[gnu::const]]
 auto log_sum_exp(T a, T b, Ts... cs)
 {
     if constexpr (sizeof...(Ts) == 0)
@@ -100,7 +100,7 @@ auto log_sum_exp(T a, T b, Ts... cs)
 }
 
 template <class V, bool handle_inf=true>
-//[[gnu::const]]
+[[gnu::const]]
 auto log_sum_exp(const V& v)
 {
     typedef std::remove_reference_t<decltype(*v.begin())> val_t;
