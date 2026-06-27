@@ -613,6 +613,9 @@ class MultilevelMCMCState(EntropyState):
 
         """
 
+        if B_max < B_min or B_min < 1 or B_max < 1:
+            raise ValueError(f"Invalid [B_min, B_max] range: [{B_min}, {B_max}]")
+
         if vertices is None:
             vertices = []
 

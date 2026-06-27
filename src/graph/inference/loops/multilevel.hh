@@ -970,7 +970,7 @@ struct Multilevel:
 
             if (strict)
             {
-                if (S > 0 && rs.size() <= B_max)
+                if (S > 0 && rs.size() < B_max)
                 {
                     pop_b();
                     S = 0;
@@ -1011,7 +1011,7 @@ struct Multilevel:
                     continue;
                 }
 
-                if (ndS > 0 && strict && rs.size() <= B_max)
+                if (ndS > 0 && strict && rs.size() < B_max)
                     break;
 
                 _root[s] = t;
