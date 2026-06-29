@@ -2011,7 +2011,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
     hvvisible = t.new_vertex_property("bool", True)
     if hide is None:
-        L = len([s for s in state.levels if s.get_nonempty_B() > 0])
+        L = len([s for s in state.levels if s.get_B() > 0])
         hide = len(state.levels) - L
 
     if hide > 0:

@@ -107,12 +107,8 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return self.get_blocks()
 
     def get_B(self):
-        r"Returns the total number of blocks."
+        r"Returns the total number of non-empty groups."
         return len(np.unique(self.b.fa))
-
-    def get_nonempty_B(self):
-        r"Alias to :meth:`~PPBlockState.get_B`."
-        return self.get_B()
 
     def get_Be(self):
         r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with

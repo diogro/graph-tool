@@ -132,7 +132,7 @@ itself, as follows.
 h = np.zeros(g.num_vertices() + 1)
 
 def collect_num_groups(s):
-    B = s.get_nonempty_B()
+    B = s.get_B()
     h[B] += 1
 
 # Now we collect partitions for exactly 100,000 sweeps, at intervals
@@ -260,7 +260,7 @@ h = [np.zeros(g.num_vertices() + 1) for s in state.get_levels()]
 
 def collect_num_groups(s):
     for l, sl in enumerate(s.get_levels()):
-        B = sl.get_nonempty_B()
+        B = sl.get_B()
         h[l][B] += 1
 
 # Now we collect the marginal distribution for exactly 100,000 sweeps

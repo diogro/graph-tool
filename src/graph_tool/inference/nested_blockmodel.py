@@ -80,7 +80,7 @@ class NestedBlockState(object):
     def __repr__(self):
         return "<NestedBlockState object, with base %s, and %d levels of sizes %s at 0x%x>" % \
             (repr(self.levels[0]), len(self.levels),
-             str([(s.get_N(), s.get_nonempty_B()) for s in self.levels]), id(self))
+             str([(s.get_N(), s.get_B()) for s in self.levels]), id(self))
 
     def __copy__(self):
         return self.copy()
@@ -245,7 +245,7 @@ class NestedBlockState(object):
         """Print a hierarchy summary."""
         for l, state in enumerate(self.levels):
             print("l: %d, N: %d, B: %d" % (l, state.get_N(),
-                                           state.get_nonempty_B()))
+                                           state.get_B()))
             if state.get_N() == 1:
                 break
 

@@ -110,7 +110,7 @@ state = state.copy(b=b)
 
 e = state.get_matrix()
 
-B = state.get_nonempty_B()
+B = state.get_B()
 matshow(e.todense()[:B, :B])
 savefig("football-edge-counts.svg")
 ```

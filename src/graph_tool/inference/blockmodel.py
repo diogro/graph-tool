@@ -253,7 +253,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def __repr__(self):
         extra = ' degree corrected,' if self.deg_corr else ''
         extra += self._repr_extra()
-        return f"<{self.__class__.__name__} object with {pl(self.get_nonempty_B(), 'group')} ({self.get_B()} nominal),{extra} for graph {str(self.g)}, at 0x{id(self):x}>"
+        return f"<{self.__class__.__name__} object with {pl(self.get_B(), 'group')} ({self.B} nominal),{extra} for graph {str(self.g)}, at 0x{id(self):x}>"
 
     def _get_bweight(self):
         return self.bg.new_vp("int64_t", self.wr.a > 0)
@@ -292,15 +292,11 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return int(self.vweight.fa.sum())
 
     def get_B(self):
-        r"Returns the total number of blocks."
-        return self.bg.num_vertices()
-
-    def get_nonempty_B(self):
-        r"Returns the total number of nonempty blocks."
+        r"Returns the total number of nonempty groups."
         return self._state.get_actual_B()
 
     def get_Be(self):
-        r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with
+        r"""Returns the effective number of groups, defined as :math:`e^{H}`, with
         :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
         the number of nodes in group r.
         """

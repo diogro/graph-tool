@@ -121,7 +121,7 @@ class LayeredBlockState(BlockState):
     def _repr_extra(self):
         return f" with {pl(self._state.get_C(), ('independent' if self.independent else 'conditioned') + ' layer')},"
 
-    def get_nonempty_B(self):
+    def get_B(self):
         r"Returns the total number of nonempty blocks."
         return self._state.get_B()
 
