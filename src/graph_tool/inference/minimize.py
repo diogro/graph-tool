@@ -274,13 +274,13 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
     if simple_init:
         for l, s in enumerate(state.levels):
             if l == 0:
-                B = max(s.get_N() / base_factor, B_min_base)
+                B = int(max(s.get_N() / base_factor, B_min_base))
             else:
-                B = s.get_N() / top_factor
+                B = int(s.get_N() / top_factor)
                 B = max(B, 1)
-                s.multilevel_mcmc_sweep(**dict(args, B_min=B,
-                                               force_accept=True,
-                                               fibonacci=False))
+            s.multilevel_mcmc_sweep(**dict(args, B_min=B,
+                                           force_accept=True,
+                                           fibonacci=False))
     else:
         l = 0
         while l >= 0:
