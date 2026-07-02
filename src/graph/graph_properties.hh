@@ -267,8 +267,6 @@ bool belongs(Sequence seq, const std::any& prop)
     return found;
 }
 
-std::tuple<std::string, std::string, bool> get_pmap_type(const std::any& prop);
-
 template <bool pmap, class Sequence>
 std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_type_names(Sequence seq)
 {
@@ -297,6 +295,21 @@ std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_typ
                    });
     return {key_names, type_names, has_unwritable};
 }
+
+//
+// Convert property maps
+// =====================
+
+#pragma GCC visibility push(default)
+
+std::any prop_map_as(std::any amap, std::any atgt, bool copy=false);
+std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
+std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
+std::any vprop_map_as_dvelem(std::any amap, std::any atgt);
+std::any eprop_map_as_dvelem(std::any amap, std::any atgt);
+std::tuple<std::string, std::string, bool> get_pmap_type(const std::any& prop);
+
+#pragma GCC visibility pop
 
 template <class Sequence>
 void check_belongs(Sequence seq, const std::any& prop, std::string name = "")
@@ -365,20 +378,6 @@ void check_pmap_is_convertible(ToSeq to_seq, const std::any& prop, std::string n
                              "' canot be converted to any of the types: " + tnames);
     }
 }
-
-//
-// Convert property maps
-// =====================
-
-#pragma GCC visibility push(default)
-
-std::any prop_map_as(std::any amap, std::any atgt, bool copy=false);
-std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
-std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
-std::any vprop_map_as_dvelem(std::any amap, std::any atgt);
-std::any eprop_map_as_dvelem(std::any amap, std::any atgt);
-
-#pragma GCC visibility pop
 
 //
 // Extra Property Map Types

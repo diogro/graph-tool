@@ -41,12 +41,14 @@ namespace boost
 //
 
 template <>
+__attribute__ ((visibility ("default")))
 std::string lexical_cast<std::string,uint8_t>(const uint8_t& val)
 {
     return lexical_cast<std::string>(int(val));
 }
 
 template <>
+__attribute__ ((visibility ("default")))
 uint8_t lexical_cast<uint8_t,std::string>(const std::string& val)
 {
     return uint8_t(lexical_cast<int>(val));
@@ -93,12 +95,14 @@ static int scan_float(const char* str, Val& val)
 
 
 template <>
+__attribute__ ((visibility ("default")))
 std::string lexical_cast<std::string,float>(const float& val)
 {
     return print_float(val);
 }
 
 template <>
+__attribute__ ((visibility ("default")))
 float lexical_cast<float,std::string>(const std::string& val)
 {
     float ret;
@@ -109,12 +113,14 @@ float lexical_cast<float,std::string>(const std::string& val)
 }
 
 template <>
+__attribute__ ((visibility ("default")))
 std::string lexical_cast<std::string,double>(const double& val)
 {
     return print_float(val);
 }
 
 template <>
+__attribute__ ((visibility ("default")))
 double lexical_cast<double,std::string>(const std::string& val)
 {
     double ret;
@@ -125,12 +131,14 @@ double lexical_cast<double,std::string>(const std::string& val)
 }
 
 template <>
+__attribute__ ((visibility ("default")))
 std::string lexical_cast<std::string,long double>(const long double& val)
 {
     return print_float(val);
 }
 
 template <>
+__attribute__ ((visibility ("default")))
 long double lexical_cast<long double,std::string>(const std::string& val)
 {
     long double ret;
