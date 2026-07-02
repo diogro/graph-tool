@@ -47,16 +47,18 @@ public:
     void init(IterItems&& iter_items)
     {
         size_t B = 0;
-        iter_items([&](size_t r, size_t w = 1)
+        iter_items([&](size_t r, auto...)
                    {
-                       if (r >= _count.size())
-                           _count.resize(std::max(r + 1, 2 * _count.size()));
                        B = std::max(r + 1, B);
-                       _count[r] += w;
-                       _N += w;
                    });
 
         _count.resize(B);
+
+        iter_items([&](size_t r, size_t w = 1)
+                   {
+                       _count[r] += w;
+                       _N += w;
+                   });
 
         for (auto n : _count)
         {

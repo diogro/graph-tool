@@ -50,6 +50,15 @@ public:
     template <class F>
     void init(F&& iter_items)
     {
+        group_t max_r = 0;
+        iter_items
+            ([&](auto&&, group_t r, auto...)
+             {
+                 max_r = std::max(max_r, r);
+             });
+
+        get_r(max_r);
+
         iter_items
             ([&](auto&& deg, group_t r, size_t w = 1)
              {
