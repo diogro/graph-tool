@@ -1284,7 +1284,7 @@ class WeightedBlockState(BlockState):
                 ws[i] = v
 
     def _repr_extra(self):
-        return f" with {pl(len(self.rec_types) - 1, "edge covariate")},"
+        return " with " + pl(len(self.rec_types) - 1, "edge covariate") + ","
 
     def _get_entropy_args(self, kwargs, consume=False):
         ea = BlockState._get_entropy_args(self, kwargs, consume)
