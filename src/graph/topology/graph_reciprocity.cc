@@ -20,44 +20,56 @@
 #include "graph_filtering.hh"
 #include "graph_selectors.hh"
 #include "graph_properties.hh"
+#include "idx_map.hh"
 
 using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-struct get_reciprocity
+template <class Graph, class Weight>
+double get_reciprocity(const Graph& g, Weight w, bool self_loops)
 {
-    template <class Graph, class Weight>
-    void operator()(const Graph& g, Weight w, double& reciprocity) const
-    {
-        typedef typename property_traits<Weight>::value_type val_t;
-        val_t L = 0, Lbd = 0;
+    typedef typename property_traits<Weight>::value_type wval_t;
+    typedef promote_value_t<wval_t> val_t;
+    val_t L = 0, Lbd = 0;
 
-        #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
-            reduction(+: L, Lbd)
-        parallel_edge_loop_no_spawn
-            (g,
-             [&](auto e)
+    idx_map<size_t, val_t> out_sum;
+
+    #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh()) \
+        reduction(+: L, Lbd) firstprivate(out_sum)
+    parallel_vertex_loop_no_spawn
+        (g,
+         [&](auto v)
+         {
+             for (auto e : out_edges_range(v, g))
              {
-                 auto we = w[e];
-                 auto v = source(e, g);
-                 auto t = target(e, g);
-                 for (auto er : out_edges_range(t, g))
+                 if (!self_loops && target(e, g) == v)
+                     continue;
+                 out_sum[target(e, g)] += w[e];
+             }
+
+             for (auto&& [u, w_u] : out_sum)
+             {
+                 val_t wr = 0;
+                 for (auto e : out_edges_range(u, g))
                  {
-                     auto u = target(er, g);
-                     if (u == v)
-                     {
-                         Lbd += std::min(w[er], we);
-                         break;
-                     }
+                     if (target(e, g) == v)
+                         wr += w[e];
                  }
-                 L += we;
-             });
-        reciprocity = Lbd / double(L);
-    }
+                 Lbd += std::min(wr, w_u);
+                 L += w_u;
+             }
+
+             out_sum.clear();
+         });
+
+    if constexpr (std::is_floating_point_v<val_t>)
+        return Lbd / L;
+    else
+        return Lbd / double(L);
 };
 
-double reciprocity(GraphInterface& gi, std::any aw)
+double reciprocity(GraphInterface& gi, std::any aw, bool self_loops)
 {
     typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     auto weight_props_t = hana::append(scalar_edge_properties,
@@ -66,15 +78,13 @@ double reciprocity(GraphInterface& gi, std::any aw)
     if (!aw.has_value())
         aw = weight_map_t();
 
-    double reciprocity;
-    run_action<>()
-        (gi,
-         [&](auto&& graph, auto w)
-         {
-             return get_reciprocity()
-                 (std::forward<decltype(graph)>(graph), w, reciprocity);
-         }, weight_props_t)(aw);
-    return reciprocity;
+    double ret = 0;
+    run_action<>()(gi,
+                   [&](auto& g, auto w)
+                   {
+                       ret = get_reciprocity(g, w, self_loops);
+                   }, weight_props_t)(aw);
+    return ret;
 }
 
 #include <boost/python.hpp>

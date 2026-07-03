@@ -823,6 +823,20 @@ auto make_adhoc_prop(F&& f)
     return AdHocProp<Key, F>(f);
 }
 
+// Type promotion
+
+template <class T>
+struct promote_value
+{
+    typedef std::conditional_t<std::is_floating_point_v<T>,
+                               decltype(T{} * double{}),
+                               std::conditional_t<std::is_integral_v<T>,
+                                                  decltype(T{} * int32_t{}),
+                                                  T>> type;
+};
+
+template <class T>
+using promote_value_t = promote_value<T>::type;
 
 } // graph_tool namespace
 

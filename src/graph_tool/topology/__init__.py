@@ -3240,7 +3240,7 @@ def max_independent_vertex_set(g, high_deg=False, mivs=None):
 
 
 @_parallel
-def edge_reciprocity(g, weight=None):
+def edge_reciprocity(g, weight=None, self_loops=False):
     r"""Calculate the edge reciprocity of the graph.
 
     Parameters
@@ -3250,6 +3250,8 @@ def edge_reciprocity(g, weight=None):
         edges.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights.
+    self_loops : ``bool`` (optional, default: ``False``)
+        Whether self-loops should be considered.
 
     Returns
     -------
@@ -3261,7 +3263,8 @@ def edge_reciprocity(g, weight=None):
 
     The edge [reciprocity]_ is defined as :math:`E^\leftrightarrow/E`, where
     :math:`E^\leftrightarrow` and :math:`E` are the number of bidirectional and
-    all edges in the graph, respectively.
+    all edges in the graph, respectively. If ``self_loops is False``, self-loops
+    are not considered in these counds.
 
     If weights are provided, the number of edges is replaced by the sum of edge
     weights.
@@ -3299,12 +3302,9 @@ def edge_reciprocity(g, weight=None):
 
     """
 
-    if weight is None:
-        ew = libcore.any()
-    else:
+    if weight is not None:
         _check_prop_scalar(weight, name="eweight")
-        ew = _prop("e", g, weight)
-    r = libgraph_tool_topology.reciprocity(g._Graph__graph, ew)
+    r = libgraph_tool_topology.reciprocity(g, weight, self_loops)
     return r
 
 
