@@ -122,8 +122,6 @@ class UncertainBaseState(EntropyState):
 
         self.max_m = max_m
 
-        init_q_cache()
-
     def __getstate__(self):
         state = EntropyState.__getstate__(self)
         return dict(state, nested=self.nbstate is not None,

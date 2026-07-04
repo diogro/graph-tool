@@ -138,5 +138,25 @@ double log_q_approx(size_t n, size_t k)
     return lf - log(n) + sqrt(n) * g;
 }
 
-
 } // namespace graph_tool
+
+#include <boost/python.hpp>
+
+#define __MOD__ inference
+#include "module_registry.hh"
+REGISTER_MOD
+([]
+{
+    using namespace graph_tool;
+    using namespace boost::python;
+    def("init_q_cache", init_q_cache);
+    def("clear_q_cache", clear_q_cache);
+    def("log_q", log_q<size_t,size_t>);
+    def("q_rec", q_rec);
+    def("q_rec_memo", q_rec_memo);
+    def("log_q_approx", log_q_approx);
+    def("log_q_approx_big", log_q_approx_big);
+    def("log_q_approx_small", log_q_approx_small);
+    def("spence", spence);
+}, -1);
+

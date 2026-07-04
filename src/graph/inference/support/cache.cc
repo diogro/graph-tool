@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include "graph_tool.hh"
 #include "cache.hh"
 
 namespace graph_tool
 {
-
 
 std::vector<double> __safelog_cache;
 std::vector<double> __xlogx_cache;
@@ -41,3 +41,21 @@ void clear_lgamma()
 }
 
 } // namespace graph_tool
+
+#define __MOD__ inference
+#include "module_registry.hh"
+REGISTER_MOD
+([]
+{
+    using namespace graph_tool;
+    using namespace boost::python;
+    def("lgamma_fast", lgamma_fast<size_t>);
+    def("init_lgamma_fast", init_lgamma_fast<size_t>);
+    def("safelog_fast", safelog_fast<size_t>);
+    def("init_safelog_fast", init_safelog_fast<size_t>);
+    def("xlogx_fast", xlogx_fast<size_t>);
+    def("init_xlogx_fast", init_xlogx_fast<size_t>);
+    def("clear_safelog", clear_safelog);
+    def("clear_xlogx", clear_xlogx);
+    def("clear_lgamma", clear_lgamma);
+}, -1);

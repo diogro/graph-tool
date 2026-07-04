@@ -43,12 +43,6 @@ dl_import("from . import libgraph_tool_inference as libinference")
 
 from . libgraph_tool_inference import PartitionHist, BlockPairHist
 
-_q_cache_max_n = 10000
-def init_q_cache(max_n=None):
-    if max_n is None:
-        max_n = _q_cache_max_n
-    libinference.init_q_cache(min((_q_cache_max_n, max_n)))
-
 @entropy_state_signature
 class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                  GibbsMCMCState, ExhaustiveSweepState, DrawBlockState):

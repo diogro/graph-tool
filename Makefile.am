@@ -408,7 +408,6 @@ libgraph_tool_inference_la_LIBADD = $(MOD_LIBADD) libgraph_tool_inference_fast.l
 libgraph_tool_inference_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_inference_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_inference_la_SOURCES = \
-	src/graph/inference/blockmodel/state.cc \
 	src/graph/inference/blockmodel/em.cc \
 	src/graph/inference/blockmodel/exhaustive.cc \
 	src/graph/inference/blockmodel/gibbs.cc \

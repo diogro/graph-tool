@@ -154,12 +154,6 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     def("lbinom", lbinom<size_t, size_t>);
     def("lbinom_fast", lbinom_fast<size_t, size_t>);
     def("lbinom_careful", lbinom_careful<double, double>);
-    def("lgamma_fast", lgamma_fast<size_t>);
-    def("init_lgamma_fast", init_lgamma_fast<size_t>);
-    def("safelog_fast", safelog_fast<size_t>);
-    def("init_safelog_fast", init_safelog_fast<size_t>);
-    def("xlogx_fast", xlogx_fast<size_t>);
-    def("init_xlogx_fast", init_xlogx_fast<size_t>);
     def("log_sum_exp", +[](double x, double y){ return log_sum_exp(x, y); });
 
     auto fib_export = [&](auto val)
