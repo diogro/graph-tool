@@ -258,6 +258,16 @@ auto total_degree(auto v, const auto& g)
     return total_degreeS()(v, g);
 }
 
+auto in_or_out_degree(auto v, const auto& g, auto&&... w)
+{
+    if constexpr (std::is_convertible_v
+                  <typename boost::graph_traits<std::decay_t<decltype(g)>>::directed_category,
+                  boost::directed_tag>)
+        return in_degree(v, g, w...);
+    else
+        return out_degree(v, g, w...);
+}
+
 template <class PropertyMap>
 struct scalarS
 {
