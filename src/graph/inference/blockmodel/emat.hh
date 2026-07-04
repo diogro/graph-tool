@@ -18,8 +18,11 @@
 #ifndef GRAPH_BLOCKMODEL_EMAT_HH
 #define GRAPH_BLOCKMODEL_EMAT_HH
 
-#include <boost/multi_array.hpp>
 #include "hash_map_wrap.hh"
+
+#include <flat_map>
+#include <boost/multi_array.hpp>
+#include <boost/unordered/concurrent_flat_map.hpp>
 
 namespace graph_tool
 {
@@ -98,7 +101,7 @@ const typename EMat<BGraph>::edge_t EMat<BGraph>::_null_edge;
 // we're using an adjacency list to store the block structure (this is like
 // EMat above, but takes less space and is slower)
 
-template <class BGraph>
+template <class BGraph, bool flat=false>
 class EHash
 {
 public:
@@ -126,13 +129,26 @@ public:
     void add_group(BGraph& bg)
     {
         if (num_vertices(bg) > _h.size())
-            _h.resize(num_vertices(bg));
+        {
+            if constexpr (flat)
+            {
+                _h.resize(num_vertices(bg));
+            }
+            else
+            {
+                size_t r_init = _h.size();
+                _h.resize(num_vertices(bg));
+                #pragma omp parallel for if (_h.size() - r_init > 10000)
+                for (size_t r = r_init; r < _h.size(); ++r)
+                    _h[r].reserve(out_degree(r, bg));
+            }
+        }
     }
 
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
 
-    const edge_t& get_me(vertex_t r, vertex_t s) const
+    edge_t get_me(group_t r, group_t s) const
     {
         if (!is_directed_v<BGraph> && r > s)
             std::swap(r, s);
@@ -143,7 +159,7 @@ public:
         return iter->second;
     }
 
-    void put_me(vertex_t r, vertex_t s, const edge_t& e)
+    void put_me(group_t r, group_t s, const edge_t& e)
     {
         assert(e != _null_edge);
         if (!is_directed_v<BGraph> && r > s)
@@ -162,7 +178,7 @@ public:
         hr.erase(s);
         if (hr.empty())
         {
-            gt_hash_map<group_t, edge_t> empty;
+            map_t empty;
             hr.swap(empty);
         }
     }
@@ -170,12 +186,79 @@ public:
     const edge_t& get_null_edge() const { return _null_edge; }
 
 private:
-    std::vector<gt_hash_map<group_t, edge_t>> _h;
+    typedef std::conditional_t<flat, std::flat_map<group_t, edge_t>,
+                               gt_hash_map<group_t, edge_t>> map_t;
+    std::vector<map_t> _h;
+    static const edge_t _null_edge;
+};
+
+template <class BGraph, bool flat>
+const typename EHash<BGraph, flat>::edge_t EHash<BGraph, flat>::_null_edge;
+
+template <class BGraph>
+class EUHash
+{
+public:
+    typedef BlockStateSpec::group_t group_t;
+
+    EUHash() {}
+
+    EUHash(BGraph& bg)
+    {
+        sync(bg);
+    }
+
+    void sync(BGraph& bg)
+    {
+        _h.clear();
+        for (auto e : edges_range(bg))
+            put_me(source(e, bg), target(e, bg), e);
+    }
+
+    void add_group(BGraph& bg)
+    {
+        std::println("{}", _h.max_load_factor());
+        _h.reserve(num_edges(bg));
+    }
+
+    typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
+    typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
+
+    edge_t get_me(group_t r, group_t s) const
+    {
+        if (!is_directed_v<BGraph> && r > s)
+            std::swap(r, s);
+        edge_t e = _null_edge;
+        _h.visit({r, s}, [&](auto&& x){ e = x.second; });
+        return e;
+    }
+
+    void put_me(group_t r, group_t s, const edge_t& e)
+    {
+        if (!is_directed_v<BGraph> && r > s)
+            std::swap(r, s);
+        _h.emplace_or_visit(std::make_tuple(r, s), e,
+                            [&](auto&& x) { x.second = e; });
+    }
+
+    void remove_me(const edge_t& me, BGraph& bg)
+    {
+        auto r = source(me, bg);
+        auto s = target(me, bg);
+        if (!is_directed_v<BGraph> && r > s)
+            std::swap(r, s);
+        _h.erase({r, s});
+    }
+
+    const edge_t& get_null_edge() const { return _null_edge; }
+
+private:
+    boost::concurrent_flat_map<std::tuple<group_t, group_t>, edge_t> _h;
     static const edge_t _null_edge;
 };
 
 template <class BGraph>
-const typename EHash<BGraph>::edge_t EHash<BGraph>::_null_edge;
+const typename EUHash<BGraph>::edge_t EUHash<BGraph>::_null_edge;
 
 } // namespace graph_tool
 

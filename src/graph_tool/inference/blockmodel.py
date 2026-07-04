@@ -76,18 +76,19 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
-    dense_bg : ``bool`` (optional, default: ``False``)
-        If ``True`` a dense matrix is used for the block graph, otherwise a
-        sparse matrix will be used.
+    flat_map : ``bool`` (optional, default: ``False``)
+        If ``True``, flat maps will be used instead of hash tables, which will
+        be slower, but will use less memory.
     entropy_args: ``keyword parameters`` (optional, default: ``empty``)
         Override default arguments for :meth:`~BlockState.entropy()` method and
         releated operations.
+
     """
 
     @kwargs_wrap
     def __init__(self, g, b=None, B=None, eweight=None, vweight=None,
                  clabel=None, pclabel=None, bfield=None, Bfield=None,
-                 deg_corr=True, dense_bg=False, entropy_args={}, **kwargs):
+                 deg_corr=True, flat_map=False, entropy_args={}, **kwargs):
 
         if hasattr(self, "g"):
             return
@@ -170,8 +171,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         self.bclabel = self.bg.new_vp("int64_t")
         self.hclabel = self.bg.new_vp("int64_t")
 
-        self.dense_bg = dense_bg
-        self.use_hash = not self.dense_bg
+        self.flat_map = flat_map
 
         self.bfield = g.new_vp("vector<double>") if bfield is None else bfield
         if Bfield is None:

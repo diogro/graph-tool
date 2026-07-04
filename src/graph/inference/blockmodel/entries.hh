@@ -193,7 +193,7 @@ public:
     }
 
     template <class Emat>
-    const bedge_t& get_me(group_t r, group_t s, Emat& emat) const
+    bedge_t get_me(group_t r, group_t s, Emat& emat) const
     {
         size_t field = cget_field(r, s);
         if (field >= _mes.size())

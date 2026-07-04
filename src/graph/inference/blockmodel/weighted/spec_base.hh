@@ -93,6 +93,8 @@ template <class Base = BlockStateSpec, size_t WN = WVEC_N>
 struct WeightedBlockStateSpec
     : public Base
 {
+    typedef decltype(hana::tuple_t<std::false_type>) flat_map_tr;
+
     typedef typename Base::count_t count_t;
     typedef typename Base::group_t group_t;
     static constexpr group_t null_group = std::numeric_limits<group_t>::max();

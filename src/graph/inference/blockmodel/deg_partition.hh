@@ -28,6 +28,7 @@
 #include <mutex>
 #include <vector>
 #include <ranges>
+#include <flat_map>
 
 namespace graph_tool
 {
@@ -38,7 +39,7 @@ enum class deg_dl_kind
     DIST
 };
 
-template <bool directed, class Deg, class Group>
+template <bool directed, class Deg, class Group, bool flat=false>
 class DegStats
 {
 public:
@@ -83,11 +84,13 @@ public:
         if (size_t(r) >= _hist_out.size())
         {
             if constexpr (directed)
+            {
                 _hist_in.resize(r + 1);
+                _em.resize(r + 1);
+            }
             _hist_out.resize(r + 1);
             _total.resize(r + 1);
             _ep.resize(r + 1);
-            _em.resize(r + 1);
         }
         return r;
     }
@@ -148,11 +151,11 @@ public:
                     continue;
                 if constexpr (directed)
                 {
-                    for (auto& k_c : get_hist<false>(r))
+                    for (auto&& k_c : get_hist<false>(r))
                         S -= lgamma_fast(k_c.second + 1);
                 }
 
-                for (auto& k_c : get_hist<true>(r))
+                for (auto&& k_c : get_hist<true>(r))
                     S -= lgamma_fast(k_c.second + 1);
             }
             else
@@ -259,7 +262,7 @@ public:
         if (s == t || _total[s] == 0 || _total[t] == 0)
             return 0;
 
-        auto zcount = [](auto& kc) { return std::make_tuple(get<0>(kc), 0); };
+        auto zcount = [](auto&& kc) { return std::make_tuple(get<0>(kc), 0); };
 
         double S_b = 0;
         if constexpr (directed)
@@ -341,13 +344,13 @@ public:
 
         if constexpr (directed)
         {
-            for (auto& [k, c] : _hist_in[s])
+            for (auto&& [k, c] : _hist_in[s])
                 _hist_in[t][k] += c;
             map_t empty;
             _hist_in[s].swap(empty);
         }
 
-        for (auto& [k, c] : _hist_out[s])
+        for (auto&& [k, c] : _hist_out[s])
             _hist_out[t][k] += c;
 
         map_t empty;
@@ -369,21 +372,25 @@ public:
         if (n == 1)
         {
             if constexpr (directed)
+            {
                 _hist_in.emplace_back();
+                _em.emplace_back();
+            }
             _hist_out.emplace_back();
             _total.emplace_back();
             _ep.emplace_back();
-            _em.emplace_back();
         }
         else
         {
             size_t nB = _total.size() + n;
             if constexpr (directed)
+            {
                 _hist_in.resize(nB);
+                _em.resize(nB);
+            }
             _hist_out.resize(nB);
             _total.resize(nB);
             _ep.resize(nB);
-            _em.resize(nB);
         }
     }
 
@@ -391,7 +398,9 @@ public:
     static constexpr deg_t null_deg = std::numeric_limits<deg_t>::max();
 
 private:
-    typedef gt_hash_map<deg_t, int64_t> map_t;
+    typedef std::conditional_t<flat,
+                               std::flat_map<deg_t, int64_t>,
+                               gt_hash_map<deg_t, int64_t>> map_t;
     std::vector<map_t> _hist_in, _hist_out;
     std::vector<deg_t> _total;
     std::vector<deg_t> _ep;

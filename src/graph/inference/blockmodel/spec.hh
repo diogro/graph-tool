@@ -54,7 +54,7 @@
 namespace graph_tool
 {
 
-template <bool directed, class Deg, class Group>
+template <bool directed, class Deg, class Group, bool>
 class DegStats;
 
 struct BlockStateSpec
@@ -78,6 +78,8 @@ struct BlockStateSpec
 
     constexpr inline static auto get_bg_type = hana::tuple_t<get_bg_t>;
     typedef decltype(get_bg_type) bg_tr;
+
+    typedef decltype(hana::tuple_t<std::true_type, std::false_type>) flat_map_tr;
 
     typedef int64_t count_t;
     typedef int64_t group_t;
@@ -126,7 +128,8 @@ struct BlockStateSpec
 
         typedef DegStats<is_directed_v<typename State::g_t>,
                          typename deg_t<State>::type,
-                         typename State::group_t> type;
+                         typename State::group_t,
+                         State::flat_map_t::value> type;
     };
 
     template <class State>

@@ -61,12 +61,10 @@ namespace STATE_NAME
 
 using namespace boost;
 
-typedef decltype(hana::tuple_t<std::true_type>) hbool_tr;
-
 #define BLOCK_MODEL_params_base                                                \
     ((g, STATE_SPEC::g_tr, 1))                                                 \
     ((bg, STATE_SPEC::bg_tr, 1))                                               \
-    ((use_hash, hbool_tr, 1))                                                  \
+    ((flat_map, STATE_SPEC::flat_map_tr, 1))                                   \
     ((eweight, STATE_SPEC::wmap_tr, 1))                                        \
     ((mrs, STATE_SPEC::bwmap_tr, 1))                                           \
     ((mrp, STATE_SPEC::mrp_tr, 1))                                             \
@@ -2002,7 +2000,7 @@ public:
             }
         }
 
-        auto& me = _emat.get_me(r, s);
+        auto me = _emat.get_me(r, s);
         weight_t mrs{};
         if (me != _emat.get_null_edge())
             mrs = _mrs[me];
@@ -2410,9 +2408,7 @@ public:
     typedef spec_t::vprop_t<std::tuple<deg_t, deg_t>> degs_map_t;
     typename degs_map_t::unchecked_t _degs;
 
-    typedef typename std::conditional<use_hash_t::value,
-                                      EHash<bg_t>,
-                                      EMat<bg_t>>::type emat_t;
+    typedef EHash<bg_t, flat_map_t::value> emat_t;
     emat_t _emat;
 
     std::unique_ptr<EGroups> _egroups;
