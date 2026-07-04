@@ -270,7 +270,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                                      b=b,
                                      deg_corr=False,
                                      clabel=self.bclabel.copy() if not final else None,
-                                     pclabel=self.get_bpclabel() if not final else None),
+                                     pclabel=self.get_bpclabel() if not final else None,
+                                     flat_map=self.flat_map),
                                 **kwargs))
         state.update_entropy_args(dense=True, edges_dl=final)
         if couple:
