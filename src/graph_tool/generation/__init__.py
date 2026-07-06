@@ -3532,6 +3532,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, aprops=None,
         return gp, vcount, ecount
 
 
+@_parallel
 def contract_parallel_edges(g, weight=None):
     r"""Contract all parallel edges into simple edges, keeping track of their
     multiplicities.
