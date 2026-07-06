@@ -209,7 +209,7 @@ struct RankedBlockStateSpec
                         r = i;
                 }
 
-                _ed.resize(num_vertices(_state._g));
+                _ed.resize(std::max(num_vertices(_state._g), size_t(_M+1)));
 
                 for (auto e : edges_range(_state._bg))
                 {
@@ -234,6 +234,9 @@ struct RankedBlockStateSpec
 
                     if (d == 0)
                         continue;
+
+                    if (std::cmp_greater_equal(d, _ed.size()))
+                        _ed.resize(d + 1);
 
                     get<0>(_ed[d]) += get_edp(ers, mrs);
                     get<1>(_ed[d]) += get_edm(ers, mrs);
