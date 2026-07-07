@@ -50,7 +50,7 @@ struct vlist_t
     ((dB_epsilon, double, 0))                                                  \
     ((bisection, bool, 0))                                                     \
     ((refine, bool, 0))                                                        \
-    ((random_bisect, bool, 0))                                                 \
+    ((random_bisection, bool, 0))                                              \
     ((merge_sweeps, size_t, 0))                                                \
     ((mh_sweeps, size_t, 0))                                                   \
     ((sample_group_thres, size_t, 0))                                          \
@@ -1417,7 +1417,7 @@ struct Multilevel:
         }
 
         BisectionSearch<size_t> fb;
-        if (State::_random_bisect)
+        if (State::_random_bisection)
             fb.search(B_min, B_mid, B_max, get_S, 0, 0, rng);
         else
             fb.search(B_min, B_mid, B_max, get_S);
@@ -1425,7 +1425,7 @@ struct Multilevel:
         // add midpoint
         if (!std::isinf(_beta))
         {
-            size_t Br = (State::_random_bisect ?
+            size_t Br = (State::_random_bisection ?
                          fb.get_mid(B_min_init, B_max_init, rng) :
                          fb.get_mid(B_min_init, B_max_init));
             get_S(Br, false);
