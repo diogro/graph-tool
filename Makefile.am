@@ -40,6 +40,7 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/demos/inference/_assortative.md \
 	doc/demos/inference/_background.md \
 	doc/demos/inference/_edge_weights.md \
+	doc/demos/inference/_large_networks.md \
 	doc/demos/inference/_layers.md \
 	doc/demos/inference/_minimization.md \
 	doc/demos/inference/_model_class_selection.md \

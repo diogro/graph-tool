@@ -5,8 +5,7 @@ network by maximizing Eq. {eq}`model-posterior` according to some version of the
 model. This is obtained via the functions
 {func}`~graph_tool.inference.minimize_blockmodel_dl` or
 {func}`~graph_tool.inference.minimize_nested_blockmodel_dl`, which employs an
-agglomerative multilevel [Markov chain Monte Carlo
-(MCMC)](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) algorithm
+agglomerative multilevel minimization algorithm
 {cite}`inf-peixoto_efficient_2014`.
 
 We focus first on the non-nested model, and we illustrate its use with a
@@ -54,6 +53,9 @@ Eq. {eq}`model-posterior`, or equivalently, the minimum description
 length of Eq. {eq}`model-dl`. The description length of a fit can be
 obtained with the {meth}`~graph_tool.inference.BlockState.entropy`
 method. See also Sec. {ref}`sec_model_selection` below.
+
+Also, when dealing with very large networks, some optimizations are usually
+possible. See section {ref}`large_networks`.
 :::
 
 We may perform a drawing of the partition obtained via the
