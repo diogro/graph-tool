@@ -83,3 +83,8 @@ div.admonition p.admonition-title ~ * {
 .version-switcher__container {
     text-align: center;
 }
+
+.bd-sidebar-primary .navbar-icon-links {
+  justify-content: center !important;
+}
+
