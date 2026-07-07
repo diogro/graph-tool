@@ -611,6 +611,8 @@ class MultilevelMCMCState(EntropyState):
         the number of edges and :math:`N` is the number of nodes (independently of
         the number of groups).
 
+        @parallel@
+
         References
         ----------
         .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and

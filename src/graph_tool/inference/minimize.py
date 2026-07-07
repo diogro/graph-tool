@@ -22,7 +22,9 @@ import numpy
 from . util import *
 from . blockmodel import *
 from . nested_blockmodel import *
+from .. decorators import _parallel
 
+@_parallel
 def minimize_blockmodel_dl(g, state=BlockState, state_args={},
                            multilevel_mcmc_args={}, refine=True,
                            epsilon=0.001):
@@ -62,6 +64,8 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
 
     This algorithm has a complexity of :math:`O(V \ln^2 V)`, where :math:`V` is
     the number of nodes in the network.
+
+    @parallel@
 
     Examples
     --------
@@ -145,6 +149,7 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
 
     return state
 
+@_parallel
 def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
                                   base_state=BlockState, state_args={},
                                   base_state_args={}, multilevel_mcmc_args={},
@@ -209,6 +214,8 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
 
     This algorithm has a complexity of :math:`O(E \ln^2 V)`, where :math:`E` and
     :math:`V` are the number of edges and nodes in the network, respectively.
+
+    @parallel@
 
     Examples
     --------

@@ -92,7 +92,6 @@ def _operator(f):
     f.__doc__ = f.__doc__.replace("@operator@", text)
     return f
 
-@_parallel
 @_operator
 def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
     r"""Return the adjacency matrix of the graph.
@@ -276,7 +275,6 @@ class AdjacencyOperator(scipy.sparse.linalg.LinearOperator):
             return self
 
 @_limit_args({"deg": ["total", "in", "out"]})
-@_parallel
 @_operator
 def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=False,
               csr=True):
@@ -555,7 +553,6 @@ class LaplacianOperator(scipy.sparse.linalg.LinearOperator):
             return self
 
 
-@_parallel
 @_operator
 def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
     r"""Return the incidence matrix of the graph.
@@ -749,7 +746,6 @@ class IncidenceOperator(scipy.sparse.linalg.LinearOperator):
         return IncidenceOperator(self.g, vindex=self.vindex, eindex=self.eindex,
                                  transpose=not self.transpose)
 
-@_parallel
 @_operator
 def transition(g, weight=None, vindex=None, operator=False, csr=True):
     r"""Return the transition matrix of the graph.
@@ -932,7 +928,6 @@ class TransitionOperator(scipy.sparse.linalg.LinearOperator):
                                   vindex=self.vindex)
 
 
-@_parallel
 @_operator
 def modularity_matrix(g, weight=None, vindex=None):
     r"""Return the modularity matrix of the graph.
@@ -1037,7 +1032,6 @@ def modularity_matrix(g, weight=None, vindex=None):
 
     return B
 
-@_parallel
 @_operator
 def hashimoto(g, index=None, compact=False, operator=False, csr=True):
     r"""Return the Hashimoto (or non-backtracking) matrix of a graph.

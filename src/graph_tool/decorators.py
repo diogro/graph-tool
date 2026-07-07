@@ -24,6 +24,7 @@ Some useful decorators
 import inspect
 import functools
 import types
+import re
 
 ################################################################################
 # Decorators
@@ -116,13 +117,17 @@ def _parallel(f):
     algorithms <parallel_algorithms>` section for information about how to
     control several aspects of parallelization.
     """
+    found = False
     lines = f.__doc__.split("\n")
     f.__doc__ = ""
-    for line in lines:
-        if "@parallel@" in line:
-            indent = line.replace("@parallel@", "")
+    for i, line in enumerate(lines):
+        if "@parallel@" in line or (not found and i == len(lines) - 1):
+            indent = re.search(' *', line).group()
+            if "@parallel@" not in line:
+                f.__doc__ += line + "\n\n"
             for l in text.split("\n"):
                 f.__doc__ += indent + l + "\n"
+            found = True
         else:
             f.__doc__ += line + "\n"
     return f

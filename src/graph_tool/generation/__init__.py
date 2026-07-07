@@ -3558,6 +3558,8 @@ def contract_parallel_edges(g, weight=None):
     This algorithm runs in time :math:`O(N + E)` where :math:`N` and :math:`E`
     are the number of vertices and edges in the graph, respectively.
 
+    @parallel@
+
     Examples
     --------
 
@@ -3609,6 +3611,8 @@ def expand_parallel_edges(g, weight):
 
     This algorithm runs in time :math:`O(N + E)` where :math:`N` is the number
     of vertices and :math:`E` is the final number of edges in the graph.
+
+    @parallel@
 
     Examples
     --------
