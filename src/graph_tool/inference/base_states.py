@@ -497,17 +497,17 @@ class MultilevelMCMCState(EntropyState):
     @mcmc_sweep_wrap
     @_parallel
     def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, bisection=True,
-                              refine=False, c=.5, d=0.01, r=0.9, dB_epsilon=.01,
-                              random_bisect=True, merge_sweeps=10, mh_sweeps=10,
-                              init_r=0.99, init_min_iter=8,
+                              random_bisection=True, refine=False, c=.5, d=0.01,
+                              r=0.9, dB_epsilon=.01, merge_sweeps=10,
+                              mh_sweeps=10, init_r=0.99, init_min_iter=8,
                               init_min_iter_beta=4, init_beta=1., gibbs=False,
                               B_min=1, B_max=numpy.iinfo(numpy.uint64).max,
                               b_min=None, b_max=None, M=None,
                               sample_group_thres=1000, cache_states=True,
                               force_accept=False, parallel=True,
                               parallel_thres=1000, parallel_merge=True,
-                              vertices=None,
-                              entropy_args={}, verbose=False, **kwargs):
+                              vertices=None, entropy_args={}, verbose=False,
+                              **kwargs):
         r"""Perform ``niter`` sweeps of a multilevel agglomerative
         acceptance-rejection pseudo-MCMC (i.e. detailed balance is not
         preserved) to sample network partitions, that uses a bisection search on
@@ -520,6 +520,16 @@ class MultilevelMCMCState(EntropyState):
             made for each node, on average.
         beta : ``float`` (optional, default: :const:`numpy.inf`)
             Inverse temperature.
+        bisection : ``bool`` (optional, default: ``True``)
+            If ``True``, the algorithm will perform a bisection search over the
+            number of groups. Otherwise, a simpler agglomerative approach will
+            be used instead.
+        random_bisection : ``bool`` (optional, default: ``True``)
+            If ``True``, bisections are done at intervals chosen uniformly at
+            random. Otherwise a Fibonacci sequence is used.
+        refine : ``bool`` (optional, default: ``True``)
+            If ``True``, a strictly agglomerative run will be appended to the
+            end of the algorithm.
         c : ``float`` (optional, default: ``.5``)
             Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
             blocks are sampled according to the local neighborhood of a given
@@ -532,9 +542,6 @@ class MultilevelMCMCState(EntropyState):
         r : ``float`` (optional, default: ``0.9``)
             Group shrink ratio. The number of groups is reduced by this fraction
             at each merge sweep.
-        random_bisect : ``bool`` (optional, default: ``True``)
-            If ``True``, bisections are done at intervals chosen uniformly at
-            random. Otherwise a Fibonacci sequence is used.
         merge_sweeps : ``int`` (optional, default: ``10``)
             Number of sweeps spent to find good merge proposals.
         mh_sweeps : ``int`` (optional, default: ``10``)
