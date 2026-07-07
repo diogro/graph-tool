@@ -23,7 +23,7 @@
 #include "random.hh"
 
 #include "support/util.hh"
-#include "support/fibonacci_search.hh"
+#include "support/bisection_search.hh"
 
 using namespace std;
 using namespace boost;
@@ -159,11 +159,11 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     auto fib_export = [&](auto val)
         {
             typedef decltype(val) val_t;
-            typedef FibonacciSearch<val_t> FibonacciSearch;
-            auto name = std::string("FibonacciSearch") + (std::is_integral_v<val_t> ? "Int" : "Real");
-            class_<FibonacciSearch>(name.c_str())
+            typedef BisectionSearch<val_t> BisectionSearch;
+            auto name = std::string("BisectionSearch") + (std::is_integral_v<val_t> ? "Int" : "Real");
+            class_<BisectionSearch>(name.c_str())
                 .def("search",
-                     +[](FibonacciSearch& s, val_t x_min, val_t x_max, python::object f,
+                     +[](BisectionSearch& s, val_t x_min, val_t x_max, python::object f,
                          size_t bits, val_t tol)
                       {
                           return s.search(x_min, x_max,
@@ -173,7 +173,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
                                           }, bits, tol);
                       })
                 .def("search_random",
-                     +[](FibonacciSearch& s, val_t x_min, val_t x_max,
+                     +[](BisectionSearch& s, val_t x_min, val_t x_max,
                          python::object f, size_t bits, val_t tol, rng_t& rng)
                       {
                           return s.search(x_min, x_max,

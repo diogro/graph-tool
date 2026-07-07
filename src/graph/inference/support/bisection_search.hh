@@ -27,14 +27,14 @@ namespace graph_tool
 {
 
 template <class Value>
-class FibonacciSearch
+class BisectionSearch
 {
 public:
 
     constexpr static bool _discrete = std::is_integral_v<Value>;
     constexpr static double _epsilon = 1e-8;
 
-    FibonacciSearch() {}
+    BisectionSearch() {}
 
     template <class F, class... RNG>
     std::tuple<Value, double>
@@ -104,7 +104,7 @@ public:
                 break;
         }
 
-        // Fibonacci search
+        // Bisection search
         while (x_max - x_mid > md)
         {
             Value x;

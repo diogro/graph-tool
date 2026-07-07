@@ -26,7 +26,7 @@
 #include "graph_tool.hh"
 #include "../../support/graph_state.hh"
 #include "../../loops/mcmc_loop.hh"
-#include "../../support/fibonacci_search.hh"
+#include "../../support/bisection_search.hh"
 #include "samplers.hh"
 #include "dynamics.hh"
 #include "openmp.hh"

@@ -25,7 +25,7 @@
 #include "segment_sampler.hh"
 
 #include "util.hh"
-#include "fibonacci_search.hh"
+#include "bisection_search.hh"
 
 namespace graph_tool
 {
@@ -166,7 +166,7 @@ public:
     double bisect_fb(const std::vector<double>& vals, RNG&... rng)
     {
         _seg_sampler = SegmentSampler();
-        FibonacciSearch<size_t> fb;
+        BisectionSearch<size_t> fb;
         auto [i, dS] = fb.search(0, vals.size() - 1,
                                  [&](size_t i){ return f(vals[i]); },
                                  _args.maxiter, _args.tol, rng...);
@@ -177,7 +177,7 @@ public:
     double bisect_fb(Val x_min, Val x_max, RNG&... rng)
     {
         _seg_sampler = SegmentSampler();
-        FibonacciSearch<Val> fb;
+        BisectionSearch<Val> fb;
         auto [fx, dS] = fb.search(x_min, x_max,
                                   [&](Val x){ return f(x); },
                                   _args.maxiter, _args.tol, rng...);

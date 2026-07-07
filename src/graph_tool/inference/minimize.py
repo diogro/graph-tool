@@ -280,7 +280,7 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
                 B = max(B, 1)
             s.multilevel_mcmc_sweep(**dict(args, B_min=B,
                                            force_accept=True,
-                                           fibonacci=False))
+                                           bisection=False))
     else:
         l = 0
         while l >= 0:

@@ -25,7 +25,7 @@
 
 #include <boost/range/combine.hpp>
 #include "../../topology/graph_bipartite_weighted_matching.hh"
-#include "../support/fibonacci_search.hh"
+#include "../support/bisection_search.hh"
 #include "../support/contingency.hh"
 
 namespace graph_tool
@@ -932,7 +932,7 @@ struct Multilevel:
             put_cache(B_max, S);
         }
 
-        FibonacciSearch<size_t> fb;
+        BisectionSearch<size_t> fb;
         if (State::_random_bisect)
             fb.search(B_min, B_mid, B_max, get_S, 0, 0, rng);
         else

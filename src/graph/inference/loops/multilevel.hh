@@ -26,7 +26,7 @@
 
 #include <boost/range/combine.hpp>
 #include "../../topology/graph_bipartite_weighted_matching.hh"
-#include "../support/fibonacci_search.hh"
+#include "../support/bisection_search.hh"
 #include "../support/contingency.hh"
 #include "../support/util.hh"
 
@@ -48,7 +48,7 @@ struct vlist_t
     ((d, double, 0))                                                           \
     ((r, double, 0))                                                           \
     ((dB_epsilon, double, 0))                                                  \
-    ((fibonacci, bool, 0))                                                     \
+    ((bisection, bool, 0))                                                     \
     ((refine, bool, 0))                                                        \
     ((random_bisect, bool, 0))                                                 \
     ((merge_sweeps, size_t, 0))                                                \
@@ -236,7 +236,7 @@ struct Multilevel:
     VSet<Node> _nodes;
     GSMap _groups;
 
-    using State::_fibonacci;
+    using State::_bisection;
     using State::_refine;
     using State::_merge_sweeps;
     using State::_mh_sweeps;
@@ -1416,7 +1416,7 @@ struct Multilevel:
             put_cache(B_max, S);
         }
 
-        FibonacciSearch<size_t> fb;
+        BisectionSearch<size_t> fb;
         if (State::_random_bisect)
             fb.search(B_min, B_mid, B_max, get_S, 0, 0, rng);
         else
@@ -1542,7 +1542,7 @@ struct Multilevel:
                 _rlist.insert(r);
             nnr = _rs.size();
         }
-        else if (_fibonacci)
+        else if (_bisection)
         {
             push_b(_vs);
             _dS = stage_multilevel(_rs, _vs, rng);
@@ -1602,7 +1602,7 @@ struct Multilevel:
 
     void perform_move(const Node&, size_t)
     {
-        if (!_refine && _fibonacci)
+        if (!_refine && _bisection)
             pop_b();
     }
 

@@ -647,7 +647,7 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 	src/graph/inference/support/bisection_sampler.hh \
 	src/graph/inference/support/cache.hh \
 	src/graph/inference/support/contingency.hh \
-	src/graph/inference/support/fibonacci_search.hh \
+	src/graph/inference/support/bisection_search.hh \
 	src/graph/inference/support/graph_state.hh \
 	src/graph/inference/support/int_part.hh \
 	src/graph/inference/support/sample_util.hh \

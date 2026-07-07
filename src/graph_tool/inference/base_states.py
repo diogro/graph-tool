@@ -496,7 +496,7 @@ class MultilevelMCMCState(EntropyState):
 
     @mcmc_sweep_wrap
     @_parallel
-    def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, fibonacci=True,
+    def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, bisection=True,
                               refine=False, c=.5, d=0.01, r=0.9, dB_epsilon=.01,
                               random_bisect=True, merge_sweeps=10, mh_sweeps=10,
                               init_r=0.99, init_min_iter=8,
@@ -533,8 +533,8 @@ class MultilevelMCMCState(EntropyState):
             Group shrink ratio. The number of groups is reduced by this fraction
             at each merge sweep.
         random_bisect : ``bool`` (optional, default: ``True``)
-            If ``True``, bisections are done at randomly chosen
-            intervals. Otherwise a Fibonacci sequence is used.
+            If ``True``, bisections are done at intervals chosen uniformly at
+            random. Otherwise a Fibonacci sequence is used.
         merge_sweeps : ``int`` (optional, default: ``10``)
             Number of sweeps spent to find good merge proposals.
         mh_sweeps : ``int`` (optional, default: ``10``)

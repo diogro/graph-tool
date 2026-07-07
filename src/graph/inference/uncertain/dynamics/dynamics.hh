@@ -29,7 +29,7 @@
 #include "idx_map.hh"
 
 #include "../../support/graph_state.hh"
-#include "../../support/fibonacci_search.hh"
+#include "../../support/bisection_search.hh"
 #include "../../support/segment_sampler.hh"
 #include "../../support/bisection_sampler.hh"
 #include "../uncertain_util.hh"
