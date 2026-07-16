@@ -18,6 +18,8 @@
 #ifndef GRAPH_FILTERING_HH
 #define GRAPH_FILTERING_HH
 
+#pragma GCC visibility push(default)
+
 #include <boost/graph/graph_traits.hpp>
 #include <boost/iterator/iterator_traits.hpp>
 
@@ -33,8 +35,6 @@
 #include <type_traits>
 #include <iostream>
 #include <print>
-
-#pragma GCC visibility push(default)
 
 namespace graph_tool
 {

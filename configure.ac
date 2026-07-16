@@ -346,7 +346,7 @@ AC_SUBST(MOD_LIBADD)
 # MacOS needs different options
 AS_CASE([${host_os}],
     [darwin*], [
-        MOD_LDFLAGS="-module -dynamiclib"
+        MOD_LDFLAGS="-module -dynamiclib -Wl,-export_dynamic"
 ])
 AC_SUBST(MOD_LDFLAGS)
 
@@ -413,6 +413,7 @@ echo -e "$(color 3)OpenMP compiler flags:  $(color 4)${OPENMP_CXXFLAGS}$(reset)"
 echo -e "$(color 3)OpenMP LD flags:        $(color 4)${OPENMP_LDFLAGS}$(reset)"
 echo -e "$(color 3)MOD_CPPFLAGS:           $(color 4)${MOD_CPPFLAGS}$(reset)"
 echo -e "$(color 3)MOD_CXXFLAGS:           $(color 4)${MOD_CXXFLAGS}$(reset)"
+echo -e "$(color 3)MOD_LDFLAGS:            $(color 4)${MOD_LDFLAGS}$(reset)"
 echo -e "$(color 3)Extra CPPFLAGS:         $(color 4)${CPPFLAGS}$(reset)"
 echo -e "$(color 3)Extra CXXFLAGS:         $(color 4)${CXXFLAGS}$(reset)"
 echo -e "$(color 3)Extra LDFLAGS:          $(color 4)${LDFLAGS}$(reset)\n"

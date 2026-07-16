@@ -18,6 +18,8 @@
 #ifndef GRAPH_SELECTORS_HH
 #define GRAPH_SELECTORS_HH
 
+#pragma GCC visibility push(default)
+
 #include <utility>
 #include <type_traits>
 #include <any>
@@ -339,9 +341,7 @@ inline constexpr auto all_prop_selectors =
 
 
 // retrieves the appropriate degree selector
-#pragma GCC visibility push(default)
 std::any degree_selector(GraphInterface::deg_t deg);
-#pragma GCC visibility pop
 
 // helper types for in_edge_iteratorS
 
@@ -680,5 +680,7 @@ auto _all_edges_out_range(typename all_edges_iteratorS<Graph>::vertex_descriptor
 }
 
 } //namespace graph_tool
+
+#pragma GCC visibility pop
 
 #endif

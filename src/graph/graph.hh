@@ -19,6 +19,8 @@
 #define GRAPH_HH
 #include "config.h"
 
+#pragma GCC visibility push(default)
+
 // workaround for boost 1.76
 #include <iterator>
 namespace boost::detail
@@ -43,8 +45,6 @@ using std::iterator_traits;
 #include "graph_properties.hh"
 
 #include "openmp.hh"
-
-#pragma GCC visibility push(default)
 
 namespace graph_tool
 

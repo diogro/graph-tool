@@ -18,6 +18,8 @@
 #ifndef GRAPH_PROPERTIES_HH
 #define GRAPH_PROPERTIES_HH
 
+#pragma GCC visibility push(default)
+
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -300,16 +302,12 @@ std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_typ
 // Convert property maps
 // =====================
 
-#pragma GCC visibility push(default)
-
 std::any prop_map_as(std::any amap, std::any atgt, bool copy=false);
 std::any vprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
 std::any eprop_map_as_dynamic(std::any amap, std::any atgt, bool identity=true);
 std::any vprop_map_as_dvelem(std::any amap, std::any atgt);
 std::any eprop_map_as_dvelem(std::any amap, std::any atgt);
 std::tuple<std::string, std::string, bool> get_pmap_type(const std::any& prop);
-
-#pragma GCC visibility pop
 
 template <class Sequence>
 void check_belongs(Sequence seq, const std::any& prop, std::string name = "")
@@ -839,5 +837,7 @@ template <class T>
 using promote_value_t = promote_value<T>::type;
 
 } // graph_tool namespace
+
+#pragma GCC visibility pop
 
 #endif
