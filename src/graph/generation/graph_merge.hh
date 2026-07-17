@@ -61,22 +61,23 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
         for (auto v : vertices_range(g))
         {
             if (get(vmap, v) < 0)
+                continue;
+            auto w = vertex(get(vmap, v), ug);
+            if (w == graph_traits<UnionGraph>::null_vertex())
             {
                 put(vmap, v, add_vertex(ug));
             }
             else
             {
-                auto w = vertex(get(vmap, v), ug);
-                if (w == graph_traits<UnionGraph>::null_vertex())
-                {
-                    put(vmap, v, add_vertex(ug));
-                }
-                else
-                {
-                    if (w >= num_vertices(ug))
-                        add_vertex(ug, 1 + w - num_vertices(ug));
-                }
+                if (w >= num_vertices(ug))
+                    add_vertex(ug, 1 + w - num_vertices(ug));
             }
+        }
+
+        for (auto v : vertices_range(g))
+        {
+            if (get(vmap, v) < 0)
+                put(vmap, v, add_vertex(ug));
         }
     }
     else
