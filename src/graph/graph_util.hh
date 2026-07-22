@@ -43,9 +43,12 @@ namespace boost { namespace python { namespace detail {
 
 #include "graph_selectors.hh"
 #include "graph_filtered.hh"
+#include "graph_adjacency.hh"
 
 namespace graph_tool
 {
+
+using boost::detail::soft_resize;
 
 //
 // Metaprogramming

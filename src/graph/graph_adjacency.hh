@@ -177,9 +177,11 @@ namespace detail
 {
 
 template <class V>
-void soft_resize(V&& v, size_t size)
+void soft_resize(V&& v, size_t size, auto&&... init)
 {
-    v.resize(std::max(2 * v.size(), size));
+    if (size > v.capacity())
+        v.reserve(std::max(2 * v.capacity(), size));
+    v.resize(size, init...);
 }
 
 template <class Vertex>
