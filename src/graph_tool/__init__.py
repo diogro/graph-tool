@@ -840,16 +840,17 @@ class PropertyMap(object):
         if not self.is_writable():
             vals = None
         else:
-            u = GraphView(g, skip_vfilt=True, skip_efilt=True)
+            u = g.base
+            p = u.own_property(self)
             if key_type == "v":
-                vals = self.fa
+                vals = p.a
                 if vals is None:
                     if "vector" in value_type and value_type != "vector<string>":
                         vals = [self[v].a for v in u.vertices()]
                     else:
                         vals = [self.__convert(self[v]) for v in u.vertices()]
             elif key_type == "e":
-                vals = self.a
+                vals = p.a
                 if vals is None:
                     if "vector" in value_type and value_type != "vector<string>":
                         vals = [self[e].a for e in u.edges()]
@@ -882,7 +883,7 @@ class PropertyMap(object):
         elif state["is_eindex"]:
             pmap = g.edge_index
         else:
-            u = GraphView(g, skip_vfilt=True, skip_efilt=True)
+            u = g.base
             if key_type == "v":
                 pmap = u.new_vertex_property(value_type, vals=vals)
             elif key_type == "e":
@@ -4011,13 +4012,17 @@ class GraphView(Graph):
 
     # pickling support
     def __getstate__(self):
-        return Graph.__getstate__(self)
+        return dict(g=self.base,
+                    vfilt=self.base.own_property(self.get_vertex_filter()),
+                    efilt=self.base.own_property(self.get_edge_filter()),
+                    directed=selt.is_directed(),
+                    reversed=self.is_reversed,
+                    props={k: self.base.own_property(v) for k, v in self.properties.items()})
 
     def __setstate__(self, state):
-        g = Graph()
-        g.__setstate__(state)
-        self.__init__(g)
-
+        props = state.pop("props")
+        self.__init__(**state)
+        self.properties.update({k: self.own_property(v) for k, v in props.items()})
 
 def value_types():
     """Return a list of possible properties value types."""
