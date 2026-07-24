@@ -31,8 +31,6 @@ import textwrap
 import math
 import numpy
 
-import graph_tool.draw
-
 __test__ = False
 
 def set_test(test):
@@ -864,6 +862,7 @@ class DrawBlockState(ABC):
         gradient = self.g.new_ep("double")
         gradient = group_vector_property([gradient])
         b = self.g.own_property(self.b)
+        import graph_tool.draw
         return graph_tool.draw.graph_draw(self.g,
                                           vertex_fill_color=kwargs.pop("vertex_fill_color", b),
                                           vertex_color=kwargs.pop("vertex_color", b),
