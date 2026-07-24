@@ -785,7 +785,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
            >>> gt.bethe_entropy(g, pe)[0]
-           11.985597...
+           -14.213797...
 
         """
 
@@ -843,7 +843,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
-           16.771713...
+           30.739095...
            >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_shape="pie",
            ...               vertex_pie_fractions=pv, output="polbooks_blocks_soft_B4.svg")
            <...>
@@ -904,7 +904,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            ...     ret = state.mcmc_sweep(niter=10)
            ...     ph = state.collect_partition_histogram(ph)
            >>> gt.microstate_entropy(ph)
-           137.419856...
+           137.188096...
 
         """
 

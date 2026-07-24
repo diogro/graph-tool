@@ -176,7 +176,7 @@ network as above.
 g = gt.collection.data["lesmis"]
 
 state = gt.NestedBlockState(g)   # By default this creates a state with an initial single-group
-                                 # hierarchy of depth ceil(log2(g.num_vertices()).
+                                 # hierarchy of depth ceil(log2(g.num_vertices())).
 
 # Now we run 1000 sweeps of the MCMC
 
