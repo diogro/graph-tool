@@ -47,9 +47,12 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     RMI : ``bool`` (optional, default: ``False``)
          If ``True``, the reduced mutual information will be used, otherwise the
          variation of information metric will be used instead.
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Constraint labels on the vertices. If supplied, vertices with different
+        label values will not be clustered in the same group.
     """
 
-    def __init__(self, bs, b=None, clabel=None, RMI=False):
+    def __init__(self, bs, b=None, RMI=False, clabel=None):
         EntropyState.__init__(self)
         self.bs = bs = np.asarray(bs, dtype="int64")
         if b is None:
@@ -58,6 +61,7 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if clabel is None:
             clabel = np.zeros(bs.shape[1], dtype="int64")
         self.clabel = np.asarray(clabel, dtype="int64")
+        self.pclabel = self.clabel
         self.RMI = RMI
         self._state = libinference.make_partition_centroid_state(self)
 

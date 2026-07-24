@@ -276,11 +276,14 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         division into ``B`` groups will be used.
     B : ``int`` (optional, default: ``1``)
         Number of groups for initial division.
+    nested : ``bool`` (optional, default: ``False``)
+        If ``True``, the partitions will be assumed to be hierarchical.
     relabel : ``bool`` (optional, default: ``True``)
         If ``True``, an initial alignment of the partitions will be attempted during
         instantiation, otherwise they will be incorporated as they are.
-    nested : ``bool`` (optional, default: ``False``)
-        If ``True``, the partitions will be assumed to be hierarchical.
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Constraint labels on the vertices. If supplied, vertices with different
+        label values will not be clustered in the same group.
 
     References
     ----------
@@ -313,6 +316,7 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if clabel is None:
             clabel = np.zeros(len(self.bs), dtype="int64")
         self.clabel = Vector_int64_t(init=clabel)
+        self.pclabel = self.clabel
 
         self.relabel_init = relabel
         self.relabel = False

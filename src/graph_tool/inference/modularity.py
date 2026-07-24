@@ -89,8 +89,8 @@ def modularity(g, b, gamma=1., weight=None):
 
 
 @entropy_state_signature
-class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
-                      GibbsMCMCState, DrawBlockState):
+class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
+                      MultilevelMCMCState, GibbsMCMCState, DrawBlockState):
     r"""Obtain the partition of a network according to the maximization of Newman's modularity.
 
     .. danger:: Using modularity maximization is almost always **a terrible idea**.
@@ -140,6 +140,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
+        CLabelState.__init__(self, g=g, clabel=clabel)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int64_t")
@@ -152,13 +153,7 @@ class ModularityState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             eweight = g.new_ep("int64_t", 1)
         else:
             eweight = g.own_property(eweight)
-        self.eweight = eweight
-
-        if clabel is None:
-            clabel = g.new_vp("int64_t")
-        else:
-            clabel = g.own_property(clabel)
-        self.clabel = clabel
+            self.eweight = eweight
 
         self._state = libinference.make_modularity_state(self)
 

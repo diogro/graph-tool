@@ -30,8 +30,8 @@ from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 
 @entropy_state_signature
-class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
-                   GibbsMCMCState, DrawBlockState):
+class NormCutState(CLabelState, MCMCState, MultiflipMCMCState,
+                   MultilevelMCMCState, GibbsMCMCState, DrawBlockState):
     r"""Obtain the partition of a network according to the normalized cut.
 
     .. warning::
@@ -56,6 +56,7 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
+        CLabelState.__init__(self, g=g, clabel=clabel)
         self.g = GraphView(g, directed=False)
         if b is None:
             self.b = self.g.new_vp("int64_t")
@@ -68,12 +69,6 @@ class NormCutState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         else:
             eweight = g.own_property(eweight)
         self.eweight = eweight
-
-        if clabel is None:
-            clabel = g.new_vp("int64_t")
-        else:
-            clabel = g.own_property(clabel)
-        self.clabel = clabel
 
         self._state = libinference.make_norm_cut_state(self)
 

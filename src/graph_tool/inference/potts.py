@@ -30,7 +30,7 @@ import numpy as np
 from . blockmodel import *
 
 @entropy_state_signature
-class PottsState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
+class PottsState(CLabelState, MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                  GibbsMCMCState, DrawBlockState):
     r"""Sample from a generalized Potts model.
 
@@ -54,6 +54,7 @@ class PottsState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     def __init__(self, g, f, b=None, eweight=None, theta=None, clabel=None, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
+        CLabelState.__init__(self, g=g, clabel=clabel)
         self.g = GraphView(g, directed=False)
         self.f = np.asarray(f, dtype="double")
         self.q = f.shape[0]
@@ -71,11 +72,6 @@ class PottsState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         if eweight is None:
             eweight = g.new_ep("double", val=1)
         self.eweight = eweight
-        if clabel is None:
-            clabel = g.new_vp("int64_t")
-        else:
-            clabel = g.own_property(clabel)
-        self.clabel = clabel
         self._state = libinference.make_potts_state(self)
 
     def __repr__(self):

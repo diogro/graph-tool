@@ -298,6 +298,8 @@ class CLabelState(ABC):
 
         if clabel is None:
             self.clabel = self.pclabel
+        elif clabel is pclabel:
+            self.clabel = g.own_property(clabel)
         else:
             clabel = g.own_property(clabel).copy("int64_t")
             clabel.fa += self.pclabel.fa * (clabel.fa.max() + 1)
