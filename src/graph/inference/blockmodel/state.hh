@@ -1640,7 +1640,7 @@ public:
         }
 
         if (ea.partition_dl)
-            S += _ps.get_dl();
+            S_dl += _ps.get_dl();
 
         assert(!isnan(S) && !isnan(S_dl));
 

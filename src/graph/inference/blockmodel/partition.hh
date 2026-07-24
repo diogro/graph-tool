@@ -285,7 +285,7 @@ private:
         if constexpr (add)
         {
             if (iter == ls.end())
-                return get_empty<true>(c);
+                return ls[r] = get_empty<true>(c);
             else
                 return iter->second;
         }
