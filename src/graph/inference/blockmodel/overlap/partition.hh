@@ -82,33 +82,14 @@ struct OverlapPartitionStats
     template <bool s>
     using OPS = OverlapPartitionStats<directed, s>;
 
-    template <class F>
-    requires (!std::is_base_of_v<OPS<true>, std::decay_t<F>> &&
-              !std::is_base_of_v<OPS<false>, std::decay_t<F>>)
-    OverlapPartitionStats(F&& iter_items)
-    {
-        init(std::forward<F>(iter_items));
-    }
-
     template <bool s>
     OverlapPartitionStats(const OverlapPartitionStats<directed, s>& o)
-        :_N(o._N), _actual_B(o._actual_B), _D(o._D),
+        :_N(o._N), _B(o._B), _actual_B(o._actual_B), _D(o._D),
          _dhist(o._dhist), _r_count(o._r_count), _bhist(o._bhist),
          _emhist(o._emhist), _ephist(o._ephist), _embhist(o._embhist),
          _epbhist(o._epbhist), _deg_hist(o._deg_hist), _bvs(o._bvs),
          _degs(o._degs), _wr(o._wr)
     {
-    }
-
-    template <class F>
-    void init(F&& iter_items)
-    {
-        iter_items([&](group_t r, const ovweight_t& w)
-                   {
-                       add_item(r, w);
-                   });
-
-        _N = _bvs.size();
     }
 
     bool add_bv_deg(group_t r, const deg_t& deg,  bv_t& bv, cdeg_t& cdeg) const
@@ -347,10 +328,16 @@ struct OverlapPartitionStats
 
         bool is_same_bv = true;
         if (r != _null_group)
+        {
             is_same_bv &= remove_bv_deg(r, deg, n_bv, n_deg);
+            _B = std::max(_B, size_t(r) + 1);
+        }
 
         if (nr != _null_group)
+        {
             is_same_bv &= add_bv_deg(nr, deg, n_bv, n_deg);
+            _B = std::max(_B, size_t(r) + 1);
+        }
 
         size_t n_d = n_bv.size();
 
@@ -502,10 +489,14 @@ struct OverlapPartitionStats
             _wr[nr] += w;
     }
 
+    template <bool check = false>
     void add_item(group_t r, const ovweight_t& w)
     {
         #pragma omp critical (overlap_partition) // FIXME: implement concurrency
         move_item(_null_group, r, w);
+
+        if constexpr (check)
+            _N = _bvs.size();
     }
 
     void remove_item(group_t r, const ovweight_t& w)
@@ -523,10 +514,13 @@ struct OverlapPartitionStats
     {
     }
 
+    constexpr static group_t _null_group = std::numeric_limits<group_t>::max();
+
 protected:
     friend OPS<!scoped>;
 
     size_t _N = 0;
+    size_t _B = 0;
     size_t _actual_B = 0;
     size_t _D = 0;
 
@@ -546,8 +540,6 @@ protected:
     sm<gt_hash_map<size_t, bv_t>> _bvs;         // bv node map
     sm<gt_hash_map<size_t, cdeg_t>> _degs;      // deg node map
     sm<gt_hash_map<size_t, ovweight_t>> _wr;    // group compositions
-
-    constexpr static group_t _null_group = std::numeric_limits<group_t>::max();
 };
 
 
@@ -570,19 +562,6 @@ struct OverlapDegStats
     OverlapDegStats(const OverlapDegStats<directed, s>& o)
         : base_t(o)
     {}
-
-    template <class F>
-    void init(F&& iter_items)
-    {
-        base_t::init([&](auto&& f)
-                     {
-                         iter_items
-                             ([&](auto&&, group_t r, auto w)
-                              {
-                                  f(r, w);
-                              });
-                     });
-    }
 
     double get_deg_dl_uniform() const
     {

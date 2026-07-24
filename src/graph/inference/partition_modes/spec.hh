@@ -82,12 +82,8 @@ struct StateSpec
                 _pos[i] = _modes[r].add_partition(x, _relabel_init);
             }
 
-            _partition_stats.init
-                ([&](auto&& f)
-                 {
-                     for (auto r : _state._b)
-                         f(r);
-                 });
+            for (auto r : _state._b)
+                _partition_stats.add_item(r);
         }
 
         void post_init()
@@ -141,7 +137,7 @@ struct StateSpec
         double virtual_add_partition(bv_t& x, size_t r, bool relabel = true)
         {
             double dS = _modes[r].virtual_add_partition(x, relabel);
-            dS += _partition_stats.get_delta_dl(_partition_stats.null_group, r);
+            dS += _partition_stats.get_delta_dl(_partition_stats._null_group, r);
             return dS;
         }
 
@@ -183,7 +179,7 @@ struct StateSpec
         double entropy(const entropy_args_t&)
         {
             double S = 0;
-            for (auto r : _state._candidate_groups)
+            for (auto r : _state._occupied_groups)
                 S += _modes[r].entropy();
             S += _partition_stats.get_dl();
             return S;

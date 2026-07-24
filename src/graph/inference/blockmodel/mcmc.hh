@@ -92,7 +92,7 @@ struct MCMC
         typedef State::group_t group_t;
 
         typename state_t::g_t& _g;
-        constexpr static group_t _null_move = State::null_group;
+        constexpr static group_t _null_move = State::_null_group;
 
         group_t node_state(vertex_t v)
         {

@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Vector_size_t, group_vector_property, _parallel, _get_rng
+from .. import Vector_size_t, group_vector_property, _parallel, _get_rng, \
+    perfect_prop_hash
 
 from . util import *
 
@@ -289,6 +290,21 @@ class EntropyState(ABC):
             vertices = vals
         return Vector_size_t(init=vertices)
 
+class CLabelState(ABC):
+    r"""Base state that implements partition contraints."""
+    def __init__(self, g, clabel=None, pclabel=None):
+        if pclabel is None:
+            self.pclabel = g.new_vp("int64_t")
+        else:
+            self.pclabel = g.own_property(pclabel).copy("int64_t")
+
+        if clabel is None:
+            self.clabel = self.pclabel
+        else:
+            clabel = g.own_property(clabel).copy("int64_t")
+            clabel.fa += self.pclabel.fa * (clabel.fa.max() + 1)
+            self.clabel = perfect_prop_hash([clabel], htype="int64_t")[0]
+
 
 class MCMCState(EntropyState):
     r"""Base state that implements single-flip MCMC sweeps."""
@@ -491,7 +507,7 @@ class MultiflipMCMCState(EntropyState):
 class MultilevelMCMCState(EntropyState):
     r"""Base state that implements multilevel agglomerative MCMC sweeps."""
 
-    def _get_bclabel(self):
+    def get_bclabel(self):
         return None
 
     @mcmc_sweep_wrap
@@ -638,7 +654,7 @@ class MultilevelMCMCState(EntropyState):
         else:
             global_moves = False
 
-        bclabel = self._get_bclabel()
+        bclabel = self.get_bclabel()
         if bclabel is not None:
             B_min = max((len(numpy.unique(bclabel.fa)), B_min))
 

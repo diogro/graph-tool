@@ -76,7 +76,7 @@ struct SpecBase
             std::bernoulli_distribution new_r(d);
             if (d > 0 && !_state._empty_groups.empty() && new_r(rng))
                 return uniform_sample(_state._empty_groups, rng);
-            return uniform_sample(_state._candidate_groups, rng);
+            return uniform_sample(_state._occupied_groups, rng);
         }
 
         group_t sample_group_local(size_t v, rng_t& rng)
@@ -87,7 +87,7 @@ struct SpecBase
         double get_move_prob(size_t, group_t r, group_t s, double, double d,
                              bool reverse)
         {
-            size_t B = _state._candidate_groups.size();
+            size_t B = _state._occupied_groups.size();
             if (reverse)
             {
                 if (_state._groups[s].size() == 1)
@@ -108,6 +108,9 @@ struct SpecBase
         }
 
         // optional
+        void occupy_group(auto) {}
+        void vacate_group(auto) {}
+
         constexpr static bool _has_merge = false;
         void merge_groups(auto, auto) {}
         double virtual_merge(auto, auto, auto&) { return 0; }

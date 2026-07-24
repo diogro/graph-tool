@@ -74,7 +74,7 @@ struct MCMC
 
         ~MCMCLoopStateImp() { _state.clear_egroups(); }
 
-        constexpr static group_t _null_group = State::null_group;
+        constexpr static group_t _null_group = State::_null_group;
 
         constexpr static double _pmovelabel = State::spec_t::has_relabel;
 
@@ -130,9 +130,7 @@ struct MCMC
                     _state._empty_groups.erase(r);
             }
 
-            _state.get_empty_group(v);
-
-            auto t = uniform_sample(_state._empty_groups, rng);
+            auto t = _state.get_empty_group(v, rng);
 
             if constexpr (_has_relabel)
                 relabel_group(t, sample_group_label(t, rng));
@@ -144,7 +142,6 @@ struct MCMC
             }
 
             auto r = _state._b[v];
-            _state._bclabel[t] = _state._bclabel[r];
 
             auto cstate = _state._coupled_state;
             if (cstate != nullptr)
@@ -158,8 +155,6 @@ struct MCMC
                     auto& bh = cstate->get_b();
                     bh[t] = bh[r];
                 }
-                auto& hpclabel = cstate->get_pclabel();
-                hpclabel[t] = _state._pclabel[v];
             }
             assert(_state._wr[t] == 0);
             return t;

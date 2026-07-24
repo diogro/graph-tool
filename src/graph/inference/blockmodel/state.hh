@@ -73,7 +73,6 @@ using namespace boost;
     ((wr, STATE_SPEC::wr_tr, 1))                                               \
     ((b, STATE_SPEC::bmap_t, 0))                                               \
     ((clabel, STATE_SPEC::bmap_t, 0))                                          \
-    ((bclabel, STATE_SPEC::cmap_t, 0))                                         \
     ((pclabel, STATE_SPEC::bmap_t, 0))                                         \
     ((bfield, STATE_SPEC::bfield_t, 0))                                        \
     ((Bfield, std::vector<double>&, 0))                                        \
@@ -105,7 +104,7 @@ public:
     typedef spec_t::vcount_t vcount_t;
     typedef spec_t::bmap_t bmap_t;
     typedef spec_t::entropy_args_t entropy_args_t;
-    static constexpr group_t null_group = spec_t::null_group;
+    static constexpr group_t _null_group = spec_t::null_group;
 
     using weight_t = property_traits<eweight_t>::value_type;
     using deg_t = spec_t::deg_t<BlockState>::type;
@@ -118,6 +117,7 @@ public:
     template <class... ATs>
     BlockState(ATs&&... args)
         : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
+          _bclabel(num_vertices(_bg)), _bpclabel(num_vertices(_bg)),
           _spec(*this)
     {
         GILRelease gil_release;
@@ -127,6 +127,7 @@ public:
         {
             auto r = _b[v];
             B = std::max(B, size_t(r + 1));
+            _bpclabel.get_checked()[r] = _pclabel[v];
             _bclabel.get_checked()[r] = _clabel[v];
             _wr.get_checked()[r] += _vweight[v];
             if (_vweight[v] > 0)
@@ -135,7 +136,7 @@ public:
                     _actual_B++;
                 _groups[r].insert(v);
             }
-            _N[_bclabel[r]] += _vweight[v];
+            _N[_clabel[v]] += _vweight[v];
         }
 
         boost::add_vertex(_bg, B);
@@ -199,7 +200,7 @@ public:
             if (_wr[r] == 0)
                 _empty_groups.insert(r);
             else
-                _candidate_groups[_bclabel[r]].insert(r);
+                _occupied_groups[_bclabel[r]].insert(r);
         }
 
         _degs.resize(num_vertices(_g));
@@ -224,11 +225,13 @@ public:
 
         set_concurrent(false);
 
-        init_partition_stats();
+        for (auto v : vertices_range(_g))
+            _ps.template add_item<true>(_b[v], _pclabel[v], _vweight[v]);
 
         if (_deg_corr)
         {
-            init_deg_stats();
+            for (auto v : vertices_range(_g))
+                _deg_stats.add_vertex(_degs[v], _b[v], _vweight[v]);
             init_q_cache(std::min(std::max(2 * int(_E), 100), 10000));
         }
 
@@ -324,7 +327,7 @@ public:
         static_assert(std::ranges::random_access_range<Vs>);
         static_assert(std::ranges::random_access_range<NRs>);
 
-        _vset.reserve(num_vertices(_g), null_group);
+        _vset.reserve(num_vertices(_g), _null_group);
         _rset.clear();
         _group_delta.reserve(num_vertices(_bg));
         _groups_in.clear();
@@ -397,7 +400,7 @@ public:
             ([&](auto v)
              {
                  auto r = _vset[v];
-                 if (r == null_group)
+                 if (r == _null_group)
                      return _b[v];
                  return r;
              });
@@ -471,18 +474,18 @@ public:
                               if constexpr (is_directed_v<g_t>)
                               {
                                   auto u = (out) ? target(e, _g) : source(e, _g);
-                                  return (!out && (_vset[u] != null_group));
+                                  return (!out && (_vset[u] != _null_group));
                               }
                               else
                               {
                                   auto u = target(e, _g);
-                                  return ((v > u) && (_vset[u] != null_group));
+                                  return ((v > u) && (_vset[u] != _null_group));
                               }
                           });
 
                      insert_delta(*this, m_entries, _deltas[0]);
                      _spec.template move_vertex<true>(v, nr, nb,
-                                                      [&](auto u){ return (v > u) && (_vset[u] != null_group); });
+                                                      [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
                  });
         }
 
@@ -529,7 +532,7 @@ public:
                                               auto dispatch =
                                                   [&](auto& m_entries)
                                                   {
-                                                      m_entries.set_move(r, null_group, num_vertices(state->_bg));
+                                                      m_entries.set_move(r, _null_group, num_vertices(state->_bg));
 
                                                       for (auto& [s, delta] : deltas[r])
                                                       {
@@ -581,6 +584,15 @@ public:
                  }, vstate);
         }
 
+        for (auto r : _rset)
+        {
+            const auto& d = _group_delta[r];
+            if (d == 0)
+                continue;
+            if (_wr[r] == 0)
+                occupy_group(r, d);
+        }
+
         parallel_loop
             (_groups_in,
              [&](auto nr, auto& vs)
@@ -588,8 +600,7 @@ public:
                  for (auto v : vs)
                  {
                      const auto& vw = _vweight[v];
-                     auto& ps = get_partition_stats(v);
-                     ps.add_item(nr, vw);
+                     _ps.add_item(nr, _pclabel[v], vw);
                      if (_deg_corr)
                          _deg_stats.add_vertex(_degs[v], nr, vw);
                  }
@@ -602,9 +613,7 @@ public:
                  for (auto v : vs)
                  {
                      const auto& vw = _vweight[v];
-                     auto& ps = get_partition_stats(v);
-                     assert(_b[v] == r);
-                     ps.remove_item(r, vw);
+                     _ps.remove_item(r, _pclabel[v], vw);
                      if (_deg_corr)
                          _deg_stats.remove_vertex(_degs[v], r, vw);
                  }
@@ -613,24 +622,17 @@ public:
         for (auto r : _rset)
         {
             const auto& d = _group_delta[r];
-
             if (d == 0)
                 continue;
-
             if (_wr[r] + d == 0)
             {
                 vacate_group(r);
             }
-            else if (_wr[r] == 0)
-            {
-                occupy_group(r, d);
-            }
-            else
+            else if (_wr[r] != 0)
             {
                 _spec.update_group_weight(r, d);
                 _wr[r] += d;
             }
-
             _group_delta[r] = 0;
         }
 
@@ -639,7 +641,7 @@ public:
                       {
                           const auto& [v, nr] = vnr;
                           _b[v] = nr;
-                          _vset[v] = null_group;
+                          _vset[v] = _null_group;
                       }, 0);
     }
 
@@ -669,7 +671,7 @@ public:
     }
 
     template <class VMap>
-    void set_partition(VMap& b, [[maybe_unused]] bool parallel)
+    void set_partition(VMap& b, bool parallel)
     {
         std::decay_t<decltype(_coupled_state->get_b())> hb;
         if (_coupled_state != nullptr)
@@ -685,6 +687,7 @@ public:
                 if (_coupled_state != nullptr)
                     hb[r] = hb[_b[v]];
                 _bclabel[r] = _bclabel[_b[v]];
+                _bpclabel[r] = _bpclabel[_b[v]];
             }
         }
 
@@ -716,6 +719,8 @@ public:
 
         assert(w != 0);
 
+        _ps.remove_item(r, _pclabel[v], w);
+
         if (w != 0 && _wr[r] == w)
         {
             vacate_group(r);
@@ -726,14 +731,13 @@ public:
             _wr[r] -= w;
         }
 
-        get_partition_stats(v).remove_item(r, w);
-
         if (_deg_corr)
             _deg_stats.remove_vertex(_degs[v], r, w);
 
         _groups[r].erase(v);
     }
 
+    template <bool check=false>
     void add_partition_node(vertex_t v, group_t r)
     {
         auto& w = _vweight[v];
@@ -750,7 +754,7 @@ public:
             _wr[r] += w;
         }
 
-        get_partition_stats(v).add_item(r, w);
+        _ps.template add_item<check>(r, _pclabel[v], w);
 
         if (_deg_corr)
             _deg_stats.add_vertex(_degs[v], r, w);
@@ -763,15 +767,16 @@ public:
     void vacate_group(group_t r)
     {
         _wr[r] = 0;
-        _candidate_groups[_bclabel[r]].erase(r);
+        _occupied_groups[_bclabel[r]].erase(r);
         _empty_groups.insert(r);
         _actual_B--;
+        _ps.vacate_group(r, _bpclabel[r]);
 
         if (_coupled_state != nullptr)
         {
             auto& hb = _coupled_state->get_b();
             _coupled_state->remove_partition_node(r, hb[r]);
-            _coupled_state->set_vertex_weight(r, rw_t());
+            _coupled_state->set_vertex_weight(r, rw_t{});
         }
     }
 
@@ -779,8 +784,9 @@ public:
     {
         _wr[r] = w;
         _empty_groups.erase(r);
-        _candidate_groups[_bclabel[r]].insert(r);
+        _occupied_groups[_bclabel[r]].insert(r);
         _actual_B++;
+        _ps.occupy_group(r, _bpclabel[r]);
 
         if (_coupled_state != nullptr)
         {
@@ -788,7 +794,7 @@ public:
             auto rw = w;
             rw = 1; // NOTE: setting this way is important for the layered model
             _coupled_state->set_vertex_weight(r, rw);
-            _coupled_state->add_partition_node(r, hb[r]);
+            _coupled_state->template add_partition_node<true>(r, hb[r]);
         }
     }
 
@@ -802,25 +808,25 @@ public:
 
         apply_delta(*this, m_entries);
 
-        auto& ps = _partition_stats[_bclabel[s]];
         auto& ws = _wr[s];
-        ps.add_item(t, ws);
-        ps.remove_item(s, ws);
 
         if (_deg_corr)
             _deg_stats.merge_groups(s, t);
 
         if (_wr[t] == 0)
         {
-            occupy_group(t, _wr[s]);
+            occupy_group(t, ws);
         }
         else
         {
-            _spec.update_group_weight(t, _wr[s]);
-            _wr[t] += _wr[s];
+            _spec.update_group_weight(t, ws);
+            _wr[t] += ws;
         }
 
-        if (_wr[s] != 0)
+        _ps.add_item(t, _bpclabel[t], ws);
+        _ps.remove_item(s, _bpclabel[s], ws);
+
+        if (ws != 0)
             vacate_group(s);
 
         std::vector<vertex_t> vs(_groups[s].begin(), _groups[s].end());
@@ -846,17 +852,16 @@ public:
         _mrm.soft_reserve(num_vertices(_bg) + n);
         _mrp.soft_reserve(num_vertices(_bg) + n);
         _bclabel.soft_reserve(num_vertices(_bg) + n);
+        _bpclabel.soft_reserve(num_vertices(_bg) + n);
         if (_deg_corr)
             _deg_stats.add_group(n);
-        group_t r = null_group;
+        group_t r = _null_group;
         for (size_t i = 0; i < n; ++i)
         {
             r = boost::add_vertex(_bg);
             _wr[r] = 0;
             _mrm[r] = _mrp[r] = 0;
             _empty_groups.insert(r);
-            for (auto& p : _partition_stats)
-                p.add_group();
             if (_egroups)
                 _egroups->add_group();
             _group_mutex.push_back(std::make_shared<shared_canary_mutex>());
@@ -926,6 +931,7 @@ public:
         _b.soft_reserve(N);
         _bfield.soft_reserve(N);
         _vweight.soft_reserve(N);
+        _clabel.soft_reserve(N);
         _pclabel.soft_reserve(N);
         _degs.resize(N);
         _spec.coupled_resize_vertices(N);
@@ -984,7 +990,7 @@ public:
 
         auto [u, v] = m_entries_below.get_move();
         group_t r = _b[u];
-        group_t s = (v != null_group) ? _b[v] : null_group;
+        group_t s = (v != _null_group) ? _b[v] : _null_group;
 
         m_entries.set_move(r, s, num_vertices(_bg));
 
@@ -1207,9 +1213,9 @@ public:
         }
 
         count_t dB = 0;
-        if (r != null_group && _wr[r] == _vweight[v])
+        if (r != _null_group && _wr[r] == _vweight[v])
             dB--;
-        if (nr != null_group && _wr[nr] == 0)
+        if (nr != _null_group && _wr[nr] == 0)
             dB++;
 
         if (spec_t::edges_dl && ea.edges_dl && dB != 0)
@@ -1247,25 +1253,24 @@ public:
         auto& f = _bfield[v];
         if (!f.empty())
         {
-            if (nr != null_group)
+            if (nr != _null_group)
                 dS -= (size_t(nr) < f.size()) ? f[nr] : f.back();
-            if (r != null_group)
+            if (r != _null_group)
                 dS += (size_t(r) < f.size()) ? f[r] : f.back();
         }
 
         if (ea.partition_dl)
         {
-            auto& ps = get_partition_stats(v);
-            if (r == null_group)
-                dS += ps.get_delta_dl(r, nr);
+            if (r == _null_group)
+                dS += _ps.get_delta_dl(r, nr, _bpclabel[nr]);
             else
-                dS += ps.get_delta_dl(r, nr, _vweight[v]);
+                dS += _ps.get_delta_dl(r, nr, _bpclabel[r], _vweight[v]);
         }
 
         if (_coupled_state != nullptr)
         {
-            bool r_vacate = (r != null_group && _wr[r] == _vweight[v]);
-            bool nr_occupy = (nr != null_group && _wr[nr] == 0);
+            bool r_vacate = (r != _null_group && _wr[r] == _vweight[v]);
+            bool nr_occupy = (nr != _null_group && _wr[nr] == 0);
 
             auto& bh = _coupled_state->get_b();
             if (r_vacate && nr_occupy)
@@ -1276,10 +1281,10 @@ public:
             else
             {
                 if (r_vacate)
-                    dS += _coupled_state->get_delta_partition_dl(r, bh[r], null_group,
+                    dS += _coupled_state->get_delta_partition_dl(r, bh[r], _null_group,
                                                                  _coupled_entropy_args);
                 if (nr_occupy)
-                    dS += _coupled_state->get_delta_partition_dl(nr, null_group, bh[nr],
+                    dS += _coupled_state->get_delta_partition_dl(nr, _null_group, bh[nr],
                                                                  _coupled_entropy_args);
             }
         }
@@ -1310,10 +1315,7 @@ public:
         double dS_dl = 0;
 
         if (ea.partition_dl)
-        {
-            auto& ps = _partition_stats[_bclabel[s]];
-            dS_dl += ps.get_delta_dl(s, t, _wr[s]);
-        }
+            dS_dl += _ps.get_delta_dl(s, t, _bpclabel[s], _wr[s]);
 
         if (_deg_corr && ea.degree_dl)
             dS_dl += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
@@ -1350,7 +1352,7 @@ public:
                 dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], bh[t],
                                                                 _coupled_entropy_args);
             else
-                dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], null_group,
+                dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], _null_group,
                                                                 _coupled_entropy_args);
         }
 
@@ -1371,51 +1373,48 @@ public:
     // Move proposals
     // =========================================================================
 
-    group_t get_empty_group(vertex_t v)
+    template <class RNG>
+    group_t get_empty_group(vertex_t v, RNG& rng, bool inherit = true)
     {
+        group_t s;
         if (_empty_groups.empty())
+            s = add_group();
+        else
+            s = uniform_sample(_empty_groups, rng);
+
+        if (inherit)
         {
             auto r = _b[v];
-            auto s = add_group();
             _bclabel[s] = _bclabel[r];
+            _bpclabel[s] = _bpclabel[r];
+
             if (_coupled_state != nullptr)
             {
                 auto& hb = _coupled_state->get_b();
-                hb[s] = hb[r];
                 auto& hpclabel = _coupled_state->get_pclabel();
+                hb[s] = hb[r];
                 hpclabel[s] = _pclabel[v];
             }
-            return s;
         }
-        else
-        {
-            return *(_empty_groups.end()-1);
-        }
+
+        return s;
     }
 
     void sample_branch(vertex_t v, vertex_t u, rng_t& rng)
     {
         group_t s;
         auto r = _b[u];
-
-        auto& candidate_groups = _candidate_groups[_bclabel[r]];
-
-        std::bernoulli_distribution new_r(1./(candidate_groups.size()+1));
-        if (candidate_groups.size() < _N[_bclabel[r]] && new_r(rng))
+        auto& occupied_groups = _occupied_groups[_bclabel[r]];
+        std::bernoulli_distribution new_r(1./(occupied_groups.size()+1));
+        if (occupied_groups.size() < _N[_bclabel[r]] && new_r(rng))
         {
-            get_empty_group(u);
-            s = uniform_sample(_empty_groups, rng);
+            s = get_empty_group(u, rng);
             if (_coupled_state != nullptr)
-            {
                 _coupled_state->sample_branch(s, r, rng);
-                auto& hpclabel = _coupled_state->get_pclabel();
-                hpclabel[s] = _pclabel[u];
-            }
-            _bclabel[s] = _bclabel[r];
         }
         else
         {
-            s = uniform_sample(candidate_groups, rng);
+            s = uniform_sample(occupied_groups, rng);
         }
         _b[v] = s;
     }
@@ -1425,25 +1424,15 @@ public:
     {
         auto r = _b[v];
 
-        size_t B = _candidate_groups[_bclabel[r]].size();
+        size_t B = _occupied_groups[_bclabel[r]].size();
 
         // attempt new group
         std::bernoulli_distribution new_r(d);
         if (d > 0 && B < _N[_bclabel[r]] && new_r(rng))
         {
-            get_empty_group(v);
-            auto s = uniform_sample(_empty_groups, rng);
-            if (_coupled_state != nullptr)
-            {
-                _coupled_state->sample_branch(s, r, rng);
-                auto& hpclabel = _coupled_state->get_pclabel();
-                hpclabel[s] = _pclabel[v];
-            }
-            _bclabel[s] = _bclabel[r];
-
+            auto s = get_empty_group(v, rng);
             if constexpr (spec_t::has_relabel)
                 _spec.relabel_group(s, _spec.sample_group_label(s, rng));
-
             return s;
         }
 
@@ -1470,12 +1459,12 @@ public:
             }
             else
             {
-                s = uniform_sample(_candidate_groups[_bclabel[r]], rng);
+                s = uniform_sample(_occupied_groups[_bclabel[r]], rng);
             }
         }
         else
         {
-            s = uniform_sample(_candidate_groups[_bclabel[r]], rng);
+            s = uniform_sample(_occupied_groups[_bclabel[r]], rng);
         }
 
         return s;
@@ -1498,7 +1487,7 @@ public:
         }
         else
         {
-            return uniform_sample(_candidate_groups[_bclabel[_b[v]]], rng);
+            return uniform_sample(_occupied_groups[_bclabel[_b[v]]], rng);
         }
     }
 
@@ -1507,7 +1496,7 @@ public:
     double get_move_prob(vertex_t v, group_t r, group_t s, double c, double d,
                          bool reverse, MEntries& m_entries)
     {
-        size_t B = _candidate_groups[_bclabel[r]].size();
+        size_t B = _occupied_groups[_bclabel[r]].size();
 
         if (r == s)
             reverse = false;
@@ -1635,14 +1624,6 @@ public:
     // Entropy computation
     // =========================================================================
 
-    double get_dl()
-    {
-        double S = 0;
-        for (auto& ps : _partition_stats)
-            S += ps.get_dl();
-        return S;
-    }
-
     double entropy(const entropy_args_t& ea)
     {
         double S = 0, S_dl = 0;
@@ -1659,10 +1640,7 @@ public:
         }
 
         if (ea.partition_dl)
-        {
-            for (auto& ps : _partition_stats)
-                S_dl += ps.get_dl();
-        }
+            S += _ps.get_dl();
 
         assert(!isnan(S) && !isnan(S_dl));
 
@@ -2121,53 +2099,6 @@ public:
     // Initializetio and setup
     // =========================================================================
 
-    void init_partition_stats()
-    {
-#ifndef _LIBCPP_VERSION
-        auto vi = std::max_element(vertices(_g).first,
-                                   vertices(_g).second,
-#else // libc++ is stupid
-        auto vi = boost::first_max_element(vertices(_g).first,
-                                           vertices(_g).second,
-#endif
-                                   [&](auto u, auto v)
-                                   { return (_pclabel[u] < _pclabel[v]); });
-
-        size_t C = _pclabel[*vi] + 1;
-
-        vector<vector<vertex_t>> vcs(C);
-        for (auto v : vertices_range(_g))
-            vcs[_pclabel[v]].push_back(v);
-
-        for (size_t c = 0; c < C; ++c)
-        {
-            _partition_stats.emplace_back([&](auto&& f)
-                                          {
-                                              for (auto v : vcs[c])
-                                                  f(_b[v], _vweight[v]);
-                                          });
-        }
-    }
-
-    auto& get_partition_stats(vertex_t v)
-    {
-        size_t r = _pclabel[v];
-        return _partition_stats[r];
-    }
-
-    void init_deg_stats()
-    {
-        _deg_stats.init([&](auto&& f)
-                        {
-                            for (auto v : vertices_range(_g))
-                            {
-                                if (_vweight[v] == 0)
-                                    continue;
-                                f(_degs[v], _b[v], _vweight[v]);
-                            }
-                        });
-    }
-
     auto& get_m_entries()
     {
         return _m_entries;
@@ -2386,9 +2317,9 @@ public:
             _coupled_state->relax_update(relax);
     }
 
-    auto& get_candidate_groups(vertex_t v)
+    auto& get_occupied_groups(vertex_t v)
     {
-        return _candidate_groups[_bclabel[_b[v]]];
+        return _occupied_groups[_bclabel[_b[v]]];
     }
 
     constexpr static bool _has_merge = spec_t::has_merge;
@@ -2397,7 +2328,7 @@ public:
 //private:
 
     idx_map<group_t, idx_set<group_t, {.shared_pos=true}>,
-            {.shared_tpos=true}> _candidate_groups;
+            {.shared_tpos=true}> _occupied_groups;
     idx_set<group_t> _empty_groups;
 
     typename spec_t::groups_t _groups;
@@ -2417,8 +2348,10 @@ public:
     size_t _actual_B = 0;
 
     using partition_stats_t = spec_t::partition_stats_t<BlockState>::type;
+    CPartitionStats<partition_stats_t> _ps;
 
-    std::vector<partition_stats_t> _partition_stats;
+    STATE_SPEC::cmap_t::unchecked_t _bclabel;
+    STATE_SPEC::cmap_t::unchecked_t _bpclabel;
 
     using deg_stats_t = spec_t::deg_stats_t<BlockState>::type;
     deg_stats_t _deg_stats;

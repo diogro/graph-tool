@@ -344,10 +344,7 @@ struct RankedBlockStateSpec
 
         double get_edges_dl(const E_t& dE = {}, int64_t dB = 0) const
         {
-            size_t B = 0;
-            for (auto& ps : _state._partition_stats)
-                B += ps.get_actual_B();
-            B += dB;
+            size_t B = _state._ps.get_actual_B() + dB;
 
             double S = 0;
 

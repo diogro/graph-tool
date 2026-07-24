@@ -85,12 +85,12 @@ public:
         {
             if constexpr (directed)
             {
-                _hist_in.resize(r + 1);
-                _em.resize(r + 1);
+                soft_resize(_hist_in, r + 1);
+                soft_resize(_em, r + 1);
             }
-            _hist_out.resize(r + 1);
-            _total.resize(r + 1);
-            _ep.resize(r + 1);
+            soft_resize(_hist_out, r + 1);
+            soft_resize(_total, r + 1);
+            soft_resize(_ep, r + 1);
         }
         return r;
     }

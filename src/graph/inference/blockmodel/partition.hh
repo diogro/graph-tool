@@ -18,6 +18,7 @@
 #ifndef PARTITION_HH
 #define PARTITION_HH
 
+#include "../../graph_util.hh"
 #include "../support/util.hh"
 
 #include <vector>
@@ -37,39 +38,9 @@ public:
 
     PartitionStats() = default;
 
-    template <class IterItems>
-    PartitionStats(IterItems&& iter_items)
-    {
-        init(std::forward<IterItems>(iter_items));
-    }
-
-    template <class IterItems>
-    void init(IterItems&& iter_items)
-    {
-        size_t B = 0;
-        iter_items([&](size_t r, auto...)
-                   {
-                       B = std::max(r + 1, B);
-                   });
-
-        _count.resize(B);
-
-        iter_items([&](size_t r, size_t w = 1)
-                   {
-                       _count[r] += w;
-                       _N += w;
-                   });
-
-        for (auto n : _count)
-        {
-            if (n > 0)
-                _actual_B++;
-        }
-    }
-
     size_t get_count(group_t r)
     {
-        if (size_t(r) < _count.size())
+        if (std::cmp_less(r, _count.size()))
             return _count[r];
         return 0;
     }
@@ -94,12 +65,19 @@ public:
         if (n == 1)
             _count.push_back(0);
         else
-            _count.resize(_count.size() + n, 0);
+            soft_resize(_count, _count.size() + n);
     }
 
     // concurrent
+    template <bool check = false>
     void add_item(group_t r, size_t w = 1)
     {
+        if constexpr (check)
+        {
+            if (std::cmp_greater_equal(r, _count.size()))
+                add_group(r - _count.size() + 1);
+        }
+
         if (_count[r] == 0 && w > 0)
         {
             #pragma omp atomic
@@ -129,6 +107,7 @@ public:
     {
         if (_N == 0)
             return 0;
+
         double S = 0;
         S += lbinom_fast(_N - 1, _actual_B - 1);
         S += lgamma_fast(_N + 1);
@@ -141,36 +120,38 @@ public:
         return S;
     }
 
-    double get_delta_dl(size_t r, size_t nr, size_t w = 1)
+    double get_delta_dl(group_t r, group_t nr, size_t w = 1)
     {
         if (r == nr || w == 0)
             return 0;
 
         double S_b = 0, S_a = 0;
 
-        if (r != null_group)
+        if (r != _null_group)
         {
-            assert(_count[r] >= w);
-            S_b += -lgamma_fast(_count[r] + 1);
-            S_a += -lgamma_fast(_count[r] - w + 1);
+            auto wr = get_count(r);
+            assert(wr >= w);
+            S_b += -lgamma_fast(wr + 1);
+            S_a += -lgamma_fast(wr - w + 1);
         }
 
-        if (nr != null_group)
+        if (nr != _null_group)
         {
-            S_b += -lgamma_fast(_count[nr] + 1);
-            S_a += -lgamma_fast(_count[nr] + w + 1);
+            auto wnr = get_count(nr);
+            S_b += -lgamma_fast(wnr + 1);
+            S_a += -lgamma_fast(wnr + w + 1);
         }
 
         int64_t dN = 0;
-        if (r == null_group)
+        if (r == _null_group)
             dN += w;
-        if (nr == null_group)
+        if (nr == _null_group)
             dN -= w;
 
         int64_t dB = 0;
-        if (r != null_group && _count[r] == w)
+        if (r != _null_group && get_count(r) == w)
             dB--;
-        if (nr != null_group && _count[nr] == 0)
+        if (nr != _null_group && get_count(nr) == 0)
             dB++;
 
         if (dN != 0 || dB != 0)
@@ -190,7 +171,7 @@ public:
         return S_a - S_b;
     }
 
-    static constexpr group_t null_group = std::numeric_limits<group_t>::max();
+    static constexpr group_t _null_group = std::numeric_limits<group_t>::max();
 
 private:
     size_t _N = 0;
@@ -198,6 +179,132 @@ private:
     size_t _B = 0;
     std::vector<size_t> _count;
 };
+
+template <class PStats>
+class CPartitionStats
+{
+public:
+    typedef PStats::group_t group_t;
+
+    void add_group(int64_t c, size_t n = 1)
+    {
+        _ps[c].add_group(n);
+    }
+
+    template <bool check = false>
+    void add_item(group_t r, int64_t c, auto&&... w)
+    {
+        if constexpr (check)
+        {
+            if (std::cmp_greater_equal(c, _ps.size()))
+            {
+                soft_resize(_ps, c + 1);
+                soft_resize(_empty_labels, c + 1);
+            }
+            mod_r<true>(r, c);
+        }
+
+        _ps[c].template add_item<check>(get_r(r, c), w...);
+    }
+
+    void remove_item(group_t r, int64_t c, auto&&... w)
+    {
+        _ps[c].remove_item(get_r(r, c), w...);
+    }
+
+    void vacate_group(group_t r, int64_t c)
+    {
+        mod_r<false>(r, c);
+    }
+
+    void occupy_group(group_t r, int64_t c)
+    {
+        auto s = mod_r<true>(r, c);
+        auto& ps = _ps[c];
+        if constexpr (requires {ps.add_group(s - ps.get_B() + 1);})
+        {
+            if (std::cmp_greater_equal(s, ps.get_B()))
+                ps.add_group(s - ps.get_B() + 1);
+        }
+    }
+
+    double get_dl()
+    {
+        double S = 0;
+        for (auto& ps : _ps)
+            S += ps.get_dl();
+        return S;
+    }
+
+    double get_delta_dl(group_t r, group_t nr, int64_t c, auto&&... w)
+    {
+        return _ps[c].get_delta_dl(get_r(r, c), get_r(nr, c), w...);
+    }
+
+    size_t get_actual_B()
+    {
+        size_t B = 0;
+        for (auto& ps : _ps)
+            B += ps.get_actual_B();
+        return B;
+    }
+
+    static constexpr group_t _null_group = PStats::_null_group;
+
+private:
+
+    group_t get_r(group_t r, int64_t c)
+    {
+        if (r == _null_group)
+            return r;
+        auto& rlabel = _r_label[c];
+        auto iter = rlabel.find(r);
+        if (iter != rlabel.end())
+            return iter->second;
+        return get_empty(c);
+    }
+
+    template <bool pop=false>
+    group_t get_empty(int64_t c)
+    {
+        auto& el = _empty_labels[c];
+        if (el.empty())
+            return _r_label[c].size();
+        auto s = el.back();
+        if constexpr (pop)
+            el.pop_back();
+        return s;
+    }
+
+    template <bool add>
+    auto mod_r(group_t r, int64_t c)
+    {
+        auto& ls = _r_label[c];
+        auto iter = ls.find(r);
+        auto& el = _empty_labels[c];
+        if constexpr (add)
+        {
+            if (iter == ls.end())
+                return get_empty<true>(c);
+            else
+                return iter->second;
+        }
+        else
+        {
+            if (iter != ls.end())
+            {
+                el.push_back(iter->second);
+                ls.erase(iter);
+            }
+        }
+    }
+
+    std::vector<PStats> _ps;
+    idx_map<group_t, idx_map<group_t, group_t, {.shared_pos=true}>,
+            {.shared_tpos=true}> _r_label;
+    std::vector<std::vector<group_t>> _empty_labels;
+};
+
 
 } //namespace graph_tool
 

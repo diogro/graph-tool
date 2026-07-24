@@ -44,8 +44,9 @@ dl_import("from . import libgraph_tool_inference as libinference")
 from . libgraph_tool_inference import PartitionHist, BlockPairHist
 
 @entropy_state_signature
-class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
-                 GibbsMCMCState, ExhaustiveSweepState, DrawBlockState):
+class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
+                 MultilevelMCMCState, GibbsMCMCState, ExhaustiveSweepState,
+                 DrawBlockState):
     r"""The stochastic block model state of a given graph.
 
     Parameters
@@ -74,8 +75,8 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         vector property map of type ``vector<double>``, and contain the
         log-probability for each node to be placed in each group.
     deg_corr : ``bool`` (optional, default: ``True``)
-        If ``True``, the degree-corrected version of the blockmodel ensemble will
-        be assumed, otherwise the traditional variant will be used.
+        If ``True``, the degree-corrected version of model will be assumed,
+        otherwise the non-degree-corrected variant will be used.
     flat_map : ``bool`` (optional, default: ``False``)
         If ``True``, flat maps will be used instead of hash tables, which will
         be slower, but will use less memory.
@@ -94,6 +95,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             return
 
         EntropyState.__init__(self, entropy_args=entropy_args)
+        CLabelState.__init__(self, g=g, clabel=clabel, pclabel=pclabel)
 
         self.g = g
         self.deg_corr = deg_corr
@@ -142,19 +144,6 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             if B is None:
                 B = int(self.b.fa.max()) + 1
 
-        if clabel is None:
-            clabel = pclabel
-
-        if clabel is None:
-            self.clabel = g.new_vp("int64_t")
-        else:
-            self.clabel = g.own_property(clabel)
-
-        if pclabel is None:
-            self.pclabel = g.new_vp("int64_t")
-        else:
-            self.pclabel = g.own_property(pclabel)
-
         # Internal structures
         self.bg = Graph(directed=g.is_directed())
 
@@ -167,9 +156,6 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
             self._mrm = self.mrp
 
         self._coupled_state = None
-
-        self.bclabel = self.bg.new_vp("int64_t")
-        self.hclabel = self.bg.new_vp("int64_t")
 
         self.flat_map = flat_map
 
@@ -269,7 +255,7 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
                                      vweight=vweight,
                                      b=b,
                                      deg_corr=False,
-                                     clabel=self.bclabel.copy() if not final else None,
+                                     clabel=self.get_bclabel() if not final else None,
                                      pclabel=self.get_bpclabel() if not final else None,
                                      flat_map=self.flat_map),
                                 **kwargs))
@@ -762,9 +748,6 @@ class BlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     def _clear_egroups(self):
         self._state.clear_egroups()
-
-    def _get_bclabel(self):
-        return self.bclabel
 
     def collect_edge_marginals(self, p=None, update=1):
         r"""Collect the edge marginal histogram, which counts the number of times

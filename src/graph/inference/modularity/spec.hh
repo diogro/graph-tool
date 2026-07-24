@@ -237,7 +237,7 @@ struct StateSpec
         {
             double M = 2 * _E;
             double Q = _Err;
-            for (auto r : _state._candidate_groups)
+            for (auto r : _state._occupied_groups)
                 Q -= ea.gamma * _er[r] * (_er[r] / M);
             return -Q;
         }

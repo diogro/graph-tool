@@ -355,18 +355,15 @@ struct LayeredBlockStateSpec
 
                 _state.set_concurrent(false);
 
-                _lstats.init([&](auto&& f)
-                             {
-                                 for (auto v : vertices_range(_state._g))
-                                 {
-                                     for (auto&& [l, c] : _state._vweight[v]._h)
-                                     {
-                                         ovweight_t w;
-                                         w[l] = {0, c};
-                                         f(l, w);
-                                     }
-                                 }
-                             });
+                for (auto v : vertices_range(_state._g))
+                {
+                    for (auto&& [l, c] : _state._vweight[v]._h)
+                    {
+                        ovweight_t w;
+                        w[l] = {0, c};
+                        _lstats.template add_item<true>(l, w);
+                    }
+                }
             }
         }
 

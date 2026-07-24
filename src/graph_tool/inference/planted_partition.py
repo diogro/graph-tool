@@ -31,8 +31,8 @@ import numpy as np
 import math
 
 @entropy_state_signature
-class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
-                   GibbsMCMCState, DrawBlockState):
+class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
+                   MultilevelMCMCState, GibbsMCMCState, DrawBlockState):
     r"""Obtain the partition of a network according to the Bayesian planted partition
     model.
 
@@ -43,6 +43,20 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Initial partition. If not supplied, a partition into a single group will
         be used.
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Edge multiplicities (for multigraphs or block graphs).
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Constraint labels on the vertices. If supplied, vertices with different
+        label values will not be clustered in the same group.
+    pclabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Partition constraint labels on the vertices. This has the same
+        interpretation as ``clabel``, but will be used to compute the partition
+        description length.
+    uniform : ``bool`` (optional, default: ``True``)
+        If ``True``, the uniform model variant will be assumed.
+    deg_corr : ``bool`` (optional, default: ``True``)
+        If ``True``, the degree-corrected version of the blockmodel ensemble will
+        be assumed, otherwise the traditional variant will be used.
     entropy_args: ``dict`` (optional, default: ``{}``)
         Override default arguments for :meth:`~PPBlockState.entropy()`
         method and releated operations.
@@ -52,11 +66,13 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     .. [lizhi-statistical-2020] Lizhi Zhang, Tiago P. Peixoto, "Statistical
        inference of assortative community structures", Phys. Rev. Research 2
        043271 (2020), :doi:`10.1103/PhysRevResearch.2.043271`, :arxiv:`2006.14493`
+
     """
 
     def __init__(self, g, b=None, eweight=None, clabel=None, pclabel=None,
                  uniform=False, deg_corr=True, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
+        CLabelState.__init__(self, g=g, clabel=clabel, pclabel=pclabel)
         self.g = g
         self.uniform = uniform
         self.deg_corr = deg_corr
@@ -72,20 +88,6 @@ class PPBlockState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         else:
             eweight = g.own_property(eweight)
         self.eweight = eweight
-
-        if clabel is None:
-            clabel = pclabel
-
-        if clabel is None:
-            clabel = g.new_vp("int64_t")
-        else:
-            clabel = g.own_property(clabel)
-        self.clabel = clabel
-
-        if pclabel is None:
-            self.pclabel = g.new_vp("int64_t")
-        else:
-            self.pclabel = g.own_property(pclabel)
 
         self._state = libinference.make_planted_partition_state(self)
 

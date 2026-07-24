@@ -26,8 +26,7 @@
 
 #define SPEC_params                                                            \
     ((uniform, bool, 0))                                                       \
-    ((deg_corr, bool, 0))                                                      \
-    ((pclabel, STATE_SPEC::vmap_t, 0))
+    ((deg_corr, bool, 0))
 
 #define EARGS_params                                                           \
     ((adjacency, bool))                                                        \
@@ -72,6 +71,7 @@ struct StateSpec
               _g(state._g),
               _b(state._b),
               _eweight(state._eweight),
+              _pclabel(state._pclabel),
               _N(hard_num_vertices(_g))
         {}
 
@@ -111,7 +111,8 @@ struct StateSpec
                 _E += w;
             }
 
-            init_partition_stats();
+            for (auto v : vertices_range(_g))
+                _ps.template add_item<true>(_b[v], _pclabel[v]);
 
             if (_deg_corr)
             {
@@ -135,6 +136,7 @@ struct StateSpec
         g_t& _g;
         typename State::b_t& _b;
         typename State::eweight_t& _eweight;
+        typename State::pclabel_t& _pclabel;
 
         typedef typename GraphSpecBase::group_t group_t;
         typedef typename GraphSpecBase::vertex_t vertex_t;
@@ -151,45 +153,10 @@ struct StateSpec
         std::vector<int64_t> _eio;
         std::vector<std::tuple<w_t, w_t>> _degs;
 
-        std::vector<PartitionStats<size_t>> _partition_stats;
+        CPartitionStats<PartitionStats<size_t>> _ps;
         DegStats<is_directed_v<typename State::g_t>, int64_t, group_t> _deg_stats;
 
         std::vector<std::vector<vertex_t>> _groups_in, _groups_out;
-
-        void init_partition_stats()
-        {
-#ifndef _LIBCPP_VERSION
-            auto vi = std::max_element(vertices(_g).first,
-                                       vertices(_g).second,
-#else // libc++ is stupid
-            auto vi = boost::first_max_element(vertices(_g).first,
-                                               vertices(_g).second,
-#endif
-                                       [&](auto u, auto v)
-                                       { return (_pclabel[u] < _pclabel[v]); });
-
-            size_t C = _pclabel[*vi] + 1;
-
-            vector<vector<vertex_t>> vcs(C);
-            for (auto v : vertices_range(_g))
-                vcs[_pclabel[v]].push_back(v);
-
-            for (size_t c = 0; c < C; ++c)
-            {
-                _partition_stats.emplace_back([&](auto&& f)
-                                              {
-                                                  for (auto v : vcs[c])
-                                                      f(_b[v]);
-                                              });
-                _partition_stats.back().add_group(_state._empty_groups.size());
-            }
-        }
-
-        auto& get_partition_stats(vertex_t v)
-        {
-           size_t r = _pclabel[v];
-           return _partition_stats[r];
-        }
 
         // =====================================================================
         // State modification
@@ -297,14 +264,23 @@ struct StateSpec
         {
             auto delta = get_delta(v, r, nr);
             apply_delta(r, nr, delta);
-            auto& ps = get_partition_stats(v);
-            ps.remove_item(r);
-            ps.add_item(nr);
+            _ps.remove_item(r, _pclabel[v]);
+            _ps.add_item(nr, _pclabel[v]);
             if (_deg_corr)
             {
                 _deg_stats.remove_vertex(_degs[v], r);
                 _deg_stats.add_vertex(_degs[v], nr);
             }
+        }
+
+        void occupy_group(group_t r)
+        {
+            _ps.occupy_group(r, _state._bpclabel[r]);
+        }
+
+        void vacate_group(group_t r)
+        {
+            _ps.vacate_group(r, _state._bpclabel[r]);
         }
 
         template <class Vs, class NRs>
@@ -345,8 +321,7 @@ struct StateSpec
                  {
                      for (auto v : vs)
                      {
-                         auto& ps = get_partition_stats(v);
-                         ps.add_item(nr);
+                         _ps.add_item(nr, _pclabel[v]);
                          if (_deg_corr)
                              _deg_stats.add_vertex(_degs[v], nr);
                      }
@@ -358,8 +333,7 @@ struct StateSpec
                  {
                      for (auto v : vs)
                      {
-                         auto& ps = get_partition_stats(v);
-                         ps.remove_item(r);
+                         _ps.remove_item(r, _pclabel[v]);
                          if (_deg_corr)
                              _deg_stats.remove_vertex(_degs[v], r);
                      }
@@ -413,9 +387,8 @@ struct StateSpec
         {
             auto delta = get_merge_delta(s, t);
             apply_delta(s, t, delta);
-            auto& ps = _partition_stats[_state._bclabel[s]];
-            ps.remove_item(s, _state._groups[s].size());
-            ps.add_item(t, _state._groups[s].size());
+            _ps.remove_item(s, _state._bpclabel[s], _state._groups[s].size());
+            _ps.add_item(t, _state._bpclabel[t], _state._groups[s].size());
             if (_deg_corr)
                 _deg_stats.merge_groups(s, t);
         }
@@ -427,8 +400,6 @@ struct StateSpec
             if constexpr (is_directed_v<g_t>)
                 _erm.resize(N + n, 0);
             _err.resize(N + n, 0);
-            for (auto& ps : _partition_stats)
-                ps.add_group(n);
             if (_deg_corr)
                 _deg_stats.add_group(n);
             return N;
@@ -446,7 +417,7 @@ struct StateSpec
             double Sb = 0;
             double Sa = 0;
 
-            size_t B = _state._candidate_groups.size();
+            size_t B = _state._occupied_groups.size();
 
             int64_t dB = 0;
             if (_state._groups[r].size() == n)
@@ -563,14 +534,9 @@ struct StateSpec
         double virtual_move(size_t v, size_t r, size_t nr, const entropy_args_t& ea)
         {
             auto delta = get_delta(v, r, nr);
-
             double dS = get_delta_dS(r, nr, delta, 1, ea);
-
             if (ea.partition_dl)
-            {
-                auto& ps = get_partition_stats(v);
-                dS += ps.get_delta_dl(r, nr);
-            }
+                dS += _ps.get_delta_dl(r, nr, _state._bpclabel[r]);
             if (_deg_corr && ea.degree_dl)
                 dS += _deg_stats.get_delta_dl(_degs[v], r, nr, ea.degree_dl_kind);
             return dS;
@@ -581,10 +547,7 @@ struct StateSpec
             auto delta = get_merge_delta(s, t);
             double dS = get_delta_dS(s, t, delta, _state._groups[s].size(), ea);
             if (ea.partition_dl)
-            {
-                auto& ps = _partition_stats[_state._bclabel[s]];
-                dS += ps.get_delta_dl(s, t, _state._groups[s].size());
-            }
+                dS += _ps.get_delta_dl(s, t, _state._bpclabel[s], _state._groups[s].size());
             if (_deg_corr && ea.degree_dl)
                 dS += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
             return dS;
@@ -594,13 +557,13 @@ struct StateSpec
         {
             double S = 0;
 
-            size_t B = _state._candidate_groups.size();
+            size_t B = _state._occupied_groups.size();
 
             if (ea.adjacency)
             {
                 #pragma omp parallel reduction(+:S)
                 parallel_loop_no_spawn
-                    (_state._candidate_groups,
+                    (_state._occupied_groups,
                      [&](auto, auto r)
                      {
                          if (_state._groups[r].empty())
@@ -643,7 +606,7 @@ struct StateSpec
                         S += _eio[1] * lbinom_fast(B, 2);
                     #pragma omp parallel reduction(+:S)
                     parallel_loop_no_spawn
-                        (_state._candidate_groups,
+                        (_state._occupied_groups,
                          [&](auto, auto r)
                          {
                              if constexpr (is_directed_v<g_t>)
@@ -676,10 +639,7 @@ struct StateSpec
                 S += safelog_fast(_E + 1);
 
             if (ea.partition_dl)
-            {
-                for (auto& ps : _partition_stats)
-                    S += ps.get_dl();
-            }
+                S += _ps.get_dl();
 
             if (_deg_corr && ea.degree_dl)
                 S += _deg_stats.get_dl(ea.degree_dl_kind);

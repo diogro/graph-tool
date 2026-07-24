@@ -39,15 +39,6 @@ struct SimpleOverlapDegStats
         _N = N;
     }
 
-    template <class F>
-    void init(F&& iter_items)
-    {
-        iter_items([&](auto&& deg, group_t r, const ovweight_t& w)
-                   {
-                       add_vertex(deg, r, w);
-                   });
-    }
-
     size_t get_out_deg(size_t v, group_t r)
     {
         auto ret = 0;
@@ -367,15 +358,15 @@ struct SimpleOverlapDegStats
         boost::concurrent_flat_map<deg_t, size_t> empty;
         empty.emplace(0, _N);
 
-        _out_deg.resize(_out_deg.size() + n);
-        _out_hist.resize(_out_hist.size() + n, empty);
-        _ep.resize(_ep.size() + n);
+        soft_resize(_out_deg, _out_deg.size() + n);
+        soft_resize(_out_hist, _out_hist.size() + n, empty);
+        soft_resize(_ep, _ep.size() + n);
 
         if constexpr (directed)
         {
-            _in_deg.resize(_in_deg.size() + n);
-            _in_hist.resize(_in_hist.size() + n, empty);
-            _em.resize(_em.size() + n);
+            soft_resize(_in_deg, _in_deg.size() + n);
+            soft_resize(_in_hist, _in_hist.size() + n, empty);
+            soft_resize(_em, _em.size() + n);
         }
     }
 
@@ -503,8 +494,13 @@ private:
 
 struct DummyPartitionStats
 {
+    DummyPartitionStats() {}
+
     template <class F>
-    DummyPartitionStats(F&&) {}
+    DummyPartitionStats(F&&...) {}
+
+    template <class F>
+    void init(F&&...) {}
 
     constexpr double get_dl() { return 0; }
 
@@ -522,6 +518,7 @@ struct DummyPartitionStats
     {
     }
 
+    template <bool check=false>
     constexpr void add_item(auto, auto&&)
     {
     }
@@ -533,6 +530,14 @@ struct DummyPartitionStats
     constexpr void add_group()
     {
     }
+
+    size_t get_B()
+    {
+        return 0;
+    }
+
+    typedef int64_t group_t;
+    constexpr static group_t _null_group = std::numeric_limits<group_t>::max();
 };
 
 

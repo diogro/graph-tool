@@ -73,19 +73,19 @@ struct MCMC
         typedef State::vertex_t vertex_t;
         typedef State::group_t group_t;
 
-        constexpr static auto _null_group = State::null_group;
+        constexpr static auto _null_group = State::_null_group;
 
         double _c = numeric_limits<double>::infinity();
 
-        std::vector<group_t> _candidate_groups;
+        std::vector<group_t> _occupied_groups;
 
         auto& get_moves(vertex_t v)
         {
-            _candidate_groups.clear();
-            const auto& c = _state.get_candidate_groups(v);
-            _candidate_groups.insert(_candidate_groups.end(), c.begin(), c.end());
-            _candidate_groups.push_back(_null_group);
-            return _candidate_groups;
+            _occupied_groups.clear();
+            const auto& c = _state.get_occupied_groups(v);
+            _occupied_groups.insert(_occupied_groups.end(), c.begin(), c.end());
+            _occupied_groups.push_back(_null_group);
+            return _occupied_groups;
         }
 
         group_t node_state(vertex_t v)
@@ -107,16 +107,13 @@ struct MCMC
             if (nr == _null_group)
             {
                 if (!_allow_new_group ||
-                    _state._candidate_groups.size() == num_vertices(_state._g) ||
+                    _state._occupied_groups.size() == num_vertices(_state._g) ||
                     _state.virtual_remove_size(v) == 0)
                     return numeric_limits<double>::infinity();
-                _state.get_empty_group(v);
-                _nr = nr = uniform_sample(_state._empty_groups, rng);
+                _nr = nr = _state.get_empty_group(v, rng);
                 auto cstate = _state._coupled_state;
                 if (cstate != nullptr)
                     cstate->sample_branch(nr, r, rng);
-                _state._bclabel[nr] = _state._bclabel[r];
-
             }
             return _state.virtual_move(v, nr, _entropy_args);
         }

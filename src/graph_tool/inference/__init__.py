@@ -81,6 +81,7 @@ Abstract base classes
    :template: class.rst
 
    EntropyState
+   CLabelState
    MCMCState
    MultiflipMCMCState
    MultilevelMCMCState
@@ -299,6 +300,7 @@ __all__ = ["minimize_blockmodel_dl",
            "MeasuredClosureBlockState",
            "HistState",
            "CliqueState",
+           "CLabelState",
            "EntropyState",
            "MCMCState",
            "MultiflipMCMCState",

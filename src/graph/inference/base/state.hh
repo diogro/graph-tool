@@ -47,7 +47,8 @@ namespace graph_tool
 
 #define BASE_STATE_params                                                      \
     ((b, STATE_SPEC::vmap_t, 0))                                               \
-    ((clabel, STATE_SPEC::vmap_t, 0))
+    ((clabel, STATE_SPEC::vmap_t, 0))                                          \
+    ((pclabel, STATE_SPEC::vmap_t, 0))
 
 #define STATE_params BASE_STATE_params SPEC_BASE_params SPEC_params
 
@@ -77,8 +78,12 @@ public:
         {
             auto r = _b[v];
             if (std::cmp_greater_equal(r, _bclabel.size()))
-                _bclabel.resize(r + 1);
+            {
+                soft_resize(_bclabel, r + 1);
+                soft_resize(_bpclabel, r + 1);
+            }
             _bclabel[r] = _clabel[v];
+            _bpclabel[r] = _pclabel[v];
             _groups[r].insert(v);
             N++;
             _max_r = std::max(size_t(r+1), _max_r);
@@ -86,13 +91,14 @@ public:
         _N = N;
         _max_r = std::max(N, _max_r);
         _bclabel.resize(_max_r);
+        _bpclabel.resize(_max_r);
 
         for (size_t r = 0; r < _max_r; ++r)
         {
             if (_groups[r].empty())
                 _empty_groups.insert(r);
             else
-                _candidate_groups.insert(r);
+                _occupied_groups.insert(r);
         }
 
         _spec.post_init();
@@ -113,9 +119,10 @@ public:
     typedef STATE_SPEC::entropy_args_t entropy_args_t;
 
     idx_set<group_t> _empty_groups;
-    idx_set<group_t> _candidate_groups;
+    idx_set<group_t> _occupied_groups;
 
     std::vector<group_t> _bclabel;
+    std::vector<group_t> _bpclabel;
 
     idx_map<group_t, idx_set<size_t, {.shared_pos=true}>, {.shared_tpos=true}> _groups;
 
@@ -166,13 +173,15 @@ public:
     void vacate_group(group_t r)
     {
         _empty_groups.insert(r);
-        _candidate_groups.erase(r);
+        _occupied_groups.erase(r);
+        _spec.vacate_group(r);
     }
 
     void occupy_group(group_t r)
     {
         _empty_groups.erase(r);
-        _candidate_groups.insert(r);
+        _occupied_groups.insert(r);
+        _spec.occupy_group(r);
     }
 
     template <class Vs, class NRs>
@@ -250,6 +259,7 @@ public:
             _empty_groups.insert(B + i);
         }
         _bclabel.resize(B + n);
+        _bpclabel.resize(B + n);
         _spec.add_group(n);
     }
 
@@ -309,9 +319,9 @@ public:
         return _groups[_b[v]].size() == 1;
     }
 
-    auto& get_candidate_groups(size_t)
+    auto& get_occupied_groups(size_t)
     {
-        return _candidate_groups;
+        return _occupied_groups;
     }
 
     auto get_N()

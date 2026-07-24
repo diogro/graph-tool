@@ -113,12 +113,6 @@ struct MCMC
                     mes[0]._next = &_m_entries_coupled[i][0];
                 }
             }
-
-            if (_state._coupled_state != nullptr)
-            {
-                _bh = _state._coupled_state->get_b();
-                _hpclabel = _state._coupled_state->get_pclabel();
-            }
         }
 
         ~MCMCLoopStateImp() { _state.clear_egroups(); }
@@ -135,9 +129,6 @@ struct MCMC
 
         std::vector<std::vector<typename State::m_entries_t>> _m_entries;
         std::vector<std::vector<typename State::coupled_state_t::m_entries_t>> _m_entries_coupled;
-
-        vprop_map_t<int64_t>::unchecked_t _bh;
-        vprop_map_t<int64_t>::unchecked_t _hpclabel;
 
         idx_set<group_t> _rs;
 
@@ -180,26 +171,9 @@ struct MCMC
         template <class RNG>
         group_t get_new_group(vertex_t v, bool inherit, RNG& rng)
         {
-            group_t t;
-            if (_state._empty_groups.empty())
-                t =_state.get_empty_group(v);
-            else
-                t = uniform_sample(_state._empty_groups, rng);
-
-            if (inherit)
-            {
-                auto r = _state._b[v];
-                _state._bclabel[t] = _state._bclabel[r];
-                if (_state._coupled_state != nullptr)
-                {
-                    _bh[t] = _bh[r];
-                    _hpclabel[t] = _state._pclabel[v];
-                }
-            }
-
+            group_t t = _state.get_empty_group(v, rng, inherit);
             if constexpr (_has_relabel)
                 relabel_group(t, sample_group_label(t, rng));
-
             return t;
         }
 

@@ -76,15 +76,15 @@ struct MCMC
 
         double _c = numeric_limits<double>::infinity();
 
-        std::vector<group_t> _candidate_groups;
+        std::vector<group_t> _occupied_groups;
 
         auto& get_moves(vertex_t v)
         {
-            _candidate_groups.clear();
-            const auto& c = _state.get_candidate_groups(v);
-            _candidate_groups.insert(_candidate_groups.end(), c.begin(), c.end());
-            _candidate_groups.push_back(_null_group);
-            return _candidate_groups;
+            _occupied_groups.clear();
+            const auto& c = _state.get_occupied_groups(v);
+            _occupied_groups.insert(_occupied_groups.end(), c.begin(), c.end());
+            _occupied_groups.push_back(_null_group);
+            return _occupied_groups;
         }
 
         group_t node_state(vertex_t v)
@@ -106,7 +106,7 @@ struct MCMC
             if (nr == _null_group)
             {
                 if (!_allow_new_group ||
-                    _state._candidate_groups.size() == _state._N ||
+                    _state._occupied_groups.size() == _state._N ||
                     _state.virtual_remove_size(v) == 0)
                     return numeric_limits<double>::infinity();
                 if (_state._empty_groups.empty())

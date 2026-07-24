@@ -70,7 +70,7 @@ struct GraphSpecBase
                 auto w = uniform_sample(iter.first, iter.second, rng);
                 return _state._b[w];
             }
-            return uniform_sample(_state._candidate_groups, rng);
+            return uniform_sample(_state._occupied_groups, rng);
         }
 
         auto sample_group_local(size_t v, rng_t& rng)
@@ -82,7 +82,7 @@ struct GraphSpecBase
         double get_move_prob(size_t v, auto r, auto s, double c, double d,
                              bool reverse)
         {
-            size_t B = _state._candidate_groups.size();
+            size_t B = _state._occupied_groups.size();
             if (reverse)
             {
                 if (_state._groups[s].size() == 1)

@@ -213,8 +213,8 @@ struct StateSpec
             if (_state._groups[nr].empty())
                 dB++;
 
-            Cb += _state._candidate_groups.size();
-            Ca += _state._candidate_groups.size() + dB;
+            Cb += _state._occupied_groups.size();
+            Ca += _state._occupied_groups.size() + dB;
 
             double dS = (Ca - Cb);
             return dS;
@@ -236,9 +236,9 @@ struct StateSpec
 
         double entropy(const entropy_args_t&)
         {
-            size_t B = _state._candidate_groups.size();
+            size_t B = _state._occupied_groups.size();
             double C = B;
-            for (auto r : _state._candidate_groups)
+            for (auto r : _state._occupied_groups)
                 C -= (_er[r] > 0) ? _err[r] / double(_er[r]) : 0;
             return C;
         }
