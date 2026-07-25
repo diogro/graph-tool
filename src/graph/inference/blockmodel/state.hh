@@ -341,10 +341,13 @@ public:
 
         for (const auto& [v, nr] : std::views::zip(vs, nrs))
         {
+            auto r = _b[v];
+
+            if (nr == r)
+                continue;
+
             if (size_t(nr) >= num_vertices(_bg))
                 add_group(1 + nr - num_vertices(_bg));
-
-            auto r = _b[v];
 
             _group_delta[r] -= _vweight[v];
             _group_delta[nr] += _vweight[v];
@@ -352,16 +355,10 @@ public:
             _rset.insert(r);
             _rset.insert(nr);
 
-            if (nr == r)
-                continue;
-
             _vset[v] = nr;
 
             _groups_out[r].push_back(v);
             _groups_in[nr].push_back(v);
-
-            _groups[r].erase(v);
-            _groups[nr].insert(v);
         }
 
         set_concurrent(true);
@@ -584,56 +581,45 @@ public:
                  }, vstate);
         }
 
+
         for (auto r : _rset)
         {
             const auto& d = _group_delta[r];
+            if (_groups[r].empty())
+                occupy_group(r, d);
+            for (auto v : _groups_out[r])
+                _groups[r].erase(v);
             if (d == 0)
                 continue;
-            if (_wr[r] == 0)
-                occupy_group(r, d);
+            if (d > 0)
+                _ps.add_item(r, _bpclabel[r], d);
+            else
+                _ps.remove_item(r, _bpclabel[r], -d);
+            if (!_groups[r].empty())
+                _spec.update_group_weight(r, d);
+            _wr[r] += d;
         }
 
-        parallel_loop
-            (_groups_in,
-             [&](auto nr, auto& vs)
-             {
-                 for (auto v : vs)
-                 {
-                     const auto& vw = _vweight[v];
-                     _ps.add_item(nr, _pclabel[v], vw);
-                     if (_deg_corr)
-                         _deg_stats.add_vertex(_degs[v], nr, vw);
-                 }
-             }, 0);
-
-        parallel_loop
-            (_groups_out,
-             [&](auto r, auto& vs)
-             {
-                 for (auto v : vs)
-                 {
-                     const auto& vw = _vweight[v];
-                     _ps.remove_item(r, _pclabel[v], vw);
-                     if (_deg_corr)
-                         _deg_stats.remove_vertex(_degs[v], r, vw);
-                 }
-             }, 0);
-
         for (auto r : _rset)
         {
-            const auto& d = _group_delta[r];
-            if (d == 0)
-                continue;
-            if (_wr[r] + d == 0)
-            {
+            for (auto v : _groups_in[r])
+                _groups[r].insert(v);
+            if (_groups[r].empty())
                 vacate_group(r);
-            }
-            else if (_wr[r] != 0)
-            {
-                _spec.update_group_weight(r, d);
-                _wr[r] += d;
-            }
             _group_delta[r] = 0;
+        }
+
+        if (_deg_corr)
+        {
+            parallel_loop
+                (_rset,
+                 [&](auto, auto r)
+                 {
+                     for (auto v : _groups_out[r])
+                         _deg_stats.remove_vertex(_degs[v], r, _vweight[v]);
+                     for (auto v : _groups_in[r])
+                         _deg_stats.add_vertex(_degs[v], r, _vweight[v]);
+                 }, 0);
         }
 
         parallel_loop(std::views::zip(vs, nrs),
@@ -722,14 +708,11 @@ public:
         _ps.remove_item(r, _pclabel[v], w);
 
         if (w != 0 && _wr[r] == w)
-        {
             vacate_group(r);
-        }
         else
-        {
             _spec.update_group_weight(r, -w);
-            _wr[r] -= w;
-        }
+
+        _wr[r] -= w;
 
         if (_deg_corr)
             _deg_stats.remove_vertex(_degs[v], r, w);
@@ -737,7 +720,6 @@ public:
         _groups[r].erase(v);
     }
 
-    template <bool check=false>
     void add_partition_node(vertex_t v, group_t r)
     {
         auto& w = _vweight[v];
@@ -745,16 +727,13 @@ public:
         assert(w != 0);
 
         if (w != 0 && _wr[r] == 0)
-        {
             occupy_group(r, w);
-        }
         else
-        {
             _spec.update_group_weight(r, w);
-            _wr[r] += w;
-        }
 
-        _ps.template add_item<check>(r, _pclabel[v], w);
+        _wr[r] += w;
+
+        _ps.add_item(r, _pclabel[v], w);
 
         if (_deg_corr)
             _deg_stats.add_vertex(_degs[v], r, w);
@@ -766,11 +745,10 @@ public:
 
     void vacate_group(group_t r)
     {
-        _wr[r] = 0;
-        _occupied_groups[_bclabel[r]].erase(r);
         _empty_groups.insert(r);
+        _occupied_groups[_bclabel[r]].erase(r);
         _actual_B--;
-        _ps.vacate_group(r, _bpclabel[r]);
+        _ps.template remove_item<true>(r, _bpclabel[r], rw_t{});
 
         if (_coupled_state != nullptr)
         {
@@ -782,11 +760,10 @@ public:
 
     void occupy_group(group_t r, const rw_t& w)
     {
-        _wr[r] = w;
         _empty_groups.erase(r);
         _occupied_groups[_bclabel[r]].insert(r);
         _actual_B++;
-        _ps.occupy_group(r, _bpclabel[r]);
+        _ps.template add_item<true>(r, _bpclabel[r], rw_t{});
 
         if (_coupled_state != nullptr)
         {
@@ -794,7 +771,7 @@ public:
             auto rw = w;
             rw = 1; // NOTE: setting this way is important for the layered model
             _coupled_state->set_vertex_weight(r, rw);
-            _coupled_state->template add_partition_node<true>(r, hb[r]);
+            _coupled_state->add_partition_node(r, hb[r]);
         }
     }
 
@@ -814,20 +791,17 @@ public:
             _deg_stats.merge_groups(s, t);
 
         if (_wr[t] == 0)
-        {
             occupy_group(t, ws);
-        }
         else
-        {
             _spec.update_group_weight(t, ws);
-            _wr[t] += ws;
-        }
 
-        _ps.add_item(t, _bpclabel[t], ws);
+        _wr[t] += ws;
+
         _ps.remove_item(s, _bpclabel[s], ws);
+        _ps.add_item(t, _bpclabel[t], ws);
 
-        if (ws != 0)
-            vacate_group(s);
+        ws = 0;
+        vacate_group(s);
 
         std::vector<vertex_t> vs(_groups[s].begin(), _groups[s].end());
         for (auto v : vs)
@@ -1487,7 +1461,7 @@ public:
         }
         else
         {
-            return uniform_sample(_occupied_groups[_bclabel[_b[v]]], rng);
+            return uniform_sample(_occupied_groups[_clabel[v]], rng);
         }
     }
 

@@ -127,6 +127,7 @@ public:
     idx_map<group_t, idx_set<size_t, {.shared_pos=true}>, {.shared_tpos=true}> _groups;
 
     vprop_map_t<group_t>::unchecked_t _nb;
+    idx_set<group_t> _rset;
 
     constexpr static bool _has_merge = STATE_SPEC::has_merge;
     constexpr static bool _has_parallel_move = STATE_SPEC::has_parallel_move;
@@ -156,6 +157,9 @@ public:
         if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
+        if (_groups[nr].empty())
+            occupy_group(nr);
+
         _spec.move_vertex(v, r, nr);
 
         _groups[r].erase(v);
@@ -163,9 +167,6 @@ public:
 
         if (_groups[r].empty())
             vacate_group(r);
-
-        if (_groups[nr].size() == 1)
-            occupy_group(nr);
 
         _b[v] = nr;
     }
@@ -190,7 +191,15 @@ public:
         static_assert(std::ranges::random_access_range<Vs>);
         static_assert(std::ranges::random_access_range<NRs>);
 
+        _rset.clear();
         _nb.reserve(_max_r, null_group);
+
+        for (auto&& [v, nr] : std::views::zip(vs, nrs))
+        {
+            auto r = _b[v];
+            _rset.insert(r);
+            _rset.insert(nr);
+        }
 
         parallel_loop(std::views::zip(vs, nrs),
                       [&](auto, auto&& vnr)
@@ -208,6 +217,12 @@ public:
                  return r;
              });
 
+        for (auto r : _rset)
+        {
+            if (_groups[r].empty())
+                occupy_group(r);
+        }
+
         _spec.move_vertices_parallel(vs, nrs, nb);
 
         for (auto&& [v, nr] : std::views::zip(vs, nrs))
@@ -219,13 +234,13 @@ public:
                 _groups[r].erase(v);
                 _groups[nr].insert(v);
                 _b[v] = nr;
-
-                if (_groups[r].empty())
-                    vacate_group(r);
-
-                if (_groups[nr].size() == 1)
-                    occupy_group(nr);
             }
+        }
+
+        for (auto r : _rset)
+        {
+            if (_groups[r].empty())
+                vacate_group(r);
         }
     }
 

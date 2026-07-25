@@ -275,12 +275,12 @@ struct StateSpec
 
         void occupy_group(group_t r)
         {
-            _ps.occupy_group(r, _state._bpclabel[r]);
+            _ps.template add_item<true>(r, _state._bpclabel[r], 0);
         }
 
         void vacate_group(group_t r)
         {
-            _ps.vacate_group(r, _state._bpclabel[r]);
+            _ps.template remove_item<true>(r, _state._bpclabel[r], 0);
         }
 
         template <class Vs, class NRs>
@@ -297,6 +297,8 @@ struct StateSpec
             for (const auto& [v, nr] : std::views::zip(vs, nrs))
             {
                 auto r = _b[v];
+                if (nr == r)
+                    continue;
                 _groups_out[r].push_back(v);
                 _groups_in[nr].push_back(v);
             }

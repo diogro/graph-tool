@@ -207,24 +207,15 @@ public:
         _ps[c].template add_item<check>(get_r(r, c), w...);
     }
 
+    template <bool check = false>
     void remove_item(group_t r, int64_t c, auto&&... w)
     {
-        _ps[c].remove_item(get_r(r, c), w...);
-    }
-
-    void vacate_group(group_t r, int64_t c)
-    {
-        mod_r<false>(r, c);
-    }
-
-    void occupy_group(group_t r, int64_t c)
-    {
-        auto s = mod_r<true>(r, c);
-        auto& ps = _ps[c];
-        if constexpr (requires {ps.add_group(s - ps.get_B() + 1);})
+        auto s = get_r(r, c);
+        _ps[c].remove_item(s, w...);
+        if constexpr (check && requires {_ps[c].get_count(s);})
         {
-            if (std::cmp_greater_equal(s, ps.get_B()))
-                ps.add_group(s - ps.get_B() + 1);
+            if (_ps[c].get_count(s) == 0)
+                mod_r<false>(r, c);
         }
     }
 
