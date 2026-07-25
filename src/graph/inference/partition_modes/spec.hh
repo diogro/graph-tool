@@ -83,7 +83,7 @@ struct StateSpec
             }
 
             for (auto r : _state._b)
-                _partition_stats.add_item(r);
+                _partition_stats.template add_item<true>(r);
         }
 
         void post_init()
