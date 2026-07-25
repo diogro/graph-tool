@@ -628,7 +628,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
         remaining parameters are the same as in
         :meth:`graph_tool.inference.BlockState.entropy`."""
-        return self._state.virtual_move(int(v), self.b[v], s,
+        return self._state.virtual_move(int(v), s,
                                         self._get_entropy_args(dict(self._entropy_args,
                                                                     **kwargs)))
 
