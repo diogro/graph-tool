@@ -72,8 +72,16 @@ public:
     {
         auto& pos = get_pos();
         size_t& idx = pos[k];
-        if (idx == _null && !args.shared_pos)
-            return 0;
+        if constexpr (args.shared_pos)
+        {
+            if (idx >= _items.size() || _items[idx].first != k)
+                return 0;
+        }
+        else
+        {
+            if (idx == _null)
+                return 0;
+        }
         auto& back = _items.back();
         pos[back.first] = idx;
         _items[idx] = back;
@@ -174,7 +182,8 @@ private:
         }
 
         size_t& idx = pos[k];
-        if (idx == _null || args.shared_pos)
+        if (idx == _null || (args.shared_pos &&
+                             (idx >= _items.size() || _items[idx].first != k)))
         {
             idx = _items.size();
             if constexpr (insert)
@@ -203,10 +212,9 @@ private:
                        std::vector<size_t>*,
                        std::vector<size_t>> _pos;
     inline static constexpr size_t _null = std::numeric_limits<size_t>::max();
-    struct empty_t {};
     std::conditional_t<args.shared_tpos,
                        std::vector<size_t>,
-                       empty_t> _tpos;
+                       std::monostate> _tpos;
 };
 
 struct idx_set_args
@@ -252,7 +260,8 @@ public:
                 pos.resize(2 * size_t(k + 1), _null);
         }
         size_t& idx = pos[k];
-        if (idx == _null || args.shared_pos)
+        if (idx == _null || (args.shared_pos &&
+                             (idx >= _items.size() || _items[idx] != k)))
         {
             idx = _items.size();
             _items.push_back(k);
@@ -268,8 +277,16 @@ public:
     {
         pos_t& pos = const_cast<pos_t&>(get_pos());
         size_t& idx = pos[k];
-        if (idx == _null && !args.shared_pos)
-            return 0;
+        if constexpr (args.shared_pos)
+        {
+            if (idx >= _items.size() || _items[idx] != k)
+                return 0;
+        }
+        else
+        {
+            if (idx == _null)
+                return 0;
+        }
         auto& back = _items.back();
         pos[back] = idx;
         _items[idx] = back;
@@ -297,7 +314,13 @@ public:
         size_t idx = pos[key];
         if (idx == _null)
             return end();
-        return begin() + idx;
+        auto iter = begin() + idx;
+        if constexpr (args.shared_pos)
+        {
+            if (*iter != key)
+                return end();
+        }
+        return iter;
     }
 
     void clear()
