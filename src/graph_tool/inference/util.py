@@ -65,8 +65,11 @@ def check_verbose(verbose):
 def verbose_pad(verbose):
     if isinstance(verbose, tuple):
         return verbose_pad(verbose[1])
-    if int(verbose) > 0:
-        return ""
+    try:
+        if int(verbose) > 0:
+            return ""
+    except ValueError:
+        pass
     return verbose
 
 def verbose_push(verbose, push):
