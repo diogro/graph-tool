@@ -748,7 +748,7 @@ public:
         _empty_groups.insert(r);
         _occupied_groups[_bclabel[r]].erase(r);
         _actual_B--;
-        _ps.template remove_item<true>(r, _bpclabel[r], rw_t{});
+        _ps.remove_item(r, _bpclabel[r], rw_t{});
 
         if (_coupled_state != nullptr)
         {
@@ -763,7 +763,7 @@ public:
         _empty_groups.erase(r);
         _occupied_groups[_bclabel[r]].insert(r);
         _actual_B++;
-        _ps.template add_item<true>(r, _bpclabel[r], rw_t{});
+        _ps.add_item(r, _bpclabel[r], rw_t{});
 
         if (_coupled_state != nullptr)
         {

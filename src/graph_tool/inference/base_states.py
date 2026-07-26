@@ -301,9 +301,26 @@ class CLabelState(ABC):
         elif clabel is pclabel:
             self.clabel = g.own_property(clabel)
         else:
-            clabel = g.own_property(clabel).copy("int64_t")
-            clabel.fa += self.pclabel.fa * (clabel.fa.max() + 1)
-            self.clabel = perfect_prop_hash([clabel], htype="int64_t")[0]
+            self.clabel = self._clabel_combine(clabel, self.pclabel)
+
+    def _clabel_combine(self, x, clabel):
+        joint = group_vector_property([x, clabel])
+        joint = perfect_prop_hash([joint], htype="int64_t")[0]
+        return joint
+
+    def _check_clabel(self, clabel=None, b=None):
+        if b is None:
+            b = self.b
+        if clabel is None:
+            clabel = self.clabel
+        joint = group_vector_property([b, clabel])
+        joint = perfect_prop_hash([joint], htype="int64_t")[0]
+        joint = contiguous_map(joint)
+        b = b.fa.copy()
+        b = contiguous_map(b)
+        if not (b == joint).all():
+            return False
+        return True
 
 
 class MCMCState(EntropyState):
@@ -638,6 +655,10 @@ class MultilevelMCMCState(EntropyState):
 
         """
 
+        clabel = self.clabel
+        if clabel is not None:
+            B_min = max((len(numpy.unique(clabel.fa)), B_min))
+
         if B_max < B_min or B_min < 1 or B_max < 1:
             raise ValueError(f"Invalid [B_min, B_max] range: [{B_min}, {B_max}]")
 
@@ -653,10 +674,6 @@ class MultilevelMCMCState(EntropyState):
             global_moves = True
         else:
             global_moves = False
-
-        bclabel = self.get_bclabel()
-        if bclabel is not None:
-            B_min = max((len(numpy.unique(bclabel.fa)), B_min))
 
         if b_min is None:
             b_min = self._get_b_min()

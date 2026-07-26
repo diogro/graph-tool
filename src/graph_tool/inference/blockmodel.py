@@ -110,9 +110,6 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         else:
             self._vweight = vweight
 
-        if b is None:
-            b = clabel
-
         if B is None and b is None:
             B = 1
 
@@ -123,15 +120,19 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         if b is None:
             # create a random partition into B blocks.
             if B is None:
-                raise ValueError("either 'b' or 'B' must be specified")
-            B = min((B, self.g.num_vertices()))
-            ba = np.random.randint(0, B, self.g.num_vertices())
-            ba[:B] = np.arange(B)        # avoid empty blocks
-            if B < self.g.num_vertices():
-                np.random.shuffle(ba)
-            b = g.new_vp("int64_t")
-            b.fa = ba
-            self.b = b
+                if self.clabel.fa.max() == 0:
+                    raise ValueError("either 'b' or 'B' must be specified")
+                else:
+                    self.b = self.clabel.copy()
+            else:
+                B = min((B, self.g.num_vertices()))
+                ba = np.random.randint(0, B, self.g.num_vertices())
+                ba[:B] = np.arange(B)        # avoid empty blocks
+                if B < self.g.num_vertices():
+                    np.random.shuffle(ba)
+                b = g.new_vp("int64_t")
+                b.fa = ba
+                self.b = self._clabel_combine(b, self.clabel)
         else:
             # if a partition is available, we will incorporate it.
             if isinstance(b, np.ndarray):
@@ -170,6 +171,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
         if type(self) is BlockState:
             with self._mk_state():
+                self._check_params()
                 self._state = libinference.make_block_model_state(self)
 
     @property
@@ -307,21 +309,6 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to partition
         constraint labels for the block graph."""
         return self.get_bclabel(self.pclabel)
-
-    def _check_clabel(self, clabel=None, b=None):
-        if b is None:
-            b = self.b
-        if clabel is None:
-            clabel = self.clabel
-        joint = group_vector_property([b, clabel])
-        joint = perfect_prop_hash([joint])[0]
-        joint = b.fa.copy()
-        b = b.fa.copy()
-        joint = contiguous_map(joint)
-        b = contiguous_map(b)
-        if not (b == joint).all():
-            return False
-        return True
 
     def _couple_state(self, state, entropy_args):
         self._coupled_state = (state, entropy_args)

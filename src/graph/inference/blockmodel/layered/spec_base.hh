@@ -361,7 +361,7 @@ struct LayeredBlockStateSpec
                     {
                         ovweight_t w;
                         w[l] = {0, c};
-                        _lstats.template add_item<true>(l, w);
+                        _lstats.add_item(l, w);
                     }
                 }
             }

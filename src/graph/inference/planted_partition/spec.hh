@@ -112,7 +112,7 @@ struct StateSpec
             }
 
             for (auto v : vertices_range(_g))
-                _ps.template add_item<true>(_b[v], _pclabel[v]);
+                _ps.add_item(_b[v], _pclabel[v]);
 
             if (_deg_corr)
             {
@@ -275,12 +275,12 @@ struct StateSpec
 
         void occupy_group(group_t r)
         {
-            _ps.template add_item<true>(r, _state._bpclabel[r], 0);
+            _ps.add_item(r, _state._bpclabel[r], 0);
         }
 
         void vacate_group(group_t r)
         {
-            _ps.template remove_item<true>(r, _state._bpclabel[r], 0);
+            _ps.remove_item(r, _state._bpclabel[r], 0);
         }
 
         template <class Vs, class NRs>
@@ -323,7 +323,7 @@ struct StateSpec
                  {
                      for (auto v : vs)
                      {
-                         _ps.add_item(nr, _pclabel[v]);
+                         _ps.template add_item<false>(nr, _pclabel[v]);
                          if (_deg_corr)
                              _deg_stats.add_vertex(_degs[v], nr);
                      }
@@ -335,7 +335,7 @@ struct StateSpec
                  {
                      for (auto v : vs)
                      {
-                         _ps.remove_item(r, _pclabel[v]);
+                         _ps.template remove_item<false>(r, _pclabel[v]);
                          if (_deg_corr)
                              _deg_stats.remove_vertex(_degs[v], r);
                      }

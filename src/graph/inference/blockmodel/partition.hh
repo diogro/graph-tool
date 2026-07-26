@@ -69,7 +69,7 @@ public:
     }
 
     // concurrent
-    template <bool check = false>
+    template <bool check = true>
     void add_item(group_t r, size_t w = 1)
     {
         if constexpr (check)
@@ -191,7 +191,7 @@ public:
         _ps[c].add_group(n);
     }
 
-    template <bool check = false>
+    template <bool check = true>
     void add_item(group_t r, int64_t c, auto&&... w)
     {
         if constexpr (check)
@@ -207,7 +207,7 @@ public:
         _ps[c].template add_item<check>(get_r(r, c), w...);
     }
 
-    template <bool check = false>
+    template <bool check = true>
     void remove_item(group_t r, int64_t c, auto&&... w)
     {
         auto s = get_r(r, c);
@@ -291,7 +291,7 @@ private:
     }
 
     std::vector<PStats> _ps;
-    idx_map<group_t, idx_map<group_t, group_t, {.shared_pos=true}>,
+    idx_map<int64_t, idx_map<group_t, group_t, {.shared_pos=true}>,
             {.shared_tpos=true}> _r_label;
     std::vector<std::vector<group_t>> _empty_labels;
 };
