@@ -301,7 +301,7 @@ class CLabelState(ABC):
         elif clabel is pclabel:
             self.clabel = g.own_property(clabel)
         else:
-            self.clabel = self._clabel_combine(clabel, self.pclabel)
+            self.clabel = self._clabel_combine(g.own_property(clabel), self.pclabel)
 
     def _clabel_combine(self, x, clabel):
         joint = group_vector_property([x, clabel])
