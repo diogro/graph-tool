@@ -4012,9 +4012,11 @@ class GraphView(Graph):
 
     # pickling support
     def __getstate__(self):
+        vfilt = self.get_vertex_filter()
+        efilt = self.get_edge_filter()
         return dict(g=self.base,
-                    vfilt=self.base.own_property(self.get_vertex_filter()),
-                    efilt=self.base.own_property(self.get_edge_filter()),
+                    vfilt=self.base.own_property(vfilt) if vfilt is not None else None,
+                    efilt=self.base.own_property(efilt) if efilt is not None else None,
                     directed=selt.is_directed(),
                     reversed=self.is_reversed,
                     props={k: self.base.own_property(v) for k, v in self.properties.items()})
