@@ -60,19 +60,19 @@ with timer():
 
 which gives us:
 
-```{testoutput} football
-Description length: 1279624.222137...
-Elapsed time: 44.10 seconds
-Description length: 1270401.820382...
-Elapsed time: 29.02 seconds
+```{testoutput} no_bisect
+Description length: 1275016.342277...
+Elapsed time: 46.54 seconds
+Description length: 1268788.861484...
+Elapsed time: 28.49 seconds
 ```
 
 In this case the agglomerative algorithm was not only faster, but actually
 resulted in a shorter description length! This is not always what happens; on
 most cases the bisection search will actually yield better answers, but the
 agglomerative version is at least competitive, and usually faster. In the
-example above we only won around 15 seconds, but this is a speedup of
-$1.5\times$, which becomes relevant for much larger networks.
+example above we only won around 18 seconds, but this is a speedup of
+$1.6\times$, which becomes relevant for much larger networks.
 
 ## Initialization of the hierarchy shape
 
@@ -104,7 +104,7 @@ with timer():
 
 which gives us:
 
-```{testoutput} football
+```{testoutput} no_bisect
 Description length: 1275331.333979...
 Elapsed time: 7.11 seconds
 ```

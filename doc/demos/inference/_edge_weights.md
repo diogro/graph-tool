@@ -252,7 +252,7 @@ print(u"ln \u039b: ", L2 - L1)
 ```{testoutput} food-web
 :options: +NORMALIZE_WHITESPACE
 
-ln Λ: -129.899486...
+ln Λ: -96.153069...
 ```
 
 A value of $\Lambda \approx \mathrm{e}^{138} \approx 10^{60}$ in

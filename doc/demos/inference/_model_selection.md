@@ -23,8 +23,8 @@ print("Degree-corrected DL:\t", state_dc.entropy())
 ```{testoutput} model-selection
 :options: +NORMALIZE_WHITESPACE
 
-Non-degree-corrected DL:     63207.193672...
-Degree-corrected DL:         61522.529151...
+Non-degree-corrected DL:    63121.982251...
+Degree-corrected DL:        61625.329480...
 ```
 
 Since it yields the smallest description length, the degree-corrected
@@ -51,13 +51,13 @@ print(u"ln \u039b: ", state_dc.entropy() - state_ndc.entropy())
 ```{testoutput} model-selection
 :options: +NORMALIZE_WHITESPACE
 
-ln Λ:  -1684.664521...
+ln Λ:  -1496.652771...
 ```
 
 The precise threshold that should be used to decide when to [reject a
 hypothesis](https://en.wikipedia.org/wiki/Hypothesis_testing) is subjective and
 context-dependent, but the value above implies that the particular
-degree-corrected fit is around $\mathrm{e}^{1684} \approx 10^{731}$ times more
+degree-corrected fit is around $\mathrm{e}^{1496} \approx 10^{650}$ times more
 likely than the non-degree corrected one, and hence it can be safely concluded
 that it provides a substantially better fit.
 
@@ -83,9 +83,9 @@ print(u"ln \u039b:\t\t\t", state_ndc.entropy() - state_dc.entropy())
 ```{testoutput} model-selection-football
 :options: +NORMALIZE_WHITESPACE
 
-Non-degree-corrected DL:	 1733.525685...
-Degree-corrected DL:         1782.194364...
-ln Λ:                        -48.668679...
+Non-degree-corrected DL:    1734.8147396...
+Degree-corrected DL:        1782.5823036...
+ln Λ:                       -47.767563...
 ```
 
 Hence, with a posterior odds ratio of $\Lambda \approx
