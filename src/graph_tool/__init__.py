@@ -4017,8 +4017,8 @@ class GraphView(Graph):
         return dict(g=self.base,
                     vfilt=self.base.own_property(vfilt) if vfilt is not None else None,
                     efilt=self.base.own_property(efilt) if efilt is not None else None,
-                    directed=selt.is_directed(),
-                    reversed=self.is_reversed,
+                    directed=self.is_directed(),
+                    reversed=self.is_reversed(),
                     props={k: self.base.own_property(v) for k, v in self.properties.items()})
 
     def __setstate__(self, state):
