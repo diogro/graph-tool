@@ -153,7 +153,7 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
             eweight = g.new_ep("int64_t", 1)
         else:
             eweight = g.own_property(eweight)
-            self.eweight = eweight
+        self.eweight = eweight
 
         self._state = libinference.make_modularity_state(self)
 
