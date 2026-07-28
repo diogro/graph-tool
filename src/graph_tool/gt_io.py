@@ -20,7 +20,8 @@
 
 import pickle
 import atexit
-from io import BytesIO
+import io
+import os
 from . import libgraph_tool_core
 
 # IStream and OStream need to be tweaked a little to become a real file-like
@@ -61,13 +62,13 @@ libgraph_tool_core.OStream.write = OStream_write
 GT_PICKLE_PROTOCOL = -1
 
 def pickler(stream, obj):
-    sstream = BytesIO()
+    sstream = io.BytesIO()
     pickle.dump(obj, sstream, GT_PICKLE_PROTOCOL)
     stream.write(sstream.getvalue())
 
 def unpickler(stream):
     data = stream.read()
-    sstream = BytesIO(data)
+    sstream = io.BytesIO(data)
     return pickle.load(sstream, encoding="bytes")
 
 libgraph_tool_core.set_pickler(pickler)
@@ -78,3 +79,18 @@ def clean_picklers():
     libgraph_tool_core.set_unpickler(None)
 
 atexit.register(clean_picklers)
+
+class BufferedPipe:
+    def __init__(self, buffer_size=1 << 27, pipe_size=1 << 20):
+        r_fd, w_fd = os.pipe()
+        self.size = buffer_size
+        try:
+            import fcntl
+            F_SETPIPE_SZ = 1031
+            fcntl.fcntl(w_fd, F_SETPIPE_SZ, pipe_size)
+        except (ImportError, OSError):
+            pass
+        self.writer = io.BufferedWriter(io.FileIO(w_fd, "w", closefd=True),
+                                        buffer_size=buffer_size)
+        self.reader = io.BufferedReader(io.FileIO(r_fd, "r", closefd=True),
+                                        buffer_size=buffer_size)
