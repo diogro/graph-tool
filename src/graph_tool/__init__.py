@@ -118,7 +118,7 @@ from .dl_import import *
 dl_import("from . import libgraph_tool_core as libcore")
 __version__ = libcore.mod_info().version
 
-from . gt_io import BufferedPipe  # sets up libcore io routines
+from . import gt_io  # sets up libcore io routines
 
 import sys
 import re
@@ -3722,65 +3722,26 @@ class Graph(object):
         """
         return self.__graph.get_num_edges(not ignore_filter)
 
-    def __get_base(self):
-        return self
-    base = property(__get_base, doc="Base graph (self).")
-
     # Pickling support
     # ================
 
     def __getstate__(self):
-        return GraphPickler(self)
+        state = dict()
+        sio = io.BytesIO()
+        self.save(sio, "gt")
+        state["blob"] = sio.getvalue()
+        return state
 
     def __setstate__(self, state):
-        if isinstance(state, GraphPickler):
-            self.__dict__.update(state.g.__dict__)
-        else: # backward compatibility
-            Graph.__init__(self)
-            blob = state["blob"]
+        Graph.__init__(self)
+        blob = state["blob"]
+        if blob != "":
             sio = io.BytesIO(blob)
             self.load(sio, "gt")
 
-
-class GraphPickler(object):
-    def __init__(self, g=None):
-        self.pipe = BufferedPipe()
-        if g is None:
-            g = Graph()
-        self.g = g
-        self.t = None
-
-    def __reduce__(self):
-        self.t = threading.Thread(target=self.producer)
-        self.t.start()
-        return (GraphPickler, (), True, self.chunk_iter(), None)
-
-    def chunk_iter(self):
-        with self.pipe.reader as f:
-            while (chunk := f.read(self.pipe.size)):
-                yield chunk
-
-    def producer(self):
-        with self.pipe.writer as f:
-            self.g.save(f, "gt")
-
-    def append(self, chunk):
-        if self.t is None:
-            self.t = threading.Thread(target=self.consumer)
-            self.t.start()
-        self.pipe.writer.write(chunk)
-
-    def consumer(self):
-        with self.pipe.reader as f:
-            self.g.load(f, "gt")
-
-    def extend(self, chunks):
-        for chunk in chunks:
-            self.append(chunk)
-
-    def __setstate__(self, _):
-        self.pipe.writer.close()
-        self.t.join()
+    def __get_base(self):
+        return self
+    base = property(__get_base, doc="Base graph (self).")
 
 def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
                ignore_gp=None):
