@@ -303,6 +303,24 @@ public:
         return _spec.virtual_merge(s, t, ea);
     }
 
+    template <class RNG>
+    group_t get_empty_group(vertex_t v, RNG& rng, bool inherit = true)
+    {
+        group_t s;
+        if (_empty_groups.empty())
+            add_group();
+        s = uniform_sample(_empty_groups, rng);
+
+        if (inherit)
+        {
+            auto r = _b[v];
+            _bclabel[s] = _bclabel[r];
+            _bpclabel[s] = _bpclabel[r];
+        }
+
+        return s;
+    }
+
     group_t sample_group(size_t v, double c, double d, rng_t& rng)
     {
         return _spec.sample_group(v, c, d, rng);

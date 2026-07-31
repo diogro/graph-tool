@@ -95,7 +95,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
             return
 
         EntropyState.__init__(self, entropy_args=entropy_args)
-        CLabelState.__init__(self, g=g, clabel=clabel, pclabel=pclabel)
+        CLabelState.__init__(self, g=g, b=b, B=B, clabel=clabel, pclabel=pclabel)
 
         self.g = g
         self.deg_corr = deg_corr
@@ -109,41 +109,6 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
             self._vweight = g.new_vp("int64_t", 1)
         else:
             self._vweight = vweight
-
-        if B is None and b is None:
-            B = 1
-
-        # ensure we have at most as many blocks as nodes
-        if B is not None and b is None:
-            B = min((B, self.g.num_vertices()))
-
-        if b is None:
-            # create a random partition into B blocks.
-            if B is None:
-                if self.clabel.fa.max() == 0:
-                    raise ValueError("either 'b' or 'B' must be specified")
-                else:
-                    self.b = self.clabel.copy()
-            else:
-                B = min((B, self.g.num_vertices()))
-                ba = np.random.randint(0, B, self.g.num_vertices())
-                ba[:B] = np.arange(B)        # avoid empty blocks
-                if B < self.g.num_vertices():
-                    np.random.shuffle(ba)
-                b = g.new_vp("int64_t")
-                b.fa = ba
-                self.b = self._clabel_combine(b, self.clabel)
-        else:
-            # if a partition is available, we will incorporate it.
-            if isinstance(b, np.ndarray):
-                self.b = g.new_vp("int64_t")
-                ba = np.zeros(len(self.b.fa), dtype="int64")
-                ba[:min((len(ba), len(b)))] = b[:min((len(ba), len(b)))]
-                self.b.fa = ba
-            else:
-                self.b = g.own_property(b)
-            if B is None:
-                B = int(self.b.fa.max()) + 1
 
         # Internal structures
         self.bg = Graph(directed=g.is_directed())

@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import Vector_size_t, group_vector_property, _parallel, _get_rng, \
-    perfect_prop_hash
+from .. import Vector_size_t, group_vector_property, ungroup_vector_property, \
+    _parallel, _get_rng, perfect_prop_hash
 
 from . util import *
 
@@ -173,6 +173,7 @@ class EntropyState(ABC):
         self._entropy_args = {}
         self.reset_entropy_args()
         self._entropy_args.update(entropy_args)
+        self._ignore_state_args = []
 
     def get_entropy_args(self):
         """Return the current default values for the parameters of the function
@@ -205,10 +206,12 @@ class EntropyState(ABC):
 
     def __getstate__(self):
         init_args = {}
+        ignore_args = set(self._ignore_state_args +
+                          ["self", "args", "kwargs", "entropy_args"])
         for c in inspect.getmro(type(self)):
             sig = inspect.signature(c.__init__)
             for k, v in sig.parameters.items():
-                if k in ["self", "args", "kwargs", "entropy_args"]:
+                if k in ignore_args:
                     continue
                 init_args[k] = getattr(self, k)
         eargs = self.get_entropy_args()
@@ -290,22 +293,74 @@ class EntropyState(ABC):
 
 class CLabelState(ABC):
     r"""Base state that implements partition contraints."""
-    def __init__(self, g, clabel=None, pclabel=None):
+    def __init__(self, g, b, B=None, clabel=None, pclabel=None, label_type="int64_t"):
+
+        if hasattr(self, "pclabel"):
+            return
+
+        if B is None and b is None and clabel is None and pclabel is None:
+            B = 1
+
         if pclabel is None:
-            self.pclabel = g.new_vp("int64_t")
+            self.pclabel = g.new_vp(label_type) if "vector" not in label_type else g.new_ep(label_type, val=[0, 0])
         else:
-            self.pclabel = g.own_property(pclabel).copy("int64_t")
+            self.pclabel = g.own_property(pclabel).copy(label_type)
 
         if clabel is None:
             self.clabel = self.pclabel
         elif clabel is pclabel:
             self.clabel = g.own_property(clabel)
         else:
-            self.clabel = self._clabel_combine(g.own_property(clabel), self.pclabel)
+            self.clabel = self._clabel_combine(g.own_property(clabel),
+                                               self.pclabel)
 
-    def _clabel_combine(self, x, clabel):
-        joint = group_vector_property([x, clabel], value_type="int64_t")
-        joint = perfect_prop_hash([joint], htype="int64_t")[0]
+        if b is None:
+            # create a random partition into B blocks.
+            if B is None:
+                self.b = self.clabel.copy()
+            elif B == 1:
+                self.b = g.new_vp(label_type) if "vector" not in label_type else g.new_ep(label_type, val=[0, 0])
+            else:
+                B = min((B, g.num_vertices()))
+                ba = numpy.random.randint(0, B, g.num_vertices())
+                ba[:B] = numpy.arange(B)        # avoid empty blocks
+                if B < g.num_vertices():
+                    numpy.random.shuffle(ba)
+                b = g.new_vp("int64_t")
+                b.fa = ba
+                self.b = self._clabel_combine(b, self.clabel)
+        else:
+            # if a partition is available, we will incorporate it.
+            if isinstance(b, numpy.ndarray):
+                self.b = g.new_vp("int64_t")
+                ba = numpy.zeros(len(self.b.fa), dtype="int64")
+                ba[:min((len(ba), len(b)))] = b[:min((len(ba), len(b)))]
+                self.b.fa = ba
+            else:
+                self.b = g.own_property(b)
+
+        if not hasattr(self, "_ignore_state_args"):
+            self._ignore_state_args = []
+        self._ignore_state_args += ["label_type"]
+
+    def _max_val(self, prop):
+        if prop.fa is None:
+            x, y = ungroup_vector_property(prop)
+            return max(x.a.max(). y.a.max())
+        else:
+            prop.fa.max()
+
+    def _clabel_combine(self, val, clabel):
+        if "vector" not in val.value_type():
+            joint = group_vector_property([val, clabel], value_type="int64_t")
+            joint = perfect_prop_hash([joint], htype="int64_t")[0]
+        else:
+            x, y = ungroup_vector_property(val)
+            cx, cy = ungroup_vector_property(clabel)
+            jx = group_vector_property([x, cx], value_type="int64_t")
+            jy = group_vector_property([y, cy], value_type="int64_t")
+            jx, jy = perfect_prop_hash([jx, jy], htype="int64_t")
+            joint = group_vector_property([jx, jy])
         return joint
 
     def _check_clabel(self, clabel=None, b=None):
@@ -313,13 +368,26 @@ class CLabelState(ABC):
             b = self.b
         if clabel is None:
             clabel = self.clabel
-        joint = group_vector_property([b, clabel], value_type="int64_t")
-        joint = perfect_prop_hash([joint], htype="int64_t")[0]
-        joint = contiguous_map(joint)
-        b = b.copy()
-        b = contiguous_map(b)
-        if not (b.fa == joint.fa).all():
-            return False
+        if "vector" not in b.value_type():
+            joint = group_vector_property([b, clabel], value_type="int64_t")
+            joint = perfect_prop_hash([joint], htype="int64_t")[0]
+            joint = contiguous_map(joint)
+            b = b.copy()
+            b = contiguous_map(b)
+            if not (b.fa == joint.fa).all():
+                return False
+        else:
+            x, y = ungroup_vector_property(b)
+            cx, cy = ungroup_vector_property(clabel)
+            jx = group_vector_property([x, cx], value_type="int64_t")
+            jy = group_vector_property([y, cy], value_type="int64_t")
+            jx, jy = perfect_prop_hash([jx, jy], htype="int64_t")
+            x = contiguous_map(x)
+            jx = contiguous_map(jx)
+            y = contiguous_map(y)
+            jy = contiguous_map(jy)
+            if not (x.fa == jx.fa).all() or not (y.fa == jy.fa).all():
+                return False
         return True
 
 
@@ -702,13 +770,13 @@ class MultilevelMCMCState(EntropyState):
         if hasattr(self, "g"):
             return self.g.new_vp("int64_t")
         else:
-            return np.zeros(self.get_N(), dtype="int64")
+            return numpy.zeros(self.get_N(), dtype="int64")
 
     def _get_b_min(self):
         if hasattr(self, "g"):
             return self.g.vertex_index.copy("int64_t")
         else:
-            return np.arange(0, self.get_N(), dtype="int64")
+            return numpy.arange(0, self.get_N(), dtype="int64")
 
 
 class GibbsMCMCState(EntropyState):

@@ -60,8 +60,8 @@ struct GraphSpecBase
         auto sample_group(size_t v, double c, double d, rng_t& rng)
         {
             std::bernoulli_distribution new_r(d);
-            if (d > 0 && !_state._empty_groups.empty() && new_r(rng))
-                return uniform_sample(_state._empty_groups, rng);
+            if (d > 0 && new_r(rng))
+                return _state.get_empty_group(v, rng);
             c = std::max(std::min(c, 1.), 0.);
             std::bernoulli_distribution adj(1.-c);
             auto iter = out_neighbors(v, _g);

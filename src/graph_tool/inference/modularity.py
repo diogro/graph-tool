@@ -140,14 +140,9 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
 
     def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
-        CLabelState.__init__(self, g=g, clabel=clabel)
-        self.g = GraphView(g, directed=False)
-        if b is None:
-            self.b = self.g.new_vp("int64_t")
-        elif isinstance(b, PropertyMap):
-            self.b = self.g.own_property(b).copy("int64_t")
-        else:
-            self.b = self.g.new_vp("int64_t", vals=b)
+        g = GraphView(g, directed=False)
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel)
+        self.g = g
 
         if eweight is None:
             eweight = g.new_ep("int64_t", 1)

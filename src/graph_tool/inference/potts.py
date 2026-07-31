@@ -54,16 +54,10 @@ class PottsState(CLabelState, MCMCState, MultiflipMCMCState, MultilevelMCMCState
 
     def __init__(self, g, f, b=None, eweight=None, theta=None, clabel=None, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
-        CLabelState.__init__(self, g=g, clabel=clabel)
-        self.g = GraphView(g, directed=False)
+        self.g = g = GraphView(g, directed=False)
         self.f = np.asarray(f, dtype="double")
         self.q = f.shape[0]
-        if b is None:
-            b = g.new_vp("int64_t",
-                         vals=np.random.randint(0, self.q, g.num_vertices()))
-        elif b.value_type() != "int64_t":
-            b = b.copy("int64_t")
-        self.b = b
+        CLabelState.__init__(self, g=g, b=b, B=q, clabel=clabel)
         if theta is None:
             theta = g.new_vp("vector<double>")
         elif theta.value_type() != "vector<double>":

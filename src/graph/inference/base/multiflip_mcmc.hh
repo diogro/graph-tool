@@ -115,19 +115,13 @@ struct MCMC
                     _state._empty_groups.erase(r);
             }
 
-            if (_state._empty_groups.empty())
-                _state.add_group();
-
-            auto t = uniform_sample(_state._empty_groups, rng);
+            auto t = _state.get_empty_group(v, rng);
 
             for (auto r : except)
             {
                 if (r != _null_group &&_state._groups[r].empty())
                     _state._empty_groups.insert(r);
             }
-
-            auto r = _state._b[v];
-            _state._bclabel[t] = _state._bclabel[r];
 
             assert(_state._groups[t].empty());
             return t;

@@ -72,16 +72,10 @@ class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
     def __init__(self, g, b=None, eweight=None, clabel=None, pclabel=None,
                  uniform=False, deg_corr=True, entropy_args={}):
         EntropyState.__init__(self, entropy_args=entropy_args)
-        CLabelState.__init__(self, g=g, clabel=clabel, pclabel=pclabel)
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel, pclabel=pclabel)
         self.g = g
         self.uniform = uniform
         self.deg_corr = deg_corr
-        if b is None:
-            self.b = self.g.new_vp("int64_t")
-        elif isinstance(g, PropertyMap):
-            self.b = b.copy("int64_t")
-        else:
-            self.b = self.g.new_vp("int64_t", vals=b)
 
         if eweight is None:
             eweight = g.new_ep("int64_t", 1)

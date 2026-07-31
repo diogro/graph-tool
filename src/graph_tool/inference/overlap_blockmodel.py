@@ -64,19 +64,9 @@ class OverlapBlockState(BlockState):
     def __init__(self, g, b=None, clabel=None, pclabel=None, bfield=None,
                  vweight=None, gen_overlap=True, **kwargs):
 
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel, pclabel=pclabel,
+                             label_type="vector<int64_t>")
         BlockState.__init__(self, g, **kwargs)
-
-        if pclabel is None:
-            pclabel = g.new_ep("vector<int64_t>", val=[0, 0])
-        self.pclabel = pclabel
-
-        if clabel is None:
-            clabel = pclabel
-        self.clabel = clabel
-
-        if b is None:
-            b = clabel.copy()
-        self.b = b
 
         if vweight is None:
             vweight = g.new_ep("vector<int64_t>", val=[1, 1])
