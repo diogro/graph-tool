@@ -91,6 +91,11 @@ class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
         self._state = libinference.make_planted_partition_state(self)
 
+    @property
+    def B(self):
+        r"""Nominal number of groups"""
+        return int(self.b.fa.max()) + 1
+
     def _repr_extra(self):
         if self.uniform:
             return " uniform assortativity,"
