@@ -304,7 +304,7 @@ class CLabelState(ABC):
             self.clabel = self._clabel_combine(g.own_property(clabel), self.pclabel)
 
     def _clabel_combine(self, x, clabel):
-        joint = group_vector_property([x, clabel])
+        joint = group_vector_property([x, clabel], value_type="int64_t")
         joint = perfect_prop_hash([joint], htype="int64_t")[0]
         return joint
 
@@ -313,12 +313,12 @@ class CLabelState(ABC):
             b = self.b
         if clabel is None:
             clabel = self.clabel
-        joint = group_vector_property([b, clabel])
+        joint = group_vector_property([b, clabel], value_type="int64_t")
         joint = perfect_prop_hash([joint], htype="int64_t")[0]
         joint = contiguous_map(joint)
-        b = b.fa.copy()
+        b = b.copy()
         b = contiguous_map(b)
-        if not (b == joint).all():
+        if not (b.fa == joint.fa).all():
             return False
         return True
 
