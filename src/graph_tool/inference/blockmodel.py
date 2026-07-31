@@ -226,7 +226,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
             raise ValueError("provided clabel is inconsistent with node partition")
         if not self._check_clabel(clabel=self.pclabel):
             raise ValueError("provided pclabel is inconsistent with node partition")
-        if not self._check_clabel(b=self.pclabel, clabel=self.clabel):
+        if not self._check_clabel(b=self.clabel, clabel=self.pclabel):
             raise ValueError("provided pclabel and clabel are inconsistent")
 
     def _repr_extra(self):
