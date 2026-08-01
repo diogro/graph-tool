@@ -464,6 +464,7 @@ public:
                 _idx_stack.push(_free_idx.back());
                 _free_idx.pop_back();
             }
+            _free_idx.shrink_to_fit();
         }
         else
         {
@@ -535,42 +536,39 @@ public:
 
     void shrink_to_fit()
     {
+        _edge_idx_range = 0;
+        #pragma omp parallel for schedule(runtime) reduction(max:_edge_idx_range)
+        for (size_t i = 0; i < _edges.size(); ++i)
+        {
+            _edges[i].second.shrink_to_fit();
+            for (auto& x : _edges[i].second)
+                _edge_idx_range = std::max(_edge_idx_range, x.second + 1);
+            if (_keep_ehash)
+            {
+                auto& h =_ehash[i];
+                std::decay_t<decltype(h)> h_new(h);
+                h.swap(h_new);
+            }
+        }
         _edges.shrink_to_fit();
-        std::for_each(_edges.begin(), _edges.end(),
-                      [](auto &es){es.second.shrink_to_fit();});
-        auto erange = boost::edges(*this);
-
-// Clang 8.0 fails to correctly recognize these as ForwardIterators,
-// triggering a static_assert in std::max_element(). See #576.
-#ifndef __clang__
-        auto iter = std::max_element(
-#else
-        auto iter = boost::first_max_element(
-#endif
-            erange.first, erange.second,
-            [](const auto &a, const auto& b) -> bool
-            {return a.idx < b.idx;});
 
         bool concurrent = get_concurrent();
         set_concurrent(false);
-
-        if (iter == erange.second)
-            _edge_idx_range = 0;
-        else
-            _edge_idx_range = iter->idx + 1;
         auto iter_idx = std::remove_if(_free_idx.begin(),
                                        _free_idx.end(),
                                        [&](auto idx) -> bool
                                        {return idx >= _edge_idx_range;});
         _free_idx.erase(iter_idx, _free_idx.end());
         _free_idx.shrink_to_fit();
-
         set_concurrent(concurrent);
 
         if (_keep_epos)
             _epos.resize(_edge_idx_range);
         _epos.shrink_to_fit();
         _ehash.shrink_to_fit();
+        if (_keep_ehash)
+            _ehpos.resize(_edge_idx_range);
+        _ehpos.shrink_to_fit();
     }
 
     void reverse_edge(edge_descriptor& e) const
