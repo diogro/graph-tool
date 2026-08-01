@@ -28,6 +28,7 @@ namespace graph_tool
 // Construct and manage half-edge lists
 // ====================================
 
+template <bool flat>
 class EGroups
 {
 public:
@@ -63,11 +64,18 @@ public:
             iter = pos.insert({t, _null_pos}).first;
         insert_edge(t, weight, _egroups[s], iter->second);
         if (iter->second == _null_pos)
+        {
             pos.erase(iter);
+            if (pos.empty())
+            {
+                pmap_t empty;
+                pos.swap(empty);
+            }
+        }
     }
 
     template <class EV>
-    void insert_edge(size_t t, int64_t weight, EV& elist, size_t& pos)
+    void insert_edge(size_t t, int64_t weight, EV& elist, auto& pos)
     {
         if (pos != _null_pos)
         {
@@ -77,6 +85,8 @@ public:
             {
                 elist.remove(pos);
                 pos = _null_pos;
+                if (elist.empty())
+                    elist.clear(true);
             }
         }
         else
@@ -91,9 +101,7 @@ public:
     template <class RNG>
     size_t sample_edge(size_t r, RNG& rng)
     {
-        auto s = _egroups[r].sample(rng);
-        assert(s != numeric_limits<size_t>::max());
-        return s;
+        return _egroups[r].sample(rng);
     }
 
     template <class Eprop, class BGraph>
@@ -127,9 +135,12 @@ public:
     }
 
 private:
-    vector<DynamicSampler<size_t>> _egroups;
-    vector<gt_hash_map<size_t, size_t>> _pos;
-    static constexpr size_t _null_pos = numeric_limits<size_t>::max();
+    std::vector<DynamicSampler<size_t>> _egroups;
+    typedef std::conditional_t<flat,
+                               std::flat_map<size_t, uint32_t>,
+                               gt_hash_map<size_t, uint32_t>> pmap_t;
+    std::vector<pmap_t> _pos;
+    static constexpr uint32_t _null_pos = numeric_limits<uint32_t>::max();
 };
 
 } // namespace graph_tool

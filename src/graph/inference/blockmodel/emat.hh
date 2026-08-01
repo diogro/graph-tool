@@ -129,20 +129,7 @@ public:
     void add_group(BGraph& bg)
     {
         if (num_vertices(bg) > _h.size())
-        {
-            if constexpr (flat)
-            {
-                _h.resize(num_vertices(bg));
-            }
-            else
-            {
-                size_t r_init = _h.size();
-                _h.resize(num_vertices(bg));
-                #pragma omp parallel for if (_h.size() - r_init > 10000)
-                for (size_t r = r_init; r < _h.size(); ++r)
-                    _h[r].reserve(out_degree(r, bg));
-            }
-        }
+            _h.resize(num_vertices(bg));
     }
 
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
@@ -156,16 +143,16 @@ public:
         auto iter = h.find(s);
         if (iter == h.end())
             return _null_edge;
-        return iter->second;
+        return edge_t(r, s, iter->second);
     }
 
     void put_me(group_t r, group_t s, const edge_t& e)
     {
         assert(e != _null_edge);
         if (!is_directed_v<BGraph> && r > s)
-            _h[s].insert_or_assign(r, e);
+            _h[s].insert_or_assign(r, e.idx);
         else
-            _h[r].insert_or_assign(s, e);
+            _h[r].insert_or_assign(s, e.idx);
     }
 
     void remove_me(const edge_t& me, BGraph& bg)
@@ -186,8 +173,9 @@ public:
     const edge_t& get_null_edge() const { return _null_edge; }
 
 private:
-    typedef std::conditional_t<flat, std::flat_map<group_t, edge_t>,
-                               gt_hash_map<group_t, edge_t>> map_t;
+    typedef std::conditional_t<flat,
+                               std::flat_map<group_t, size_t>,
+                               gt_hash_map<group_t, size_t>> map_t;
     std::vector<map_t> _h;
     static const edge_t _null_edge;
 };
@@ -217,7 +205,6 @@ public:
 
     void add_group(BGraph& bg)
     {
-        std::println("{}", _h.max_load_factor());
         _h.reserve(num_edges(bg));
     }
 
@@ -229,7 +216,7 @@ public:
         if (!is_directed_v<BGraph> && r > s)
             std::swap(r, s);
         edge_t e = _null_edge;
-        _h.visit({r, s}, [&](auto&& x){ e = x.second; });
+        _h.visit({r, s}, [&](auto&& x){ e = {r, s, x.second}; });
         return e;
     }
 
@@ -238,7 +225,7 @@ public:
         if (!is_directed_v<BGraph> && r > s)
             std::swap(r, s);
         _h.emplace_or_visit(std::make_tuple(r, s), e,
-                            [&](auto&& x) { x.second = e; });
+                            [&](auto&& x) { x.second = e.idx; });
     }
 
     void remove_me(const edge_t& me, BGraph& bg)
@@ -253,7 +240,7 @@ public:
     const edge_t& get_null_edge() const { return _null_edge; }
 
 private:
-    boost::concurrent_flat_map<std::tuple<group_t, group_t>, edge_t> _h;
+    boost::concurrent_flat_map<std::tuple<group_t, group_t>, size_t> _h;
     static const edge_t _null_edge;
 };
 

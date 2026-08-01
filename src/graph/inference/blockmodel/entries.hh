@@ -124,7 +124,7 @@ public:
     }
 
     template <bool Add, class Delta>
-    void insert_delta_dispatch(group_t s, group_t t, size_t& f, const Delta& d)
+    void insert_delta_dispatch(group_t s, group_t t, auto& f, const Delta& d)
     {
         if (f == _null)
         {
@@ -132,8 +132,6 @@ public:
             _entries.emplace_back(s, t);
             _delta.emplace_back();
         }
-
-        assert(f < _delta.size() && f < _entries.size());
 
         if constexpr (Add)
             _delta[f] += d;
@@ -209,20 +207,20 @@ public:
     EntrySet* _next = nullptr;
 
 private:
-    static constexpr size_t _null = std::numeric_limits<size_t>::max();
+    static constexpr size_t _null = std::numeric_limits<uint32_t>::max();
 
     std::pair<group_t, group_t> _rnr;
-    std::vector<size_t> _r_out_field;
-    std::vector<size_t> _r_in_field;
-    std::vector<size_t> _nr_out_field;
-    std::vector<size_t> _nr_in_field;
+    std::vector<uint32_t> _r_out_field;
+    std::vector<uint32_t> _r_in_field;
+    std::vector<uint32_t> _nr_out_field;
+    std::vector<uint32_t> _nr_in_field;
 
     std::vector<std::pair<group_t, group_t>> _entries;
     std::vector<EW> _delta;
 
     std::vector<bedge_t> _mes;
 
-    size_t _dummy = _null;
+    uint32_t _dummy = _null;
     EW _zero;
 };
 

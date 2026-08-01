@@ -129,7 +129,7 @@ struct BlockStateSpec
         typedef DegStats<is_directed_v<typename State::g_t>,
                          typename deg_t<State>::type,
                          typename State::group_t,
-                         State::flat_map_t::value> type;
+                         true> type;
     };
 
     template <class State>

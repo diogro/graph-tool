@@ -531,7 +531,7 @@ public:
                                                   {
                                                       m_entries.set_move(r, _null_group, num_vertices(state->_bg));
 
-                                                      for (auto& [s, delta] : deltas[r])
+                                                      for (auto&& [s, delta] : deltas[r])
                                                       {
                                                           if (delta == 0)
                                                               continue;
@@ -2085,7 +2085,11 @@ public:
 
     void init_egroups()
     {
-        _egroups = std::make_unique<EGroups>(_bg, _mrs);
+        #pragma omp critical (egroups)
+        {
+            if (!_egroups)
+                _egroups = std::make_unique<EGroups<flat_map_t::value>>(_bg, _mrs);
+        }
     }
 
     void clear_egroups()
@@ -2316,7 +2320,7 @@ public:
     typedef EHash<bg_t, flat_map_t::value> emat_t;
     emat_t _emat;
 
-    std::unique_ptr<EGroups> _egroups;
+    std::unique_ptr<EGroups<flat_map_t::value>> _egroups;
     bool _egroups_update = true;
 
     size_t _actual_B = 0;
@@ -2343,7 +2347,10 @@ public:
     idx_set<group_t> _rset;
     vprop_map_t<rw_t> _group_delta;
     std::vector<std::vector<vertex_t>> _groups_in, _groups_out;
-    std::vector<std::vector<gt_hash_map<group_t, weight_t>>> _deltas;
+    std::vector<std::vector<std::conditional_t<flat_map_t::value,
+                                               std::flat_map<group_t, weight_t>,
+                                               gt_hash_map<group_t, weight_t>>>>
+        _deltas;
     std::vector<std::array<m_entries_t,2>> _m_entries_pool;
     std::vector<std::array<typename coupled_state_t::m_entries_t,2>> _m_entries_pool_coupled;
 

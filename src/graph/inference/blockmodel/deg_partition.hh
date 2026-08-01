@@ -399,8 +399,8 @@ public:
 
 private:
     typedef std::conditional_t<flat,
-                               std::flat_map<deg_t, int64_t>,
-                               gt_hash_map<deg_t, int64_t>> map_t;
+                               std::flat_map<deg_t, int32_t>,
+                               gt_hash_map<deg_t, int32_t>> map_t;
     std::vector<map_t> _hist_in, _hist_out;
     std::vector<deg_t> _total;
     std::vector<deg_t> _ep;

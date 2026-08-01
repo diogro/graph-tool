@@ -63,10 +63,6 @@ struct MCMC
         {
             GILRelease gil_release;
 
-            _state.clear_egroups();
-            if (!std::isinf(_c))
-                _state.init_egroups();
-
             if (_vertices.empty())
             {
                 for (auto v : vertices_range(_state._g))
