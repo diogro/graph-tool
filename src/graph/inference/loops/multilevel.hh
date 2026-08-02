@@ -1537,7 +1537,12 @@ struct Multilevel:
         {
             for (auto r : _rs)
                 _rlist.erase(r);
+            int64_t Ba, Bb;
+            Bb = _rs.size();
             _dS += merge_and_sweep<true>(_rs, _vs, _B_min, _B_max, rng);
+            Ba = _rs.size();
+            if (_verbose)
+                println("resizing: {} -> {}, dS: {:10.1f}", Bb, Ba, _dS);
             for (auto r : _rs)
                 _rlist.insert(r);
             nnr = _rs.size();
