@@ -3729,15 +3729,14 @@ class Graph(object):
         state = dict()
         sio = io.BytesIO()
         self.save(sio, "gt")
-        state["blob"] = sio.getvalue()
-        return state
+        return sio.getvalue()
 
     def __setstate__(self, state):
         Graph.__init__(self)
-        blob = state["blob"]
-        if blob != "":
-            sio = io.BytesIO(blob)
-            self.load(sio, "gt")
+        if isinstance(state, dict): # backward compatibility
+            state = state["blob"]
+        sio = io.BytesIO(state)
+        self.load(sio, "gt")
 
     def __get_base(self):
         return self
