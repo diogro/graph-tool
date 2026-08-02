@@ -328,13 +328,9 @@ public:
         static_assert(std::ranges::random_access_range<NRs>);
 
         _vset.reserve(num_vertices(_g), _null_group);
-        _rset.clear();
-        _group_delta.reserve(num_vertices(_bg));
-        _groups_in.clear();
-        _groups_out.clear();
         _groups_in.resize(num_vertices(_bg));
         _groups_out.resize(num_vertices(_bg));
-        _deltas.clear();
+        _group_delta.reserve(num_vertices(_bg));
         _deltas.resize(2);
         for (auto& d : _deltas)
             d.resize(num_vertices(_bg));
@@ -629,6 +625,20 @@ public:
                           _b[v] = nr;
                           _vset[v] = _null_group;
                       }, 0);
+
+        _rset.clear();
+        _groups_in.clear();
+        _groups_out.clear();
+        _deltas.clear();
+        _m_entries_pool.clear();
+        _m_entries_pool_coupled.clear();
+        _vset.shrink_to_fit();
+        _rset.shrink_to_fit();
+        _groups_in.shrink_to_fit();
+        _groups_out.shrink_to_fit();
+        _deltas.shrink_to_fit();
+        _m_entries_pool.shrink_to_fit();
+        _m_entries_pool_coupled.shrink_to_fit();
     }
 
     template <class Vs, class NRs>
