@@ -110,7 +110,6 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         else:
             self._vweight = vweight
 
-        # Internal structures
         self.bg = Graph(directed=g.is_directed())
 
         self._mrs = self.bg.new_ep("int64_t")
