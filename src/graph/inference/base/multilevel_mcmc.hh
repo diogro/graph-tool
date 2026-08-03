@@ -131,7 +131,7 @@ struct MCMC
         template <class RNG>
         group_t get_new_group(vertex_t v, bool inherit, RNG& rng)
         {
-            return _state.get_empty_group(v, rng);
+            return _state.get_empty_group(v, rng, inherit);
         }
 
         void reserve_empty_group(group_t r)
