@@ -669,7 +669,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         :math:`c\to\infty` the blocks are sampled randomly. With a probability
         ``d``, a new (empty) group is sampled.
         """
-        return self._state.sample_block(int(v), c, d, _get_rng())
+        return self._state.sample_group(int(v), c, d, _get_rng())
 
     def get_move_prob(self, v, s, c=1., d=.1, reverse=False):
         r"""Compute the log-probability of a move proposal for vertex ``v`` to block ``s``
