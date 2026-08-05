@@ -69,8 +69,9 @@ class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
     """
 
+    @kwargs_wrap
     def __init__(self, g, b=None, eweight=None, clabel=None, pclabel=None,
-                 uniform=False, deg_corr=True, entropy_args={}):
+                 uniform=False, deg_corr=True, entropy_args={}, **kwargs):
         EntropyState.__init__(self, entropy_args=entropy_args)
         CLabelState.__init__(self, g=g, b=b, clabel=clabel, pclabel=pclabel)
         self.g = g

@@ -54,11 +54,8 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
     b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Initial block labels on the vertices. If not supplied, it will be
-        randomly sampled.
-    B : ``int`` (optional, default: ``None``)
-        Number of blocks (or vertex groups). If not supplied it will be obtained
-        from the parameter ``b``.
+        Initial partition. If not supplied, a partition into a single group will
+        be used.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge multiplicities (for multigraphs or block graphs).
     vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
@@ -87,7 +84,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
     """
 
     @kwargs_wrap
-    def __init__(self, g, b=None, B=None, eweight=None, vweight=None,
+    def __init__(self, g, b=None, eweight=None, vweight=None,
                  clabel=None, pclabel=None, bfield=None, Bfield=None,
                  deg_corr=True, flat_map=False, entropy_args={}, **kwargs):
 
@@ -95,7 +92,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
             return
 
         EntropyState.__init__(self, entropy_args=entropy_args)
-        CLabelState.__init__(self, g=g, b=b, B=B, clabel=clabel, pclabel=pclabel)
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel, pclabel=pclabel)
 
         self.g = g
         self.deg_corr = deg_corr

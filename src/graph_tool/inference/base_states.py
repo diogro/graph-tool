@@ -293,13 +293,10 @@ class EntropyState(ABC):
 
 class CLabelState(ABC):
     r"""Base state that implements partition contraints."""
-    def __init__(self, g, b, B=None, clabel=None, pclabel=None, label_type="int64_t"):
+    def __init__(self, g, b, clabel=None, pclabel=None, label_type="int64_t"):
 
         if hasattr(self, "pclabel"):
             return
-
-        if B is None and b is None and clabel is None and pclabel is None:
-            B = 1
 
         if pclabel is None:
             self.pclabel = g.new_vp(label_type) if "vector" not in label_type else g.new_ep(label_type, val=[0, 0])
@@ -315,20 +312,7 @@ class CLabelState(ABC):
                                                self.pclabel)
 
         if b is None:
-            # create a random partition into B blocks.
-            if B is None:
-                self.b = self.clabel.copy()
-            elif B == 1:
-                self.b = g.new_vp(label_type) if "vector" not in label_type else g.new_ep(label_type, val=[0, 0])
-            else:
-                B = min((B, g.num_vertices()))
-                ba = numpy.random.randint(0, B, g.num_vertices())
-                ba[:B] = numpy.arange(B)        # avoid empty blocks
-                if B < g.num_vertices():
-                    numpy.random.shuffle(ba)
-                b = g.new_vp("int64_t")
-                b.fa = ba
-                self.b = self._clabel_combine(b, self.clabel)
+            self.b = self.clabel.copy()
         else:
             # if a partition is available, we will incorporate it.
             if isinstance(b, numpy.ndarray):

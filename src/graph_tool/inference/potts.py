@@ -52,7 +52,9 @@ class PottsState(CLabelState, MCMCState, MultiflipMCMCState, MultilevelMCMCState
 
     """
 
-    def __init__(self, g, f, b=None, eweight=None, theta=None, clabel=None, entropy_args={}):
+    @kwargs_wrap
+    def __init__(self, g, f, b=None, eweight=None, theta=None, clabel=None,
+                 entropy_args={}, **kwargs):
         EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = g = GraphView(g, directed=False)
         self.f = np.asarray(f, dtype="double")

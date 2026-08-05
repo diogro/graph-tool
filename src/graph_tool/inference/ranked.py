@@ -69,7 +69,8 @@ class RankedBlockState(BlockState):
 
     """
 
-    def __init__(self, g, b=None, u=None, distance=False, unique=False, M=None, **kwargs):
+    def __init__(self, g, b=None, u=None, distance=False, unique=False, M=None,
+                 **kwargs):
         if not g.is_directed():
             raise ValueError("RankedBlockState can only be used with directed graphs")
 

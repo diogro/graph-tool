@@ -138,7 +138,9 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
        :arxiv:`2112.00183`
     """
 
-    def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={}):
+    @kwargs_wrap
+    def __init__(self, g, b=None, eweight=None, clabel=None, entropy_args={},
+                 **kwargs):
         EntropyState.__init__(self, entropy_args=entropy_args)
         g = GraphView(g, directed=False)
         CLabelState.__init__(self, g=g, b=b, clabel=clabel)
