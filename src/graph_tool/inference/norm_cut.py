@@ -59,13 +59,13 @@ class NormCutState(CLabelState, MCMCState, MultiflipMCMCState,
                  **kwargs):
         EntropyState.__init__(self, entropy_args=entropy_args)
         self.g = g = GraphView(g, directed=False)
-        CLabelState.__init__(self, g=g, b=b, clabel=clabel)
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel,
+                             pclabel=kw_pop(kwargs, "pclabel", None))
         if eweight is None:
             eweight = g.new_ep("int64_t", 1)
         else:
             eweight = g.own_property(eweight)
         self.eweight = eweight
-
         self._state = libinference.make_norm_cut_state(self)
 
     def __repr__(self):

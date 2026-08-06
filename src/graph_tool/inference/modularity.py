@@ -143,7 +143,8 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
                  **kwargs):
         EntropyState.__init__(self, entropy_args=entropy_args)
         g = GraphView(g, directed=False)
-        CLabelState.__init__(self, g=g, b=b, clabel=clabel)
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel,
+                             pclabel=kw_pop(kwargs, "pclabel", None))
         self.g = g
 
         if eweight is None:

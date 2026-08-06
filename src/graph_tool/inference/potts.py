@@ -59,7 +59,8 @@ class PottsState(CLabelState, MCMCState, MultiflipMCMCState, MultilevelMCMCState
         self.g = g = GraphView(g, directed=False)
         self.f = np.asarray(f, dtype="double")
         self.q = f.shape[0]
-        CLabelState.__init__(self, g=g, b=b, B=q, clabel=clabel)
+        CLabelState.__init__(self, g=g, b=b, clabel=clabel,
+                             pclabel=kw_pop(kwargs, "pclabel", None))
         if theta is None:
             theta = g.new_vp("vector<double>")
         elif theta.value_type() != "vector<double>":
