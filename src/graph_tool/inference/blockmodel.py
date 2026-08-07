@@ -725,15 +725,15 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            >>> np.random.seed(42)
            >>> gt.seed_rng(42)
            >>> g = gt.collection.data["polbooks"]
-           >>> state = gt.BlockState(g, B=4, deg_corr=True)
+           >>> state = gt.BlockState(g)
            >>> pe = None
-           >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
+           >>> state.multiflip_mcmc_sweep(niter=1000)  # remove part of the transient
            (...)
            >>> for i in range(1000):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
            >>> gt.bethe_entropy(g, pe)[0]
-           -19.622404...
+           -3.848251...
 
         """
 
@@ -783,15 +783,15 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            >>> np.random.seed(42)
            >>> gt.seed_rng(42)
            >>> g = gt.collection.data["polbooks"]
-           >>> state = gt.BlockState(g, B=4, deg_corr=True)
+           >>> state = gt.BlockState(g)
            >>> pv = None
-           >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
+           >>> state.multiflip_mcmc_sweep(niter=1000)   # remove part of the transient
            (...)
            >>> for i in range(1000):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
-           33.094673...
+           45.083833...
            >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_shape="pie",
            ...               vertex_pie_fractions=pv, output="polbooks_blocks_soft_B4.svg")
            <...>
@@ -844,15 +844,15 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            >>> np.random.seed(42)
            >>> gt.seed_rng(42)
            >>> g = gt.collection.data["polbooks"]
-           >>> state = gt.BlockState(g, B=4, deg_corr=True)
+           >>> state = gt.BlockState(g)
            >>> ph = None
-           >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
+           >>> state.multiflip_mcmc_sweep(niter=1000)   # remove part of the transient
            (...)
            >>> for i in range(1000):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     ph = state.collect_partition_histogram(ph)
            >>> gt.microstate_entropy(ph)
-           137.136857...
+           158.249353...
 
         """
 
