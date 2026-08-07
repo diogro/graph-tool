@@ -47,7 +47,6 @@ Graph drawing
 
    graph_draw
    draw_hierarchy
-   graphviz_draw
    prop_to_size
    get_hierarchy_control_points
 
@@ -94,7 +93,7 @@ from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_layout")
 
 
-__all__ = ["graph_draw", "graphviz_draw", "fruchterman_reingold_layout",
+__all__ = ["graph_draw", "fruchterman_reingold_layout",
            "arf_layout", "sfdp_layout", "planar_layout", "random_layout",
            "radial_tree_layout", "cairo_draw", "prop_to_size",
            "get_hierarchy_control_points", "default_cm", "default_cm_bin",
@@ -146,7 +145,7 @@ def random_layout(g, shape=None, pos=None, dim=2):
 
     if pos is None:
         pos = g.new_vertex_property("vector<double>")
-    _check_prop_vector(pos, name="pos")
+        _check_prop_vector(pos, name="pos")
 
     pos = ungroup_vector_property(pos, list(range(0, dim)))
 
@@ -917,8 +916,3 @@ try:
     __all__ += ["interactive_window", "GraphWidget", "GraphWindow", "GraphArtist"]
 except ImportError:
     pass
-
-try:
-   from . graphviz_draw import graphviz_draw
-except ImportError:
-   pass

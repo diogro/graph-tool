@@ -909,8 +909,7 @@ graph_tool_centralitydir = $(MOD_DIR)/centrality
 graph_tool_draw_PYTHON = \
 	src/graph_tool/draw/__init__.py \
 	src/graph_tool/draw/cairo_draw.py \
-	src/graph_tool/draw/gtk_draw.py \
-	src/graph_tool/draw/graphviz_draw.py
+	src/graph_tool/draw/gtk_draw.py
 dist_graph_tool_draw_DATA = \
 	src/graph_tool/draw/graph-tool-logo.svg
 graph_tool_drawdir = $(MOD_DIR)/draw
