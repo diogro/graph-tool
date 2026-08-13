@@ -401,7 +401,7 @@ void update_rs(State& state, auto r, auto s, const auto& delta,
                      if (!succ)  [[unlikely]] // re-check to avoid preemption race
                      {
                          me = state._emat.get_me(r, s);
-                         if (me == state._emat.get_null_edge() || state._mrs[me] != 0)
+                         if (me == state._emat.get_null_edge() || int64_t(state._mrs[me]) != 0)
                              return;
                      }
                  }

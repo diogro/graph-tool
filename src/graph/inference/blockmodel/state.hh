@@ -327,6 +327,7 @@ public:
         static_assert(std::ranges::random_access_range<Vs>);
         static_assert(std::ranges::random_access_range<NRs>);
 
+        clear_egroups();
         _vset.reserve(num_vertices(_g), _null_group);
         _groups_in.resize(num_vertices(_bg));
         _groups_out.resize(num_vertices(_bg));
@@ -1428,9 +1429,9 @@ public:
             if (c > 0)
             {
                 if (is_directed_v<g_t>)
-                    p_rand = c * B / double(count_t(_mrp[t]) + count_t(_mrm[t]) + c * B);
+                    p_rand = c * B / double(int64_t(_mrp[t]) + int64_t(_mrm[t]) + c * B);
                 else
-                    p_rand = c * B / double(count_t(_mrp[t]) + c * B);
+                    p_rand = c * B / double(int64_t(_mrp[t]) + c * B);
             }
 
             std::bernoulli_distribution rand(p_rand);
@@ -1710,7 +1711,7 @@ public:
             if (_coupled_state == nullptr)
             {
                 _mrs[me] -= dm;
-                if (_mrs[me] == weight_t{})
+                if (int64_t(_mrs[me]) == 0)
                 {
                     _emat.remove_me(me, _bg);
                     boost::remove_edge(me, _bg);
@@ -1718,7 +1719,8 @@ public:
             }
             else
             {
-                if (_mrs[me] == dm)
+                weight_t mrs = _mrs[me];
+                if (int64_t(mrs + dm) == 0)
                     _emat.remove_me(me, _bg);
             }
             _mrp[r] -= dm;
@@ -1748,7 +1750,7 @@ public:
         else
         {
             _eweight[e] -= dm;
-            if (_eweight[e] == weight_t{} && Deplete)
+            if (int64_t(_eweight[e]) == 0 && Deplete)
             {
                 boost::remove_edge(e, _g);
                 e = GraphInterface::edge_t();
