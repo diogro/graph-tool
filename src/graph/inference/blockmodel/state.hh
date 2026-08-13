@@ -2245,7 +2245,7 @@ public:
         return true;
     }
 
-    void check_node_counts([[maybe_unused]] bool verbose=false)
+    void check_node_counts()
     {
 #ifndef NDEBUG
         std::vector<rw_t> wr(num_vertices(_bg));
@@ -2292,7 +2292,7 @@ public:
                 }
             }
 
-            _coupled_state->check_node_counts(verbose);
+            _coupled_state->check_node_counts();
         }
 #endif
     }
