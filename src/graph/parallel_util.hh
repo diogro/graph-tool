@@ -309,91 +309,88 @@ void visit_or_emplace(auto&& m, auto&& k, auto&& f, auto&& g,
 // atomic operations
 
 template <bool enable=true, class T1, class T2>
-void atomic_inc(T1&& x, T2&& d)
+   requires std::is_scalar_v<std::decay_t<T1>>
+decltype(auto) atomic_inc(T1&& x, T2&& d)
 {
-    typedef std::decay_t<T1> TX;
-    typedef std::decay_t<T2> TD;
-    if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && enable)
+    if constexpr (std::is_scalar_v<std::decay_t<T2>> && enable)
     {
         #pragma omp atomic
         x += d;
     }
-    else if constexpr (std::is_scalar_v<TX> && enable)
+    else if constexpr (enable)
     {
         #pragma omp atomic
-        x += TX(d);
+        x += std::decay_t<T1>(d);
     }
     else
     {
         x += d;
     }
+    return x;
 }
 
 template <bool enable=true, class T1, class T2>
-void atomic_dec(T1&& x, T2&& d)
+   requires std::is_scalar_v<std::decay_t<T1>>
+decltype(auto) atomic_dec(T1&& x, T2&& d)
 {
-    typedef std::decay_t<T1> TX;
-    typedef std::decay_t<T2> TD;
-    if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && enable)
+    if constexpr (std::is_scalar_v<std::decay_t<T2>> && enable)
     {
         #pragma omp atomic
         x -= d;
     }
-    else if constexpr (std::is_scalar_v<TX> && enable)
+    else if constexpr (enable)
     {
         #pragma omp atomic
-        x -= TX(d);
+        x -= std::decay_t<T1>(d);
     }
     else
     {
+        static_assert(!enable, "atomic operation not available via overload");
         x -= d;
     }
+    return x;
 }
 
 template <bool enable=true, class T1, class T2>
-void atomic_prod(T1&& x, T2&& d)
+   requires std::is_scalar_v<std::decay_t<T1>>
+decltype(auto) atomic_prod(T1&& x, T2&& d)
 {
-    typedef std::decay_t<T1> TX;
-    typedef std::decay_t<T2> TD;
-    if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && enable)
+    if constexpr (std::is_scalar_v<std::decay_t<T2>> && enable)
     {
         #pragma omp atomic
         x *= d;
     }
-    else if constexpr (std::is_scalar_v<TX> && enable)
+    else if constexpr (enable)
     {
         #pragma omp atomic
-        x *= TX(d);
+        x *= std::decay_t<T1>(d);
     }
     else
     {
         x *= d;
     }
+    return x;
 }
 
 template <bool enable=true, class T1, class T2>
-void atomic_div(T1&& x, T2&& d)
+   requires std::is_scalar_v<std::decay_t<T1>>
+decltype(auto) atomic_div(T1&& x, T2&& d)
 {
-    typedef std::decay_t<T1> TX;
-    typedef std::decay_t<T2> TD;
-    if constexpr (std::is_scalar_v<TX> &&
-                  std::is_scalar_v<TD> && enable)
+    if constexpr (std::is_scalar_v<std::decay_t<T2>> && enable)
     {
         #pragma omp atomic
         x /= d;
     }
-    else if constexpr (std::is_scalar_v<TX> && enable)
+    else if constexpr (enable)
     {
         #pragma omp atomic
-        x /= TX(d);
+        x /= std::decay_t<T1>(d);
     }
     else
     {
         x /= d;
     }
+    return x;
 }
 
 

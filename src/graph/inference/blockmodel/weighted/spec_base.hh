@@ -34,7 +34,7 @@
 #include "../../../parallel_util.hh"
 
 #define WEARGS_params                                                          \
-    ((rec, bool))                                                             \
+    ((rec, bool))                                                              \
     ((rec_dl, bool))
 
 #define WEIGHTED_SPEC_params                                                   \
@@ -634,7 +634,7 @@ struct WeightedBlockStateSpec
                                                            wp[0], wp[1],
                                                            wp[2], wp[3],
                                                            _epsilon[i]);
-                                     assert(!isnan(dS));
+                                     assert(std::isfinite(dS));
                                  }
 
                                  if (std::isnan(wp[0]) && std::isnan(wp[1]))
@@ -671,7 +671,7 @@ struct WeightedBlockStateSpec
                                                          _recx2[i] + dBx2, wp[0],
                                                          wp[1], wp[2], wp[3],
                                                          _epsilon[i]);
-                                assert(!isnan(dS_dl));
+                                assert(std::isfinite(dS_dl));
                             }
 
                             if ((dB_E_D != drcount_t{} || dBdx != drcount_t{}))
@@ -683,7 +683,7 @@ struct WeightedBlockStateSpec
                                                         _recdx[i] + dBdx,
                                                         wp[2], wp[3],
                                                         _epsilon[i]);
-                                assert(!isnan(dS_dl));
+                                assert(std::isfinite(dS_dl));
                             }
 
                             auto dL_p = dL;
@@ -721,13 +721,17 @@ struct WeightedBlockStateSpec
                                                            wp[2], wp[3],
                                                            _epsilon[i]);
 
-                                assert(!std::isnan(dS_dl));
+                                assert(std::isfinite(dS_dl));
                             }
+                            assert(std::isfinite(dS));
+                            assert(std::isfinite(dS_dl));
                         }
                     }
                     break;
                 }
             }
+            assert(std::isfinite(dS));
+            assert(std::isfinite(dS_dl));
             return dS + ea.beta_dl * dS_dl;
         }
 

@@ -59,17 +59,13 @@ auto lgamma_fast(T&& x)
     return lgamma_fast(int64_t(x));
 }
 
-} // namespace graph_tool
-
-namespace boost
-{
 template <class Deg>
    requires(std::is_same_v<Deg, odeg_t>)
 double deg_entropy(const Deg& d)
 {
     return graph_tool::deg_entropy(d._k);
 }
-} // namespace boost
 
+} // namespace graph_tool
 
 #endif // GRAPH_BLOCKMODEL_OVERLAP_ENTROPY_HH

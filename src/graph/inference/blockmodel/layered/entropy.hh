@@ -246,7 +246,7 @@ double get_edges_dl(size_t B, const C& E, Graph& g)
     double S = 0;
     size_t Et = 0;
     size_t L = 0;
-    E.template cdispatch<true>([&](auto&& h)
+    E.template cdispatch<true>([&](auto&& h, auto)
                                {
                                    for (auto&& [l, c] : h)
                                    {

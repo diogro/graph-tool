@@ -93,7 +93,7 @@ public:
     void remove_vertex(auto&& deg, group_t r, const auto& vw)
     {
         vw.template cdispatch<true>
-            ([&](auto&& h)
+            ([&](auto&& h, auto)
              {
                  iter_counts([&](auto l, auto&& c)
                              {
@@ -111,7 +111,7 @@ public:
     void add_vertex(auto&& deg, group_t nr, const auto& vw)
     {
         vw.template cdispatch<true>
-            ([&](auto&& h)
+            ([&](auto&& h, auto)
              {
                  iter_counts([&](auto l, auto&& c)
                              {
@@ -163,7 +163,7 @@ public:
     {
         double dS = 0;
         vw.template dispatch<true>
-            ([&](auto&& h)
+            ([&](auto&& h, auto)
              {
                  iter_counts
                      ([&](auto l, auto&& c)

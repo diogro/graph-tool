@@ -47,7 +47,7 @@ enum weight_type
 #define WVEC_N 11
 
 template <typename T>
-concept WeightCounts = requires(const T& t)
+concept WeightCounts = requires(T t)
 {
     { t.visit_weights([](auto, auto){}) };
 };
@@ -90,8 +90,7 @@ struct WeightCountRef
         return f(_p._count[_key]);
     }
 
-    template <class F>
-    decltype(auto) visit_count(F&& f) const
+    decltype(auto) visit_count(auto&& f) const
     {
         return const_cast<WeightCountRef*>(this)->visit_count([&](const auto& a) { return f(a); });
     }
@@ -102,8 +101,7 @@ struct WeightCountRef
             f(i, _p._weights[i][_key]);
     }
 
-    template <class F>
-    void visit_weights(F&& f) const
+    void visit_weights(auto&& f) const
     {
         const_cast<WeightCountRef*>(this)->visit_weights([&](auto i, const auto& a) { f(i, a); });
     }
@@ -410,7 +408,7 @@ decltype(auto) gen_bin_op(X&& x, const Y& y, F&& op)
 }
 
 
-template <bool enable, WeightCounts X, WeightCounts Y>
+template <bool enable=true, WeightCounts X, WeightCounts Y>
 decltype(auto) atomic_inc(X&& x, const Y& y)
 {
     return gen_bin_op(std::forward<X>(x), y,
@@ -423,7 +421,7 @@ decltype(auto) operator+=(X&& x, const Y& y)
     return atomic_inc<false>(std::forward<X>(x), y);
 }
 
-template <bool enable, WeightCounts X, WeightCounts Y>
+template <bool enable=true, WeightCounts X, WeightCounts Y>
 decltype(auto) atomic_dec(X&& x, const Y& y)
 {
     return gen_bin_op(std::forward<X>(x), y,
@@ -436,7 +434,7 @@ decltype(auto) operator-=(X&& x, const Y& y)
     return atomic_dec<false>(std::forward<X>(x), y);
 }
 
-template <bool enable, WeightCounts X, WeightCounts Y>
+template <bool enable=true, WeightCounts X, WeightCounts Y>
 decltype(auto) atomic_div(X&& x, const Y& y)
 {
     return gen_bin_op(std::forward<X>(x), y,
@@ -449,7 +447,7 @@ decltype(auto) operator/=(X&& x, const Y& y)
     return atomic_div<false>(std::forward<X>(x), y);
 }
 
-template <bool enable, WeightCounts X, WeightCounts Y>
+template <bool enable=true, WeightCounts X, WeightCounts Y>
 decltype(auto) atomic_prod(X&& x, const Y& y)
 {
     return gen_bin_op(std::forward<X>(x), y,
@@ -506,12 +504,25 @@ auto operator-(X x, const Y& y)
     return x;
 }
 
+template <bool enable=true, WeightCounts X, class T>
+    requires std::is_scalar_v<T>
+decltype(auto) atomic_div(X&& x, const T& c)
+{
+    return gen_op(x, [&](auto&& y) { atomic_div<enable>(y, c); });
+}
 
 template <WeightCounts X, class T>
-    requires std::is_scalar_v<T>
-auto& operator/=(X& x, T c)
+   requires std::is_scalar_v<T>
+decltype(auto) operator/=(X& x, T c)
 {
-    return gen_op(x, [&](auto&& y) { y /= c; });
+    return atomic_div<true>(x, c);
+}
+
+template <bool enable=true, WeightCounts X, class T>
+    requires std::is_scalar_v<T>
+auto& atomic_prod(X& x, T c)
+{
+    return gen_op(x, [&](auto&& y) { atomic_prod<enable>(y, c); });
 }
 
 template <WeightCounts X, class T>

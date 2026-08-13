@@ -174,7 +174,7 @@ void lc_sum(T1& to, const T2& from, Lock&& lock)
         if (&to == &from)
         {
             for (auto&& [l, c] : to)
-                atomic_inc(c, c);
+                atomic_inc<enable>(c, c);
             return;
         }
     }
@@ -323,7 +323,7 @@ struct LayerCount
     {
         if constexpr (disable_lock)
         {
-            f(_h);
+            f(_h, dummy_mutex());
         }
         else
         {
@@ -360,7 +360,7 @@ struct LayerCount
     auto layer_dispatch(auto&& f) const
     {
         decltype(f(cval_t())) ret = 0;
-        cdispatch<true>([&](auto&& h)
+        cdispatch<true>([&](auto&& h, auto)
                         {
                             for (auto&& [l, c] : h)
                                 ret += f(c);
@@ -375,7 +375,7 @@ struct LayerCount
             ([&](auto&& h, auto&&)
              {
                  c.template cdispatch<true>
-                     ([&](auto&& hc)
+                     ([&](auto&& hc, auto)
                       {
                           if constexpr (std::is_same_v<std::decay_t<decltype(h)>,
                                         std::decay_t<decltype(hc)>>)
@@ -471,7 +471,7 @@ struct LayerCount
     template <class T>
     void resize(const T& n)
     {
-        cdispatch<true>([&](auto&& h)
+        cdispatch<true>([&](auto&& h, auto)
                         {
                             for (auto&& [l, c] : h)
                                 c.resize(n);
@@ -578,7 +578,7 @@ bool operator==(const LC& x, const C& c)
     x.cdispatch([&](auto&& hc, auto&&)
                 {
                     c.template cdispatch<true>
-                        ([&](auto&& c)
+                        ([&](auto&& c, auto)
                          {
                              equal = lc_equal(hc, c);
                          });
@@ -682,46 +682,67 @@ auto operator<=(const LC& x, C c)
     return ret;
 }
 
+template <bool enable=true, LayerCounts T1, LayerCounts T2>
+decltype(auto) atomic_inc(T1&& x, T2&& c)
+{
+    x.template dispatch<!enable>
+        ([&](auto&& h, auto&& lock)
+         {
+             c.template cdispatch<true>
+                 ([&](auto&& hc, auto)
+                  {
+                      lc_sum<enable>(h, hc, lock);
+                  });
+         });
+    return std::forward<T1>(x);
+}
+
 template <LayerCounts LC, LayerCounts C>
 decltype(auto) operator+=(LC&& x, const C& c)
 {
-    x.dispatch([&](auto&& h, auto&& lock)
-               {
-                   c.template cdispatch<true>
-                       ([&](auto&& hc)
-                        {
-                            lc_sum(h, hc, lock);
-                        });
-               });
-    return std::forward<LC>(x);
+    return atomic_inc<false>(x, c);
+}
+
+template <bool enable=true, LayerCounts T1, LayerCounts T2>
+decltype(auto) atomic_dec(T1&& x, T2&& c)
+{
+    x.template dispatch<!enable>
+        ([&](auto&& h, auto&& lock)
+         {
+             c.template cdispatch<true>
+                 ([&](auto&& hc, auto)
+                  {
+                      lc_sub<enable>(h, hc, lock);
+                  });
+         });
+    return std::forward<T1>(x);
 }
 
 template <LayerCounts LC, LayerCounts C>
 decltype(auto) operator-=(LC&& x, const C& c)
 {
-    x.dispatch([&](auto&& h, auto&& lock)
-               {
-                   c.template cdispatch<true>
-                       ([&](auto&& hc)
-                        {
-                            lc_sub(h, hc, lock);
-                        });
-               });
-    return std::forward<LC>(x);
+    return atomic_dec<false>(x, c);
+}
+
+template <bool enable=true, LayerCounts T1, LayerCounts T2>
+decltype(auto) atomic_div(T1&& x, T2&& c)
+{
+    x.template dispatch<!enable>
+        ([&](auto&& h, auto&& lock)
+         {
+             c.template cdispatch<true>
+                 ([&](auto&& hc, auto)
+                  {
+                      lc_div<enable>(h, hc, lock);
+                  });
+         });
+    return std::forward<T1>(x);
 }
 
 template <LayerCounts LC, LayerCounts C>
 decltype(auto) operator/=(LC&& x, const C& c)
 {
-    x.dispatch([&](auto&& h, auto&& lock)
-               {
-                   c.template cdispatch<true>
-                       ([&](auto&& hc)
-                        {
-                            lc_div(h, hc, lock);
-                        });
-               });
-    return std::forward<LC>(x);
+    return atomic_div<false>(x, c);
 }
 
 template <LayerCounts LC, LayerCounts C>
@@ -1006,7 +1027,7 @@ struct formatter<C>
         string temp;
         format_to(back_inserter(temp), "[");
         c.template cdispatch<true>
-            ([&](auto&& h)
+            ([&](auto&& h, auto)
              {
                  for (auto&& [l, c] : h)
                      format_to(back_inserter(temp), "{}: {}, ", l, c);

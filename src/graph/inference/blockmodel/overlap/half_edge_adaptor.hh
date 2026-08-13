@@ -272,6 +272,107 @@ auto& make_half_edge_adaptor(Graph& g)
     return reinterpret_cast<half_edge_adaptor<Graph>&>(g);
 }
 
+struct odeg_t
+{
+    size_t _v;
+    int64_t _k;
+    bool _in;
+
+    auto& operator+=(int64_t c)
+    {
+        #pragma omp atomic
+        _k += c;
+        return *this;
+    }
+
+    auto& operator-=(int64_t c)
+    {
+        #pragma omp atomic
+        _k -= c;
+        return *this;
+    }
+
+    auto& operator*=(int64_t c)
+    {
+        #pragma omp atomic
+        _k *= c;
+        return *this;
+    }
+
+    auto operator+(int64_t c) const
+    {
+        odeg_t r(*this);
+        r += c;
+        return r;
+    }
+
+    auto operator-(int64_t c) const
+    {
+        odeg_t r(*this);
+        r -= c;
+        return r;
+    }
+
+    auto operator-() const
+    {
+        odeg_t r(*this);
+        r._k *= -1;
+        return r;
+    }
+
+    auto& operator=(int64_t c)
+    {
+        _k = c;
+        return *this;
+    }
+
+    template <class T>
+        requires std::is_scalar_v<T>
+    bool operator>(T c) const
+    {
+        return _k > c;
+    }
+
+    template <class T>
+        requires std::is_scalar_v<T>
+    bool operator==(T c) const
+    {
+        return _k == c;
+    }
+
+    operator int64_t (void) const { return _k; }
+};
+
+template <class T>
+    requires std::is_scalar_v<T>
+decltype(auto) operator*(T c, odeg_t d)
+{
+    d *= c;
+    return d;
+}
+
+template <bool enable=true>
+decltype(auto) atomic_inc(odeg_t& x, const auto& y)
+{
+    x += y;
+    return x;
+}
+
+template <bool enable=true>
+decltype(auto) atomic_dec(odeg_t& x, const auto& y)
+{
+    x -= y;
+    return x;
+}
+
+template <bool enable=true>
+decltype(auto) atomic_prod(odeg_t& x, const auto& y)
+{
+    x *= y;
+    return x;
+}
+
+
 } // namespace graph_tool
 
 namespace boost
@@ -497,82 +598,6 @@ auto in_neighbors(const auto& v, const half_edge_adaptor<Graph>&)
     {
         return std::make_pair(aiter_t(), aiter_t());
     }
-}
-
-struct odeg_t
-{
-    size_t _v;
-    int64_t _k;
-    bool _in;
-
-    auto& operator+=(int64_t c)
-    {
-        _k += c;
-        return *this;
-    }
-
-    auto& operator-=(int64_t c)
-    {
-        _k -= c;
-        return *this;
-    }
-
-    auto& operator*=(int64_t c)
-    {
-        _k *= c;
-        return *this;
-    }
-
-    auto operator+(int64_t c) const
-    {
-        odeg_t r(*this);
-        r += c;
-        return r;
-    }
-
-    auto operator-(int64_t c) const
-    {
-        odeg_t r(*this);
-        r -= c;
-        return r;
-    }
-
-    auto operator-() const
-    {
-        odeg_t r(*this);
-        r._k *= -1;
-        return r;
-    }
-
-    auto& operator=(int64_t c)
-    {
-        _k = c;
-        return *this;
-    }
-
-    template <class T>
-        requires std::is_scalar_v<T>
-    bool operator>(T c) const
-    {
-        return _k > c;
-    }
-
-    template <class T>
-        requires std::is_scalar_v<T>
-    bool operator==(T c) const
-    {
-        return _k == c;
-    }
-
-    operator int64_t (void) const { return _k; }
-};
-
-template <class T>
-    requires std::is_scalar_v<T>
-decltype(auto) operator*(T c, odeg_t d)
-{
-    d *= c;
-    return d;
 }
 
 template <class Graph>

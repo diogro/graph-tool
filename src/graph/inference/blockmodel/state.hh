@@ -1032,7 +1032,7 @@ public:
 
                         dS += eterm_dense(t, u, etu + d, wt, wu, ea.multigraph, _bg);
 
-                        assert(!std::isinf(dS) && !std::isnan(dS));
+                        assert(std::isfinite(dS));
                         return dS;
                     };
 
@@ -1043,7 +1043,6 @@ public:
                                    return;
                                auto me = _emat.get_me(t, u);
                                dS += get_dS(t, u, me, delta);
-                               assert(!std::isinf(dS) && !std::isnan(dS));
                            });
 
                 for (auto t : std::array<group_t, 2>({r, nr}))
@@ -1056,7 +1055,7 @@ public:
                             if (u == r || u == nr || m_entries.get_delta(t, u) != 0)
                                 continue;
                             dS += get_dS(t, u, me, weight_t{});
-                            assert(!std::isinf(dS) && !std::isnan(dS));
+                            assert(std::isfinite(dS));
                         }
 
                         for (auto me : in_edges_range(t, _bg))
@@ -1065,14 +1064,14 @@ public:
                             if (u == r || u == nr || m_entries.get_delta(u, t) != 0)
                                 continue;
                             dS += get_dS(u, t, me, weight_t{});
-                            assert(!std::isinf(dS) && !std::isnan(dS));
+                            assert(std::isfinite(dS));
                         }
                     }
 
                     if (m_entries.get_delta(t, r) == 0)
                         dS += get_dS(t, r, _emat.get_me(t, r), weight_t{});
 
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
 
                     if (r == nr)
                         break;
@@ -1080,7 +1079,7 @@ public:
                     if ((is_directed_v<bg_t> || t != r) && m_entries.get_delta(t, nr) == 0)
                         dS += get_dS(t, nr, _emat.get_me(t, nr), weight_t{});
 
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
                 };
             }
             else
@@ -1162,7 +1161,7 @@ public:
             dS += get_edges_dl(_actual_B + (dr + ds), _E, _g);
         }
 
-        assert(!std::isinf(dS));
+        assert(std::isfinite(dS));
         return dS;
     }
 

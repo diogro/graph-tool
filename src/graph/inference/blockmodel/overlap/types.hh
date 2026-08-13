@@ -196,6 +196,37 @@ struct ovweight_t
     operator int64_t (void) const { return this->size(); }
 };
 
+// NOTE: these are deliberately not atomic!
+
+template <bool enable=true>
+decltype(auto) atomic_inc(ovweight_t& x, const auto& y)
+{
+    x += y;
+    return x;
+}
+
+template <bool enable=true>
+decltype(auto) atomic_dec(ovweight_t& x, const auto& y)
+{
+    x -= y;
+    return x;
+}
+
+template <bool enable=true>
+decltype(auto) atomic_prod(ovweight_t& x, const auto& y)
+{
+    x *= y;
+    return x;
+}
+
+template <bool enable=true>
+decltype(auto) atomic_div(ovweight_t& x, const auto& y)
+{
+    x /= y;
+    return x;
+}
+
+
 } // namespace graph_tool
 
 namespace std
