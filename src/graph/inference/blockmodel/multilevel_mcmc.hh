@@ -109,6 +109,8 @@ struct MCMC
                     mes[0]._next = &_m_entries_coupled[i][0];
                 }
             }
+
+            _state.clear_egroups();
         }
 
         ~MCMCLoopStateImp() { _state.clear_egroups(); }
