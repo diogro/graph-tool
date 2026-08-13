@@ -799,7 +799,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         .. figure:: polbooks_blocks_soft_B4.*
            :align: center
 
-           "Soft" block partition of a political books network with :math:`B=4`.
+           "Soft" block partition of a political books network.
 
         """
 
