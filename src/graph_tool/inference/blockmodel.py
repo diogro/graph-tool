@@ -249,28 +249,6 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         w /= w.sum()
         return np.exp(-(w*np.log(w)).sum())
 
-    def get_bclabel(self, clabel=None):
-        r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
-        labels for the block graph."""
-
-        bclabel = self.bg.new_vertex_property("int64_t")
-        idx = self.vweight.fa > 0
-        reverse_map(self.b.fa[idx], bclabel)
-        if clabel is None:
-            clabel = self.clabel
-        pmap(bclabel, clabel.fa[idx])
-        return bclabel
-
-    def _set_bclabel(self, bstate):
-        self.bclabel.a = bstate.b.a
-        self.clabel.a = self.b.a
-        pmap(self.clabel, self.bclabel)
-
-    def get_bpclabel(self):
-        r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to partition
-        constraint labels for the block graph."""
-        return self.get_bclabel(self.pclabel)
-
     def _couple_state(self, state, entropy_args):
         self._coupled_state = (state, entropy_args)
         eargs = state._get_entropy_args(entropy_args)

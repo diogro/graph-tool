@@ -355,10 +355,13 @@ class CLabelState(ABC):
         if "vector" not in b.value_type():
             joint = group_vector_property([b, clabel], value_type="int64_t")
             joint = perfect_prop_hash([joint], htype="int64_t")[0]
-            joint = contiguous_map(joint)
+            idx = self.vweight.fa > 0
+            joint = joint.fa[idx]
             b = b.copy()
+            b = b.fa[idx]
+            joint = contiguous_map(joint)
             b = contiguous_map(b)
-            if not (b.fa == joint.fa).all():
+            if not (b == joint).all():
                 return False
         else:
             x, y = ungroup_vector_property(b)
@@ -373,6 +376,26 @@ class CLabelState(ABC):
             if not (x.fa == jx.fa).all() or not (y.fa == jy.fa).all():
                 return False
         return True
+
+    def _check_pclabel(self, b=None):
+        return self._check_clabel(self.pclabel, b=b)
+
+    def get_bclabel(self, clabel=None):
+        r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
+        labels for the block graph."""
+
+        bclabel = self.bg.new_vertex_property("int64_t")
+        idx = self.vweight.fa > 0
+        reverse_map(self.b.fa[idx], bclabel)
+        if clabel is None:
+            clabel = self.clabel
+        pmap(bclabel, clabel.fa[idx])
+        return bclabel
+
+    def get_bpclabel(self):
+        r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to partition
+        constraint labels for the block graph."""
+        return self.get_bclabel(self.pclabel)
 
 
 class MCMCState(EntropyState):
