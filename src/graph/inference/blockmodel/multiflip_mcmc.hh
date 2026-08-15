@@ -124,10 +124,10 @@ struct MCMC
         template <bool sample_branch=true, class RNG, class VS = std::array<group_t,0>>
         group_t sample_new_group(vertex_t v, RNG& rng, VS&& except = VS())
         {
-            for (auto r : except)
+            for (auto s : except)
             {
-                if (_state._empty_groups.find(r) != _state._empty_groups.end())
-                    _state._empty_groups.erase(r);
+                if (_state._empty_groups.find(s) != _state._empty_groups.end())
+                    _state._empty_groups.erase(s);
             }
 
             auto t = _state.get_empty_group(v, rng);
@@ -135,10 +135,10 @@ struct MCMC
             if constexpr (_has_relabel)
                 relabel_group(t, sample_group_label(t, rng));
 
-            for (auto r : except)
+            for (auto s : except)
             {
-                if (r != _null_group &&_state._wr[r] == 0)
-                    _state._empty_groups.insert(r);
+                if (s != _null_group && _state._wr[s] == 0)
+                    _state._empty_groups.insert(s);
             }
 
             auto r = _state._b[v];
@@ -152,10 +152,11 @@ struct MCMC
                 }
                 else
                 {
-                    auto& bh = cstate->get_b();
+                    auto& bh = cstate->_b;
                     bh[t] = bh[r];
                 }
             }
+            assert(_state.allow_move(r, t));
             assert(_state._wr[t] == 0);
             return t;
         }
@@ -246,7 +247,7 @@ struct MCMC
             auto cstate = _state._coupled_state;
             if (cstate == nullptr)
                 return _state._bclabel[r] == _state._bclabel[s];
-            auto& hb = cstate->get_b();
+            auto& hb = cstate->_b;
             auto rr = hb[r];
             auto ss = hb[s];
             return (rr == ss) && (_state._bclabel[r] == _state._bclabel[s]);

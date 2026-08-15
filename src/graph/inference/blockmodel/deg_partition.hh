@@ -326,15 +326,17 @@ public:
     {
         change_vertex(deg, r, -vw);
         #pragma omp atomic
-        _N--;
+        _N -= vw;
     }
 
     void add_vertex(auto&& deg, group_t nr, int64_t vw = 1)
     {
+        if (vw == 0)
+            return;
         nr = get_r(nr);
         change_vertex(deg, nr, vw);
         #pragma omp atomic
-        _N++;
+        _N += vw;
     }
 
     void merge_groups(group_t s, group_t t)

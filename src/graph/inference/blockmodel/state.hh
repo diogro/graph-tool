@@ -125,17 +125,16 @@ public:
         size_t B = 0;
         for (auto v : vertices_range(_g))
         {
+            if (_vweight[v] == 0)
+                continue;
             auto r = _b[v];
             B = std::max(B, size_t(r + 1));
             _bpclabel.get_checked()[r] = _pclabel[v];
             _bclabel.get_checked()[r] = _clabel[v];
             _wr.get_checked()[r] += _vweight[v];
-            if (_vweight[v] > 0)
-            {
-                if (_groups[r].empty())
-                    _actual_B++;
-                _groups[r].insert(v);
-            }
+            if (_groups[r].empty())
+                _actual_B++;
+            _groups[r].insert(v);
             _N[_clabel[v]] += _vweight[v];
         }
 
@@ -209,6 +208,8 @@ public:
             (_g,
              [&, this](auto v)
              {
+                 if (_vweight[v] == 0)
+                     return;
                  auto r = _b[v];
                  deg_t kin = in_degree(v, _g, _eweight);
                  deg_t kout = out_degree(v, _g, _eweight);
@@ -249,7 +250,7 @@ public:
     {
         if (_coupled_state != nullptr)
         {
-            auto& hb = _coupled_state->get_b();
+            auto& hb = _coupled_state->_b;
             auto rr = hb[r];
             auto ss = hb[nr];
             if (rr != ss && !_coupled_state->allow_move(rr, ss))
@@ -670,9 +671,9 @@ public:
     template <class VMap>
     void set_partition(VMap& b, bool parallel)
     {
-        std::decay_t<decltype(_coupled_state->get_b())> hb;
+        std::decay_t<decltype(_coupled_state->_b)> hb;
         if (_coupled_state != nullptr)
-            hb = _coupled_state->get_b();
+            hb = _coupled_state->_b;
 
         for (auto v : vertices_range(_g))
         {
@@ -763,7 +764,7 @@ public:
 
         if (_coupled_state != nullptr)
         {
-            auto& hb = _coupled_state->get_b();
+            auto& hb = _coupled_state->_b;
             _coupled_state->remove_partition_node(r, hb[r]);
             _coupled_state->set_vertex_weight(r, rw_t{});
         }
@@ -778,7 +779,7 @@ public:
 
         if (_coupled_state != nullptr)
         {
-            auto& hb = _coupled_state->get_b();
+            auto& hb = _coupled_state->_b;
             auto rw = w;
             rw = 1; // NOTE: setting this way is important for the layered model
             _coupled_state->set_vertex_weight(r, rw);
@@ -1256,7 +1257,7 @@ public:
             bool r_vacate = (r != _null_group && _wr[r] == _vweight[v]);
             bool nr_occupy = (nr != _null_group && _wr[nr] == 0);
 
-            auto& bh = _coupled_state->get_b();
+            auto& bh = _coupled_state->_b;
             if (r_vacate && nr_occupy)
             {
                 dS += _coupled_state->get_delta_partition_dl(r, bh[r], bh[nr],
@@ -1328,7 +1329,7 @@ public:
 
         if (_coupled_state != nullptr)
         {
-            auto& bh = _coupled_state->get_b();
+            auto& bh = _coupled_state->_b;
 
             count_t dt = (_wr[t] == 0) ? 1 : 0;
 
@@ -1371,13 +1372,15 @@ public:
             auto r = _b[v];
             _bclabel[s] = _bclabel[r];
             _bpclabel[s] = _bpclabel[r];
+            assert(_clabel[v] == _bclabel[r]);
 
             if (_coupled_state != nullptr)
             {
-                auto& hb = _coupled_state->get_b();
-                auto& hpclabel = _coupled_state->get_pclabel();
+                auto& hb = _coupled_state->_b;
+                auto& hpclabel = _coupled_state->_pclabel;
+                auto& hclabel = _coupled_state->_clabel;
                 hb[s] = hb[r];
-                hpclabel[s] = _pclabel[v];
+                hpclabel[s] = hclabel[s] = _pclabel[v];
             }
         }
 
@@ -2129,21 +2132,6 @@ public:
     size_t get_actual_B()
     {
         return _actual_B;
-    }
-
-    auto& get_b()
-    {
-        return _b;
-    }
-
-    auto& get_bclabel()
-    {
-        return _bclabel;
-    }
-
-    auto& get_pclabel()
-    {
-        return _pclabel;
     }
 
     bool check_edge_counts(bool emat=true, bool propagate=true)

@@ -74,7 +74,7 @@ public:
     {
         if constexpr (check)
         {
-            if (std::cmp_greater_equal(r, _count.size()))
+            if (std::cmp_greater_equal(r, _count.size()) && w > 0)
                 add_group(r - _count.size() + 1);
         }
 
@@ -107,16 +107,12 @@ public:
     {
         if (_N == 0)
             return 0;
-
         double S = 0;
         S += lbinom_fast(_N - 1, _actual_B - 1);
         S += lgamma_fast(_N + 1);
-
         for (auto nr : _count)
             S -= lgamma_fast(nr + 1);
-
         S += safelog_fast(_N);
-
         return S;
     }
 
@@ -191,9 +187,16 @@ public:
         _ps[c].add_group(n);
     }
 
-    template <bool check = true>
-    void add_item(group_t r, int64_t c, auto&&... w)
+    template <bool check = true, class... Ws>
+    void add_item(group_t r, int64_t c, Ws&&... ws)
     {
+        if constexpr (sizeof...(ws) > 0)
+        {
+             auto&& w = std::get<0>(std::forward_as_tuple(std::forward<Ws>(ws)...));
+             if (int64_t(w) == 0)
+                 return;
+        }
+
         if constexpr (check)
         {
             if (std::cmp_greater_equal(c, _ps.size()))
@@ -204,7 +207,7 @@ public:
             mod_r<true>(r, c);
         }
 
-        _ps[c].template add_item<check>(get_r(r, c), w...);
+        _ps[c].template add_item<check>(get_r(r, c), std::forward<Ws>(ws)...);
     }
 
     template <bool check = true>
