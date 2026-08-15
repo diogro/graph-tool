@@ -328,6 +328,7 @@ public:
         static_assert(std::ranges::random_access_range<Vs>);
         static_assert(std::ranges::random_access_range<NRs>);
 
+        bool has_egroups = bool(_egroups);
         clear_egroups();
         _vset.reserve(num_vertices(_g), _null_group);
         _groups_in.resize(num_vertices(_bg));
@@ -641,6 +642,8 @@ public:
         _deltas.shrink_to_fit();
         _m_entries_pool.shrink_to_fit();
         _m_entries_pool_coupled.shrink_to_fit();
+        if (has_egroups)
+            init_egroups();
     }
 
     template <class Vs, class NRs>
