@@ -38,8 +38,6 @@
 #include "openmp.hh"
 #include "hash_map_wrap.hh"
 
-#include "lock_free_stack.hh"
-
 namespace boost
 {
 
@@ -458,20 +456,26 @@ public:
         _concurrent = concurrent;
         if (_concurrent)
         {
-            _idx_stack.clear();
+            size_t nt = get_num_threads();
+            _free_idx_m.resize(nt);
+            size_t pos = 0;
             while (!_free_idx.empty())
             {
-                _idx_stack.push(_free_idx.back());
+                _free_idx_m[pos++ % nt].push_back(_free_idx.back());
                 _free_idx.pop_back();
             }
             _free_idx.shrink_to_fit();
         }
         else
         {
-            Vertex idx = null_vertex();
-            while (_idx_stack.pop(idx))
-                _free_idx.push_back(idx);
-            _idx_stack.clear();
+            for (auto& f : _free_idx_m)
+            {
+                _free_idx.insert(_free_idx.end(), f.begin(), f.end());
+                f.clear();
+                f.shrink_to_fit();
+            }
+            _free_idx_m.clear();
+            _free_idx_m.shrink_to_fit();
         }
     }
 
@@ -606,10 +610,10 @@ private:
     // indices of deleted edges to be used up for new edges to avoid very large
     // indices, and unnecessary property map memory use
     std::vector<size_t> _free_idx;
+    std::vector<std::vector<size_t>> _free_idx_m; // concurrent version
 
     // optional concurrent version of the above
     bool _concurrent = false;
-    lock_free_stack<Vertex> _idx_stack;
 
     // optional edge positions inside adjacency lists
     bool _keep_epos = false;
@@ -625,10 +629,16 @@ private:
         Vertex idx;
         if (_concurrent)
         {
-            if (!_idx_stack.pop(idx))
+            auto& free_idx = _free_idx_m[get_thread_num()];
+            if (free_idx.empty())
             {
                 #pragma omp atomic capture
                 idx = _edge_idx_range++;
+            }
+            else
+            {
+                idx = free_idx.back();
+                free_idx.pop_back();
             }
         }
         else
@@ -649,7 +659,7 @@ private:
     void put_free_index(Vertex idx)
     {
         if (_concurrent)
-            _idx_stack.push(idx);
+            _free_idx_m[get_thread_num()].push_back(idx);
         else
             _free_idx.push_back(idx);
     }
