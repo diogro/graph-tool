@@ -53,6 +53,7 @@ struct vlist_t
     ((random_bisection, bool, 0))                                              \
     ((merge_sweeps, size_t, 0))                                                \
     ((mh_sweeps, size_t, 0))                                                   \
+    ((fast_proposal, bool, 0))                                                 \
     ((sample_group_thres, size_t, 0))                                          \
     ((parallel, bool, 0))                                                      \
     ((parallel_thres, size_t, 0))                                              \

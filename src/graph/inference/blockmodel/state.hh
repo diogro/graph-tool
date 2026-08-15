@@ -1390,7 +1390,8 @@ public:
         return s;
     }
 
-    void sample_branch(vertex_t v, vertex_t u, rng_t& rng)
+    template <class RNG>
+    void sample_branch(vertex_t v, vertex_t u, RNG& rng)
     {
         group_t s;
         auto r = _b[u];
@@ -1410,7 +1411,9 @@ public:
     }
 
     // Sample node placement
-    group_t sample_group(vertex_t v, double c, double d, rng_t& rng)
+    template <class RNG>
+    group_t sample_group(vertex_t v, double c, double d, RNG& rng,
+                         bool egroups = true)
     {
         auto r = _b[v];
 
@@ -1443,9 +1446,19 @@ public:
             std::bernoulli_distribution rand(p_rand);
             if (c == 0 || !rand(rng))
             {
-                if (!_egroups)
-                    init_egroups();
-                s = _egroups->sample_edge(t, rng);
+                if (egroups)
+                {
+                    if (!_egroups)
+                        init_egroups();
+                    s = _egroups->sample_edge(t, rng);
+                }
+                else
+                {
+                    u = uniform_sample(_groups[t], rng);
+                    if (total_degree(u, _g) > 0)
+                        u = graph_tool::random_neighbor(u, _g, rng);
+                    s = _b[u];
+                }
             }
             else
             {
@@ -1460,25 +1473,12 @@ public:
         return s;
     }
 
-    vertex_t random_neighbor(vertex_t v, rng_t& rng)
+    template <class RNG>
+    vertex_t random_neighbor(vertex_t v, RNG& rng)
     {
         if (count_t(total_degree(v, _g)) == 0)
             return v;
         return graph_tool::random_neighbor(v, _g, rng);
-    }
-
-    group_t sample_group_local(vertex_t v, rng_t& rng)
-    {
-        if (total_degree(v, _g) > 0)
-        {
-            auto u = graph_tool::random_neighbor(v, _g, rng);
-            auto w = graph_tool::random_neighbor(u, _g, rng);
-            return _b[w];
-        }
-        else
-        {
-            return uniform_sample(_occupied_groups[_clabel[v]], rng);
-        }
     }
 
     // Computes the move proposal probability

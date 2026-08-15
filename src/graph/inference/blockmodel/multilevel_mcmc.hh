@@ -254,11 +254,9 @@ struct MCMC
         group_t sample_group(vertex_t v, bool allow_random, bool allow_empty,
                              bool init_heuristic, RNG& rng)
         {
-            if (!init_heuristic)
-                return _state.sample_group(v, allow_random ? _c : 0,
-                                           allow_empty ? _d : 0, rng);
-            else
-                return _state.sample_group_local(v, rng);
+            return _state.sample_group(v, allow_random ? _c : 0,
+                                       allow_empty ? _d : 0, rng,
+                                       !(init_heuristic || _fast_proposal));
         }
 
         double get_move_prob(vertex_t v, group_t r, group_t s, bool allow_random,

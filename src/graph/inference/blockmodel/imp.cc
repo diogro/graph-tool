@@ -71,8 +71,6 @@ REGISTER_MOD
                  &state_t::virtual_merge;
              void (state_t::*merge_groups)(group_t, group_t) =
                  &state_t::merge_groups;
-             group_t (state_t::*sample_group)(vertex_t, double, double, rng_t&) =
-                 &state_t::sample_group;
              vertex_t (state_t::*random_neighbor)(vertex_t, rng_t&) =
                  &state_t::random_neighbor;
              double (state_t::*get_move_prob)(vertex_t, group_t, group_t, double,
@@ -90,7 +88,11 @@ REGISTER_MOD
                  .def("virtual_move", virtual_move)
                  .def("virtual_merge", virtual_merge)
                  .def("merge_groups", merge_groups)
-                 .def("sample_group", sample_group)
+                 .def("sample_group",
+                      +[](state_t& state, vertex_t v, double c, double d, rng_t& rng)
+                      {
+                          return state.sample_group(v, c, d, rng);
+                      })
                  .def("sample_neighbor", random_neighbor)
                  .def("entropy", &state_t::entropy)
                  .def("get_move_prob", get_move_prob)

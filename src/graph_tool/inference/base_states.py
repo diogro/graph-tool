@@ -756,6 +756,8 @@ class MultilevelMCMCState(EntropyState):
         if b_max is None:
             b_max = self._get_b_max()
 
+        fast_proposal = np.isinf(beta)
+
         mcmc_state = DictState(locals())
         mcmc_state.entropy_args = self._get_entropy_args(entropy_args)
         mcmc_state.state = self._state
