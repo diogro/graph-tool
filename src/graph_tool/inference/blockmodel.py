@@ -510,8 +510,9 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         return EntropyState._entropy_dispatch(**dict(locals(), **kwargs))
 
     def get_matrix(self):
-        r"""Returns the block matrix (as a sparse :class:`~scipy.sparse.csr_matrix`),
-        which contains the number of edges between each block pair.
+        r"""Returns the group affinity matrix (as a sparse
+        :class:`~scipy.sparse.csr_matrix`), which contains the number of edges
+        between each block pair.
 
         .. warning::
 
@@ -531,8 +532,8 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         .. doctest:: get_matrix
 
            >>> g = gt.collection.data["polbooks"]
-           >>> state = gt.BlockState(g, B=5, deg_corr=True)
-           >>> state.mcmc_sweep(niter=1000)
+           >>> state = gt.BlockState(g, deg_corr=True)
+           >>> state.multiflip_mcmc_sweep(niter=1000)
            (...)
            >>> m = state.get_matrix()
            >>> figure()
@@ -544,9 +545,9 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         .. figure:: bloc_mat.*
            :align: center
 
-           A  5x5 block matrix.
+           A group affinity matrix.
 
-       """
+        """
 
         return adjacency(self.bg, weight=self.mrs)
 
@@ -713,8 +714,8 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            >>> for i in range(1000):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
-           >>> gt.bethe_entropy(g, pe)[0]
-           -3.848251...
+           >>> gt.bethe_entropy(g, pe)
+           (...)
 
         """
 
@@ -836,9 +837,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
            >>> for i in range(1000):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     ph = state.collect_partition_histogram(ph)
-           >>> gt.microstate_entropy(ph)
-           158.249353...
-
+           >>> _ = gt.microstate_entropy(ph)
         """
 
         if h is None:

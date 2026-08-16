@@ -14,8 +14,8 @@ network of American football teams, which we load from the
 
 ```{testsetup} football
 mkchdir(DOC_DIR + "/demos/inference/output")
-np.random.seed(44)
-gt.seed_rng(44)
+np.random.seed(43)
+gt.seed_rng(43)
 ```
 
 ```{testcode} football
@@ -90,7 +90,7 @@ print(r)
 which yields:
 
 ```{testoutput} football
-105
+55
 ```
 
 :::{note}
@@ -143,7 +143,7 @@ but we must use instead the
 illustrate its use with the neural network of the [C. elegans](https://en.wikipedia.org/wiki/Caenorhabditis_elegans) worm:
 
 ```{testsetup} celegans
-gt.seed_rng(42)
+gt.seed_rng(43)
 ```
 
 ```{testcode} celegans
@@ -197,8 +197,8 @@ state.print_summary()
 ```
 
 ```{testoutput} celegans
-l: 0, N: 297, B: 19
-l: 1, N: 19, B: 6
+l: 0, N: 297, B: 20
+l: 1, N: 20, B: 6
 l: 2, N: 6, B: 2
 l: 3, N: 2, B: 1
 l: 4, N: 1, B: 1
@@ -217,10 +217,10 @@ for s in levels:
 ```
 
 ```{testoutput} celegans
-<BlockState object with 19 groups (290 nominal), degree corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges, 2 internal vertex properties, 1 internal edge property, 2 internal graph properties, at 0x...>, at 0x...>
-<BlockState object with 6 groups (23 nominal), for graph <Graph object, directed, with 297 vertices and 171 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-<BlockState object with 2 groups (4 nominal), for graph <Graph object, directed, with 23 vertices and 32 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
-<BlockState object with 1 group (1 nominal), for graph <Graph object, directed, with 7 vertices and 4 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 20 groups (295 nominal), degree corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges, 2 internal vertex properties, 1 internal edge property, 2 internal graph properties, at 0x...>, at 0x...>
+<BlockState object with 6 groups (20 nominal), for graph <Graph object, directed, with 297 vertices and 192 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 2 groups (3 nominal), for graph <Graph object, directed, with 20 vertices and 29 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
+<BlockState object with 1 group (1 nominal), for graph <Graph object, directed, with 6 vertices and 4 edges, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
 <BlockState object with 1 group (1 nominal), for graph <Graph object, directed, with 2 vertices and 1 edge, 2 internal vertex properties, 1 internal edge property, at 0x...>, at 0x...>
 ```
 
@@ -236,9 +236,9 @@ print(r)
 ```
 
 ```{testoutput} celegans
-3
-17
-3
+43
+12
+2
 ```
 
 ## Refinements using merge-split MCMC
@@ -272,7 +272,7 @@ print("Improvement:", S2 - S1)
 ```
 
 ```{testoutput} celegans-mcmc
-Improvement: -70.390066...
+Improvement: -84.904366...
 ```
 
 Whenever possible, this procedure should be repeated several times, and
