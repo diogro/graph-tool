@@ -117,7 +117,8 @@ public:
     template <class... ATs>
     BlockState(ATs&&... args)
         : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
-          _bclabel(num_vertices(_bg)), _bpclabel(num_vertices(_bg)),
+          _bclabel(num_vertices(_bg)),
+          _bpclabel(num_vertices(_bg)),
           _spec(*this)
     {
         GILRelease gil_release;

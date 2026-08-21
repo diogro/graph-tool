@@ -21,7 +21,7 @@
 #include <boost/python.hpp>
 #include <boost/preprocessor/comparison/equal.hpp>
 #include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/seq/size.hpp> 
+#include <boost/preprocessor/seq/size.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
