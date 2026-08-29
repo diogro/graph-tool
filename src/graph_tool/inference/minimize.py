@@ -154,8 +154,8 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
                                   base_state=BlockState, state_args={},
                                   base_state_args={}, multilevel_mcmc_args={},
                                   simple_init=False, base_factor=10.,
-                                  B_min_base=1000, top_factor=2., refine=True,
-                                  epsilon=0.001):
+                                  B_min_base=1000, top_factor=2.,
+                                  strict=False, refine=True, epsilon=0.001):
     r"""Fit the nested stochastic block model, by minimizing its description length
     using an agglomerative heuristic.
 
@@ -193,6 +193,9 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
         If ``simple_init == True``, this will determine the minimum number of
         groups at the upper levels of the hierarchy as ``N/top_factor``, where
         ``N`` is the number of vertices at a particular level.
+    strict : ``bool`` (optional, default: ``False``)
+        If ``simple_init == True``, the initial phase will set the number of
+        groups exactly, otherwise they will only be lower bounds.
     refine : ``bool`` (optional, default: ``True``)
         If ``True``, a refinement loop will be run as a final step, controlled
         by the relative convergence criterion ``epsilon``.
@@ -285,9 +288,11 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
             else:
                 B = int(s.get_N() / top_factor)
                 B = max(B, 1)
-            s.multilevel_mcmc_sweep(**dict(args, B_min=B,
-                                           force_accept=True,
-                                           bisection=False))
+                s.multilevel_mcmc_sweep(**dict(args,
+                                               B_min=B,
+                                               B_max=B if strict else s.get_N(),
+                                               force_accept=True,
+                                               bisection=False))
     else:
         l = 0
         while l >= 0:
