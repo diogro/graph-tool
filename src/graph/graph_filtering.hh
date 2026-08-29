@@ -85,14 +85,14 @@ struct graph_view
 
     typedef boost::filt_graph<reversed_t,
                               MaskFilter<eprop>,
-                              MaskFilter<vprop>> filtered_graph_t;
+                              MaskFilter<vprop>>& filtered_graph_t;
 
 #ifndef DISABLE_GRAPH_FILTERING
     typedef std::conditional_t<filtered,
                                filtered_graph_t,
-                               reversed_t> type;
+                               reversed_t>& type;
 #else
-    typedef reversed_t type;
+    typedef reversed_t& type;
 #endif
 };
 

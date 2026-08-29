@@ -647,7 +647,7 @@ inline constexpr auto graph_view_ptrs =
     hana::transform(all_graph_views,
                     [](auto t)
                     {
-                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                        return hana::type<std::shared_ptr<std::decay_t<typename decltype(+t)::type>>>();
                     });
 
 python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,

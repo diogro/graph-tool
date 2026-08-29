@@ -35,7 +35,7 @@ inline constexpr auto graph_view_ptrs =
     hana::transform(all_graph_views,
                     [](auto t)
                     {
-                        return hana::type<std::shared_ptr<typename decltype(+t)::type>>();
+                        return hana::type<std::shared_ptr<std::decay_t<typename decltype(+t)::type>>>();
                     });
 
 python::object get_vertices(GraphInterface& gi)
@@ -775,7 +775,8 @@ struct export_python_interface
                        [&](auto graph)
                        {
                            return export_python_interface()
-                               (gp, typename decltype(graph)::type(), eclass);
+                               (gp, std::add_pointer_t<std::remove_reference_t<typename decltype(graph)::type>>(),
+                                eclass);
                        });
 
         eclasses.append(eclass);
@@ -930,21 +931,15 @@ void export_python_interface()
 
     auto const_graph_views
         = hana::transform(graph_tool::all_graph_views,
-                          [](auto t){ return hana::type<std::add_const_t<typename decltype(t)::type>>(); });
-    auto all_graph_views
-        = hana::transform(graph_tool::all_graph_views,
-                          [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
-    auto all_ptr_graph_views
-        = hana::transform(const_graph_views,
-                          [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
+                          [](auto t){ return hana::type<std::add_lvalue_reference_t<std::add_const_t<std::decay_t<typename decltype(t)::type>>>>(); });
     auto graph_views
-        = hana::concat(all_graph_views, all_ptr_graph_views);
+        = hana::concat(graph_tool::all_graph_views, const_graph_views);
 
     hana::for_each(graph_views,
                    [&](auto graph)
                    {
                        graph_tool::export_python_interface()
-                           (typename decltype(+graph)::type(), get_vlist(),
+                           (std::add_pointer_t<std::remove_reference_t<typename decltype(+graph)::type>>(), get_vlist(),
                             get_elist(), graph_views);
                    });
 

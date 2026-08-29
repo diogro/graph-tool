@@ -67,7 +67,7 @@ struct OverlapBlockStateSpec
         hana::transform(all_graph_views,
                         [](auto&& x)
                         {
-                            using G = typename decltype(+x)::type;
+                            using G = std::decay_t<typename decltype(+x)::type>;
                             return hana::type_c<half_edge_adaptor<G>&>;
                         });
 

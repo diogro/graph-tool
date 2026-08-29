@@ -114,7 +114,7 @@ python::object make_state(GraphInterface& gi, std::any as, std::any as_temp,
         (gi,
          [&](auto& g)
          {
-             typedef typename std::remove_reference<decltype(g)>::type g_t;
+             typedef std::decay_t<decltype(g)> g_t;
              state =
                  python::object(WrappedState<g_t,State>
                                 (g, s.get_unchecked(num_vertices(g)),
@@ -130,7 +130,7 @@ static void export_state()
     hana::for_each(all_graph_views,
                    [](auto g)
                    {
-                       WrappedState<typename decltype(g)::type,State>::python_export();
+                       WrappedState<std::decay_t<typename decltype(g)::type>,State>::python_export();
                    });
 }
 

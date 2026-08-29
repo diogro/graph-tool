@@ -411,7 +411,7 @@ struct extract_param_base
 
     T operator()(std::any& aval)
     {
-        typedef std::remove_reference_t<T> val_t;
+        typedef std::decay_t<T> val_t;
 
         if constexpr (std::is_same_v<val_t, std::any>)
             return aval;

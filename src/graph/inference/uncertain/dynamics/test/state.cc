@@ -53,7 +53,7 @@ python::object MAKE_STATE(BASE_NAME)(GraphInterface& gi, python::object odynamic
     gt_dispatch<{.gil_release=false}>()
         ([&](auto& g)
          {
-             typedef typename std::remove_reference<decltype(g)>::type g_t;
+             typedef std::decay_t<decltype(g)> g_t;
              graph_tool::block_model::block_model::dispatch
                  ([&](auto* bs)
                   {
@@ -97,7 +97,7 @@ REGISTER_MOD
         (all_graph_views,
          ([](auto g)
           {
-              typedef typename decltype(+g)::type g_t;
+              typedef std::decay_t<typename decltype(+g)::type> g_t;
               graph_tool::block_model::block_model::dispatch
                   ([&](auto* bs)
                    {
