@@ -21,6 +21,7 @@
 #pragma GCC visibility push(default)
 
 #include <utility>
+#include <ranges>
 #include <type_traits>
 #include <any>
 #include <boost/mpl/pair.hpp>
@@ -677,6 +678,42 @@ auto _all_edges_out_range(typename all_edges_iteratorS<Graph>::vertex_descriptor
                           const Graph& g)
 {
     return mk_range(_all_edges_out(v, g));
+}
+
+template <class Range, class Graph>
+decltype(auto) self_loop_filter_idx(Range&& range, const Graph& g)
+{
+    auto eidx = boost::get(boost::edge_index_t(), g);
+    gt_hash_set<size_t> count;
+    return range |
+        std::views::filter([eidx,count,&g](auto&& e) mutable
+                           {
+                               if (source(e, g) != target(e, g)) [[likely]]
+                                   return true;
+                               auto iter = count.find(eidx[e]);
+                               if (iter == count.end())
+                               {
+                                   count.insert(eidx[e]);
+                                   return true;
+                               }
+                               return false;
+                           });
+}
+
+template <class Range, class Graph>
+decltype(auto) self_loop_filter_single(Range&& range, const Graph& g)
+{
+    bool self = false;
+    return range |
+        std::views::filter([self,&g](auto&& e) mutable
+                           {
+                               if (source(e, g) != target(e, g)) [[likely]]
+                                   return true;
+                               if (self)
+                                   return false;
+                               self = true;
+                               return true;
+                           });
 }
 
 } //namespace graph_tool
