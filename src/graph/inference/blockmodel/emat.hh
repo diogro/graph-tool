@@ -88,6 +88,16 @@ public:
 
     const edge_t& get_null_edge() const { return _null_edge; }
 
+    void visit_entries(auto&& f)
+    {
+        for (size_t r = 0; r < _mat.shape()[0]; ++r)
+            for (size_t s = 0; s < _mat.shape()[0]; ++s)
+                {
+                    if (_mat[r][s] != _null_edge)
+                        f(_mat[r][s]);
+                }
+    }
+
 private:
     multi_array<edge_t, 2> _mat;
     static const edge_t _null_edge;
@@ -135,7 +145,7 @@ public:
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
 
-    edge_t get_me(group_t r, group_t s) const
+    edge_t get_me(size_t r, size_t s) const
     {
         if (!is_directed_v<BGraph> && r > s)
             std::swap(r, s);
@@ -143,7 +153,7 @@ public:
         auto iter = h.find(s);
         if (iter == h.end())
             return _null_edge;
-        return edge_t(r, s, iter->second);
+        return {r, s, iter->second};
     }
 
     void put_me(group_t r, group_t s, const edge_t& e)
@@ -171,6 +181,15 @@ public:
     }
 
     const edge_t& get_null_edge() const { return _null_edge; }
+
+    void visit_entries(auto&& f)
+    {
+        for (size_t r = 0; r < _h.size(); ++r)
+        {
+            for (auto&& [s, idx] : _h[r])
+                f(edge_t(r, s, idx));
+        }
+    }
 
 private:
     typedef std::conditional_t<flat,
@@ -238,6 +257,16 @@ public:
     }
 
     const edge_t& get_null_edge() const { return _null_edge; }
+
+    void visit_entries(auto&& f)
+    {
+        _h.visit_all([&](auto& rsi)
+                     {
+                         auto& [rs, idx] = rsi;
+                         auto& [r, s] = rs;
+                         f(edge_t(r, s, idx));
+                     });
+    }
 
 private:
     boost::concurrent_flat_map<std::tuple<group_t, group_t>, size_t> _h;

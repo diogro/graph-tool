@@ -124,7 +124,7 @@ public:
     }
 
     template <bool Add, class Delta>
-    void insert_delta_dispatch(group_t s, group_t t, auto& f, const Delta& d)
+    void insert_delta_dispatch(group_t s, group_t t, auto& f, const Delta& d) noexcept
     {
         if (f == _null)
         {
@@ -227,7 +227,7 @@ private:
 template <bool single>
 void modify_entries_dispatch(auto v, auto r, auto nr, auto& b, auto& nb,
                              auto& g, auto& eweights, auto B, auto& m_entries,
-                             auto&& efilt)
+                             auto&& efilt) noexcept
 {
     m_entries.set_move(r, single ? m_entries.null_group : nr, B);
 
@@ -239,6 +239,8 @@ void modify_entries_dispatch(auto v, auto r, auto nr, auto& b, auto& nb,
 
     weight_t self_weight{};
 
+    constexpr auto null_group = m_entries.null_group;
+
     for (auto e : out_edges_range(v, g))
     {
         if (efilt(e, true))
@@ -248,21 +250,25 @@ void modify_entries_dispatch(auto v, auto r, auto nr, auto& b, auto& nb,
         auto s = b[u];
         auto&& ew = eweights[e];
 
-        m_entries.template insert_delta_rnr<true, true, false>(r, s, ew);
+        if (r != null_group)            [[likely]]
+            m_entries.template insert_delta_rnr<true, true, false>(r, s, ew);
 
-        if (u == v)
-            s = nr;
-        else
-            s = nb[u];
+        if (nr != null_group)           [[likely]]
+        {
+            if (u == v)                 [[unlikely]]
+                s = nr;
+            else
+                s = nb[u];
 
-        if (s != r)
-            m_entries.template insert_delta_rnr<single, true, true>(nr, s, ew);
-        else
-            m_entries.template insert_delta_rnr<true, false, true>(nr, s, ew);
+            if (!std::cmp_equal(s, r)) [[likely]]
+                m_entries.template insert_delta_rnr<single, true, true>(nr, s, ew);
+            else
+                m_entries.template insert_delta_rnr<true, false, true>(nr, s, ew);
+        }
 
         if constexpr (!is_directed_v<g_t>)
         {
-            if (u == v)
+            if (u == v)               [[unlikely]]
                 self_weight += ew;
         }
     }
@@ -273,11 +279,15 @@ void modify_entries_dispatch(auto v, auto r, auto nr, auto& b, auto& nb,
         {
             assert(int64_t(self_weight) % 2 == 0);
             self_weight /= 2;
-            m_entries.template insert_delta_rnr<true, true, true>
-                (r, r, self_weight);
+            if (r != null_group)      [[likely]]
+                m_entries.template insert_delta_rnr<true, true, true>
+                    (r, r, self_weight);
             if constexpr (!single)
-                m_entries.template insert_delta_rnr<single, true, false>
-                    (nr, nr, self_weight);
+            {
+                if (nr != null_group) [[likely]]
+                    m_entries.template insert_delta_rnr<single, true, false>
+                        (nr, nr, self_weight);
+            }
         }
     }
 
@@ -289,27 +299,29 @@ void modify_entries_dispatch(auto v, auto r, auto nr, auto& b, auto& nb,
                 continue;
 
             v_t u = source(e, g);
-            if (u == v)
+            if (u == v)                       [[unlikely]]
                 continue;
             auto s = b[u];
             auto ew = eweights[e];
 
-            m_entries.template insert_delta_rnr<true, false, false>(s, r, ew);
+            if (r != null_group)      [[likely]]
+                m_entries.template insert_delta_rnr<true, false, false>(s, r, ew);
 
-            s = nb[u];
-            if (s != r)
-                m_entries.template insert_delta_rnr<single, false, true>(s, nr, ew);
-            else
-                m_entries.template insert_delta_rnr<true, true, true>(s, nr, ew);
+            if (nr != null_group)             [[likely]]
+            {
+                s = nb[u];
+                if (!std::cmp_equal(s, r))    [[likely]]
+                    m_entries.template insert_delta_rnr<single, false, true>(s, nr, ew);
+                else
+                    m_entries.template insert_delta_rnr<true, true, true>(s, nr, ew);
+            }
         }
     }
 }
 
-void modify_entries(auto v, auto nr, auto& b, auto& nb, auto& g, auto& eweights,
-                    auto B, auto& m_entries, auto&& efilt)
+void modify_entries(auto v, auto r, auto nr, auto& b, auto& nb, auto& g,
+                    auto& eweights, auto B, auto& m_entries, auto&& efilt)
 {
-    auto r = b[v];
-
     if (std::cmp_equal(r, nr))
         modify_entries_dispatch<true>(v, r, nr, b, nb, g, eweights, B,
                                       m_entries,  efilt);

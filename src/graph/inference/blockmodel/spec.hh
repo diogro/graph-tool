@@ -147,6 +147,7 @@ struct BlockStateSpec
     constexpr static bool has_relabel = false;
     constexpr static bool has_parallel_relabel = false;
     constexpr static bool edges_dl = true;
+    constexpr static bool propagate_delta = true;
 
     DEFINE_STRUCT(entropy_args_t, BLOCKMODEL_EARGS_params);
 
@@ -209,8 +210,8 @@ struct BlockStateSpec
         constexpr double virtual_merge_dS(auto, auto, auto&, auto&) const { return 0; }
 
         template <bool concurrent=false>
-        constexpr void move_vertex(auto, auto, auto&, auto&&) {}
-        constexpr void move_vertex(auto, auto) {}
+        constexpr void move_vertex(auto, auto, auto, auto&, auto&&) {}
+        constexpr void move_vertex(auto, auto, auto) {}
         template <bool concurrent=false, class Deltas = std::monostate>
         constexpr bool apply_delta(auto&, Deltas&& = std::monostate()) { return false; }
         constexpr void merge_groups(auto&, auto&, auto&) const {}

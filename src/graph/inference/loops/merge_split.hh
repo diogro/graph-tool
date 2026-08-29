@@ -407,11 +407,6 @@ struct MergeSplit:
         return 0;
     }
 
-    size_t get_wr_(Group r)
-    {
-        return get_wr(r);
-    }
-
     double replace_group(Group& r)
     {
         Group s;

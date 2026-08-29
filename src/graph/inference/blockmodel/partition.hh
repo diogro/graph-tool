@@ -139,10 +139,10 @@ public:
         }
 
         int64_t dN = 0;
-        if (r == _null_group)
-            dN += w;
-        if (nr == _null_group)
+        if (r != _null_group)
             dN -= w;
+        if (nr != _null_group)
+            dN += w;
 
         int64_t dB = 0;
         if (r != _null_group && get_count(r) == w)
@@ -271,7 +271,7 @@ private:
     }
 
     template <bool add>
-    auto mod_r(group_t r, int64_t c)
+    void mod_r(group_t r, int64_t c)
     {
         auto& ls = _r_label[c];
         auto iter = ls.find(r);
@@ -279,9 +279,7 @@ private:
         if constexpr (add)
         {
             if (iter == ls.end())
-                return ls[r] = get_empty<true>(c);
-            else
-                return iter->second;
+                ls[r] = get_empty<true>(c);
         }
         else
         {

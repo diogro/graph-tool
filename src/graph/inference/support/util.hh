@@ -32,7 +32,7 @@ template <Scalar T1, Scalar T2>
 [[gnu::const]]
 double lbinom(T1 N, T2 k)
 {
-    if (N == 0 || k == 0 || T1(k) >= N)
+    if (N == 0 || k == 0 || T1(k) >= N)  [[unlikely]]
         return 0;
     return ((boost::math::lgamma(N + 1) - boost::math::lgamma(k + 1)) - boost::math::lgamma((N - k) + 1));
 }
@@ -41,7 +41,7 @@ template <Scalar T1, Scalar T2>
 [[gnu::const]] [[gnu::always_inline]]
 inline double lbinom_fast(T1 N, T2 k)
 {
-    if (N == 0 || k == 0 || std::cmp_greater_equal(k, N))
+    if (N == 0 || k == 0 || std::cmp_greater_equal(k, N)) [[unlikely]]
         return 0;
     return ((lgamma_fast(N + 1) - lgamma_fast(k + 1)) - lgamma_fast((N - k) + 1));
 }
@@ -80,7 +80,7 @@ auto log_sum_exp(T a, T b)
 {
     if constexpr (handle_inf)
     {
-        if (a == b)  // handles infinity
+        if (a == b)  [[unlikely]] // handles infinity
             return a + std::log(T(2));
     }
     if (a > b)

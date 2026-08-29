@@ -249,6 +249,9 @@ public:
 
     bool allow_move(group_t r, group_t nr)
     {
+        if (r == _null_group || nr == _null_group)
+            return true;
+
         if (_coupled_state != nullptr)
         {
             auto& hb = _coupled_state->_b;
@@ -261,29 +264,41 @@ public:
     }
 
     template <class MEntries>
-    void move_vertex(vertex_t v, group_t nr, MEntries& m_entries)
+    void move_vertex(vertex_t v, group_t r, group_t nr, MEntries& m_entries)
     {
-        group_t r = _b[v];
-
         if (r == nr)
             return;
 
         if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
-        _spec.move_vertex(v, nr);
+        _spec.move_vertex(v, r, nr);
         _spec.apply_delta(m_entries);
 
-        apply_delta(*this, m_entries);
-        BlockState::remove_partition_node(v, r);
-        BlockState::add_partition_node(v, nr);
+        apply_delta(*this, m_entries, spec_t::propagate_delta);
+
+        if (r != _null_group)
+            BlockState::remove_partition_node(v, r);
+        if (nr != _null_group)
+            BlockState::add_partition_node(v, nr);
     }
 
-    // move a vertex from its current block to block nr
+    template <class MEntries>
+    void move_vertex(vertex_t v, group_t nr, MEntries& m_entries)
+    {
+        move_vertex(v, _b[v], nr, m_entries);
+    }
+
+    void move_vertex(vertex_t v, group_t r, group_t nr)
+    {
+        get_move_entries(v, r, nr, _m_entries);
+        move_vertex(v, r, nr, _m_entries);
+    }
+
     void move_vertex(vertex_t v, group_t nr)
     {
-        get_move_entries(v, nr, _m_entries);
-        move_vertex(v, nr, _m_entries);
+        auto r = _b[v];
+        move_vertex(v, r, nr);
     }
 
     template <class Vs, class Nrs>
@@ -465,7 +480,7 @@ public:
                      auto& m_entries = _m_entries_pool[tid][0];
 
                      modify_entries
-                         (v, nr, _b, nb, _g, _eweight, num_vertices(_bg), m_entries,
+                         (v, r, nr, _b, nb, _g, _eweight, num_vertices(_bg), m_entries,
                           [&](auto& e, bool out)
                           {
                               if constexpr (is_directed_v<g_t>)
@@ -481,7 +496,7 @@ public:
                           });
 
                      insert_delta(*this, m_entries, _deltas[0]);
-                     _spec.template move_vertex<true>(v, nr, nb,
+                     _spec.template move_vertex<true>(v, r, nr, nb,
                                                       [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
                  });
         }
@@ -564,7 +579,7 @@ public:
 
                          dispatch_delta([&](auto& m_entries)
                                         {
-                                            if (state->_coupled_state != nullptr)
+                                            if (state->_coupled_state != nullptr || spec_t::propagate_delta)
                                             {
                                                 state->_coupled_state->propagate_entries(*state, m_entries, false);
                                                 insert_delta(*state->_coupled_state, *m_entries._next, ndeltas);
@@ -573,7 +588,7 @@ public:
                                             apply_delta<true>(*state, m_entries, false);
                                         });
 
-                         if (stop || state->_coupled_state == nullptr)
+                         if (stop || state->_coupled_state == nullptr || !spec_t::propagate_delta)
                              vstate = nullptr;
                          else
                              vstate = state->_coupled_state;
@@ -715,8 +730,6 @@ public:
 
     void remove_partition_node(vertex_t v, group_t r)
     {
-        assert(_b[v] == r);
-
         auto& w = _vweight[v];
 
         assert(w != 0);
@@ -766,7 +779,7 @@ public:
         _actual_B--;
         _ps.remove_item(r, _bpclabel[r], rw_t{});
 
-        if (_coupled_state != nullptr)
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
         {
             auto& hb = _coupled_state->_b;
             _coupled_state->remove_partition_node(r, hb[r]);
@@ -781,7 +794,7 @@ public:
         _actual_B++;
         _ps.add_item(r, _bpclabel[r], rw_t{});
 
-        if (_coupled_state != nullptr)
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
         {
             auto& hb = _coupled_state->_b;
             auto rw = w;
@@ -799,7 +812,7 @@ public:
 
         _spec.merge_groups(s, t, m_entries);
 
-        apply_delta(*this, m_entries);
+        apply_delta(*this, m_entries, spec_t::propagate_delta);
 
         auto& ws = _wr[s];
 
@@ -830,7 +843,7 @@ public:
 
     void merge_groups(group_t s, group_t t)
     {
-        get_move_entries(s, t, get(vertex_index_t(), _bg),
+        get_move_entries(s, s, t, get(vertex_index_t(), _bg),
                          get(vertex_index_t(), _bg), _bg, _mrs,
                          num_vertices(_bg), _m_entries);
         merge_groups(s, t, _m_entries);
@@ -880,16 +893,17 @@ public:
         _coupled_state = nullptr;
     }
 
+    template <class State>
+    size_t count_L(State* cstate)
+    {
+        if (cstate != nullptr)
+            return 1 + count_L(cstate->_coupled_state);
+        return 1;
+    }
+
     size_t get_L()
     {
-        size_t L = 1;
-        auto cstate = _coupled_state;
-        while (cstate != nullptr)
-        {
-            L++;
-            cstate = cstate->get_coupled_state();
-        }
-        return L;
+        return count_L(_coupled_state);
     }
 
     void set_concurrent(bool concurrent, size_t M = 0)
@@ -942,36 +956,35 @@ public:
     // Virtual state modification
     // =========================================================================
 
-    void get_move_entries(auto v, group_t nr, auto&& b, auto&& nb, auto& g,
-                          auto&& eweight, size_t B, auto& m_entries,
+    void get_move_entries(auto v, group_t r, group_t nr, auto&& b, auto&& nb,
+                          auto& g, auto&& eweight, size_t B, auto& m_entries,
                           auto&& efilt)
     {
-        modify_entries(v, nr, b, nb, g, eweight, B, m_entries, efilt);
+        modify_entries(v, r, nr, b, nb, g, eweight, B, m_entries, efilt);
 
-        if (_coupled_state != nullptr)
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
             _coupled_state->propagate_entries(*this, m_entries);
     }
 
-    void get_move_entries(auto v, group_t nr, auto&& b, auto&& nb,
-                          auto& g, auto&& eweight, size_t B,
-                          auto& m_entries)
+    void get_move_entries(auto v, group_t r, group_t nr, auto&& b, auto&& nb,
+                          auto& g, auto&& eweight, size_t B, auto& m_entries)
     {
-        get_move_entries(v, nr, b, nb, g, eweight, B, m_entries,
+        get_move_entries(v, r, nr, b, nb, g, eweight, B, m_entries,
                          [](auto&&...) { return false; });
     }
 
     template <class MEntries, class Efilt>
-    void get_move_entries(vertex_t v, group_t nr, MEntries& m_entries,
+    void get_move_entries(vertex_t v, group_t r, group_t nr, MEntries& m_entries,
                           Efilt&& efilt)
     {
-        get_move_entries(v, nr, _b, _b, _g, _eweight, num_vertices(_bg),
+        get_move_entries(v, r, nr, _b, _b, _g, _eweight, num_vertices(_bg),
                          m_entries, efilt);
     }
 
     template <class MEntries>
-    void get_move_entries(vertex_t v, group_t nr, MEntries& m_entries)
+    void get_move_entries(vertex_t v, group_t r, group_t nr, MEntries& m_entries)
     {
-        get_move_entries(v, nr, m_entries, [](auto&&...) { return false; });
+        get_move_entries(v, r, nr, m_entries, [](auto&&...) { return false; });
     }
 
     void propagate_entries(auto& below, auto& m_entries_below, bool propagate=true)
@@ -979,7 +992,7 @@ public:
         auto& m_entries = *m_entries_below._next;
 
         auto [u, v] = m_entries_below.get_move();
-        group_t r = _b[u];
+        group_t r = (u != _null_group) ? _b[u] : _null_group;
         group_t s = (v != _null_group) ? _b[v] : _null_group;
 
         m_entries.set_move(r, s, num_vertices(_bg));
@@ -1053,6 +1066,8 @@ public:
 
                 for (auto t : std::array<group_t, 2>({r, nr}))
                 {
+                    if (t == _null_group)
+                        continue;
                     if ((t == r && dr != 0) || (t == nr && dnr != 0))
                     {
                         for (auto me : out_edges_range(t, _bg))
@@ -1074,7 +1089,7 @@ public:
                         }
                     }
 
-                    if (m_entries.get_delta(t, r) == 0)
+                    if (r != _null_group && m_entries.get_delta(t, r) == 0)
                         dS += get_dS(t, r, _emat.get_me(t, r), weight_t{});
 
                     assert(std::isfinite(dS));
@@ -1082,7 +1097,8 @@ public:
                     if (r == nr)
                         break;
 
-                    if ((is_directed_v<bg_t> || t != r) && m_entries.get_delta(t, nr) == 0)
+                    if (nr != _null_group && (is_directed_v<bg_t> || t != r) &&
+                        m_entries.get_delta(t, nr) == 0)
                         dS += get_dS(t, nr, _emat.get_me(t, nr), weight_t{});
 
                     assert(std::isfinite(dS));
@@ -1105,36 +1121,48 @@ public:
                               return vterm(mrp, mrm, nr, _deg_corr, _bg);
                           };
 
-                auto&& mrp_r = _mrp[r];
-                auto&& mrm_r = _mrm[r];
-                auto&& wr_r = _wr[r];
-                dS += vt(mrp_r - dkout, mrm_r - dkin, wr_r + dr);
-                dS -= vt(mrp_r        , mrm_r       , wr_r     );
+                if (r != _null_group)
+                {
+                    auto&& mrp_r = _mrp[r];
+                    auto&& mrm_r = _mrm[r];
+                    auto&& wr_r = _wr[r];
+                    dS += vt(mrp_r - dkout, mrm_r - dkin, wr_r + dr);
+                    dS -= vt(mrp_r        , mrm_r       , wr_r     );
+                }
 
-                auto&& mrp_nr = _mrp[nr];
-                auto&& mrm_nr = _mrm[nr];
-                auto&& wr_nr = _wr[nr];
-                dS += vt(mrp_nr + dkout, mrm_nr + dkin, wr_nr + dnr);
-                dS -= vt(mrp_nr        , mrm_nr       , wr_nr      );
+                if (nr != _null_group)
+                {
+                    auto&& mrp_nr = _mrp[nr];
+                    auto&& mrm_nr = _mrm[nr];
+                    auto&& wr_nr = _wr[nr];
+                    dS += vt(mrp_nr + dkout, mrm_nr + dkin, wr_nr + dnr);
+                    dS -= vt(mrp_nr        , mrm_nr       , wr_nr      );
+                }
             }
         }
 
         dS += _spec.entries_dS(ea, m_entries);
 
         double dS_dl = 0;
-        if (_coupled_state != nullptr)
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
         {
             using crw_t = typename coupled_state_t::rw_t;
-            crw_t ddr, ddnr;
+            crw_t ddr{}, ddnr{};
 
             if (r != nr)
             {
-                crw_t wr_nr = _wr[nr];
-                crw_t wr_r = _wr[r];
-                crw_t n_wr_r = _wr[r] + dr;
-                crw_t n_wr_nr = _wr[nr] + dnr;
-                ddr = -thresh_diff(n_wr_r, wr_r);
-                ddnr = thresh_diff(wr_nr, n_wr_nr);
+                if (r != _null_group)
+                {
+                    crw_t wr_r = _wr[r];
+                    crw_t n_wr_r = _wr[r] + dr;
+                    ddr = -thresh_diff(n_wr_r, wr_r);
+                }
+                if (nr != _null_group)
+                {
+                    crw_t wr_nr = _wr[nr];
+                    crw_t n_wr_nr = _wr[nr] + dnr;
+                    ddnr = thresh_diff(wr_nr, n_wr_nr);
+                }
             }
             else
             {
@@ -1150,19 +1178,26 @@ public:
         return dS + ea.beta_dl * dS_dl;
     }
 
-    double propagate_entries_dS(vertex_t u, vertex_t v, const rw_t& du,
+    double propagate_entries_dS(group_t u, group_t v, const rw_t& du,
                                 const rw_t& dv, auto& m_entries,
                                 const entropy_args_t& ea)
     {
-        group_t r = _b[u];
-        group_t s = _b[v];
+        group_t r = (u != _null_group) ? _b[u] : _null_group;
+        group_t s = (v != _null_group) ? _b[v] : _null_group;
 
-        double dS = entries_dS(r, s, du, dv, _mrm[r], _mrp[s], ea, m_entries);
+        typedef std::decay_t<decltype(_mrm[r])> mr_t;
+        double dS = entries_dS(r, s, du, dv,
+                               (r != _null_group) ? _mrm[r] : mr_t{},
+                               (s != _null_group) ? _mrp[s] : mr_t{},
+                               ea, m_entries);
 
         if (spec_t::edges_dl && ea.edges_dl && r != s)
         {
-            count_t dr = (_wr[r] + du == 0 && _wr[r] != 0) ? -1 : 0;
-            count_t ds = (_wr[s] == 0 && dv != 0) ? 1 : 0;
+            count_t dr = 0, ds = 0;
+            if (r != _null_group)
+                dr = (_wr[r] + du == 0 && _wr[r] != 0) ? -1 : 0;
+            if (r != _null_group)
+                ds = (_wr[s] == 0 && dv != 0) ? 1 : 0;
             dS -= get_edges_dl(_actual_B, _E, _g);
             dS += get_edges_dl(_actual_B + (dr + ds), _E, _g);
         }
@@ -1172,12 +1207,10 @@ public:
     }
 
     template <class MEntries>
-    double virtual_move(vertex_t v, group_t nr, const entropy_args_t& ea,
-                        MEntries& m_entries)
+    double virtual_move(vertex_t v, group_t r, group_t nr,
+                        const entropy_args_t& ea, MEntries& m_entries)
     {
-        get_move_entries(v, nr, m_entries);
-
-        auto r = _b[v];
+        get_move_entries(v, r, nr, m_entries);
 
         assert(_vweight[v] != 0);
 
@@ -1226,6 +1259,18 @@ public:
         return dS + ea.beta_dl * dS_dl;
     }
 
+    template <class MEntries>
+    double virtual_move(vertex_t v, group_t nr, const entropy_args_t& ea,
+                        MEntries& m_entries)
+    {
+        return virtual_move(v, _b[v], nr, ea, m_entries);
+    }
+
+    double virtual_move(vertex_t v, group_t r, group_t nr, const entropy_args_t& ea)
+    {
+        return virtual_move(v, r, nr, ea, _m_entries);
+    }
+
     double virtual_move(vertex_t v, group_t nr, const entropy_args_t& ea)
     {
         return virtual_move(v, nr, ea, _m_entries);
@@ -1256,7 +1301,7 @@ public:
                 dS += _ps.get_delta_dl(r, nr, _bpclabel[r], _vweight[v]);
         }
 
-        if (_coupled_state != nullptr)
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
         {
             bool r_vacate = (r != _null_group && _wr[r] == _vweight[v]);
             bool nr_occupy = (nr != _null_group && _wr[nr] == 0);
@@ -1284,7 +1329,7 @@ public:
     double virtual_merge(group_t s, group_t t, const entropy_args_t& ea,
                          MEntries& m_entries)
     {
-        get_move_entries(s, t, get(vertex_index_t(), _bg),
+        get_move_entries(s, s, t, get(vertex_index_t(), _bg),
                          get(vertex_index_t(), _bg), _bg,
                          _mrs, num_vertices(_bg), m_entries);
 
@@ -1597,7 +1642,7 @@ public:
     double get_move_prob(vertex_t v, group_t r, group_t s, double c, double d,
                          bool reverse)
     {
-        get_move_entries(v, (reverse) ? r : s, _m_entries);
+        get_move_entries(v, _b[v], (reverse) ? r : s, _m_entries);
         return get_move_prob(v, r, s, c, d, reverse, _m_entries);
     }
 
@@ -1706,7 +1751,7 @@ public:
                 _mrs.get_checked()[me] = weight_t{};
             }
 
-            if (_coupled_state == nullptr)
+            if (_coupled_state == nullptr || !spec_t::propagate_delta)
                 _mrs[me] += dm;
 
             _mrp[r] += dm;
@@ -1715,7 +1760,7 @@ public:
         else
         {
             assert(me != _emat.get_null_edge());
-            if (_coupled_state == nullptr)
+            if (_coupled_state == nullptr || !spec_t::propagate_delta)
             {
                 _mrs[me] -= dm;
                 if (int64_t(_mrs[me]) == 0)
@@ -1727,7 +1772,7 @@ public:
             else
             {
                 weight_t mrs = _mrs[me];
-                if (int64_t(mrs + dm) == 0)
+                if (int64_t(mrs - dm) == 0)
                     _emat.remove_me(me, _bg);
             }
             _mrp[r] -= dm;
@@ -1780,28 +1825,14 @@ public:
         }
 
 
-        if (_coupled_state != nullptr)
-        {
-            if constexpr (Add)
-                _coupled_state->add_edge(r, s, me, dm);
-            else
-                _coupled_state->remove_edge(r, s, me, dm);
-        }
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
+            _coupled_state->template modify_edge<Add, Deplete>(r, s, me, dm);
 
         _spec.template modify_edge<Add, Deplete>(u, v, e, dm);
 
         clear_egroups();
     }
 
-    void add_edge(vertex_t u, vertex_t v, GraphInterface::edge_t& e, const weight_t& dm)
-    {
-        modify_edge<true, true>(u, v, e, dm);
-    }
-
-    void remove_edge(vertex_t u, vertex_t v, GraphInterface::edge_t& e, const weight_t& dm)
-    {
-        modify_edge<false, true>(u, v, e, dm);
-    }
 
     double modify_edge_dS(vertex_t u, vertex_t v, const GraphInterface::edge_t& e,
                           const weight_t& dm, const entropy_args_t& ea)
@@ -2067,7 +2098,7 @@ public:
             }
         }
 
-        if (_coupled_state != nullptr)
+        if (_coupled_state != nullptr && spec_t::propagate_delta)
         {
             S_dl += _coupled_state->modify_edge_dS(r, s, me, dm,
                                                    _coupled_entropy_args);
@@ -2179,6 +2210,24 @@ public:
             assert(int64_t(_eweight[e]) != 0);
         }
 
+        _emat.visit_entries([&](auto me)
+                            {
+                                auto r = source(me, _bg);
+                                auto s = target(me, _bg);
+                                if (!is_directed_v<g_t> && s < r)
+                                    std::swap(r, s);
+                                if (!edge(r, s, _bg).second)
+                                {
+                                    std::println("nonexisting edge {} {} in emat!", r, s);
+                                    assert(false);
+                                }
+                                if (mrs[std::make_pair(r, s)] == 0)
+                                {
+                                    std::println("empty edge {} {} present in emat!", r, s);
+                                    assert(false);
+                                }
+                            });
+
         for (auto& rs_m : mrs)
         {
             auto r = rs_m.first.first;
@@ -2189,7 +2238,14 @@ public:
             {
                 me = _emat.get_me(r, s);
                 if (me != _emat.get_null_edge())
+                {
                     m_rs = _mrs[me];
+                    if (_mrs[me] == 0)
+                    {
+                        std::println("empty edge {} {} present in emat!", r, s);
+                        assert(false);
+                    }
+                }
             }
             else
             {
@@ -2215,12 +2271,19 @@ public:
             if (!is_directed_v<g_t> && s < r)
                 std::swap(r, s);
             auto m_rs = mrs[std::make_pair(r, s)];
+            if (m_rs == 0)
+            {
+                std::println("empty edge {} {} present in graph", r, s);
+                assert(false);
+                return false;
+            }
             if (m_rs != _mrs[me])
             {
                 std::println("b: wrong edge count for {} {}; is: {}, should have been: {}", r, s, _mrs[me], m_rs);
                 assert(false);
                 return false;
             }
+
             [[maybe_unused]] auto eS = eterm_dense(r, s, m_rs, _wr[r], _wr[s], true, _bg);
             assert(!std::isinf(eS) && !std::isnan(eS));
         }

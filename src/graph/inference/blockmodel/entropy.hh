@@ -235,13 +235,10 @@ template <bool directed, class Val, class Eval, class Wval>
 inline double eterm_dense_d(Val r, Val s, Eval ers, Wval wr_r,
                             Wval wr_s, bool multigraph)
 {
-    if (ers == 0)
-        return 0.;
-
-    assert(wr_r + wr_s > 0);
+    assert(wr_r + wr_s >= 0);
 
     uint64_t nrns;
-    if (directed || r != s)
+    if (directed || r != s) [[likely]]
     {
         nrns = wr_r * wr_s;
     }

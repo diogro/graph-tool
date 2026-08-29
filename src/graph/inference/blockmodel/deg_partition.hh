@@ -122,6 +122,8 @@ public:
         #pragma omp parallel for schedule(runtime) reduction(+:S) if (parallel)
         for (auto r : rs)
         {
+            if (r == null_group)
+                continue;
             if (_total[r] + dn == 0)
                 continue;
             S += lbinom_fast(_total[r] + dn + _ep[r] + dp - 1, _ep[r] + dp);
@@ -141,6 +143,8 @@ public:
         #pragma omp parallel for schedule(runtime) reduction(+:S) if (parallel)
         for (auto r : rs)
         {
+            if (r == null_group)
+                continue;
             int64_t dm = 0;
             int64_t dp = 0;
             int64_t dn = 0;
@@ -214,7 +218,7 @@ public:
     double get_dl(deg_dl_kind kind)
     {
         return get_dl(kind,
-                      std::ranges::iota_view{size_t(0),  _total.size()},
+                      std::ranges::iota_view{size_t(0), _total.size()},
                       std::array<std::tuple<size_t,int64_t>,0>(),
                       std::array<std::tuple<size_t,int64_t>,0>(), true);
     }
