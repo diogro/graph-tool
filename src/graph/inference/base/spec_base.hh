@@ -123,7 +123,7 @@ struct SpecBase
         void relax_update(bool) {}
         template <class V>
         void push_state(V&&) {}
-        void pop_state() {}
+        void pop_state(bool) {}
         void swap_state() {}
         void clear_state() {}
     };

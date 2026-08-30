@@ -121,6 +121,7 @@ struct MCMC
         constexpr static bool _has_parallel_move = State::spec_t::has_parallel_move;
         constexpr static bool _has_relabel = State::spec_t::has_relabel;
         constexpr static bool _has_parallel_relabel = State::spec_t::has_parallel_relabel;
+        constexpr static bool _has_extra_sweep = State::spec_t::has_extra_sweep;
 
         bool _has_b_max = false;
         bool _has_b_min = false;
@@ -312,6 +313,21 @@ struct MCMC
         {
             _state.relax_update(relax);
         }
+
+        double extra_sweep(auto&& rs, double beta, auto& rng)
+        {
+            return _state._spec.extra_sweep(rs, beta, _entropy_args, rng);
+        }
+
+        void put_cache(size_t B) { _state._spec.put_cache(B); }
+        void get_cache(size_t B) { _state._spec.get_cache(B); }
+
+
+        template <class V>
+        void push_state(V&& vs) { _state._spec.push_state(vs); }
+        void pop_state(bool discard) { _state._spec.pop_state(discard); }
+        void swap_state() { _state._spec.swap_state(); }
+        void clear_state() { _state._spec.clear_state(); }
     };
 
     using gmap_t =

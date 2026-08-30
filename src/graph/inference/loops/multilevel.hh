@@ -146,6 +146,7 @@ struct MultilevelStateBase
 
     constexpr static bool _has_relabel = false;
     constexpr static bool _has_parallel_relabel = false;
+    constexpr static bool _has_extra_sweep = false;
 
     template <class VS>
     size_t get_Bmin(VS&)
@@ -169,7 +170,7 @@ struct MultilevelStateBase
 
     template <class V>
     void push_state(V&&) {}
-    void pop_state() {}
+    void pop_state(bool) {}
     void swap_state() {}
     void clear_state() {}
 
@@ -199,6 +200,11 @@ struct MultilevelStateBase
     double relabel_group_dS(auto, auto) { return 0; }
     void relabel_group(auto, auto) {}
     double relabel_groups_parallel(auto&, auto&) { return 0; }
+
+    double extra_sweep(auto&, auto&, auto&) { return 0; }
+
+    void put_cache(size_t) {}
+    void get_cache(size_t) {}
 };
 
 
@@ -265,6 +271,7 @@ struct Multilevel:
     using State::_parallel_merge;
     using State::_has_relabel;
     using State::_has_parallel_relabel;
+    using State::_has_extra_sweep;
 
     size_t _nmoves = 0;
 
@@ -350,7 +357,7 @@ struct Multilevel:
         _bstack.pop_back();
         if constexpr (_has_relabel)
             _lstack.pop_back();
-        State::pop_state();
+        State::pop_state(discard);
     }
 
     void swap_b()
@@ -1055,6 +1062,10 @@ struct Multilevel:
             else
                 dS += mh_sweep<true>(vs, rs, beta, rng, B_min, B_max,
                                      init_heuristic);
+
+            if constexpr (_has_extra_sweep)
+                dS += State::extra_sweep(rs, beta, rng);
+
             S += dS;
 
             if (_verbose)
@@ -1145,12 +1156,18 @@ struct Multilevel:
         for (size_t i = 0; i < _mh_sweeps; ++i)
         {
             double dS = 0;
+
             if constexpr (_has_relabel)
                 dS += relabel_sweep(rs, _beta, rng);
+
             if (_parallel && _has_parallel_virtual_move)
                 dS += pseudo_mh_sweep<true>(vs, rs, _beta, rng, Bnext, B_max);
             else
                 dS += mh_sweep<true>(vs, rs, _beta, rng, Bnext, B_max);
+
+            if constexpr (_has_extra_sweep)
+                dS += State::extra_sweep(rs, _beta, rng);
+
             S += dS;
             if (std::isinf(_beta) && abs(dS) < 1e-8)
                 break;
@@ -1211,6 +1228,8 @@ struct Multilevel:
                 for (auto r : rs)
                     std::get<2>(c).emplace_back(r, State::group_label(r));
             }
+            if constexpr (_has_extra_sweep)
+                State::put_cache(B);
             if (S < S_best)
                 S_best = S;
         };
@@ -1237,6 +1256,9 @@ struct Multilevel:
                 for (auto& [r, u] : std::get<2>(c))
                     State::relabel_group(r, u);
             }
+
+            if constexpr (_has_extra_sweep)
+                State::get_cache(B);
 
             assert(rs.size() == B);
             return std::get<0>(c);

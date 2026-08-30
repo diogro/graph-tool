@@ -367,7 +367,7 @@ public:
     template <class V>
     void push_state(V&& vs) { _spec.push_state(vs); }
 
-    void pop_state() { _spec.pop_state(); }
+    void pop_state(bool discard) { _spec.pop_state(discard); }
 
     void swap_state() { _spec.swap_state(); }
 

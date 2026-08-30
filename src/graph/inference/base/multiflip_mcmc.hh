@@ -192,7 +192,7 @@ struct MCMC
         template <class V>
         void push_state(V&& vs) { _state.push_state(vs); }
 
-        void pop_state() { _state.pop_state(); }
+        void pop_state(bool discard=false) { _state.pop_state(discard); }
    };
 
     using gmap_t =

@@ -378,19 +378,22 @@ struct StateSpec
             }
         }
 
-        void pop_state()
+        void pop_state(bool discard)
         {
-            auto& back = _lstack.back();
-            for (auto& vx : back)
+            if (!discard)
             {
-                size_t v = get<0>(vx);
-                auto& x = get<1>(vx);
-                auto& bv = _bs[v];
-                auto r = _state._b[v];
-                _modes[r].remove_partition(_pos[v]);
-                for (size_t l = 0; l < bv.size(); ++l)
-                    bv[l].get() = x[l];
-                _pos[v] = _modes[r].add_partition(bv, false);
+                auto& back = _lstack.back();
+                for (auto& vx : back)
+                {
+                    size_t v = get<0>(vx);
+                    auto& x = get<1>(vx);
+                    auto& bv = _bs[v];
+                    auto r = _state._b[v];
+                    _modes[r].remove_partition(_pos[v]);
+                    for (size_t l = 0; l < bv.size(); ++l)
+                        bv[l].get() = x[l];
+                    _pos[v] = _modes[r].add_partition(bv, false);
+                }
             }
             _lstack.pop_back();
         }

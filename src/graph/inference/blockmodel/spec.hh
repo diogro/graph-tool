@@ -146,6 +146,7 @@ struct BlockStateSpec
     constexpr static bool has_parallel_move = true;
     constexpr static bool has_relabel = false;
     constexpr static bool has_parallel_relabel = false;
+    constexpr static bool has_extra_sweep = false;
     constexpr static bool edges_dl = true;
     constexpr static bool propagate_delta = true;
 
@@ -247,7 +248,17 @@ struct BlockStateSpec
         constexpr double get_group_label_prob(auto, auto) const { return 0; }
         constexpr double relabel_group_dS(auto, auto) const { return 0; }
         constexpr void relabel_group(auto, auto) const {}
-   };
+
+        constexpr double extra_sweep(auto&, auto&, auto&, auto&) const { return 0; }
+        void put_cache(size_t) {}
+        void get_cache(size_t) {}
+
+        template <class V>
+        void push_state(V&&) {}
+        void pop_state(bool) {}
+        void swap_state() {}
+        void clear_state() {}
+    };
 };
 
 template <class T1, class T2>
