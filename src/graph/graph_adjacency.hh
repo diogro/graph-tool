@@ -345,8 +345,8 @@ public:
     {
         all_edge_iterator() {}
         all_edge_iterator(vertex_t v,
-                               typename edge_list_t::const_iterator&& iter,
-                               const typename edge_list_t::const_iterator& pos)
+                          typename edge_list_t::const_iterator&& iter,
+                          const typename edge_list_t::const_iterator& pos)
             : base_edge_iterator<make_in_or_out_edge<all_edge_iterator>>
                   (v, std::forward<typename edge_list_t::const_iterator>(iter)),
               _pos(pos)
