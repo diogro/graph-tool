@@ -394,7 +394,7 @@ public:
         for (auto&& [i, mes] : enumerate(_m_entries_pool))
         {
             if constexpr (std::is_same_v<typename coupled_state_t::m_entries_t,
-                          m_entries_t>)
+                                         m_entries_t>)
             {
                 mes[0].set_next(mes[1]);
                 mes[1].set_next(mes[0]);
@@ -501,6 +501,8 @@ public:
                  });
         }
 
+        _spec.move_vertices_parallel(vs, nrs);
+
         typedef std::conditional_t
             <std::is_same_v<BlockState, coupled_state_t>,
              std::variant<BlockState*, std::nullptr_t>,
@@ -517,10 +519,12 @@ public:
                  {
                      if constexpr (!std::is_same_v<decltype(state), std::nullptr_t>)
                      {
+                         typedef std::decay_t<decltype(*state)> state_t;
+
                          auto l = (count++) % 2;
                          auto& deltas = _deltas[l];
                          auto& ndeltas = _deltas[(l + 1) % 2];
-                         if (state->_coupled_state != nullptr)
+                         if (state->_coupled_state != nullptr && state_t::spec_t::propagate_delta)
                          {
                              ndeltas.clear();
                              ndeltas.resize(num_vertices(state->_coupled_state->_bg));
@@ -579,7 +583,7 @@ public:
 
                          dispatch_delta([&](auto& m_entries)
                                         {
-                                            if (state->_coupled_state != nullptr || spec_t::propagate_delta)
+                                            if (state->_coupled_state != nullptr && state_t::spec_t::propagate_delta)
                                             {
                                                 state->_coupled_state->propagate_entries(*state, m_entries, false);
                                                 insert_delta(*state->_coupled_state, *m_entries._next, ndeltas);
@@ -588,7 +592,7 @@ public:
                                             apply_delta<true>(*state, m_entries, false);
                                         });
 
-                         if (stop || state->_coupled_state == nullptr || !spec_t::propagate_delta)
+                         if (stop || state->_coupled_state == nullptr || !state_t::spec_t::propagate_delta)
                              vstate = nullptr;
                          else
                              vstate = state->_coupled_state;
@@ -1254,7 +1258,7 @@ public:
             dS_dl -= (B < _Bfield.size()) ? _Bfield[B] : _Bfield.back();
         }
 
-        dS += _spec.virtual_move_dS(v, nr, ea, m_entries);
+        dS += _spec.virtual_move_dS(v, r, nr, ea, m_entries);
 
         return dS + ea.beta_dl * dS_dl;
     }

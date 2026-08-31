@@ -524,7 +524,8 @@ struct OverlapBlockStateSpec
             move_vertex<false>(v, r, nr, _state._b, [](auto&){ return false; });
         }
 
-        double virtual_move_dS(auto v, auto nr, const entropy_args_t& ea, auto&&)
+        double virtual_move_dS(auto v, auto r, auto nr, const entropy_args_t& ea,
+                               auto&&)
         {
             auto& g = _state._g;
             auto& b = _state._b;
@@ -536,7 +537,6 @@ struct OverlapBlockStateSpec
             {
                 if (_state._deg_corr && ea.deg_entropy)
                 {
-                    auto r = b[v];
                     auto kout = out_degree(v, g, eweight);
                     auto u = v.get_endpoint();
                     auto out_deg_u_r = get_deg(_out_deg[u], r);

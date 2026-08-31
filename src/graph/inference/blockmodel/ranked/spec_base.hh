@@ -606,10 +606,9 @@ struct RankedBlockStateSpec
             return dS_dl;
         }
 
-        double virtual_move_dS(vertex_t v, group_t nr, const entropy_args_t& ea,
-                               auto& m_entries)
+        double virtual_move_dS(vertex_t v, group_t r, group_t nr,
+                               const entropy_args_t& ea, auto& m_entries)
         {
-            auto r = _state._b[v];
             return virtual_move_dS(r, nr, ea, m_entries, 1);
         }
 
