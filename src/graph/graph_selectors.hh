@@ -577,8 +577,8 @@ class IterRange
 public:
     explicit IterRange(std::pair<Iter, Iter>&& range)
         : _range(std::move(range)) {}
-    const Iter& begin() { return _range.first; }
-    const Iter& end() { return _range.second; }
+    const Iter& begin() const { return _range.first; }
+    const Iter& end() const { return _range.second; }
 private:
     std::pair<Iter, Iter> _range;
 };
