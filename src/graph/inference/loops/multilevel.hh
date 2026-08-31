@@ -201,7 +201,7 @@ struct MultilevelStateBase
     void relabel_group(auto, auto) {}
     double relabel_groups_parallel(auto&, auto&) { return 0; }
 
-    double extra_sweep(auto&, auto&, auto&) { return 0; }
+    double extra_sweep(auto&, double, auto&, bool, auto&) { return 0; }
 
     void put_cache(size_t) {}
     void get_cache(size_t) {}
@@ -1064,7 +1064,7 @@ struct Multilevel:
                                      init_heuristic);
 
             if constexpr (_has_extra_sweep)
-                dS += State::extra_sweep(rs, beta, rng);
+                dS += State::extra_sweep(rs, beta, _parallel, rng);
 
             S += dS;
 
@@ -1166,7 +1166,7 @@ struct Multilevel:
                 dS += mh_sweep<true>(vs, rs, _beta, rng, Bnext, B_max);
 
             if constexpr (_has_extra_sweep)
-                dS += State::extra_sweep(rs, _beta, rng);
+                dS += State::extra_sweep(rs, _beta, _parallel, rng);
 
             S += dS;
             if (std::isinf(_beta) && abs(dS) < 1e-8)

@@ -314,9 +314,9 @@ struct MCMC
             _state.relax_update(relax);
         }
 
-        double extra_sweep(auto&& rs, double beta, auto& rng)
+        double extra_sweep(auto&& rs, double beta, bool parallel, auto& rng)
         {
-            return _state._spec.extra_sweep(rs, beta, _entropy_args, rng);
+            return _state._spec.extra_sweep(rs, beta, _entropy_args, parallel, rng);
         }
 
         void put_cache(size_t B) { _state._spec.put_cache(B); }
