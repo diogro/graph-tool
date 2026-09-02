@@ -19,7 +19,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from .. import Vector_size_t, group_vector_property, ungroup_vector_property, \
-    _parallel, _get_rng, perfect_prop_hash
+    _parallel, _get_rng, perfect_prop_hash, GraphView
 
 from . util import *
 
@@ -958,8 +958,11 @@ class DrawBlockState(ABC):
         gradient = self.g.new_ep("double")
         gradient = group_vector_property([gradient])
         b = self.g.own_property(self.b)
+        g = self.g
+        if hasattr(self, "vweight") and self.vweight.fa is not None and self.vweight.fa.min() == 0:
+            g = GraphView(self.g, vfilt=self.vweight.fa > 0)
         import graph_tool.draw
-        return graph_tool.draw.graph_draw(self.g,
+        return graph_tool.draw.graph_draw(g,
                                           vertex_fill_color=kwargs.pop("vertex_fill_color", b),
                                           vertex_color=kwargs.pop("vertex_color", b),
                                           edge_gradient=kwargs.pop("edge_gradient", gradient),
