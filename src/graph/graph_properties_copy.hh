@@ -29,9 +29,9 @@ namespace graph_tool
 // Property map copying
 // ====================
 
-template <class GraphTgt, class GraphSrc, class PropertyTgt, class PropertySrc>
-void copy_external_edge_property_dispatch(const GraphTgt& tgt, const GraphSrc& src,
-                                          PropertyTgt tgt_map, PropertySrc src_map)
+template <class GraphSrc, class GraphTgt, class PropertySrc, class PropertyTgt>
+void copy_external_edge_property_dispatch(const GraphSrc& src, const GraphTgt& tgt,
+                                          PropertySrc src_map, PropertyTgt tgt_map)
 {
     bool is_python =
         (get_underlying_value_type(tgt_map) != typeid(boost::python::object) ||
@@ -46,9 +46,9 @@ void copy_external_edge_property_dispatch(const GraphTgt& tgt, const GraphSrc& s
          [&](auto u)
          {
              auto& es = tgt_edges[u];
-             for (auto e : out_edges_range(u, src))
+             for (auto e : out_edges_range(u, tgt))
              {
-                 auto v = target(e, src);
+                 auto v = target(e, tgt);
                  if (!is_directed(tgt) && u > v)
                      continue;
                  es[v].push_back(e);
