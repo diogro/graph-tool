@@ -350,9 +350,7 @@ public:
         _groups_in.resize(num_vertices(_bg));
         _groups_out.resize(num_vertices(_bg));
         _group_delta.reserve(num_vertices(_bg));
-        _deltas.resize(2);
-        for (auto& d : _deltas)
-            d.resize(num_vertices(_bg));
+        _deltas.resize(num_vertices(_bg));
 
         for (const auto& [v, nr] : std::views::zip(vs, nrs))
         {
@@ -384,29 +382,6 @@ public:
              {
                  set_concurrent(false);
              });
-
-        _m_entries_pool.resize(get_num_threads());
-
-        if constexpr (!std::is_same_v<typename coupled_state_t::m_entries_t,
-                                     m_entries_t>)
-            _m_entries_pool_coupled.resize(get_num_threads());
-
-        for (auto&& [i, mes] : enumerate(_m_entries_pool))
-        {
-            if constexpr (std::is_same_v<typename coupled_state_t::m_entries_t,
-                                         m_entries_t>)
-            {
-                mes[0].set_next(mes[1]);
-                mes[1].set_next(mes[0]);
-            }
-            else
-            {
-                mes[0].set_next(_m_entries_pool_coupled[i][0]);
-                auto& cmes = _m_entries_pool_coupled[i];
-                cmes[0].set_next(cmes[1]);
-                cmes[1].set_next(cmes[0]);
-            }
-        }
 
         auto nb = make_adhoc_prop<vertex_t>
             ([&](auto v)
@@ -464,6 +439,8 @@ public:
                            });
             };
 
+        _m_entries_pool.resize(get_num_threads());
+
         #pragma omp parallel
         {
             auto tid = get_thread_num();
@@ -477,7 +454,7 @@ public:
                      if (nr == r)
                          return;
 
-                     auto& m_entries = _m_entries_pool[tid][0];
+                     auto& m_entries = _m_entries_pool[tid];
 
                      modify_entries
                          (v, r, nr, _b, nb, _g, _eweight, num_vertices(_bg), m_entries,
@@ -495,7 +472,7 @@ public:
                               }
                           });
 
-                     insert_delta(*this, m_entries, _deltas[0]);
+                     insert_delta(*this, m_entries, _deltas);
                      _spec.template move_vertex<true>(v, r, nr, nb,
                                                       [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
                  });
@@ -503,103 +480,104 @@ public:
 
         _spec.move_vertices_parallel(vs, nrs);
 
-        typedef std::conditional_t
-            <std::is_same_v<BlockState, coupled_state_t>,
-             std::variant<BlockState*, std::nullptr_t>,
-             std::variant<BlockState*, coupled_state_t*, std::nullptr_t>> vstate_t;
+        auto dispatch_coupled =
+            [&](auto& state, auto&& dispatch_coupled)
+            {
+                typedef std::decay_t<decltype(state)> state_t;
 
-        vstate_t vstate;
-        vstate = this;
+                state._m_entries_pool.resize(get_num_threads());
 
-        size_t count = 0;
-        while (!std::holds_alternative<std::nullptr_t>(vstate))
-        {
-            std::visit
-                ([&](auto state)
-                 {
-                     if constexpr (!std::is_same_v<decltype(state), std::nullptr_t>)
-                     {
-                         typedef std::decay_t<decltype(*state)> state_t;
+                if (state._coupled_state != nullptr)
+                {
+                    state._coupled_state->_m_entries_pool.resize(get_num_threads());
 
-                         auto l = (count++) % 2;
-                         auto& deltas = _deltas[l];
-                         auto& ndeltas = _deltas[(l + 1) % 2];
-                         if (state->_coupled_state != nullptr && state_t::spec_t::propagate_delta)
+                    for (auto&& [i, mes] : enumerate(state._m_entries_pool))
+                        mes.set_next(state._coupled_state->_m_entries_pool[i]);
+
+                    state._coupled_state->_deltas.resize(num_vertices(state._coupled_state->_bg));
+                }
+
+                auto clear =
+                    [&](bool coupled)
+                    {
+                         state._m_entries_pool.clear();
+                         state._m_entries_pool.shrink_to_fit();
+                         state._deltas.clear();
+                         state._deltas.shrink_to_fit();
+                         if (coupled && state._coupled_state != nullptr)
                          {
-                             ndeltas.clear();
-                             ndeltas.resize(num_vertices(state->_coupled_state->_bg));
+                             state._coupled_state->_m_entries_pool.clear();
+                             state._coupled_state->_m_entries_pool.shrink_to_fit();
+                             state._coupled_state->_deltas.clear();
+                             state._coupled_state->_deltas.shrink_to_fit();
                          }
+                    };
 
-                         bool stop = true;
+                auto lguard = boost::scope::make_scope_exit([&]() { clear(true); });
 
-                         auto dispatch_delta =
-                             [&](auto&& f)
-                             {
-                                 #pragma omp parallel
+                bool stop = true;
+
+                auto dispatch_delta =
+                    [&](auto&& f)
+                    {
+                        #pragma omp parallel
+                        {
+                            auto tid = get_thread_num();
+                            parallel_vertex_loop_no_spawn
+                                (state._bg,
+                                 [&state,&stop,&f,tid,this](auto r) // explict capture due to clang bug
                                  {
-                                     auto tid = get_thread_num();
-                                     parallel_vertex_loop_no_spawn
-                                         (state->_bg,
-                                          [&deltas,&state,&stop,&f,tid,l,this](auto r) // explict capture due to clang bug
-                                          {
-                                              if (deltas[r].empty())
-                                                  return;
+                                     if (state._deltas[r].empty())
+                                         return;
 
-                                              auto dispatch =
-                                                  [&](auto& m_entries)
-                                                  {
-                                                      m_entries.set_move(r, _null_group, num_vertices(state->_bg));
+                                     auto& m_entries = state._m_entries_pool[tid];
 
-                                                      for (auto&& [s, delta] : deltas[r])
-                                                      {
-                                                          if (delta == 0)
-                                                              continue;
-                                                          m_entries.template insert_delta_rnr<true, true, true>(r, s, delta);
-                                                      }
+                                     m_entries.set_move(r, _null_group, num_vertices(state._bg));
 
-                                                      if (m_entries.empty())
-                                                          return;
+                                     for (auto&& [s, delta] : state._deltas[r])
+                                     {
+                                         if (delta == 0)
+                                             continue;
+                                         m_entries.template insert_delta_rnr<true, true, true>(r, s, delta);
+                                     }
 
-                                                      stop = false;
+                                     if (m_entries.empty())
+                                          return;
 
-                                                      f(m_entries);
-                                                  };
+                                     stop = false;
 
-                                              if constexpr (std::is_same_v<typename std::decay_t<decltype(*state)>::m_entries_t, m_entries_t>)
-                                                  dispatch(_m_entries_pool[tid][l]);
-                                              else
-                                                  dispatch(_m_entries_pool_coupled[tid][l]);
-                                         });
-                                 }
-                             };
-
-                         if constexpr (!std::is_same_v<decltype(_spec.template apply_delta<true>(_m_entries_pool[0][0], deltas)), bool>)
-                         {
-                             dispatch_delta([&](auto& m_entries)
-                                            {
-                                                _spec.template apply_delta<true>(m_entries, deltas);
-                                            });
+                                     f(m_entries);
+                                 });
                          }
+                    };
 
-                         dispatch_delta([&](auto& m_entries)
-                                        {
-                                            if (state->_coupled_state != nullptr && state_t::spec_t::propagate_delta)
-                                            {
-                                                state->_coupled_state->propagate_entries(*state, m_entries, false);
-                                                insert_delta(*state->_coupled_state, *m_entries._next, ndeltas);
-                                            }
+                if constexpr (!std::is_same_v<decltype(_spec.template apply_delta<true>(state._m_entries_pool[0], state._deltas)), bool>)
+                {
+                    dispatch_delta([&](auto& m_entries)
+                                   {
+                                       _spec.template apply_delta<true>(m_entries, state._deltas);
+                                   });
+                }
 
-                                            apply_delta<true>(*state, m_entries, false);
-                                        });
+                dispatch_delta([&](auto& m_entries)
+                               {
+                                   if (state._coupled_state != nullptr && state_t::spec_t::propagate_delta)
+                                   {
+                                       state._coupled_state->propagate_entries(state, m_entries, false);
+                                       insert_delta(*state._coupled_state, *m_entries._next, state._coupled_state->_deltas);
+                                   }
 
-                         if (stop || state->_coupled_state == nullptr || !state_t::spec_t::propagate_delta)
-                             vstate = nullptr;
-                         else
-                             vstate = state->_coupled_state;
-                     }
-                 }, vstate);
-        }
+                                   apply_delta<true>(state, m_entries, false);
+                               });
 
+                 if (stop || state._coupled_state == nullptr || !state_t::spec_t::propagate_delta)
+                     return;
+
+                 clear(false);
+                 dispatch_coupled(*state._coupled_state, dispatch_coupled);
+            };
+
+        dispatch_coupled(*this, dispatch_coupled);
 
         for (auto r : _rset)
         {
@@ -654,14 +632,12 @@ public:
         _groups_out.clear();
         _deltas.clear();
         _m_entries_pool.clear();
-        _m_entries_pool_coupled.clear();
         _vset.shrink_to_fit();
         _rset.shrink_to_fit();
         _groups_in.shrink_to_fit();
         _groups_out.shrink_to_fit();
         _deltas.shrink_to_fit();
         _m_entries_pool.shrink_to_fit();
-        _m_entries_pool_coupled.shrink_to_fit();
         if (has_egroups)
             init_egroups();
     }
@@ -2417,12 +2393,11 @@ public:
     idx_set<group_t> _rset;
     vprop_map_t<rw_t> _group_delta;
     std::vector<std::vector<vertex_t>> _groups_in, _groups_out;
-    std::vector<std::vector<std::conditional_t<flat_map_t::value,
-                                               std::flat_map<group_t, weight_t>,
-                                               gt_hash_map<group_t, weight_t>>>>
+    std::vector<std::conditional_t<flat_map_t::value,
+                                   std::flat_map<group_t, weight_t>,
+                                   gt_hash_map<group_t, weight_t>>>
         _deltas;
-    std::vector<std::array<m_entries_t,2>> _m_entries_pool;
-    std::vector<std::array<typename coupled_state_t::m_entries_t,2>> _m_entries_pool_coupled;
+    std::vector<m_entries_t> _m_entries_pool;
 
     spec_t::Imp<BlockState> _spec;
 };
