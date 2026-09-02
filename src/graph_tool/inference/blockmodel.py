@@ -207,6 +207,9 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
     def _get_block_state_type(self):
         return self.__class__
 
+    def _get_block_state_args(self):
+        return []
+
     def _get_block_state(self, b, final=False, couple=True, **kwargs):
         bg = self.bg
         eweight = self.mrs

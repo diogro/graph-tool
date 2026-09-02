@@ -49,29 +49,40 @@ class NestedBlockState(object):
         :class:`~graph_tool.inference.LayeredWeightedOverlapBlockState`)
     base_state_args : ``dict`` (optional, default: ``{}``)
         Keyword arguments to be passed to base type constructor.
+    extra_args : ``list`` of ``dict`` (optional, default: ``None``)
+        Extra parameters to be passed to each hierarchy state,
     **kwargs :  keyword arguments
         Keyword arguments to be passed to base type constructor. The
         ``base_state_args`` parameter overrides this.
     """
 
     def __init__(self, g, bs=None, base_state=BlockState, base_state_args={},
-                 **kwargs):
+                 extra_args=None, **kwargs):
         self.g = g
 
         self.base_state = base_state
         self.base_state_args = dict(kwargs, **base_state_args)
+        if extra_args is not None:
+            self.base_state_args.update(extra_args[0])
 
         self.levels = [base_state(g, b=bs[0] if bs is not None else None,
-                                 **self.base_state_args)]
+                                  **self.base_state_args)]
 
         if bs is None:
             N = self.levels[0].get_N()
             L = int(np.ceil(np.log2(N)))
             bs = [None] * (L + 1)
+        else:
+            L = len(bs) - 1
+
+        if extra_args is None:
+            extra_args = [{}] * (L + 1)
+        self.extra_args = extra_args
 
         for i, b in enumerate(bs[1:]):
             state = self.levels[-1]
-            bstate = state._get_block_state(b=b, final=i == len(bs[1:]) - 1)
+            bstate = state._get_block_state(b=b, final=i == len(bs[1:]) - 1,
+                                            **extra_args[i + 1])
             self.levels.append(bstate)
 
         if _bm_test():
@@ -96,9 +107,17 @@ class NestedBlockState(object):
         base_state_args = dict(self.base_state_args, **base_state)
         base_state_args.pop("g", None)
         base_state_args.pop("b", None)
+        extra = []
+        for l in range(len(self.levels)):
+            lextra = {}
+            state = self.levels[l].__getstate__()
+            for k in self.levels[l]._get_block_state_args():
+                lextra[k] = state[k]
+            extra.append(lextra)
         state = dict(g=self.g, bs=self.get_bs(),
                      base_state=type(self.levels[0]),
-                     base_state_args=base_state_args)
+                     base_state_args=base_state_args,
+                     extra_args=extra)
         return state
 
     def __setstate__(self, state):
@@ -139,8 +158,9 @@ class NestedBlockState(object):
             state = self.levels[l-1]
             bstate = state._get_block_state(b=b,
                                             final=l == len(self.levels) - 1,
-                                            couple=False)
-            b2 = bstate.b.fa.copy()
+                                            couple=False,
+                                            **self.extra_args[l])
+            b2 = bstate.b.fa.copy()[:len(b)]
             b = contiguous_map(b)
             b2 = contiguous_map(b2)
             assert (b == b2).all(), \
