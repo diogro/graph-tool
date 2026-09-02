@@ -496,6 +496,18 @@ struct extract_param<std::false_type>
     }
 };
 
+template<class T, T v>
+struct extract_param<std::integral_constant<T, v>>
+    : public extract_param_base<std::integral_constant<T, v>>
+{
+    auto operator()(boost::python::object obj)
+    {
+        if (extract_param<T>()(obj) != v)
+            this->throw_err(obj);
+        return std::integral_constant<T, v>();
+    }
+};
+
 } //graph_tool namespace
 
 #endif // DISPATCH
