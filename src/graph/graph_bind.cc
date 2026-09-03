@@ -38,8 +38,7 @@ struct LibInfo
     string GetName()      const {return PACKAGE_NAME;}
     string GetAuthor()    const {return AUTHOR;}
     string GetCopyright() const {return COPYRIGHT;}
-    string GetVersion()   const {return VERSION " (commit " GIT_COMMIT
-                                        ", " GIT_COMMIT_DATE ")";}
+    string GetVersion()   const {return VERSION;}
     string GetLicense()   const {return "GPL version 3 or above";}
     string GetCXXFLAGS()  const {return CPPFLAGS " " MOD_CXXFLAGS " " CXXFLAGS " " LDFLAGS;}
     string GetInstallPrefix() const {return INSTALL_PREFIX;}
