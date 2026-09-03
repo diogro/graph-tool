@@ -41,12 +41,11 @@ struct do_maximal_vertex_set
         VertexSet marked(vertex_index, num_vertices(g));
         vector<vertex_t> vlist;
         double max_deg = 0, tmp_max_deg = 0;
-        typename graph_traits<Graph>::vertex_iterator v, v_end;
-        for (tie(v, v_end) = vertices(g); v != v_end; ++v)
+        for (auto v : vertices_range(g))
         {
-            vlist.push_back(*v);
-            mvs[*v] = marked[*v] = false;
-            max_deg = max(static_cast<double>(out_degree(*v, g)), max_deg);
+            vlist.push_back(v);
+            mvs[v] = marked[v] = false;
+            max_deg = max(static_cast<double>(out_degree(v, g)), max_deg);
         }
 
         vector<vertex_t> selected, tmp;

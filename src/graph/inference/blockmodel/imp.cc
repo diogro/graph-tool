@@ -89,9 +89,9 @@ REGISTER_MOD
                  .def("virtual_merge", virtual_merge)
                  .def("merge_groups", merge_groups)
                  .def("sample_group",
-                      +[](state_t& state, vertex_t v, double c, double d, rng_t& rng)
+                      +[](state_t& state, vertex_t v, double c_, double d, rng_t& rng)
                       {
-                          return state.sample_group(v, c, d, rng);
+                          return state.sample_group(v, c_, d, rng);
                       })
                  .def("sample_neighbor", random_neighbor)
                  .def("entropy", &state_t::entropy)
@@ -160,9 +160,9 @@ REGISTER_MOD
 
              typedef SBMEdgeSampler<state_t> edge_sampler_t;
              class_<edge_sampler_t, std::shared_ptr<edge_sampler_t>, boost::noncopyable>
-                 es(get_type_name<edge_sampler_t>().c_str(),
+                 esamp(get_type_name<edge_sampler_t>().c_str(),
                     no_init);
-             es.def("sample",
+             esamp.def("sample",
                     +[](edge_sampler_t& es, rng_t& rng)
                     {
                         auto e = es.sample(rng);

@@ -75,8 +75,8 @@ private:
 
 struct graph_rewire_block
 {
-    graph_rewire_block(bool traditional, bool micro) :
-        traditional(traditional), micro(micro) {}
+    graph_rewire_block(bool traditional_, bool micro_) :
+        traditional(traditional_), micro(micro_) {}
     bool traditional;
     bool micro;
 

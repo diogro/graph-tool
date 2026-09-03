@@ -98,7 +98,7 @@ public:
         {
             auto ll = node._ll;
             auto ur = node._ur;
-            auto level = node._level;
+            auto nlevel = node._level;
 
             node._leaves = _tree.size();
             //_tree.reserve(_tree.size() + 4);
@@ -113,7 +113,7 @@ public:
                     lll[1] += (ur[1] - ll[1]) / 2;
                 else
                     lur[1] -= (ur[1] - ll[1]) / 2;
-                _tree.emplace_back(lll, lur, level + 1);
+                _tree.emplace_back(lll, lur, nlevel + 1);
             }
             _dense_leaves.resize(_tree.size());
         }

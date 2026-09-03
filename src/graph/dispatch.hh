@@ -401,10 +401,10 @@ struct extract_param_base
                 aobj = obj.attr("_get_any")();
             else
                 aobj = obj;
-            boost::python::extract<std::any&> extract(aobj);
-            if (!extract.check())
+            boost::python::extract<std::any&> extr(aobj);
+            if (!extr.check())
                 throw_err(obj);
-            std::any& aval = extract();
+            std::any& aval = extr();
             return (*this)(aval);
         }
     }

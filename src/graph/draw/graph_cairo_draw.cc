@@ -1350,10 +1350,10 @@ public:
             }
             else
             {
-                 double len = get_spline_len(controls);
+                 double l = get_spline_len(controls);
                  pos_t mid_pos, diff;
-                 mid_pos = get_spline_point(controls, len * mid_point);
-                 diff = get_spline_diff(controls, len * mid_point);
+                 mid_pos = get_spline_point(controls, l * mid_point);
+                 diff = get_spline_diff(controls, l * mid_point);
                  double angle_t = atan2(diff.second, diff.first);
                  cr.translate(mid_pos.first, mid_pos.second);
                  cr.rotate(angle_t);
@@ -1915,15 +1915,15 @@ struct do_put_parallel_splines
                 }
 
                 typename property_traits<SplinesMap>::value_type sp(8, 0);
-                double n = (pes.size() - 1.) / 2.;
+                double N = (pes.size() - 1.) / 2.;
                 for (size_t j = 0; j < pes.size(); ++j)
                 {
                     typedef typename property_traits<SplinesMap>::value_type::value_type val_t;
                     double one = pes[j].second ? 1 : -1;
                     sp[2] = val_t(0.3);
-                    sp[3] = val_t(one * (j - n) * parallel_distance / n);
+                    sp[3] = val_t(one * (j - N) * parallel_distance / N);
                     sp[4] = val_t(0.7);
-                    sp[5] = val_t(one * (j - n) * parallel_distance / n);
+                    sp[5] = val_t(one * (j - N) * parallel_distance / N);
                     sp[6] = 1;
                     sp[7] = 0;
                     put(spline, skey_t(pes[j].first), sp);

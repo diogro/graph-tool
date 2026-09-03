@@ -187,12 +187,13 @@ private:
     std::vector<std::array<size_t, 2>>& _edges;
 };
 
-boost::python::object bfs_search_array(GraphInterface& g, size_t s)
+boost::python::object bfs_search_array(GraphInterface& gi, size_t s)
 {
     std::vector<std::array<size_t, 2>> edges;
     BFSArrayVisitor vis(edges);
-    run_action<{.tr=graph_tool::type<decltype(all_graph_views)>, .dargs={.gil_release=false}}>()
-        (g, [&](auto &g){ do_bfs(g, s, vis); })();
+    run_action<{.tr=graph_tool::type<decltype(all_graph_views)>,
+                .dargs={.gil_release=false}}>()
+        (gi, [&](auto &g){ do_bfs(g, s, vis); })();
     return wrap_vector_owned<size_t,2>(edges);
 }
 

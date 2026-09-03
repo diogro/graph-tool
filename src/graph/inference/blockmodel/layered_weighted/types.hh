@@ -30,7 +30,7 @@ auto get_count(const X& x)
     LayerCount<typename X::cval_t::wval_t, false, x._layered> w;
     for (auto&& [l, c] : x._h)
     {
-        auto y = c.visit_count([](auto& y) { return y; });
+        auto y = c.visit_count([](auto& z) { return z; });
         if (y == 0)
             continue;
         w._h.emplace(l, y);
@@ -44,7 +44,7 @@ auto get_weight(const X& x, size_t i)
     LayerCount<typename X::cval_t::wval_t, false, x._layered> w;
     for (auto&& [l, c] : x._h)
     {
-        auto y = c.visit_weight(i, [](auto& y) { return y; });
+        auto y = c.visit_weight(i, [](auto& z) { return z; });
         if (y == 0)
             continue;
         w._h.emplace(l, y);
@@ -58,7 +58,7 @@ auto get_dev(const X& x, size_t i)
     LayerCount<typename X::cval_t::wval_t, false, x._layered> w;
     for (auto&& [l, c] : x._h)
     {
-        auto y = c.visit_dev(i, [](auto& y) { return y; });
+        auto y = c.visit_dev(i, [](auto& z) { return z; });
         if (y == 0)
             continue;
         w._h.emplace(l, y);

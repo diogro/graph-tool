@@ -159,10 +159,10 @@ void set_state(State& state, Graph& g, EProp w)
         us.clear();
         for (auto e : out_edges_range(v, state._u))
         {
-            auto w = target(e, state._u);
-            if (w == v)
+            auto ew = target(e, state._u);
+            if (ew == v)
                 continue;
-            us.emplace_back(w, state._eweight[e]);
+            us.emplace_back(ew, state._eweight[e]);
         }
         for (auto& uw : us)
             state.remove_edge(v, uw.first, uw.second);

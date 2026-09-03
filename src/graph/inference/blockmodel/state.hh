@@ -396,7 +396,7 @@ public:
             [&]
             (auto& state, auto& m_entries, auto& deltas)
             {
-                typedef std::decay_t<decltype(state)> state_t;
+                typedef std::decay_t<decltype(state)> cstate_t;
 
                 entries_op(m_entries,
                            [&](auto r, auto s, const auto& delta)
@@ -404,7 +404,7 @@ public:
                                if (delta == 0)
                                    return;
 
-                               if (!is_directed_v<typename state_t::g_t> && r > s)
+                               if (!is_directed_v<typename cstate_t::g_t> && r > s)
                                    std::swap(r, s);
 
                                auto& delta_r = deltas[r];
@@ -481,9 +481,9 @@ public:
         _spec.move_vertices_parallel(vs, nrs);
 
         auto dispatch_coupled =
-            [&](auto& state, auto&& dispatch_coupled)
+            [&](auto& state, auto&& dispatch)
             {
-                typedef std::decay_t<decltype(state)> state_t;
+                typedef std::decay_t<decltype(state)> cstate_t;
 
                 state._m_entries_pool.resize(get_num_threads());
 
@@ -513,7 +513,7 @@ public:
                          }
                     };
 
-                auto lguard = boost::scope::make_scope_exit([&]() { clear(true); });
+                auto lguard_ = boost::scope::make_scope_exit([&]() { clear(true); });
 
                 bool stop = true;
 
@@ -561,7 +561,7 @@ public:
 
                 dispatch_delta([&](auto& m_entries)
                                {
-                                   if (state._coupled_state != nullptr && state_t::spec_t::propagate_delta)
+                                   if (state._coupled_state != nullptr && cstate_t::spec_t::propagate_delta)
                                    {
                                        state._coupled_state->propagate_entries(state, m_entries, false);
                                        insert_delta(*state._coupled_state, *m_entries._next, state._coupled_state->_deltas);
@@ -570,11 +570,11 @@ public:
                                    apply_delta<true>(state, m_entries, false);
                                });
 
-                 if (stop || state._coupled_state == nullptr || !state_t::spec_t::propagate_delta)
+                 if (stop || state._coupled_state == nullptr || !cstate_t::spec_t::propagate_delta)
                      return;
 
                  clear(false);
-                 dispatch_coupled(*state._coupled_state, dispatch_coupled);
+                 dispatch(*state._coupled_state, dispatch);
             };
 
         dispatch_coupled(*this, dispatch_coupled);
@@ -978,13 +978,13 @@ public:
         m_entries.set_move(r, s, num_vertices(_bg));
 
         entries_op(m_entries_below,
-                   [&](auto t, auto u, auto delta)
+                   [&](auto t, auto w, auto delta)
                    {
-                       _spec.propagate_delta(below, t, u, delta);
+                       _spec.propagate_delta(below, t, w, delta);
                        if (delta == 0)
                            return;
                        m_entries.template insert_delta<true>
-                           (_b[t], _b[u], delta);
+                           (_b[t], _b[w], delta);
                    });
 
         if (_coupled_state != nullptr && propagate)
@@ -1012,12 +1012,12 @@ public:
                         if (me != _emat.get_null_edge())
                             etu = _mrs[me];
 
-                        double dS = 0;
+                        double ddS = 0;
 
                         auto wt = _wr[t];
                         auto wu = _wr[u];
 
-                        dS -= eterm_dense(t, u, etu, wt, wu, ea.multigraph, _bg);
+                        ddS -= eterm_dense(t, u, etu, wt, wu, ea.multigraph, _bg);
 
                         if (t == r)
                             wt += dr;
@@ -1029,10 +1029,10 @@ public:
                         if (u == nr)
                             wu += dnr;
 
-                        dS += eterm_dense(t, u, etu + d, wt, wu, ea.multigraph, _bg);
+                        ddS += eterm_dense(t, u, etu + d, wt, wu, ea.multigraph, _bg);
 
-                        assert(std::isfinite(dS));
-                        return dS;
+                        assert(std::isfinite(ddS));
+                        return ddS;
                     };
 
                 entries_op(m_entries,
@@ -1087,18 +1087,18 @@ public:
             else
             {
                 entries_op(m_entries,
-                           [&](auto r, auto s, const auto& d)
+                           [&](auto t, auto w, const auto& d)
                            {
-                               auto me = _emat.get_me(r, s);
+                               auto me = _emat.get_me(t, w);
                                weight_t ers{};
                                if (me != _emat.get_null_edge())
                                    ers = _mrs[me];
-                               dS += eterm(r, s, ers + d, _bg) - eterm(r, s, ers, _bg);
+                               dS += eterm(t, w, ers + d, _bg) - eterm(t, w, ers, _bg);
                            });
 
-                auto vt = [&](auto&& mrp, auto&& mrm, auto&& nr)
+                auto vt = [&](auto&& mrp_, auto&& mrm_, auto&& nr_)
                           {
-                              return vterm(mrp, mrm, nr, _deg_corr, _bg);
+                              return vterm(mrp_, mrm_, nr_, _deg_corr, _bg);
                           };
 
                 if (r != _null_group)
@@ -1565,9 +1565,9 @@ public:
                     if constexpr (is_directed_v<g_t>)
                     {
                         mst = 0;
-                        const auto& me = m_entries.get_me(s, t, _emat);
-                        if (me != _emat.get_null_edge())
-                            mst = _mrs[me];
+                        const auto& me_ = m_entries.get_me(s, t, _emat);
+                        if (me_ != _emat.get_null_edge())
+                            mst = _mrs[me_];
                         mtm = _mrm[t];
                     }
 
@@ -1877,19 +1877,19 @@ public:
 
                 if (u != v) // r != s
                 {
-                    auto [kin, kout] = _degs[v];
+                    auto [ki, ko] = _degs[v];
 
                     if constexpr (is_directed_v<g_t>)
-                        kins = {make_tuple(kin, 0), make_tuple(null, 0)};
-                    kouts = {make_tuple(kout, 0), make_tuple(null, 0)};
+                        kins = {make_tuple(ki, 0), make_tuple(null, 0)};
+                    kouts = {make_tuple(ko, 0), make_tuple(null, 0)};
 
                     if constexpr (!is_directed_v<g_t>)
                     {
-                        kouts[1] = {kout + dm, 0};
+                        kouts[1] = {ko + dm, 0};
                     }
                     else
                     {
-                        kins[1] = {deg_t(kin + dm), 0};
+                        kins[1] = {deg_t(ki + dm), 0};
                         kouts[0] = {null, 0};
                     }
 
@@ -2041,9 +2041,9 @@ public:
                 if (_deg_corr)
                 {
                     auto get_deg_ent =
-                        [&](auto v, const std::array<deg_t,2>& delta = std::array<deg_t,2>{})
+                        [&](auto w, const std::array<deg_t,2>& delta = std::array<deg_t,2>{})
                         {
-                            return get_deg_entropy(_degs[v], _g, delta);
+                            return get_deg_entropy(_degs[w], _g, delta);
                         };
 
                     deg_t zero_in = get<0>(_degs[v]);

@@ -50,9 +50,9 @@ REGISTER_MOD
                         python::object ret;
                         LOOP_DISPATCH<state_t>::make_dispatch
                             (omcmc_state,
-                             [&](auto& s)
+                             [&](auto& state)
                              {
-                                 auto ret_ = LOOP_NAME(*s, rng);
+                                 auto ret_ = LOOP_NAME(*state, rng);
                                  ret = std::apply([&](auto&... args)
                                                   {
                                                       return python::make_tuple(args...);

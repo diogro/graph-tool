@@ -70,9 +70,9 @@ iter_mh(Graph& g, Vxprop x, Cprop c, Vprop is_fac, Vprop is_max, Vec& Ed, int N,
     auto& is_max_c = is_max.get_checked();
 
     auto get_v =
-        [&](auto& nc)
+        [&](auto& nc_)
         {
-            auto iter = vars.find(nc);
+            auto iter = vars.find(nc_);
             if (iter != vars.end())
                 return iter->second;
 
@@ -87,13 +87,13 @@ iter_mh(Graph& g, Vxprop x, Cprop c, Vprop is_fac, Vprop is_max, Vec& Ed, int N,
                 removed.pop_back();
             }
 
-            vars[nc] = v;
+            vars[nc_] = v;
 
-            for (size_t i = 0; i < nc.size(); ++i)
-                for (size_t j = i+1; j < nc.size(); ++j)
-                    add_edge(v, facs[{nc[i], nc[j]}], g);
+            for (size_t i = 0; i < nc_.size(); ++i)
+                for (size_t j = i+1; j < nc_.size(); ++j)
+                    add_edge(v, facs[{nc_[i], nc_[j]}], g);
 
-            c_c[v] = nc;
+            c_c[v] = nc_;
             is_fac_c[v] = 0;
             x_c[v] = 0;
             is_max_c[v] = 0;

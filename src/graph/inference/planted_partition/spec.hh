@@ -319,9 +319,9 @@ struct StateSpec
 
             parallel_loop
                 (_groups_in,
-                 [&](auto nr, auto& vs)
+                 [&](auto nr, auto& vs_)
                  {
-                     for (auto v : vs)
+                     for (auto v : vs_)
                      {
                          _ps.template add_item<false>(nr, _pclabel[v]);
                          if (_deg_corr)
@@ -331,9 +331,9 @@ struct StateSpec
 
             parallel_loop
                 (_groups_out,
-                 [&](auto r, auto& vs)
+                 [&](auto r, auto& vs_)
                  {
-                     for (auto v : vs)
+                     for (auto v : vs_)
                      {
                          _ps.template remove_item<false>(r, _pclabel[v]);
                          if (_deg_corr)
@@ -350,7 +350,7 @@ struct StateSpec
                 kin = _erm[s];
 
             auto get_mrs =
-                [&](auto r, auto s)
+                [&](auto r, auto w)
                 {
                     w_t m = 0;
                     for (auto v : _state._groups[r])
@@ -358,14 +358,14 @@ struct StateSpec
                         for (auto e : out_edges_range(v, _g))
                         {
                             auto u = target(e, _g);
-                            if (_b[u] == s)
+                            if (_b[u] == w)
                                 m += _eweight[e];
                         }
 
                         for (auto e : in_edges_range(v, _g))
                         {
                             auto u = source(e, _g);
-                            if (_b[u] == s)
+                            if (_b[u] == w)
                                 m += _eweight[e];
                         }
                     }

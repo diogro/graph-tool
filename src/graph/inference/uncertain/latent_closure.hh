@@ -495,11 +495,11 @@ struct LatentClosure
 
                              if (!Add)
                              {
-                                 auto e_g = edge(v_, w, _gc);
-                                 if (!e_g.second)
+                                 auto eg = edge(v_, w, _gc);
+                                 if (!eg.second)
                                      return;
 
-                                 auto& xe = _x[e_g.first];
+                                 auto& xe = _x[eg.first];
                                  if (std::find(xe.begin(), xe.end(), u_) != xe.end())
                                      La = -std::numeric_limits<double>::infinity();
                              }
@@ -541,22 +541,22 @@ struct LatentClosure
                     continue;
 
                 auto i = im.first;
-                auto dM = im.second;
+                auto dMi = im.second;
 
                 auto E = _E[i];
                 auto M = _M[i];
 
                 Lb -= lbinom_fast(M, E);
-                La -= lbinom_fast(M + dM, E);
+                La -= lbinom_fast(M + dMi, E);
                 if (E > 0)
                 {
                     Lb -= safelog_fast(M);
-                    La -= safelog_fast(M + dM);
+                    La -= safelog_fast(M + dMi);
                 }
 
-                if (M == 0 && dM > 0)
+                if (M == 0 && dMi > 0)
                     Nm++;
-                if (M > 0 && M + dM == 0)
+                if (M > 0 && M + dMi == 0)
                     Nm--;
             }
 

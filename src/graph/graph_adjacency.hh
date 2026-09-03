@@ -190,8 +190,8 @@ struct adj_edge_descriptor
           t(std::numeric_limits<Vertex>::max()),
           idx(std::numeric_limits<Vertex>::max()) {};
 
-    adj_edge_descriptor(Vertex s, Vertex t, Vertex idx)
-        : s(s), t(t), idx(idx) {}
+    adj_edge_descriptor(Vertex s_, Vertex t_, Vertex idx_)
+        : s(s_), t(t_), idx(idx_) {}
 
     bool operator==(const adj_edge_descriptor& other) const
     {

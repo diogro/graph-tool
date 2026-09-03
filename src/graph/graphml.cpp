@@ -114,13 +114,13 @@ private:
             std::string source, target;
             while (*atts)
             {
-                std::string name = *atts++;
+                std::string aname = *atts++;
                 std::string value = *atts++;
 
-                if (name == "id") id = value;
-                else if (name == "source") source = value;
-                else if (name == "target") target = value;
-                else if (name == "directed")
+                if (aname == "id") id = value;
+                else if (aname == "source") source = value;
+                else if (aname == "target") target = value;
+                else if (aname == "directed")
                 {
                     bool edge_is_directed = (value == "directed");
                     if (self->m_g.is_directed() != 2 &&
@@ -144,10 +144,10 @@ private:
 
             while (*atts)
             {
-                std::string name = *atts++;
+                std::string aname = *atts++;
                 std::string value = *atts++;
 
-                if (name == "id") id = value;
+                if (aname == "id") id = value;
             }
 
             self->m_active_descriptor = self->handle_vertex(id);
@@ -157,10 +157,10 @@ private:
         {
             while (*atts)
             {
-                std::string name = *atts++;
+                std::string aname = *atts++;
                 std::string value = *atts++;
 
-                if (name == "key") self->m_active_key = value;
+                if (aname == "key") self->m_active_key = value;
             }
         }
         else if (name == "key")
@@ -172,13 +172,13 @@ private:
 
             while (*atts)
             {
-                std::string name = *atts++;
+                std::string aname = *atts++;
                 std::string value = *atts++;
 
-                if (name == "id") id = value;
-                else if (name == "attr.name") key_name = value;
-                else if (name == "attr.type") key_type = value;
-                else if (name == "for")
+                if (aname == "id") id = value;
+                else if (aname == "attr.name") key_name = value;
+                else if (aname == "attr.type") key_type = value;
+                else if (aname == "for")
                 {
                     if (value == "graph") kind = graph_key;
                     else if (value == "node") kind = node_key;
@@ -209,10 +209,10 @@ private:
         {
             while (*atts)
             {
-                std::string name = *atts++;
+                std::string aname = *atts++;
                 std::string value = *atts++;
 
-                if (name == "edgedefault")
+                if (aname == "edgedefault")
                 {
                     bool edge_is_directed = (value == "directed");
                     if ( self->m_g.is_directed() != 2 &&
@@ -225,11 +225,11 @@ private:
                     }
                     self->m_g.flip_directed(edge_is_directed);
                 }
-                else if (name == "parse.nodeids")
+                else if (aname == "parse.nodeids")
                 {
                     self->m_canonical_vertices = (value == "canonical");
                 }
-                else if (name == "parse.edgeids")
+                else if (aname == "parse.edgeids")
                 {
                     self->m_canonical_edges = (value == "canonical");
                 }
@@ -465,7 +465,6 @@ private:
     bool m_canonical_edges;
     bool m_integer_vertices;
     bool m_store_ids;
-    bool m_ignore_directedness;
     XML_Parser m_parser;
 };
 

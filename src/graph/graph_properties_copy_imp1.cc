@@ -25,8 +25,8 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void copy_external_edge_property(const GraphInterface& src,
-                                 const GraphInterface& tgt,
+void copy_external_edge_property(const GraphInterface& src_g,
+                                 const GraphInterface& tgt_g,
                                  std::any prop_src,
                                  std::any prop_tgt)
 {
@@ -39,6 +39,6 @@ void copy_external_edge_property(const GraphInterface& src,
          all_graph_views,
          writable_edge_properties,
          hana::concat(eprop_same_type, dynamic_prop_type))
-         (src.get_graph_view(), tgt.get_graph_view(), prop_tgt,
+         (src_g.get_graph_view(), tgt_g.get_graph_view(), prop_tgt,
           eprop_map_as_dynamic(prop_src, prop_tgt));
 }

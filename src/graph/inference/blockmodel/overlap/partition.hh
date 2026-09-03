@@ -242,10 +242,10 @@ struct OverlapPartitionStats
             if (nr != _null_group && (_wr.find(nr) == _wr.end() || _wr[nr] == 0))
                 dB++;
 
-            auto get_S_d = [&] (size_t d_i, int64_t delta, int64_t dB) -> double
+            auto get_S_d = [&] (size_t d_i, int64_t delta, int64_t ddB) -> double
                 {
                     int64_t nd = int64_t(get_count(d_i, _dhist)) + delta;
-                    return get_S_d_term(d_i, nd, _actual_B + dB);
+                    return get_S_d_term(d_i, nd, _actual_B + ddB);
                 };
 
             if (dB == 0)
@@ -679,12 +679,12 @@ struct OverlapDegStats
     {
         double S_a = 0, S_b = 0;
 
-        auto is_in = [&] (const bv_t& bv, group_t r) -> bool
+        auto is_in = [&] (const bv_t& bv_, group_t s) -> bool
             {
-                auto iter = lower_bound(bv.begin(), bv.end(), r);
-                if (iter == bv.end())
+                auto iter = lower_bound(bv_.begin(), bv_.end(), s);
+                if (iter == bv_.end())
                     return false;
-                if (*iter != r)
+                if (*iter != s)
                     return false;
                 return true;
             };
@@ -808,17 +808,17 @@ struct OverlapDegStats
                 n_bv_count = base_t::get_count(n_bv, _bhist);
 
             auto get_S_bv =
-                [&](const auto& bv, auto bv_count, auto& deg, auto delta, auto deg_delta)
+                [&](const auto& bv_, auto bv_count_, auto& deg_, auto delta, auto deg_delta)
                 {
                     double S = 0;
-                    if (bv_count == 0)
+                    if (bv_count_ == 0)
                     {
                         if (delta > 0)
                         {
-                            for (size_t i = 0; i < bv.size(); ++i)
+                            for (size_t i = 0; i < bv_.size(); ++i)
                             {
-                                S += lbinom_fast(delta + get<0>(deg[i]) * deg_delta - 1, get<0>(deg[i]) * deg_delta);
-                                S += lbinom_fast(delta + get<1>(deg[i]) * deg_delta - 1, get<1>(deg[i]) * deg_delta);
+                                S += lbinom_fast(delta + get<0>(deg_[i]) * deg_delta - 1, get<0>(deg_[i]) * deg_delta);
+                                S += lbinom_fast(delta + get<1>(deg_[i]) * deg_delta - 1, get<1>(deg_[i]) * deg_delta);
                             }
                         }
                     }
@@ -826,10 +826,10 @@ struct OverlapDegStats
                     {
                         const auto& bmh = _embhist.find(bv)->second;
                         const auto& bph = _epbhist.find(bv)->second;
-                        for (size_t i = 0; i < bv.size(); ++i)
+                        for (size_t i = 0; i < bv_.size(); ++i)
                         {
-                            S += lbinom_fast(bv_count + delta + bmh[i] + get<0>(deg[i]) * deg_delta - 1, bmh[i] + get<0>(deg[i]) * deg_delta);
-                            S += lbinom_fast(bv_count + delta + bph[i] + get<1>(deg[i]) * deg_delta - 1, bph[i] + get<1>(deg[i]) * deg_delta);
+                            S += lbinom_fast(bv_count_ + delta + bmh[i] + get<0>(deg_[i]) * deg_delta - 1, bmh[i] + get<0>(deg_[i]) * deg_delta);
+                            S += lbinom_fast(bv_count_ + delta + bph[i] + get<1>(deg_[i]) * deg_delta - 1, bph[i] + get<1>(deg_[i]) * deg_delta);
                         }
                     }
                     return S;

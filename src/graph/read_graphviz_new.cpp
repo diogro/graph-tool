@@ -69,8 +69,8 @@ namespace read_graphviz_detail {
       invalid
     } type;
     std::string normalized_value; // May have double-quotes removed and/or some escapes replaced
-    token(token_type type, const std::string& normalized_value)
-      : type(type), normalized_value(normalized_value) {}
+    token(token_type type_, const std::string& normalized_value_)
+      : type(type_), normalized_value(normalized_value_) {}
     token(): type(invalid), normalized_value("") {}
     friend std::ostream& operator<<(std::ostream& o, const token& t) {
       switch (t.type) {

@@ -178,22 +178,22 @@ struct MCMC
             auto x =
                 do_lock([&]()
                         {
-                            auto [x, sampler] =
+                            auto [y, sampler] =
                                 _state.sample_x(u, v, 1., _entropy_args,
                                                 _bisect_args, false, rng);
                             if (coin(rng))
-                                x = _state.quantize_x(unif(rng));
-                            while (_state.get_count(_state._xhist, x) > 0 ||
-                                   x == 0 ||
-                                   std::find(except.begin(), except.end(), x) != except.end())
+                                y = _state.quantize_x(unif(rng));
+                            while (_state.get_count(_state._xhist, y) > 0 ||
+                                   y == 0 ||
+                                   std::find(except.begin(), except.end(), y) != except.end())
                             {
                                 if (coin(rng))
-                                    x = _state.quantize_x(unif(rng));
+                                    y = _state.quantize_x(unif(rng));
                                 else
-                                    x = sampler.sample(1, _state._xdelta, rng);
-                                assert(x >= _bisect_args.min_bound && x <= _bisect_args.max_bound);
+                                    y = sampler.sample(1, _state._xdelta, rng);
+                                assert(y >= _bisect_args.min_bound && y <= _bisect_args.max_bound);
                             }
-                            return x;
+                            return y;
                         }, u, v);
 
             assert(x != 0);
@@ -478,13 +478,13 @@ struct MCMC
 
             auto f = [&](auto nx)
                      {
-                         return _state.update_edges_dS([&](auto&& f)
+                         return _state.update_edges_dS([&](auto&& g)
                                                        {
                                                            for (auto idx : vs)
                                                            {
                                                                auto [u, v] = get_edge(idx);
                                                                auto [m, x] = _state.edge_state(u, v);
-                                                               f(u, v, m);
+                                                               g(u, v, m);
                                                            }
                                                        }, r, nx, _entropy_args);
                      };

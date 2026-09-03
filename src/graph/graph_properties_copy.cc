@@ -25,7 +25,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void GraphInterface::copy_vertex_property(const GraphInterface& src,
+void GraphInterface::copy_vertex_property(const GraphInterface& g_src,
                                           std::any prop_src,
                                           std::any prop_tgt)
 {
@@ -56,11 +56,11 @@ void GraphInterface::copy_vertex_property(const GraphInterface& src,
          all_graph_views,
          writable_vertex_properties,
          hana::concat(vprop_same_type, dynamic_prop_type))
-         (src.get_graph_view(), prop_tgt,
+         (g_src.get_graph_view(), prop_tgt,
           vprop_map_as_dynamic(prop_src, prop_tgt));
 }
 
-void GraphInterface::copy_edge_property(const GraphInterface& src,
+void GraphInterface::copy_edge_property(const GraphInterface& g_src,
                                         std::any prop_src,
                                         std::any prop_tgt)
 {
@@ -92,11 +92,11 @@ void GraphInterface::copy_edge_property(const GraphInterface& src,
          all_graph_views,
          writable_edge_properties,
          hana::concat(eprop_same_type, dynamic_prop_type))
-         (src.get_graph_view(), prop_tgt,
+         (g_src.get_graph_view(), prop_tgt,
           eprop_map_as_dynamic(prop_src, prop_tgt));
 }
 
-bool compare_vertex_properties(const GraphInterface& src,
+bool compare_vertex_properties(const GraphInterface& g_src,
                                std::any prop_src,
                                std::any prop_tgt)
 {
@@ -134,12 +134,12 @@ bool compare_vertex_properties(const GraphInterface& src,
          all_graph_views,
          vertex_properties,
          hana::concat(vprop_same_type, dynamic_prop_type))
-         (src.get_graph_view(), prop_tgt,
+         (g_src.get_graph_view(), prop_tgt,
           vprop_map_as_dynamic(prop_src, prop_tgt));
     return ret;
 }
 
-bool compare_edge_properties(const GraphInterface& src,
+bool compare_edge_properties(const GraphInterface& g_src,
                              std::any prop_src,
                              std::any prop_tgt)
 {
@@ -177,7 +177,7 @@ bool compare_edge_properties(const GraphInterface& src,
          all_graph_views,
          edge_properties,
          hana::concat(eprop_same_type, dynamic_prop_type))
-         (src.get_graph_view(), prop_tgt,
+         (g_src.get_graph_view(), prop_tgt,
           eprop_map_as_dynamic(prop_src, prop_tgt));
 
     return ret;

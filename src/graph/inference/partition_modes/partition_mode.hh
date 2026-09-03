@@ -997,11 +997,11 @@ public:
             auto r = b[i];
             if (r == -1)
                 continue;
-            auto& x = _nr[i];
+            auto& xi = _nr[i];
 
             int64_t nir = 0;
-            auto iter = x.find(r);
-            if (iter != x.end())
+            auto iter = xi.find(r);
+            if (iter != xi.end())
                 nir = iter->second;
             assert(nir >= 0);
 

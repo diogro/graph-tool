@@ -256,9 +256,9 @@ struct MergeSplit:
         State::push_state(vs);
         if constexpr (_has_relabel)
         {
-            auto& back = _lstack.back();
+            auto& lback = _lstack.back();
             gt_hash_set<Group> rs;
-            for (auto [r, u] : back)
+            for (auto [r, u] : lback)
                 rs.insert(r);
             for (auto v : vs)
             {
@@ -266,7 +266,7 @@ struct MergeSplit:
                 if (rs.find(r) == rs.end())
                 {
                     rs.insert(r);
-                    back.emplace_back(r, State::group_label(r));
+                    lback.emplace_back(r, State::group_label(r));
                 }
             }
         }
@@ -307,8 +307,8 @@ struct MergeSplit:
 
         if constexpr (_has_relabel)
         {
-            auto& back = _lstack.back();
-            for (auto& [r, u] : back)
+            auto& lback = _lstack.back();
+            for (auto& [r, u] : lback)
                 State::relabel_group(r, u);
             _lstack.pop_back();
         }

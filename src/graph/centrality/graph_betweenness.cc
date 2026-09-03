@@ -170,7 +170,7 @@ void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
     }
 }
 
-void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
+void norm_betweenness(GraphInterface& gi, std::vector<size_t>& pivots,
                       std::any edge_betweenness,
                       std::any vertex_betweenness)
 {
@@ -182,9 +182,9 @@ void norm_betweenness(GraphInterface& g, std::vector<size_t>& pivots,
         throw ValueException("vertex property must be of floating point value"
                              " type");
 
-    size_t n = g.get_num_vertices();
+    size_t n = gi.get_num_vertices();
     run_action<>()
-        (g, [&](auto& g, auto ep, auto vp)
+        (gi, [&](auto& g, auto ep, auto vp)
             {
                 normalize_betweenness(g, pivots, ep, vp, n);
             },

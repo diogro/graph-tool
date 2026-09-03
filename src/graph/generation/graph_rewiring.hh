@@ -336,12 +336,10 @@ struct graph_rewire
                     print_progress(i, niter, e_pos, no_sweep ? 1 : edges.size(),
                                    str);
 
-                size_t e = *ei;
-
                 bool success = false;
                 do
                 {
-                    success = rewire(e, self_loops, parallel_edges);
+                    success = rewire(*ei, self_loops, parallel_edges);
                 }
                 while(persist && !success);
 
@@ -701,7 +699,7 @@ public:
             if (!is_directed(_g))
             {
                 t = source(e, _g);
-                deg_t tdeg = get_deg(t, _g);
+                tdeg = get_deg(t, _g);
                 _edges_by_target[tdeg].push_back(make_pair(ei, true));
             }
         }

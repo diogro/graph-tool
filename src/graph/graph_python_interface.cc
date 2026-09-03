@@ -405,8 +405,8 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                              [&](auto& g)
                              {
                                  do_check(g);
-                                 for (auto v : vrange(g))
-                                     yield(python::object(v));
+                                 for (auto u : vrange(g))
+                                     yield(python::object(u));
                              })();
                     }
                     else
@@ -425,12 +425,12 @@ python::object get_vertex_iter(GraphInterface& gi, size_t v, python::list ovprop
                              {
                                  do_check(g);
 
-                                 for (auto v : vrange(g))
+                                 for (auto u : vrange(g))
                                  {
                                      python::list vlist;
-                                     vlist.append(python::object(v));
+                                     vlist.append(python::object(u));
                                      for (auto& vp : vprops)
-                                         vlist.append(get(vp, v));
+                                         vlist.append(get(vp, u));
                                      yield(vlist);
                                  }
                              })();

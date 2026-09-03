@@ -38,13 +38,13 @@ void add_edge_list(Graph& g, ValueList vals, python::object aedge_list,
 {
     hana::for_each
         (vals,
-         [&](auto t)
+         [&](auto val_type)
          {
              if (found)
                  return;
              try
              {
-                 typedef typename decltype(+t)::type val_t;
+                 typedef typename decltype(+val_type)::type val_t;
                  boost::multi_array_ref<val_t, 2> edge_list =
                      get_array<val_t, 2>(aedge_list);
 
@@ -240,15 +240,15 @@ struct add_edge_list_hash
         size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
         auto get_vertex = [&] (const val_t& r) -> size_t
             {
-                auto iter = vertices.find(r);
-                if (iter == vertices.end())
+                auto it = vertices.find(r);
+                if (it == vertices.end())
                 {
                     auto v = add_vertex(g);
                     vertices[r] = v;
                     vmap[v] = r;
                     return v;
                 }
-                return iter->second;
+                return it->second;
             };
 
         for (const auto& e : edge_list)

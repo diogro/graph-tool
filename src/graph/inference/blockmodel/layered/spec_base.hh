@@ -185,8 +185,8 @@ struct LayeredBlockStateSpec
               +[](State& state)
                {
                    boost::python::dict E;
-                   for (const auto& [l, c] : state._spec.get_E())
-                       E[l] = c;
+                   for (const auto& [l, c_] : state._spec.get_E())
+                       E[l] = c_;
                    return E;
                });
         c.def("get_N",
@@ -255,10 +255,10 @@ struct LayeredBlockStateSpec
                               w = state._wr[r];
                           }
 
-                          for (auto&& [l, c] : w._h)
+                          for (auto&& [l, c_] : w._h)
                           {
                               ls[r].push_back(l);
-                              cs[r].push_back(c);
+                              cs[r].push_back(c_);
                           }
                       });
                });
@@ -284,10 +284,10 @@ struct LayeredBlockStateSpec
                               w = state._vweight[v];
                           }
 
-                          for (auto&& [l, c] : w._h)
+                          for (auto&& [l, c_] : w._h)
                           {
                               ls[v].push_back(l);
-                              cs[v].push_back(c);
+                              cs[v].push_back(c_);
                           }
                       });
                });

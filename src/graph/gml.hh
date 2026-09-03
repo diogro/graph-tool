@@ -63,8 +63,8 @@ private:
 
 struct to_dict_visitor: public boost::static_visitor<>
 {
-    to_dict_visitor(const std::string& key, boost::python::dict& dict)
-        : key(key), dict(dict) {}
+    to_dict_visitor(const std::string& key_, boost::python::dict& dict_)
+        : key(key_), dict(dict_) {}
 
     template <class Val>
     void operator()(Val&& val) const
@@ -94,8 +94,8 @@ struct to_dict_visitor: public boost::static_visitor<>
 template <class Desc>
 struct prop_val_visitor: public boost::static_visitor<>
 {
-    prop_val_visitor(const std::string& name, dynamic_properties& dp, Desc v)
-        : name(name), dp(dp), v(v) {}
+    prop_val_visitor(const std::string& name_, dynamic_properties& dp_, Desc v_)
+        : name(name_), dp(dp_), v(v_) {}
 
     template <class Val>
     void operator()(Val&& val) const
@@ -425,7 +425,7 @@ void write_gml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
                         std::vector<uint8_t>, std::vector<int32_t>,
                         std::vector<int64_t>, std::vector<double>,
                         std::vector<long double>, std::vector<std::string>,
-                        std::string, python::object> value_types;
+                        std::string, python::object> val_types;
 
     BOOST_STATIC_CONSTANT(bool, graph_is_directed =
                           (std::is_convertible<directed_category*,
@@ -443,8 +443,8 @@ void write_gml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
     {
         if (i.second->key() == typeid(graph_property_tag))
         {
-            std::string val = print_val<value_types>(*i.second,
-                                                     graph_property_tag());
+            std::string val = print_val<val_types>(*i.second,
+                                                   graph_property_tag());
             if (val.empty())
                 continue;
             out << "   " << i.first << " " << val << endl;
@@ -466,7 +466,7 @@ void write_gml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
 
         for (auto& i : vdp)
         {
-            std::string val = print_val<value_types>(*i.second, v);
+            std::string val = print_val<val_types>(*i.second, v);
             if (val.empty())
                 continue;
             out << "      " << i.first << " " << val << endl;
@@ -484,7 +484,7 @@ void write_gml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
 
         for (auto& i : edp)
         {
-            std::string val = print_val<value_types>(*i.second, e);
+            std::string val = print_val<val_types>(*i.second, e);
             if (val.empty())
                 continue;
             out << "      " << i.first << " " << val << endl;

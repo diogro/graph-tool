@@ -27,11 +27,11 @@ typedef vprop_map_t<int64_t> vprop_t;
 
 void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
                            std::any avmap, std::any aemap,
-                           std::any uprop, std::any aprop, merge_t merge,
+                           std::any auprop, std::any aprop, merge_t merge,
                            bool simple)
 {
     check_belongs(vertex_properties, avmap);
-    check_belongs(vertex_properties, uprop);
+    check_belongs(vertex_properties, auprop);
     check_belongs(vertex_properties, aprop);
 
     typedef eprop_map_t<GraphInterface::edge_t> emap_t;
@@ -64,7 +64,7 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
     switch (merge)
     {
     case merge_t::set:
-        check_belongs(writable_vertex_properties, uprop);
+        check_belongs(writable_vertex_properties, auprop);
         check_belongs(vertex_properties, aprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
@@ -80,12 +80,12 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              avmap,
-             uprop,
-             vprop_map_as_dynamic(aprop, uprop));
+             auprop,
+             vprop_map_as_dynamic(aprop, auprop));
         break;
     case merge_t::sum: [[fallthrough]];
     case merge_t::diff:
-        check_belongs(owvertex_sum_properties, uprop);
+        check_belongs(owvertex_sum_properties, auprop);
         check_belongs(overtex_sum_properties, aprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
@@ -112,11 +112,11 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              avmap,
-             uprop,
-             vprop_map_as_dynamic(aprop, uprop));
+             auprop,
+             vprop_map_as_dynamic(aprop, auprop));
         break;
     case merge_t::idx_inc:
-        check_belongs(scalar_vector_vertex_properties, uprop);
+        check_belongs(scalar_vector_vertex_properties, auprop);
         check_belongs(hana::concat(scalar_vertex_properties,
                                    scalar_vector_vertex_properties), aprop);
         gt_dispatch<{.gil_release=false}>()
@@ -134,13 +134,13 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              vprop_map_as_dynamic(avmap, vprop_map_t<int64_t>()),
-             uprop,
+             auprop,
              belongs(scalar_vertex_properties, aprop) ?
                  vprop_map_as_dynamic(aprop, vprop_map_t<int32_t>()) :
                  vprop_map_as_dynamic(aprop, vprop_map_t<vector<double>>()));
         break;
     case merge_t::append:
-        check_belongs(oscalar_vector_vertex_properties, uprop);
+        check_belongs(oscalar_vector_vertex_properties, auprop);
         check_belongs(hana::append(scalar_vertex_properties,
                                    hana::type<vprop_map_t<python::object>>()),
                       aprop);
@@ -158,12 +158,12 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              avmap,
-             uprop,
-             vprop_map_as_dvelem(aprop, uprop));
+             auprop,
+             vprop_map_as_dvelem(aprop, auprop));
         break;
     case merge_t::concat:
-        check_belongs(osscalar_vector_vertex_properties, uprop);
-        check_belongs(osscalar_vector_vertex_properties, uprop);
+        check_belongs(osscalar_vector_vertex_properties, auprop);
+        check_belongs(osscalar_vector_vertex_properties, auprop);
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g1, auto& g2, auto& vmap, auto& uprop, auto& prop)
              {
@@ -178,8 +178,8 @@ void vertex_property_merge(GraphInterface& ugi, GraphInterface& gi,
             (ugi.get_graph_view(),
              gi.get_graph_view(),
              avmap,
-             uprop,
-             vprop_map_as_dynamic(aprop, uprop));
+             auprop,
+             vprop_map_as_dynamic(aprop, auprop));
         break;
     default:
         break;

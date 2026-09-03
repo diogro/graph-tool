@@ -275,9 +275,9 @@ struct Measured
             {
                 if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
                 {
-                    auto& m = get_edge<false>(u, v);
-                    int64_t dT = (m == _null_edge) ? _x_default : _x[m];
-                    int64_t dM = (m == _null_edge) ? _n_default : _n[m];
+                    auto& me = get_edge<false>(u, v);
+                    int64_t dT = (me == _null_edge) ? _x_default : _x[me];
+                    int64_t dM = (me == _null_edge) ? _n_default : _n[me];
                     dS += get_dS(dT, dM);
                 }
             }

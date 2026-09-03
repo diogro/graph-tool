@@ -281,10 +281,10 @@ void get_sig(Graph& g, std::vector<size_t>& sig)
 // gets (or samples) all the subgraphs in graph g
 struct get_all_motifs
 {
-    get_all_motifs(bool collect_vmaps, double p, bool comp_iso, bool fill_list,
-                   rng_t& rng)
-        : collect_vmaps(collect_vmaps), p(p),
-          comp_iso(comp_iso), fill_list(fill_list), rng(rng) {}
+    get_all_motifs(bool collect_vmaps_, double p_, bool comp_iso_, bool fill_list_,
+                   rng_t& rng_)
+        : collect_vmaps(collect_vmaps_), p(p_),
+          comp_iso(comp_iso_), fill_list(fill_list_), rng(rng_) {}
     bool collect_vmaps;
     double p;
     bool comp_iso;
@@ -421,8 +421,8 @@ struct get_all_motifs
                             if (collect_vmaps)
                             {
                                 motif = &subgraph_list.back();
-                                for (auto v : vertices_range(*motif))
-                                    iso_map[v] = v;
+                                for (auto u : vertices_range(*motif))
+                                    iso_map[u] = u;
                             }
                             found = true;
                         }
@@ -433,8 +433,8 @@ struct get_all_motifs
                                 vmaps.resize(pos + 1);
                             vmaps[pos].push_back(VMap(get(boost::vertex_index,sub)));
                             auto& vmap = vmaps[pos].back();
-                            for (auto v : vertices_range(*motif))
-                                vmap[v] = subgraphs[j][iso_map[v]];
+                            for (auto u : vertices_range(*motif))
+                                vmap[u] = subgraphs[j][iso_map[u]];
                         }
                     }
                 }

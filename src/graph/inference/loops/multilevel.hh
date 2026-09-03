@@ -294,7 +294,7 @@ struct Multilevel:
         if constexpr (_has_relabel)
         {
             _lstack.emplace_back();
-            auto& back = _lstack.back();
+            auto& lback = _lstack.back();
             gt_hash_set<Group> rs;
             for (auto v : vs)
             {
@@ -302,7 +302,7 @@ struct Multilevel:
                 if (rs.find(r) == rs.end())
                 {
                     rs.insert(r);
-                    back.emplace_back(r, State::group_label(r));
+                    lback.emplace_back(r, State::group_label(r));
                 }
             }
             for (auto r : _rlist)
@@ -310,7 +310,7 @@ struct Multilevel:
                 if (rs.find(r) == rs.end())
                 {
                     rs.insert(r);
-                    back.emplace_back(r, State::group_label(r));
+                    lback.emplace_back(r, State::group_label(r));
                 }
             }
         }
@@ -339,16 +339,16 @@ struct Multilevel:
 
             if constexpr (_has_relabel)
             {
-                auto& back = _lstack.back();
+                auto& lback = _lstack.back();
                 if constexpr (_has_parallel_relabel)
                 {
                     State::relabel_groups_parallel
-                        (back | std::views::transform([](auto& ru) { return get<0>(ru); }),
-                         back | std::views::transform([](auto& ru) { return get<1>(ru); }));
+                        (lback | std::views::transform([](auto& ru) { return get<0>(ru); }),
+                         lback | std::views::transform([](auto& ru) { return get<1>(ru); }));
                 }
                 else
                 {
-                    for (auto& [r, u] : back)
+                    for (auto& [r, u] : lback)
                         State::relabel_group(r, u);
                 }
             }
@@ -1234,18 +1234,18 @@ struct Multilevel:
                 S_best = S;
         };
 
-        auto get_cache = [&](size_t B, GSet<Group>& rs)
+        auto get_cache = [&](size_t B, GSet<Group>& rs_)
         {
             assert(cache.find(B) != cache.end());
 
-            rs.clear();
+            rs_.clear();
             auto& c = cache[B];
 
             for (size_t i = 0; i < vs.size(); ++i)
             {
                 auto& s = std::get<1>(c)[i];
                 move_node(vs[i], s, false, _has_parallel_move);
-                rs.insert(s);
+                rs_.insert(s);
             }
 
             if constexpr (_has_parallel_move)
@@ -1260,7 +1260,7 @@ struct Multilevel:
             if constexpr (_has_extra_sweep)
                 State::get_cache(B);
 
-            assert(rs.size() == B);
+            assert(rs_.size() == B);
             return std::get<0>(c);
         };
 
@@ -1533,8 +1533,8 @@ struct Multilevel:
                 rs.insert(r);
             }
 
-            for (const auto& r : rs)
-                _rlist.insert(r);
+            for (const auto& s : rs)
+                _rlist.insert(s);
         }
     }
 

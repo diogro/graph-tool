@@ -384,9 +384,9 @@ struct SimpleOverlapDegStats
                          auto& [v, d] = vd;
                          degs[s].insert_or_visit
                              (vd,
-                              [&](auto& vd)
+                              [&](auto& vd_)
                               {
-                                  get<1>(vd) += d;
+                                  get<1>(vd_) += d;
                               });
                      });
 

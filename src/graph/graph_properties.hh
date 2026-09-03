@@ -273,14 +273,14 @@ template <bool pmap, class Sequence>
 std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_type_names(Sequence seq)
 {
     bool has_unwritable = false;
-    std::vector<std::string> type_names, key_names;
+    std::vector<std::string> tnames, key_names;
     hana::for_each(seq,
                    [&](auto t)
                    {
                        typedef typename decltype(+t)::type T;
                        if constexpr (pmap)
                        {
-                           type_names.push_back(get_ptype_name<typename boost::property_traits<T>::value_type>());
+                           tnames.push_back(get_ptype_name<typename boost::property_traits<T>::value_type>());
                            if constexpr (std::is_same_v<typename boost::property_traits<T>::key_type,
                                                         typename boost::property_traits<edge_index_map_t>::key_type>)
                                key_names.push_back("edge");
@@ -289,13 +289,13 @@ std::tuple<std::vector<std::string>, std::vector<std::string>, bool> get_seq_typ
                        }
                        else
                        {
-                           type_names.push_back(get_ptype_name<T>());
+                           tnames.push_back(get_ptype_name<T>());
                        }
                        if constexpr (std::is_same_v<T, vertex_index_map_t> ||
                                      std::is_same_v<T, edge_index_map_t>)
                            has_unwritable = true;
                    });
-    return {key_names, type_names, has_unwritable};
+    return {key_names, tnames, has_unwritable};
 }
 
 //
@@ -317,11 +317,11 @@ void check_belongs(Sequence seq, const std::any& prop, std::string name = "")
         auto [key_type, type_name, writable] = get_pmap_type(prop);
         if (!writable)
             key_type = "unwritable " + key_type;
-        auto [key_types, type_names, has_unwritable] = get_seq_type_names<true>(seq);
+        auto [key_types, tnames, has_unwritable] = get_seq_type_names<true>(seq);
 
-        std::string tnames;
-        for (size_t i = 0; i < type_names.size(); ++i)
-            tnames += (i > 0) ? (", " + type_names[i]) : type_names[i];
+        std::string stnames;
+        for (size_t i = 0; i < tnames.size(); ++i)
+            stnames += (i > 0) ? (", " + tnames[i]) : tnames[i];
 
         throw ValueException(key_type + " property map " +
                              (name != "" ? ("'" + name + "' ") : std::string("")) +
@@ -329,7 +329,7 @@ void check_belongs(Sequence seq, const std::any& prop, std::string name = "")
                              "' should be instead of key type '" +
                              key_types.front() + "' and one of the following " +
                              std::string(has_unwritable ? "" : "writable ") +
-                             "value types: " + tnames);
+                             "value types: " + stnames);
     }
 }
 
@@ -366,14 +366,14 @@ void check_pmap_is_convertible(ToSeq to_seq, const std::any& prop, std::string n
     if (!pmap_is_convertible(to_seq, prop))
     {
         auto [key_type, type_name, writable] = get_pmap_type(prop);
-        auto [key_names, type_names, has_unwritable] = get_seq_type_names<false>(to_seq);
-        std::string tnames;
-        for (size_t i = 0; i < type_names.size(); ++i)
-            tnames += (i > 0) ? (", " + type_names[i]) : type_names[i];
+        auto [key_names, tnames, has_unwritable] = get_seq_type_names<false>(to_seq);
+        std::string stnames;
+        for (size_t i = 0; i < tnames.size(); ++i)
+            stnames += (i > 0) ? (", " + tnames[i]) : type_names[i];
         throw ValueException(key_type + " property map " +
                              (name != "" ? ("'" + name + "' ") : std::string("")) +
                              "of type '" + type_name +
-                             "' canot be converted to any of the types: " + tnames);
+                             "' canot be converted to any of the types: " + stnames);
     }
 }
 
@@ -495,13 +495,13 @@ private:
     template <class PropertyMap>
     void choose_converter(std::any& dmap,
                           std::shared_ptr<ValueConverter>& converter,
-                          std::type_info const*& value_type)
+                          std::type_info const*& vtype)
     {
         PropertyMap* pmap = std::any_cast<PropertyMap>(&dmap);
         if (pmap != nullptr)
         {
             converter = std::make_shared<ValueConverterImp<PropertyMap>>(*pmap);
-            value_type = &typeid(typename boost::property_traits<PropertyMap>::value_type);
+            vtype = &typeid(typename boost::property_traits<PropertyMap>::value_type);
         }
     };
 

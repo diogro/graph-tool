@@ -31,8 +31,8 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
-                 std::any eweight, std::any pin, python::object spring_parms,
+void sfdp_layout(GraphInterface& g, std::any apos, std::any avweight,
+                 std::any aeweight, std::any pin, python::object spring_parms,
                  double theta, double init_step, double step_schedule,
                  size_t max_level, double epsilon, size_t max_iter,
                  bool adaptive, bool verbose, rng_t& rng)
@@ -65,10 +65,10 @@ void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
     typedef vprop_map_t<double> o_map_t;
     o_map_t o_map = std::any_cast<o_map_t>(python::extract<any&>(spring_parms[9])());
 
-    if (!vweight.has_value())
-        vweight = vweight_map_t();
-    if (!eweight.has_value())
-        eweight = eweight_map_t();
+    if (!avweight.has_value())
+        avweight = vweight_map_t();
+    if (!aeweight.has_value())
+        aeweight = eweight_map_t();
 
     typedef vprop_map_t<uint8_t> pin_map_t;
     pin_map_t pin_map = std::any_cast<pin_map_t>(pin);
@@ -87,7 +87,7 @@ void sfdp_layout(GraphInterface& g, std::any pos, std::any vweight,
                                     adaptive, verbose, rng);
          },
          floating_vector_vector_properties, vertex_props_t,
-         edge_props_t)(pos, vweight, eweight);
+         edge_props_t)(apos, avweight, aeweight);
 }
 
 struct do_propagate_pos

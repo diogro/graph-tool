@@ -192,11 +192,11 @@ auto parallel_vertex_loop_no_spawn(const Graph& g, F&& f,
             {
                 f(v);
             }
-            catch (const Except& ex)
+            catch (const Except& e)
             {
                 skip = true;
                 #pragma omp critical
-                err = ex.what();
+                err = e.what();
             }
         }
     }
@@ -296,7 +296,7 @@ void parallel_loop_no_spawn(Range&& vals, F&& f,
                             [[maybe_unused]] Except* ex = (void*)(nullptr))
 {
     std::conditional_t<std::is_same_v<Except, void>,
-                       int, Except> e;
+                       int, Except> err;
     bool skip = false;
 
     #pragma omp for schedule(runtime)
@@ -318,11 +318,11 @@ void parallel_loop_no_spawn(Range&& vals, F&& f,
             {
                 f(i, v);
             }
-            catch (const Except& ex)
+            catch (const Except& e)
             {
                 skip = true;
                 #pragma omp critical
-                e = ex;
+                err = e;
             }
         }
     }
@@ -330,7 +330,7 @@ void parallel_loop_no_spawn(Range&& vals, F&& f,
     if constexpr (!std::is_same_v<Except, void>)
     {
         if (skip)
-            throw e;
+            throw err;
     }
 }
 
@@ -358,49 +358,49 @@ bool quiet_cmp(T1&& x, T2&& y, auto&& f_int, auto&& f)
 }
 
 template <class T1, class T2>
-bool quiet_equal(T1&& x, T2&& y)
+bool quiet_equal(T1&& a, T2&& b)
 {
-    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+    return quiet_cmp(std::forward<T1>(a), std::forward<T2>(b),
                      [](auto&& x, auto&& y){return std::cmp_equal(x, y);},
                      [](auto&& x, auto&& y){return x == y;});
 }
 
 template <class T1, class T2>
-bool quiet_not_equal(T1&& x, T2&& y)
+bool quiet_not_equal(T1&& a, T2&& b)
 {
-    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+    return quiet_cmp(std::forward<T1>(a), std::forward<T2>(b),
                      [](auto&& x, auto&& y){return std::cmp_not_equal(x, y);},
                      [](auto&& x, auto&& y){return x != y;});
 }
 
 template <class T1, class T2>
-bool quiet_less(T1&& x, T2&& y)
+bool quiet_less(T1&& a, T2&& b)
 {
-    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+    return quiet_cmp(std::forward<T1>(a), std::forward<T2>(b),
                      [](auto&& x, auto&& y){return std::cmp_less(x, y);},
                      [](auto&& x, auto&& y){return x < y;});
 }
 
 template <class T1, class T2>
-bool quiet_greater(T1&& x, T2&& y)
+bool quiet_greater(T1&& a, T2&& b)
 {
-    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+    return quiet_cmp(std::forward<T1>(a), std::forward<T2>(b),
                      [](auto&& x, auto&& y){return std::cmp_greater(x, y);},
                      [](auto&& x, auto&& y){return x > y;});
 }
 
 template <class T1, class T2>
-bool quiet_less_equal(T1&& x, T2&& y)
+bool quiet_less_equal(T1&& a, T2&& b)
 {
-    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+    return quiet_cmp(std::forward<T1>(a), std::forward<T2>(b),
                      [](auto&& x, auto&& y){return std::cmp_less_equal(x, y);},
                      [](auto&& x, auto&& y){return x <= y;});
 }
 
 template <class T1, class T2>
-bool quiet_greater_equal(T1&& x, T2&& y)
+bool quiet_greater_equal(T1&& a, T2&& b)
 {
-    return quiet_cmp(std::forward<T1>(x), std::forward<T2>(y),
+    return quiet_cmp(std::forward<T1>(a), std::forward<T2>(b),
                      [](auto&& x, auto&& y){return std::cmp_greater_equal(x, y);},
                      [](auto&& x, auto&& y){return x >= y;});
 }

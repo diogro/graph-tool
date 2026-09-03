@@ -52,7 +52,7 @@ void exhaustive_sweep(ExhaustiveState& state, Callback&& callback)
                 S_min = S;
                 parallel_vertex_loop
                     (state._g,
-                     [&](auto v){ state._b_min[v] = state.node_state(v); });
+                     [&](auto u){ state._b_min[u] = state.node_state(u); });
             }
             pos = 0;
             callback(state);

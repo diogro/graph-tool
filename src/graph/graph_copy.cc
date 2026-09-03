@@ -31,16 +31,16 @@ template <class GraphSrc, class GraphTgt, class IndexMap, class SrcIndexMap,
           class TgtIndexMap>
 struct copy_vertex_property_dispatch
 {
-    copy_vertex_property_dispatch(const GraphSrc& src, const GraphTgt& tgt,
-                                  std::any& prop_src, std::any& prop_tgt,
-                                  IndexMap& index_map,
-                                  SrcIndexMap& src_vertex_index,
-                                  TgtIndexMap& tgt_vertex_index,
-                                  bool& found)
-        : src(src), tgt(tgt), prop_src(prop_src),
-          prop_tgt(prop_tgt), index_map(index_map),
-          src_vertex_index(src_vertex_index),
-          tgt_vertex_index(tgt_vertex_index), found(found) {}
+    copy_vertex_property_dispatch(const GraphSrc& src_, const GraphTgt& tgt_,
+                                  std::any& prop_src_, std::any& prop_tgt_,
+                                  IndexMap& index_map_,
+                                  SrcIndexMap& src_vertex_index_,
+                                  TgtIndexMap& tgt_vertex_index_,
+                                  bool& found_)
+        : src(src_), tgt(tgt_), prop_src(prop_src_),
+          prop_tgt(prop_tgt_), index_map(index_map_),
+          src_vertex_index(src_vertex_index_),
+          tgt_vertex_index(tgt_vertex_index_), found(found_) {}
 
 
     const GraphSrc& src;
@@ -105,17 +105,16 @@ void copy_vertex_property(PropertyMaps pmaps, std::any& prop_src, std::any& prop
 template <class GraphSrc, class GraphTgt, class IndexMap, class SrcIndexMap>
 struct copy_edge_property_dispatch
 {
-    copy_edge_property_dispatch(const GraphSrc& src, const GraphTgt& tgt,
-                                std::any& prop_src, std::any& prop_tgt,
-                                IndexMap& index_map,
-                                SrcIndexMap& src_edge_index,
-                                size_t max_src_edge_index,
-                                bool& found)
-        : src(src), tgt(tgt), prop_src(prop_src),
-          prop_tgt(prop_tgt), index_map(index_map),
-          src_edge_index(src_edge_index),
-          max_src_edge_index(max_src_edge_index), found(found) {}
-
+    copy_edge_property_dispatch(const GraphSrc& src_, const GraphTgt& tgt_,
+                                std::any& prop_src_, std::any& prop_tgt_,
+                                IndexMap& index_map_,
+                                SrcIndexMap& src_edge_index_,
+                                size_t max_src_edge_index_,
+                                bool& found_)
+        : src(src_), tgt(tgt_), prop_src(prop_src_),
+          prop_tgt(prop_tgt_), index_map(index_map_),
+          src_edge_index(src_edge_index_),
+          max_src_edge_index(max_src_edge_index_), found(found_) {}
 
     const GraphSrc& src;
     const GraphTgt& tgt;
@@ -185,8 +184,8 @@ void copy_edge_property(PropertyMaps pmaps, std::any& prop_src, std::any& prop_t
 struct do_graph_copy
 {
 
-    do_graph_copy(size_t max_src_edge_index)
-        : max_src_edge_index(max_src_edge_index) {}
+    do_graph_copy(size_t max_src_edge_index_)
+        : max_src_edge_index(max_src_edge_index_) {}
     size_t max_src_edge_index;
 
     template <class GraphTgt, class GraphSrc, class TgtVertexIndexMap,

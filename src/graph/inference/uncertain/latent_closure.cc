@@ -120,9 +120,9 @@ REGISTER_MOD
                            {
                                typedef std::decay_t<decltype(*s)> state_t;
                                class_<state_t, bases<>, std::shared_ptr<state_t>, boost::noncopyable>
-                                   c(get_type_name<state_t>().c_str(),
+                                   cl(get_type_name<state_t>().c_str(),
                                      no_init);
-                               c.def("remove_edge", &state_t::remove_edge)
+                               cl.def("remove_edge", &state_t::remove_edge)
                                    .def("add_edge", &state_t::add_edge)
                                    .def("remove_edge_dS", &state_t::remove_edge_dS)
                                    .def("add_edge_dS", &state_t::add_edge_dS)

@@ -55,9 +55,9 @@ REGISTER_MOD
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
 
              dynamics_state<block_state_t>::dispatch
-                 ([&](auto* s)
+                 ([&](auto* state)
                   {
-                      typedef std::decay_t<decltype(*s)> state_t;
+                      typedef std::decay_t<decltype(*state)> state_t;
                       auto& c = __MOD__::get_class<state_t, bases<>, std::shared_ptr<state_t>,
                                                    boost::noncopyable>();
                       c.def("mcmc_sweep",

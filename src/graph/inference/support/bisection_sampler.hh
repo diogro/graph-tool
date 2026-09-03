@@ -142,7 +142,7 @@ public:
         {
             double dS;
             std::tie(nx, dS) =
-                boost::math::tools::brent_find_minima([&](auto x){ return f(x);},
+                boost::math::tools::brent_find_minima([&](auto y){ return f(y);},
                                                       xmin, xmax,
                                                       ceil(1-log2(_args.tol)),
                                                       maxiter);
@@ -168,7 +168,7 @@ public:
         _seg_sampler = SegmentSampler();
         BisectionSearch<size_t> fb;
         auto [i, dS] = fb.search(0, vals.size() - 1,
-                                 [&](size_t i){ return f(vals[i]); },
+                                 [&](size_t j){ return f(vals[j]); },
                                  _args.maxiter, _args.tol, rng...);
         return vals[i];
     }
@@ -275,11 +275,11 @@ public:
         auto end = iter + std::min<size_t>(4, _vals.end() - iter);
 
         std::vector<double> pts;
-        for (auto iter = begin; iter != end; ++iter)
+        for (auto it = begin; it != end; ++it)
         {
-            if (*iter == skip)
+            if (*it == skip)
                 continue;
-            pts.push_back(*iter);
+            pts.push_back(*it);
         }
 
         if (!std::isnan(add) && (pts.empty() || (pts.front() < add && pts.back() > add)))

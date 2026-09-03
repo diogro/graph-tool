@@ -266,9 +266,9 @@ struct OverlapBlockStateSpec
                            b[v] = numeric_limits<int64_t>::max();
                            continue;
                        }
-                       auto& c = bc_total[v];
-                       auto pos = std::max_element(c.begin(), c.end());
-                       auto r = *(bv[v].begin() + (pos - c.begin()));
+                       auto& c_ = bc_total[v];
+                       auto pos = std::max_element(c_.begin(), c_.end());
+                       auto r = *(bv[v].begin() + (pos - c_.begin()));
                        b[v] = r;
                    }
                });

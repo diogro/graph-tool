@@ -160,8 +160,8 @@ struct MCMC
             std::bernoulli_distribution coin(.5);
             if (coin(rng))
             {
-                std::uniform_int_distribution<size_t> lsample(0, _state._block_state.size()-2);
-                auto nl = lsample(rng);
+                std::uniform_int_distribution<size_t> nlsample(0, _state._block_state.size()-2);
+                auto nl = nlsample(rng);
                 if (nl == l)
                     nl = _state._block_state.size() - 1;
                 return {nl, true};
@@ -258,10 +258,10 @@ struct MCMC
 
                         if (nl == 0)
                         {
-                            size_t dm = m;
-                            size_t m = node_state(nl, u, v);
-                            a += (_edge_sampler.log_prob(u, v, m, dm) -
-                                  _edge_sampler.log_prob(u, v, m, 0));
+                            size_t dm_ = m;
+                            size_t m_ = node_state(nl, u, v);
+                            a += (_edge_sampler.log_prob(u, v, m_, dm_) -
+                                  _edge_sampler.log_prob(u, v, m_, 0));
                         }
                     }
                 }

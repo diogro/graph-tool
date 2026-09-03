@@ -602,18 +602,18 @@ void get_all_shortest_paths(GP& gp, size_t s, size_t t,
             else
             {
                 boost::python::list opath;
-                auto s = graph_traits<g_t>::null_vertex();
+                auto src = graph_traits<g_t>::null_vertex();
                 for (auto iter = stack.rbegin(); iter != stack.rend(); ++iter)
                 {
-                    auto t = iter->first;
-                    if (s != graph_traits<g_t>::null_vertex())
+                    auto r = iter->first;
+                    if (src != graph_traits<g_t>::null_vertex())
                     {
                         typedef typename property_traits<Weight>::value_type val_t;
                         val_t best_w = numeric_limits<val_t>::max();
                         typename graph_traits<g_t>::edge_descriptor best_e;
-                        for (auto e : out_edges_range(s, g))
+                        for (auto e : out_edges_range(src, g))
                         {
-                            if (target(e, g) == t)
+                            if (target(e, g) == r)
                             {
                                 auto w = get(weight, e);
                                 if (w < best_w)
@@ -625,7 +625,7 @@ void get_all_shortest_paths(GP& gp, size_t s, size_t t,
                         }
                         opath.append(PythonEdge<g_t>(gp, best_e));
                     }
-                    s = t;
+                    src = t;
                 }
                 yield(opath);
             }

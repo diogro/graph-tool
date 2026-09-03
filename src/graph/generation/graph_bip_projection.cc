@@ -53,9 +53,9 @@ bipartite_projection_dispatch(GraphInterface& ugi, GraphInterface& gi,
 }
 
 void projection_copy_eprop(GraphInterface& ugi, std::any aevmap,
-                           std::any uprop, std::any prop)
+                           std::any auprop, std::any aprop)
 {
-    bool is_object = belongs(hana::tuple_t<eprop_map_t<python::object>>, uprop);
+    bool is_object = belongs(hana::tuple_t<eprop_map_t<python::object>>, auprop);
     gt_dispatch<{.gil_release=false}>()
         ([&](auto& ug, auto& evmap, auto& uprop, auto& prop)
          {
@@ -72,15 +72,15 @@ void projection_copy_eprop(GraphInterface& ugi, std::any aevmap,
          hana::tuple_t<eprop_map_t<int64_t>>,
          writable_edge_properties,
          hana::tuple_t<vprop_same_t>)
-        (ugi.get_graph_view(), aevmap, uprop, prop);
+        (ugi.get_graph_view(), aevmap, auprop, aprop);
 }
 
 void projection_copy_reprop(GraphInterface& ugi, std::any aemap,
-                            std::any uprop, std::any prop)
+                            std::any auprop, std::any aprop)
 {
     typedef eprop_map_t<GraphInterface::edge_t> emap_t;
 
-    bool is_object = belongs(hana::tuple_t<eprop_map_t<python::object>>, uprop);
+    bool is_object = belongs(hana::tuple_t<eprop_map_t<python::object>>, auprop);
     gt_dispatch<{.gil_release=false}>()
         ([&](auto& ug, auto& emap, auto& uprop, auto& prop)
          {
@@ -97,13 +97,13 @@ void projection_copy_reprop(GraphInterface& ugi, std::any aemap,
          hana::tuple_t<emap_t>,
          writable_edge_properties,
          hana::tuple_t<eprop_same_t>)
-        (ugi.get_graph_view(), aemap, uprop, prop);
+        (ugi.get_graph_view(), aemap, auprop, aprop);
 }
 
 void projection_copy_vprop(GraphInterface& gi, std::any avmap,
-                           std::any uprop, std::any prop)
+                           std::any auprop, std::any aprop)
 {
-    bool is_object = belongs(hana::tuple_t<vprop_map_t<python::object>>, uprop);
+    bool is_object = belongs(hana::tuple_t<vprop_map_t<python::object>>, auprop);
     gt_dispatch<{.gil_release=false}>()
         ([&](auto& g, auto& vmap, auto& uprop, auto& prop)
          {
@@ -120,7 +120,7 @@ void projection_copy_vprop(GraphInterface& gi, std::any avmap,
          hana::tuple_t<vprop_map_t<int64_t>>,
          writable_vertex_properties,
          hana::tuple_t<vprop_same_t>)
-        (gi.get_graph_view(), avmap, uprop, prop);
+        (gi.get_graph_view(), avmap, auprop, aprop);
 }
 
 #include <boost/python.hpp>

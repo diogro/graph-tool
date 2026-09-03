@@ -578,9 +578,9 @@ bool operator==(const LC& x, const C& c)
     x.cdispatch([&](auto&& hc, auto&&)
                 {
                     c.template cdispatch<true>
-                        ([&](auto&& c, auto)
+                        ([&](auto&& c_, auto)
                          {
-                             equal = lc_equal(hc, c);
+                             equal = lc_equal(hc, c_);
                          });
                 });
     return equal;
@@ -594,9 +594,9 @@ bool operator==(const LC& x, C c)
     bool equal = true;
     x.cdispatch([&](auto&& hc, auto&&)
                 {
-                    for (auto&& x : hc)
+                    for (auto&& y : hc)
                     {
-                        if (quiet_not_equal(x.second, c))
+                        if (quiet_not_equal(y.second, c))
                         {
                             equal = false;
                             break;
@@ -615,10 +615,10 @@ auto operator>(const LC& x, C c)
 
     x.cdispatch([&](auto&& hc, auto&&)
                 {
-                    for (auto&& x : hc)
+                    for (auto&& y : hc)
                     {
-                        if (quiet_greater(x.second, c))
-                            ret._h[x.first] = true;
+                        if (quiet_greater(y.second, c))
+                            ret._h[y.first] = true;
                     }
                 });
 
@@ -634,10 +634,10 @@ auto operator<(const LC& x, C c)
 
     x.cdispatch([&](auto&& hc, auto&&)
                 {
-                    for (auto&& x : hc)
+                    for (auto&& y : hc)
                     {
-                        if (quiet_less(x.second, c))
-                            ret._h[x.first] = true;
+                        if (quiet_less(y.second, c))
+                            ret._h[y.first] = true;
                     }
                 });
 
@@ -653,10 +653,10 @@ auto operator>=(const LC& x, C c)
 
     x.cdispatch([&](auto&& hc, auto&&)
                 {
-                    for (auto&& x : hc)
+                    for (auto&& y : hc)
                     {
-                        if (quiet_greater_equal(x.second, c))
-                            ret._h[x.first] = true;
+                        if (quiet_greater_equal(y.second, c))
+                            ret._h[y.first] = true;
                     }
                 });
 
@@ -672,10 +672,10 @@ auto operator<=(const LC& x, C c)
 
     x.cdispatch([&](auto&& hc, auto&&)
                 {
-                    for (auto&& x : hc)
+                    for (auto&& y : hc)
                     {
-                        if (quiet_less_equal(x.second, c))
-                            ret._h[x.first] = true;
+                        if (quiet_less_equal(y.second, c))
+                            ret._h[y.first] = true;
                     }
                 });
 
@@ -765,8 +765,8 @@ decltype(auto) operator/=(LC&& x, C c)
 {
     x.dispatch([&](auto&& hc, auto&&)
                {
-                   for (auto&& x : hc)
-                       atomic_div(x.second, c);
+                   for (auto&& y : hc)
+                       atomic_div(y.second, c);
                });
     return std::forward<LC>(x);
 }
@@ -777,8 +777,8 @@ decltype(auto) operator*=(LC&& x, C c)
 {
     x.dispatch([&](auto&& hc, auto&&)
                {
-                   for (auto&& x : hc)
-                       atomic_prod(x.second, c);
+                   for (auto&& y : hc)
+                       atomic_prod(y.second, c);
                });
     x.clean();
     return std::forward<LC>(x);
@@ -797,8 +797,8 @@ decltype(auto) operator*=(LC&& x, const C& c)
                                                      return lc_get(hc, get<0>(lc)) == 0;
                                                  });
 
-                                   for (auto&& [l, c] : h)
-                                       c *= lc_get(hc, l);
+                                   for (auto&& [l, c_] : h)
+                                       c_ *= lc_get(hc, l);
                                });
                });
     return std::forward<LC>(x);
@@ -1029,8 +1029,8 @@ struct formatter<C>
         c.template cdispatch<true>
             ([&](auto&& h, auto)
              {
-                 for (auto&& [l, c] : h)
-                     format_to(back_inserter(temp), "{}: {}, ", l, c);
+                 for (auto&& [l, c_] : h)
+                     format_to(back_inserter(temp), "{}: {}, ", l, c_);
              });
         if constexpr (is_specialization_of_v<C, VLayerCount>)
             format_to(back_inserter(temp), "total: {} ", c._total);

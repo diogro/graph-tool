@@ -42,7 +42,6 @@ struct do_random_matching
         typedef typename property_traits<WeightMap>::value_type wval_t;
 
         vector<vertex_t> vlist;
-        typename graph_traits<Graph>::vertex_iterator v, v_end;
         for (auto v : vertices_range(g))
         {
             vlist.push_back(v);

@@ -152,15 +152,15 @@ struct get_geometric
                      for (tie(iter, end) = boxes.equal_range(box);
                           iter != end; ++iter)
                      {
-                         auto w = iter->second;
-                         double d = get_dist(pos[v], pos[w], ranges,
+                         auto u = iter->second;
+                         double d = get_dist(pos[v], pos[u], ranges,
                                              periodic_boundary);
 
-                         if (w > v && d <= r &&
-                             (!periodic_boundary || !is_adjacent(v, w, g)))
+                         if (u > v && d <= r &&
+                             (!periodic_boundary || !is_adjacent(v, u, g)))
                          {
                              #pragma omp critical
-                             add_edge(v, w, g);
+                             add_edge(v, u, g);
                          }
                      }
                      get_box(points[i], w, box, ranges, periodic_boundary);

@@ -777,8 +777,8 @@ public:
         }
         else
         {
-            typedef typename Prop::checked_t cprop_t;
-            return *reinterpret_cast<VPropAdaptor<cprop_t>*>(this);
+            typedef typename Prop::checked_t c_prop_t;
+            return *reinterpret_cast<VPropAdaptor<c_prop_t>*>(this);
         }
     }
 
@@ -786,8 +786,8 @@ public:
     {
         if constexpr (_is_checked)
         {
-            typedef typename Prop::unchecked_t cprop_t;
-            return *reinterpret_cast<VPropAdaptor<cprop_t>*>(this);
+            typedef typename Prop::unchecked_t c_prop_t;
+            return *reinterpret_cast<VPropAdaptor<c_prop_t>*>(this);
         }
         else
         {

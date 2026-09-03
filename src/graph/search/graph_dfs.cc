@@ -168,12 +168,13 @@ private:
     std::vector<std::array<size_t, 2>>& _edges;
 };
 
-boost::python::object dfs_search_array(GraphInterface& g, size_t s)
+boost::python::object dfs_search_array(GraphInterface& gi, size_t s)
 {
     std::vector<std::array<size_t, 2>> edges;
     DFSArrayVisitor vis(edges);
-    run_action<{.tr=graph_tool::type<decltype(graph_tool::all_graph_views)>, .dargs={.gil_release=false}}>()
-        (g, [&](auto &g){ do_dfs(g, s, vis); })();
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::all_graph_views)>,
+                .dargs={.gil_release=false}}>()
+        (gi, [&](auto &g){ do_dfs(g, s, vis); })();
     return wrap_vector_owned<size_t,2>(edges);
 }
 

@@ -107,13 +107,13 @@ template <Scalar T>
 [[gnu::const]] [[gnu::always_inline]]
 inline double safelog_fast(T x)
 {
-    return get_cached(x, [](T x) { return safelog(x); }, __safelog_cache);
+    return get_cached(x, [](T y) { return safelog(y); }, __safelog_cache);
 }
 
 template <class T>
 inline void init_safelog_fast(T x)
 {
-    return init_cache(x, [](T x) { return safelog(x); }, __safelog_cache);
+    return init_cache(x, [](T y) { return safelog(y); }, __safelog_cache);
 }
 
 template <Scalar T>
@@ -127,26 +127,26 @@ template <Scalar T>
 [[gnu::const]] [[gnu::always_inline]]
 inline double xlogx_fast(T x)
 {
-    return get_cached(x, [](T x) { return xlogx(x); }, __xlogx_cache);
+    return get_cached(x, [](T y) { return xlogx(y); }, __xlogx_cache);
 }
 
 template <Scalar T>
 void init_xlogx_fast(T x)
 {
-    return init_cache(x, [](T x) { return xlogx(x); }, __xlogx_cache);
+    return init_cache(x, [](T y) { return xlogx(y); }, __xlogx_cache);
 }
 
 template <Scalar T>
 [[gnu::const]] [[gnu::always_inline]]
 inline double lgamma_fast(T x)
 {
-    return get_cached(x, [](T x) { return safe_lgamma(x); }, __lgamma_cache);
+    return get_cached(x, [](T y) { return safe_lgamma(y); }, __lgamma_cache);
 }
 
 template <Scalar T>
 void init_lgamma_fast(T x)
 {
-    return init_cache(x, [](T x) { return safe_lgamma(x); }, __lgamma_cache);
+    return init_cache(x, [](T y) { return safe_lgamma(y); }, __lgamma_cache);
 }
 
 } // graph_tool namespace

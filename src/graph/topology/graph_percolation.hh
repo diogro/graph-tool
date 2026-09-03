@@ -83,10 +83,10 @@ void edge_percolate(Graph& g, TreeMap tree, SizeMap size, MaxSize& max_size,
         }
         else
         {
-            for (size_t s = 1; s < ms; ++s)
+            for (size_t r = 1; r < ms; ++r)
             {
-                if (shist[s] > 0)
-                    max_size[i] = s;
+                if (shist[r] > 0)
+                    max_size[i] = r;
             }
         }
     }

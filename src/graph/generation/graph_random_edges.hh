@@ -65,9 +65,9 @@ void add_random_edges(Graph& g, size_t E, bool parallel, bool self_loops,
     if (filtered)
     {
         std::vector<size_t> vs(vertices(g).first, vertices(g).second);
-        auto vsampler = [&](auto& rng)
+        auto vsampler = [&](auto& rng_)
         {
-            return uniform_sample(vs, rng);
+            return uniform_sample(vs, rng_);
         };
         dispatch(vsampler);
     }

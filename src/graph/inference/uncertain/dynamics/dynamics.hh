@@ -402,31 +402,32 @@ struct Dynamics
             }
 
             auto get_S =
-                [&](size_t nr, size_t ns, size_t W, double xmin, double xmax)
+                [l1,delta,nonzero,N,uniform](size_t nr_, size_t ns_, size_t W_,
+                                             double xmin_, double xmax_)
                 {
                     double S = 0;
 
-                    if (W > 0)
+                    if (W_ > 0)
                     {
-                        S -= qlaplace_lprob(xmin, l1, delta, nonzero);
-                        S -= qlaplace_lprob(xmax, l1, delta, nonzero);
-                        if (W > 1)
+                        S -= qlaplace_lprob(xmin_, l1, delta, nonzero);
+                        S -= qlaplace_lprob(xmax_, l1, delta, nonzero);
+                        if (W_ > 1)
                             S -= log(2);
-                        if (W >= 2)
+                        if (W_ >= 2)
                             S += lbinom_careful<double, double>
-                                ((xmax - xmin)/delta - 1 - int64_t(nonzero), W - 2);
+                                ((xmax_ - xmin_)/delta - 1 - int64_t(nonzero), W_ - 2);
                         S += 64 * 2; // l1 and delta;
                     }
 
                     if (uniform)
                     {
-                        S += N * safelog_fast(W);
+                        S += N * safelog_fast(W_);
                     }
                     else
                     {
                         S += safelog_fast(N);
-                        S += lbinom_fast(N - 1, W - 1);
-                        S -= lgamma_fast(nr + 1) + lgamma_fast(ns + 1);
+                        S += lbinom_fast(N - 1, W_ - 1);
+                        S -= lgamma_fast(nr_ + 1) + lgamma_fast(ns_ + 1);
                     }
                     return S;
                 };
@@ -483,34 +484,35 @@ struct Dynamics
             }
 
             auto get_S =
-                [&](size_t N, size_t nr, size_t W, double xmin, double xmax)
+                [l1,delta,nonzero,uniform](size_t N_, size_t nr_, size_t W_,
+                                           double xmin_, double xmax_)
                 {
                     double S = 0;
-                    if (N == 0)
+                    if (N_ == 0)
                         return S;
 
-                    if (W > 0)
+                    if (W_ > 0)
                     {
-                        S -= qlaplace_lprob(xmin, l1, delta, nonzero);
-                        S -= qlaplace_lprob(xmax, l1, delta, nonzero);
-                        if (W > 1)
+                        S -= qlaplace_lprob(xmin_, l1, delta, nonzero);
+                        S -= qlaplace_lprob(xmax_, l1, delta, nonzero);
+                        if (W_ > 1)
                             S -= log(2);
-                        if (W >= 2)
+                        if (W_ >= 2)
                             S += lbinom_careful<double, double>
-                                ((xmax - xmin)/delta - 1 - int(nonzero), W - 2);
+                                ((xmax_ - xmin_)/delta - 1 - int(nonzero), W_ - 2);
                         S += 64 * 2; // l1 and delta;
                     }
 
                     if (uniform)
                     {
-                        S += N * safelog_fast(W);
+                        S += N_ * safelog_fast(W_);
                     }
                     else
                     {
-                        S += safelog_fast(N);
-                        S += lbinom_fast(N - 1, W - 1);
-                        S += lgamma_fast(N + 1);
-                        S -= lgamma_fast(nr + 1);
+                        S += safelog_fast(N_);
+                        S += lbinom_fast(N_ - 1, W_ - 1);
+                        S += lgamma_fast(N_ + 1);
+                        S -= lgamma_fast(nr_ + 1);
                     }
                     return S;
                 };
@@ -1341,10 +1343,10 @@ struct Dynamics
                         if (_xvals.empty())
                         {
                             auto get_dS =
-                                [&](auto x, auto nx)
+                                [&](auto y, auto nx)
                                 {
-                                    return (dstate_edge_dS(u, v, x, nx, ea) +
-                                            (edge_x_S(nx, ea) - edge_x_S(x, ea)));
+                                    return (dstate_edge_dS(u, v, y, nx, ea) +
+                                            (edge_x_S(nx, ea) - edge_x_S(y, ea)));
                                 };
 
                             // central difference works better for L1
@@ -1917,10 +1919,10 @@ struct Dynamics
                 [&](size_t xi, auto x, auto nx)
                 {
                     auto& es = eds[xi];
-                    return update_edges_dS([&](auto&& f)
+                    return update_edges_dS([&](auto&& f_)
                                            {
                                                for (auto& [u, v, m] : es)
-                                                   f(u, v, m);
+                                                   f_(u, v, m);
                                            }, x, nx, ea);
                 };
 
@@ -1930,10 +1932,10 @@ struct Dynamics
                 [&](size_t xi, double x, double nx)
                 {
                     auto& es = eds[xi];
-                    this->update_edges([&](auto&& f)
+                    this->update_edges([&](auto&& f_)
                                        {
                                            for (auto& [u, v, m] : es)
-                                               f(u, v, m);
+                                               f_(u, v, m);
                                        }, x, nx);
                     nmoves += es.size();
                 };

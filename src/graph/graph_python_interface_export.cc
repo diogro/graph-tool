@@ -70,14 +70,14 @@ struct export_vertex_property_map
         auto const_graph_views
             = hana::transform(graph_tool::all_graph_views,
                               [](auto t){ return hana::type<std::add_const_t<typename decltype(t)::type>>(); });
-        auto all_graph_views
+        auto all_gviews
             = hana::transform(const_graph_views,
                               [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
         auto all_const_graph_views
             = hana::transform(const_graph_views,
                               [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
         auto graph_views
-            = hana::concat(all_graph_views, all_const_graph_views);
+            = hana::concat(all_gviews, all_const_graph_views);
 
         hana::for_each(graph_views,
                        [&](auto graph)
@@ -162,14 +162,14 @@ struct export_edge_property_map
         auto const_graph_views
             = hana::transform(graph_tool::all_graph_views,
                               [](auto t){ return hana::type<std::add_const_t<typename decltype(t)::type>>(); });
-        auto all_graph_views
+        auto all_gviews
             = hana::transform(graph_tool::all_graph_views,
                               [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
         auto all_const_graph_views
             = hana::transform(const_graph_views,
                               [](auto t){ return hana::type<std::add_pointer_t<typename decltype(t)::type>>(); });
         auto graph_views
-            = hana::concat(all_graph_views, all_const_graph_views);
+            = hana::concat(all_gviews, all_const_graph_views);
 
         hana::for_each(graph_views,
                        [&](auto graph)

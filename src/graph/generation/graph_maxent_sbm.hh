@@ -588,7 +588,7 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                 std::binomial_distribution<size_t> d(n, p);
                 size_t nedges = d(rng);
 
-                for (size_t i = 0; i < nedges; ++i)
+                for (size_t j = 0; j < nedges; ++j)
                 {
                     size_t u,v;
                     do

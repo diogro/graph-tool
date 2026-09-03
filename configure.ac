@@ -56,7 +56,7 @@ AC_ARG_ENABLE([debug],
               [AC_MSG_RESULT(no)])
 
 dnl turn on warnings
-[CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
+[CXXFLAGS="-Wall -Wextra -Wshadow -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
 
 dnl disable deprecation warning, to silence some harmless BGL-related warnings
 [CXXFLAGS="-Wno-deprecated ${CXXFLAGS}"]

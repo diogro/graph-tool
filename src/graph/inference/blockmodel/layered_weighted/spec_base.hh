@@ -126,21 +126,21 @@ struct LayeredWeightedBlockStateSpec
                       [&](auto e)
                       {
                           auto&& w = mrs[e];
-                          for (auto&& [l, c] : w._h)
+                          for (auto&& [l, c_] : w._h)
                           {
-                              c.resize(wc);
-                              for (size_t i = 0; i < c.get_types().size(); ++ i)
+                              c_.resize(wc);
+                              for (size_t i = 0; i < c_.get_types().size(); ++ i)
                               {
-                                  switch (c.get_types()[i])
+                                  switch (c_.get_types()[i])
                                   {
                                   case weight_type::COUNT:
-                                      c._weights[i] = 1;
+                                      c_._weights[i] = 1;
                                       break;
                                   case weight_type::REAL_NORMAL:
-                                      c._devs[i] = std::pow(c._weights[i], 2);
+                                      c_._devs[i] = std::pow(c_._weights[i], 2);
                                       break;
                                   default:
-                                      c._devs[i] = 0;
+                                      c_._devs[i] = 0;
                                       break;
                                   }
                               }

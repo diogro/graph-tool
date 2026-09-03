@@ -341,7 +341,7 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
 
         if (symmetric)
         {
-            auto eindex = get(edge_index, ug);
+            auto eidx = get(edge_index, ug);
             #pragma omp parallel if (num_vertices(ug) > get_openmp_min_thresh()) \
                 firstprivate(self_loops)
             parallel_vertex_loop_no_spawn
@@ -365,10 +365,10 @@ void graph_merge(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                                            return;
                                        if (t == s)
                                        {
-                                           auto iter = self_loops.find(eindex[e]);
+                                           auto iter = self_loops.find(eidx[e]);
                                            if (iter != self_loops.end())
                                                return;
-                                           self_loops.insert(eindex[e]);
+                                           self_loops.insert(eidx[e]);
                                        }
                                    }
 
@@ -787,10 +787,10 @@ struct property_merge
                          {
                              dispatch_e(e);
                          }
-                         catch (const ValueException& e)
+                         catch (const ValueException& ex)
                          {
                              #pragma omp critical
-                             err = e.what();
+                             err = ex.what();
                          }
                      }
 

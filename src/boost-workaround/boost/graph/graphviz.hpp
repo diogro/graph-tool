@@ -520,7 +520,7 @@ namespace boost {
   class dynamic_properties_writer
   {
   public:
-    dynamic_properties_writer(const dynamic_properties& dp) : dp(&dp) { }
+    dynamic_properties_writer(const dynamic_properties& dp_) : dp(&dp_) { }
 
     template<typename Descriptor>
     void operator()(std::ostream& out, Descriptor key) const
@@ -547,9 +547,9 @@ namespace boost {
   class dynamic_vertex_properties_writer
   {
   public:
-    dynamic_vertex_properties_writer(const dynamic_properties& dp,
-                                     const std::string& node_id)
-      : dp(&dp), node_id(&node_id) { }
+    dynamic_vertex_properties_writer(const dynamic_properties& dp_,
+                                     const std::string& node_id_)
+      : dp(&dp_), node_id(&node_id_) { }
 
     template<typename Descriptor>
     void operator()(std::ostream& out, Descriptor key) const
@@ -587,9 +587,9 @@ namespace boost {
 
       node_id_property_map() {}
 
-      node_id_property_map(const dynamic_properties& dp,
-                           const std::string& node_id)
-        : dp(&dp), node_id(&node_id) { }
+      node_id_property_map(const dynamic_properties& dp_,
+                           const std::string& node_id_)
+        : dp(&dp_), node_id(&node_id_) { }
 
       const dynamic_properties* dp;
       const std::string* node_id;
@@ -676,8 +676,8 @@ struct undirected_graph_error : public graph_exception {
 
 struct bad_graphviz_syntax: public graph_exception {
   std::string errmsg;
-  bad_graphviz_syntax(const std::string& errmsg)
-    : errmsg(errmsg) {}
+  bad_graphviz_syntax(const std::string& errmsg_)
+    : errmsg(errmsg_) {}
   const char* what() const throw () {return errmsg.c_str();}
   ~bad_graphviz_syntax() throw () {};
 };

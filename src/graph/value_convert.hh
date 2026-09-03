@@ -98,9 +98,9 @@ auto convert(const From& v)
                     To y;
                     for (int i = 0; i < boost::python::len(v); ++i)
                     {
-                        boost::python::extract<typename To::value_type> x(v[i]);
-                        if (x.check())
-                            y.push_back(x());
+                        boost::python::extract<typename To::value_type> z(v[i]);
+                        if (z.check())
+                            y.push_back(z());
                         else
                             throw boost::bad_lexical_cast();
                     }

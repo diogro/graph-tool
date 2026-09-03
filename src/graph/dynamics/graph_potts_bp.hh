@@ -224,8 +224,8 @@ public:
                          m[r + s * _q] = x * _f[r][s] + m_uv[r] + m_vu[s];
 
                  auto lZ = log_sum_exp(m);
-                 for (auto& x : m)
-                     x -= lZ;
+                 for (auto& y : m)
+                     y -= lZ;
              });
     }
 

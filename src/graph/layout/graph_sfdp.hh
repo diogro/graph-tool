@@ -139,20 +139,20 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
     vector<double> cprobs;
     for (auto v : vertices_range(g))
     {
-        size_t r = c[v];
-        if (r >= cprobs.size())
-            cprobs.resize(r + 1, 0);
+        size_t s = c[v];
+        if (s >= cprobs.size())
+            cprobs.resize(s + 1, 0);
         cprobs[r] += 1;
 
-        r = v;
+        s = v;
         for (size_t l = 0; l < groups.size(); ++l)
         {
-            r = groups[l][r];
-            rvs[l][r].push_back(v);
+            r = groups[l][s];
+            rvs[l][s].push_back(v);
         }
     }
-    for (size_t r = 0; r < cprobs.size(); ++r)
-        cs.push_back(r);
+    for (size_t s = 0; s < cprobs.size(); ++s)
+        cs.push_back(s);
     Sampler<size_t> csample(cs, cprobs);
 
     vector<pos_t> ccm;
@@ -214,9 +214,9 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         {
             rcm[l].clear();
             rftot[l].clear();
-            for (auto& [r, vs] : rvs[l])
+            for (auto& [s, vs] : rvs[l])
             {
-                auto& cm = rcm[l][r];
+                auto& cm = rcm[l][s];
                 for (auto v : vs)
                 {
                     for (size_t j = 0; j < 2; ++j)
@@ -224,7 +224,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                 }
                 for (size_t j = 0; j < 2; ++j)
                     cm[j] /= vs.size();
-                rftot[l][r] = {0, 0};
+                rftot[l][s] = {0, 0};
             }
         }
 
@@ -239,17 +239,17 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         size_t nopen = 0;
 
         auto get_rf_bh =
-            [&](size_t v, auto& qt, auto& Q, auto&& f)
+            [&](size_t v, auto& qt_, auto& Q_, auto&& f)
             {
                 pos_t cm{0, 0}, diff{0, 0};
 
-                Q.push_back(0);
-                while (!Q.empty())
+                Q_.push_back(0);
+                while (!Q_.empty())
                 {
-                    size_t q = Q.back();
-                    Q.pop_back();
+                    size_t q = Q_.back();
+                    Q_.pop_back();
 
-                    auto& dleaves = qt.get_dense_leaves(q);
+                    auto& dleaves = qt_.get_dense_leaves(q);
                     if (!dleaves.empty())
                     {
                         for (auto& dleaf : dleaves)
@@ -260,22 +260,22 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                     }
                     else
                     {
-                        double w = qt[q].get_w();
-                        qt[q].get_cm(cm);
+                        double w = qt_[q].get_w();
+                        qt_[q].get_cm(cm);
                         double d = get_diff(cm, pos[v], diff);
                         if (w > theta * d)
                         {
-                            auto leaf = qt.get_leaves(q);
+                            auto leaf = qt_.get_leaves(q);
                             for (size_t i = 0; i < 4; ++i)
                             {
-                                if (qt[leaf].get_count() > 0)
-                                    Q.push_back(leaf);
+                                if (qt_[leaf].get_count() > 0)
+                                    Q_.push_back(leaf);
                                 ++leaf;
                             }
                         }
                         else
                         {
-                            f(cm, qt[q].get_count());
+                            f(cm, qt_[q].get_count());
                             nopen++;
                         }
                     }
@@ -357,10 +357,10 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         adist /= vertices.size();
         for (size_t l = 0; l < groups.size(); ++l)
         {
-            for (auto& [r, vs] : rvs[l])
+            for (auto& [s, vs] : rvs[l])
             {
                 for (size_t j = 0; j < 2; ++j)
-                    rftot[l][r][j] /= vs.size();
+                    rftot[l][s][j] /= vs.size();
             }
         }
 

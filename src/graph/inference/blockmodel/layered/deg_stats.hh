@@ -168,8 +168,8 @@ public:
                  iter_counts
                      ([&](auto l, auto&& c)
                       {
-                          auto& [kin, kout, vw] = c;
-                          if (vw == 0)
+                          auto& [kin, kout, w] = c;
+                          if (w == 0)
                               return;
 
                           visit_layer
@@ -179,7 +179,7 @@ public:
                                    auto lr = get_r(l, r, lock);
                                    auto lnr = get_r(l, nr, lock);
                                    dS += get_dstats(l).get_delta_dl(std::make_tuple(kin, kout),
-                                                                    lr, lnr, kind, vw);
+                                                                    lr, lnr, kind, w);
                                });
 
                       }, get<0>(deg)._h, get<1>(deg)._h, h);

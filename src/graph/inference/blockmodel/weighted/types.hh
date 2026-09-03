@@ -569,16 +569,16 @@ public:
 
     auto& get_checked()
     {
-        typedef std::decay_t<decltype(boost::get_checked(_count))> cprop_t;
-        if constexpr (std::is_same_v<cprop_t, CProp>)
+        typedef std::decay_t<decltype(boost::get_checked(_count))> c_prop_t;
+        if constexpr (std::is_same_v<c_prop_t, CProp>)
         {
             return *this;
         }
         else
         {
-            typedef typename CProp::checked_t cprop_t;
+            typedef typename CProp::checked_t c_cprop_t;
             typedef typename Props::value_type::checked_t wprop_t;
-            return *reinterpret_cast<WeightsPropMap<cprop_t, std::vector<wprop_t>>*>(this);
+            return *reinterpret_cast<WeightsPropMap<c_cprop_t, std::vector<wprop_t>>*>(this);
         }
     }
 

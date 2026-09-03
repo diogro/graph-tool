@@ -371,10 +371,10 @@ public:
                 {
                     if (_conditional < _D)
                     {
-                        auto iter = _chist.find(to_cgroup(r));
-                        iter->second -= w;
-                        if (iter->second == 0)
-                            _chist.erase(iter);
+                        auto it = _chist.find(to_cgroup(r));
+                        it->second -= w;
+                        if (it->second == 0)
+                            _chist.erase(it);
                     }
                 }
 

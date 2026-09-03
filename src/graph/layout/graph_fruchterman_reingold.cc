@@ -164,8 +164,8 @@ struct get_layout
 };
 
 
-void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
-                                 std::any weight, double a, double r,
+void fruchterman_reingold_layout(GraphInterface& gi, std::any apos,
+                                 std::any aweight, double a, double r,
                                  bool square, double scale, bool grid,
                                  double ti, double tf, size_t max_iter)
 {
@@ -173,28 +173,28 @@ void fruchterman_reingold_layout(GraphInterface& g, std::any pos,
     auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
-    if(!weight.has_value())
-        weight = weight_map_t();
+    if(!aweight.has_value())
+        aweight = weight_map_t();
     if (square)
         run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
-            (g,
+            (gi,
              [&](auto&& g, auto pos, auto weight)
              {
                  return get_layout<square_topology<>>()
                      (g, pos, weight, make_pair(a, r), scale,
                       grid, make_pair(ti, tf), max_iter);
              },
-             floating_vector_vector_properties, edge_props_t)(pos, weight);
+             floating_vector_vector_properties, edge_props_t)(apos, aweight);
     else
         run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
-            (g,
+            (gi,
              [&](auto& g, auto pos, auto weight)
              {
                  return get_layout<circle_topology<>>()
                      (g, pos, weight, make_pair(a, r), scale,
                       grid, make_pair(ti, tf), max_iter);
              },
-             floating_vector_vector_properties, edge_props_t)(pos, weight);
+             floating_vector_vector_properties, edge_props_t)(apos, aweight);
 }
 
 #include <boost/python.hpp>

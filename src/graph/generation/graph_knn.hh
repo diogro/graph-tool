@@ -75,13 +75,13 @@ public:
             auto& mutex = _mutex[v];
             {
                 std::shared_lock lock(mutex);
-                auto iter = cache.find(u);
-                if (iter != cache.end())
+                auto it = cache.find(u);
+                if (it != cache.end())
                 {
                     if constexpr (keep_iter)
-                        return get<0>(iter->second);
+                        return get<0>(it->second);
                     else
-                        return iter->second;
+                        return it->second;
                 }
             }
 
@@ -98,13 +98,13 @@ public:
         }
         else
         {
-            auto iter = cache.find(u);
-            if (iter != cache.end())
+            auto it = cache.find(u);
+            if (it != cache.end())
             {
                 if constexpr (keep_iter)
-                    return get<0>(iter->second);
+                    return get<0>(it->second);
                 else
-                    return iter->second;
+                    return it->second;
             }
             d = _d(u, v);
             if constexpr (keep_iter)
@@ -291,8 +291,8 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                  auto& Bv = B[v];
 
                  seen.clear();
-                 for (auto& [v, l] : Bv)
-                     seen.insert(v);
+                 for (auto& [u, l] : Bv)
+                     seen.insert(u);
 
                  auto update =
                      [&](size_t u, size_t w)
@@ -627,12 +627,12 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
         (g,
          [&](auto& e)
          {
-             size_t u = source(e, g);
-             size_t v = target(e, g);
-             if (!directed && u > v)
-                 std::swap(u, v);
+             size_t s = source(e, g);
+             size_t t = target(e, g);
+             if (!directed && s > t)
+                 std::swap(s, t);
              auto l = eweight[e];
-             heap.push({{u, v}, l});
+             heap.push({{s, t}, l});
          });
     heap.merge();
 
@@ -646,10 +646,10 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
     for (auto v : vertices_range(g))
         clear_vertex(v, g);
 
-    for (auto& [uv, l] : pairs)
+    for (auto& [st, l] : pairs)
     {
-        auto& [u, v] = uv;
-        auto e = add_edge(u, v, g).first;
+        auto& [s, t] = st;
+        auto e = add_edge(s, t, g).first;
         eweight[e] = l;
     }
 

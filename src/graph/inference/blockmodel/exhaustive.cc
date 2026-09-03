@@ -66,9 +66,9 @@ REGISTER_MOD
                     {
                         exhaustive_block_model<state_t>::make_dispatch
                             (omcmc_state,
-                             [&](auto& s)
+                             [&](auto& s_)
                              {
-                                 exhaustive_sweep(*s,
+                                 exhaustive_sweep(*s_,
                                                   [&](auto& state)
                                                   {
                                                       callback(state._S,
@@ -86,9 +86,9 @@ REGISTER_MOD
                            {
                                exhaustive_block_model<state_t>::make_dispatch
                                    (omcmc_state,
-                                    [&](auto& s)
+                                    [&](auto& s_)
                                     {
-                                        exhaustive_sweep(*s,
+                                        exhaustive_sweep(*s_,
                                                          [&](auto& state)
                                                          {
                                                              yield(python::make_tuple(state._S,
@@ -113,9 +113,9 @@ REGISTER_MOD
 
                         exhaustive_block_model<state_t>::make_dispatch
                             (omcmc_state,
-                             [&](auto& s)
+                             [&](auto& s_)
                              {
-                                 exhaustive_sweep(*s,
+                                 exhaustive_sweep(*s_,
                                                   [&](auto& state)
                                                   {
                                                       auto S = state._S;

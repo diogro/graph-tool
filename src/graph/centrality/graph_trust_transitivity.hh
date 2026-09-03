@@ -168,11 +168,11 @@ struct get_trust_transitivity
 
                 // compute the target's trust
                 t_type sum_w = 0, avg = 0;
-                for (auto e : in_edges_range(tgt, g))
+                for (auto ed : in_edges_range(tgt, g))
                 {
-                    t_type weight = dist_map[boost::source(e, g)];
+                    t_type weight = dist_map[boost::source(ed, g)];
                     sum_w += weight;
-                    avg += c[e]*weight*weight;
+                    avg += c[ed]*weight*weight;
                 }
                 if (sum_w > 0)
                     t[tgt][0] = avg/sum_w;
@@ -183,11 +183,11 @@ struct get_trust_transitivity
             {
                 auto& rg = get_reversed_graph(fg);
                 dist_map_t sum_w(vertex_index, num_vertices(g));
-                for (auto e : in_edges_range(tgt, g))
+                for (auto ed : in_edges_range(tgt, g))
                 {
                     // compute the weights to all sources
                     dijkstra_shortest_paths
-                        (rg, boost::source(e, g), weight_map(c).
+                        (rg, boost::source(ed, g), weight_map(c).
                          vertex_index_map(vertex_index).
                          color_map(color_map).
                          distance_map(dist_map).
@@ -203,7 +203,7 @@ struct get_trust_transitivity
                              t_type weight = dist_map[src];
                              sum_w[src] += weight;
                              size_t tidx = (target == -1) ? vertex_index[tgt] : 0;
-                             t[src][tidx] += c[e]*weight*weight;
+                             t[src][tidx] += c[ed]*weight*weight;
                          });
                 }
 

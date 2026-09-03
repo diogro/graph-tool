@@ -25,7 +25,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void arf_layout(GraphInterface& g, std::any pos, std::any weight, double d,
+void arf_layout(GraphInterface& gi, std::any apos, std::any aweight, double d,
                 double a, double dt, size_t max_iter, double epsilon,
                 size_t dim)
 {
@@ -33,17 +33,18 @@ void arf_layout(GraphInterface& g, std::any pos, std::any weight, double d,
     auto edge_props_t = hana::append(scalar_edge_properties,
                                      hana::type<weight_map_t>());
 
-    if(!weight.has_value())
-        weight = weight_map_t();
+    if(!aweight.has_value())
+        aweight = weight_map_t();
 
-    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>, .dargs={.gil_release=false}}>()
-        (g,
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>,
+                .dargs={.gil_release=false}}>()
+        (gi,
          [&](auto& g, auto pos, auto weight)
          {
              return get_arf_layout()(g, pos, weight, a, d, dt, epsilon,
                                      max_iter, dim);
          },
-         floating_vector_vector_properties, edge_props_t)(pos, weight);
+         floating_vector_vector_properties, edge_props_t)(apos, aweight);
 }
 
 #include <boost/python.hpp>

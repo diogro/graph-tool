@@ -179,8 +179,8 @@ namespace boost {
               ++push_count;
               FlowValue delta = get(residual_capacity, a);
               put(residual_capacity, a, get(residual_capacity, a) - delta);
-              edge_descriptor rev = get(reverse_edge, a);
-              put(residual_capacity, rev, get(residual_capacity, rev) + delta);
+              edge_descriptor rev_e = get(reverse_edge, a);
+              put(residual_capacity, rev_e, get(residual_capacity, rev_e) + delta);
               put(excess_flow, tgt, get(excess_flow, tgt) + delta);
             }
           }

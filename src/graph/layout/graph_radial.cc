@@ -131,15 +131,15 @@ struct do_get_radial
                 {
                     std::sort(new_layer.end() - out_degree(v, g),
                               new_layer.end(),
-                              [&] (vertex_t u, vertex_t v)
-                              { return vorder[u] < vorder[v]; });
+                              [&] (vertex_t u, vertex_t w)
+                              { return vorder[u] < vorder[w]; });
                 }
                 else
                 {
                     std::sort(new_layer.end() - out_degree(v, g),
                               new_layer.end(),
-                              [&] (vertex_t u, vertex_t v)
-                              { return bool(order[u] < order[v]); });
+                              [&] (vertex_t u, vertex_t w)
+                              { return bool(order[u] < order[w]); });
                 }
 
                 if (out_degree(v, g) == 0)

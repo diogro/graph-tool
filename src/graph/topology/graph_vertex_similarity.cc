@@ -40,9 +40,9 @@ void get_dice_similarity(GraphInterface& gi, std::any as, std::any weight)
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto& w)
+                                  [&](auto u, auto v, auto& mask, auto& ew)
                                   {
-                                      return dice(u, v, mask, w, g);
+                                      return dice(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -59,9 +59,9 @@ void get_salton_similarity(GraphInterface& gi, std::any as, std::any weight)
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto& w)
+                                  [&](auto u, auto v, auto& mask, auto& ew)
                                   {
-                                      return salton(u, v, mask, w, g);
+                                      return salton(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -78,9 +78,9 @@ void get_hub_promoted_similarity(GraphInterface& gi, std::any as, std::any weigh
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto& w)
+                                  [&](auto u, auto v, auto& mask, auto& ew)
                                   {
-                                      return hub_promoted(u, v, mask, w, g);
+                                      return hub_promoted(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -97,9 +97,9 @@ void get_hub_suppressed_similarity(GraphInterface& gi, std::any as, std::any wei
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto& w)
+                                  [&](auto u, auto v, auto& mask, auto& ew)
                                   {
-                                      return hub_suppressed(u, v, mask, w, g);
+                                      return hub_suppressed(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -120,9 +120,9 @@ void get_dice_similarity_pairs(GraphInterface& gi, python::object opairs,
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto& w)
+                                   [&](auto u, auto v, auto& mask, auto& ew)
                                    {
-                                       return dice(u, v, mask, w, g);
+                                       return dice(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -142,9 +142,9 @@ void get_salton_similarity_pairs(GraphInterface& gi, python::object opairs,
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto& w)
+                                   [&](auto u, auto v, auto& mask, auto& ew)
                                    {
-                                       return salton(u, v, mask, w, g);
+                                       return salton(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -164,9 +164,9 @@ void get_hub_promoted_similarity_pairs(GraphInterface& gi, python::object opairs
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto& w)
+                                   [&](auto u, auto v, auto& mask, auto& ew)
                                    {
-                                       return hub_promoted(u, v, mask, w, g);
+                                       return hub_promoted(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -186,9 +186,9 @@ void get_hub_suppressed_similarity_pairs(GraphInterface& gi, python::object opai
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto& w)
+                                   [&](auto u, auto v, auto& mask, auto& ew)
                                    {
-                                       return hub_suppressed(u, v, mask, w, g);
+                                       return hub_suppressed(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -204,9 +204,9 @@ void get_jaccard_similarity(GraphInterface& gi, std::any as, std::any weight)
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto w)
+                                  [&](auto u, auto v, auto& mask, auto ew)
                                   {
-                                      return jaccard(u, v, mask, w, g);
+                                      return jaccard(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -227,9 +227,9 @@ void get_jaccard_similarity_pairs(GraphInterface& gi, python::object opairs,
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto w)
+                                   [&](auto u, auto v, auto& mask, auto ew)
                                    {
-                                       return jaccard(u, v, mask, w, g);
+                                       return jaccard(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -246,9 +246,9 @@ void get_inv_log_weight_similarity(GraphInterface& gi, std::any as,
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto w)
+                                  [&](auto u, auto v, auto& mask, auto ew)
                                   {
-                                      return inv_log_weighted(u, v, mask, w, g);
+                                      return inv_log_weighted(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -271,9 +271,9 @@ void get_inv_log_weight_similarity_pairs(GraphInterface& gi,
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto w)
+                                   [&](auto u, auto v, auto& mask, auto ew)
                                    {
-                                       return inv_log_weighted(u, v, mask, w, g);
+                                       return inv_log_weighted(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -290,9 +290,9 @@ void get_r_allocation_similarity(GraphInterface& gi, std::any as,
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto w)
+                                  [&](auto u, auto v, auto& mask, auto ew)
                                   {
-                                      return r_allocation(u, v, mask, w, g);
+                                      return r_allocation(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -315,9 +315,9 @@ void get_r_allocation_similarity_pairs(GraphInterface& gi,
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto w)
+                                   [&](auto u, auto v, auto& mask, auto ew)
                                    {
-                                       return r_allocation(u, v, mask, w, g);
+                                       return r_allocation(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)
@@ -334,9 +334,9 @@ void get_leicht_holme_newman_similarity(GraphInterface& gi, std::any as,
         ([&](auto& g, auto s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask, auto w)
+                                  [&](auto u, auto v, auto& mask, auto ew)
                                   {
-                                      return leicht_holme_newman(u, v, mask, w, g);
+                                      return leicht_holme_newman(u, v, mask, ew, g);
                                   }, w);
          },
          all_graph_views, floating_vector_vector_properties,
@@ -359,9 +359,9 @@ void get_leicht_holme_newman_similarity_pairs(GraphInterface& gi,
         ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask, auto w)
+                                   [&](auto u, auto v, auto& mask, auto ew)
                                    {
-                                       return leicht_holme_newman(u, v, mask, w, g);
+                                       return leicht_holme_newman(u, v, mask, ew, g);
                                    }, w);
          },
          all_graph_views, weight_props_t)

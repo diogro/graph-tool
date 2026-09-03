@@ -237,8 +237,8 @@ struct MCMCXDelta
                                 a = -_beta * ddS + lb - lf;
                                 a = std::min(a, 0.);
                             }
-                            std::uniform_real_distribution<> u(0, 1);
-                            accept = u(rng) < exp(a);
+                            std::uniform_real_distribution<> us(0, 1);
+                            accept = us(rng) < exp(a);
                         }
                     }
 

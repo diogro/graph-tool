@@ -48,13 +48,13 @@ public:
         {
             for (auto v : vertices_range(state._u))
             {
-                for (auto s : sn[v])
+                for (auto r : sn[v])
                 {
-                    if (s < 0 || s > int(_q) - 1)
+                    if (r < 0 || r > int(_q) - 1)
                     {
                         throw ValueException("Expected state values in the range {0, ..., "
                                              + std::to_string(_q - 1)
-                                             + "}, got: " + std::to_string(s));
+                                             + "}, got: " + std::to_string(r));
                     }
                 }
             }
@@ -92,12 +92,12 @@ public:
 
         double Z = std::numeric_limits<double>::lowest();
 
-        for (size_t r = 0; r < _q; ++r)
+        for (size_t t = 0; t < _q; ++t)
         {
-            double val = theta[r];
-            auto&& f = _f[r];
+            double val = theta[t];
+            auto&& ft = _f[t];
             for (size_t s = 0; s < _q; ++s)
-                val += f[s] * m[s];
+                val += ft[s] * m[s];
             Z = log_sum_exp<double, false>(Z, val);
         }
         return x - Z;
@@ -108,12 +108,12 @@ public:
     double log_P_disp_q(const std::vector<double>& theta, const m_t& m, int r)
     {
         double x = theta[r];
-        auto&& f = _f[r];
+        auto&& fr = _f[r];
 #if GCC_VERSION >= 140000
         #pragma GCC unroll q
 #endif
         for (size_t s = 0; s < q; ++s)
-            x += f[s] * m[s];
+            x += fr[s] * m[s];
 
         double vmax = std::numeric_limits<double>::lowest();
         std::array<double, q> vals;
@@ -121,16 +121,16 @@ public:
 #if GCC_VERSION >= 140000
         #pragma GCC unroll q
 #endif
-        for (size_t r = 0; r < q; ++r)
+        for (size_t t = 0; t < q; ++t)
         {
-            auto& val = vals[r];
-            val = theta[r];
-            auto&& f = _f[r];
+            auto& val = vals[t];
+            val = theta[t];
+            auto&& ft = _f[t];
 #if GCC_VERSION >= 140000
             #pragma GCC unroll q
 #endif
             for (size_t s = 0; s < q; ++s)
-                val += f[s] * m[s];
+                val += ft[s] * m[s];
             if (val > vmax)
                 vmax = val;
         }
@@ -139,8 +139,8 @@ public:
 #if GCC_VERSION >= 140000
         #pragma GCC unroll q
 #endif
-        for (size_t r = 0; r < q; ++r)
-            tmp += exp(vals[r] - vmax);
+        for (size_t s = 0; s < q; ++s)
+            tmp += exp(vals[s] - vmax);
 
         return x - (vmax + log(tmp));
     }
@@ -218,24 +218,24 @@ public:
         auto x = _f[r][s];
 
         auto set_x =
-            [=,this](auto x)
+            [=,this](auto y)
             {
                 _f = f_temp;
                 if (_f_sym)
-                    _f[r][s] = _f[s][r] = x;
+                    _f[r][s] = _f[s][r] = y;
                 else
-                    _f[r][s] = x;
+                    _f[r][s] = y;
                 return norm_f();
             };
 
         auto f =
-            [=,this](auto x)
+            [=,this](auto y)
             {
-                if (!set_x(x))
+                if (!set_x(y))
                 {
                     _f = f_temp;
                     if (verbose)
-                        std::println("reject invalid normalization for f matrix: {} {} {}", r, s, x);
+                        std::println("reject invalid normalization for f matrix: {} {} {}", r, s, y);
                     return std::numeric_limits<double>::infinity();
                 }
                 return _state.entropy(ea);

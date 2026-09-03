@@ -201,8 +201,8 @@ struct Uncertain
             {
                 if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
                 {
-                    auto& m = get_edge<false>(u, v);
-                    double q_e = (m == _null_edge) ? _q_default : _q[m];
+                    auto& me = get_edge<false>(u, v);
+                    double q_e = (me == _null_edge) ? _q_default : _q[me];
                     dS -= q_e;
                 }
             }
