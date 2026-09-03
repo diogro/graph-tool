@@ -66,9 +66,10 @@ struct SpecBase
             return std::views::iota(size_t(0), _state._N);
         }
 
-        void move_vertex(auto, auto, auto) { static_assert(false, "needs to be overloaded"); }
-        double virtual_move(auto, auto, auto, auto& ea) { static_assert(false, "needs to be overloaded"); return 0; }
-        double entropy(auto&) { static_assert(false, "needs to be overloaded"); return 0; }
+        void move_vertex(auto v, auto r, auto nr) = delete;
+        double virtual_move(auto v, auto r, auto nr, auto& ea) = delete;
+        double entropy(auto& ea) = delete;
+
         void add_group(size_t) {}
 
         group_t sample_group(size_t, double, double d, rng_t& rng)

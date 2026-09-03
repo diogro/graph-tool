@@ -61,48 +61,27 @@ struct MergeSplitStateBase
     constexpr static size_t _null_group = std::numeric_limits<size_t>::max();
 
     template <class F>
-    void iter_nodes(F&& f)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void iter_nodes(F&& f) = delete;
 
     template <class F>
-    void iter_groups(F&& f)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void iter_groups(F&& f) = delete;
 
     template <class Vertex>
     auto get_group(Vertex v) = delete;
 
     template <bool sample_branch=true, class Vertex, class RNG, class VS = std::array<size_t,0>>
-    size_t sample_new_group(Vertex v, RNG& rng, VS&& except = VS())
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    size_t sample_new_group(Vertex v, RNG& rng, VS&& except = VS()) = delete;
 
     template <class Vertex, class Group>
-    void move_node(Vertex v, Group r, bool cache)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void move_node(Vertex v, Group r, bool cache) = delete;
 
-    virtual void reserve_empty_groups(size_t nB) = 0;
+    void reserve_empty_groups(size_t nB) = delete;
 
     template <class Vertex, class Group>
-    double virtual_move(Vertex v, Group s)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    double virtual_move(Vertex v, Group s) = delete;
 
     template <class Vertex, class RNG>
-    size_t sample_group(Vertex v, bool allow_empty, RNG& rng)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    size_t sample_group(Vertex v, bool allow_empty, RNG& rng) = delete;
 
     // optional
 
@@ -148,23 +127,13 @@ struct MergeSplitStateBase
     constexpr size_t get_max_B() { return std::numeric_limits<size_t>::max(); }
 
     template <class Group>
-    double virtual_merge(const Group& r, const Group& s)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    double virtual_merge(const Group& r, const Group& s) = delete;
 
     template <class Group>
-    void merge_groups(const Group& r, const Group& s)
-    {
-        static_assert(false,  "default method needs to be specialized");
-    }
+    void merge_groups(const Group& r, const Group& s) = delete;
 
     template <class Vs, class Groups>
-    void move_nodes_parallel(Vs&& vs, Groups&& rs)
-    {
-        static_assert(false,  "default method needs to be specialized");
-    }
+    void move_nodes_parallel(Vs&& vs, Groups&& rs) = delete;
 
     int group_label(auto) { return 0; }
     int sample_group_label(auto, auto&) { return 0; }

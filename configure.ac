@@ -56,6 +56,9 @@ AC_ARG_ENABLE([debug],
               [AC_MSG_RESULT(no)])
 
 dnl turn on warnings
+if test "$(${CXX} --version | grep clang)x" != "x"; then
+    [CXXFLAGS="-Wno-missing-designated-field-initializers -Wno-nan-infinity-disabled ${CXXFLAGS}"]
+fi
 [CXXFLAGS="-Wall -Wextra -Wshadow -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
 
 dnl disable deprecation warning, to silence some harmless BGL-related warnings

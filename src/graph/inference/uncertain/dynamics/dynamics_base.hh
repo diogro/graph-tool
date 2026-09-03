@@ -155,7 +155,7 @@ public:
             }
         }
 
-        for (auto sn : _s)
+        for ([[maybe_unused]] auto sn : _s)
             _m.emplace_back(num_vertices(s._u));
 
         _m_temp.resize(nt);
@@ -165,6 +165,8 @@ public:
         if (init_m)
             reset_m(s);
     };
+
+    virtual ~NSumStateBase() {}
 
     template <class State>
     void reset_m(State& s)

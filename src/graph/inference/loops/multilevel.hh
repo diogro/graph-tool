@@ -83,61 +83,32 @@ struct MultilevelStateBase
     constexpr static size_t _null_group = std::numeric_limits<size_t>::max();
 
     template <class F>
-    void iter_nodes(F&& f)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void iter_nodes(F&& f) = delete;
 
     template <class F>
-    void iter_groups(F&& f)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void iter_groups(F&& f) = delete;
 
     template <class V>
-    size_t get_group(size_t v)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    size_t get_group(size_t v) = delete;
 
     template <class V, class RNG>
-    size_t get_new_group(V v, bool inherit, RNG& rng, bool force=false)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    size_t get_new_group(V v, bool inherit, RNG& rng, bool force=false) = delete;
 
     template <class V, class Group>
-    void move_node(V v, Group r, bool cache)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void move_node(V v, Group r, bool cache) = delete;
 
     template <class V, class Group>
-    double virtual_move(V v, Group r, size_t tnum)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0.;
-    }
+    double virtual_move(V v, Group r, size_t tnum) = delete;
 
     template <class V, class RNG>
     auto sample_group(V v, bool allow_random, bool allow_empty,
-                      bool init_heuristic, RNG& rng)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+                      bool init_heuristic, RNG& rng) = delete;
 
     template <class V, class Group>
     double get_move_prob(V v, Group r, Group s, bool allow_random,
-                         bool allow_empty, bool reverse, size_t tnum=0)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+                         bool allow_empty, bool reverse, size_t tnum=0) = delete;
 
-    virtual double entropy() = 0;
+    double entropy() = delete;
 
     //optional
     constexpr static bool _has_merge = false;
@@ -175,24 +146,13 @@ struct MultilevelStateBase
     void clear_state() {}
 
     template <class Group>
-    double virtual_merge(const Group& r, const Group& s, int tnum)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return 0;
-    }
+    double virtual_merge(const Group& r, const Group& s, int tnum) = delete;
 
     template <class Group>
-    void merge_groups(const Group& r, const Group& s)
-    {
-        static_assert(false, "default method needs to be specialized");
-    }
+    void merge_groups(const Group& r, const Group& s) = delete;
 
     template <class Vs, class Groups>
-    double move_nodes_parallel(Vs&& vs, Groups&& rs)
-    {
-        static_assert(false, "default method needs to be specialized");
-        return std::numeric_limits<double>::quiet_NaN();
-    }
+    double move_nodes_parallel(Vs&& vs, Groups&& rs) = delete;
 
     int group_label(auto) { return 0; }
     int sample_group_label(auto, auto&) { return 0; }
@@ -565,8 +525,9 @@ struct Multilevel:
             auto& rng = prng.get(rng_, tnum);
 
             #pragma omp for schedule(runtime)
-            for (const auto& [vi, v] : enumerate(vs))
+            for (size_t vi = 0; vi < std::ranges::size(vs); ++vi) // clang doesn't allow a range loop here
             {
+                auto& v = vs[vi];
                 auto r = State::get_group(v);
                 Group s;
 
@@ -747,8 +708,9 @@ struct Multilevel:
                 auto& rng = prng.get(rng_, tnum);
 
                 #pragma omp for schedule(runtime)
-                for (const auto& [ri, r] : enumerate(rs))
+                for (size_t ri = 0; ri < std::ranges::size(rs); ++ri) // clang doesn't allow a range loop here
                 {
+                    auto&& r = *(std::ranges::begin(rs) + ri);
                     auto v = State::group_label(r);
                     auto u = State::sample_group_label(r, rng);
                     double dS = State::relabel_group_dS(r, u);

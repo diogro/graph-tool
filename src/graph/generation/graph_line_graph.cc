@@ -87,7 +87,7 @@ struct get_line_graph
 void line_graph(GraphInterface& gi, GraphInterface& lgi,
                 std::any edge_index)
 {
-    auto vertex_properties = hana::tuple_t<vprop_map_t<int64_t>>;
+    auto vertex_props = hana::tuple_t<vprop_map_t<int64_t>>;
 
     run_action<>()
         (gi,
@@ -98,7 +98,7 @@ void line_graph(GraphInterface& gi, GraphInterface& lgi,
                   lgi.get_graph(), lgi.get_edge_index(),
                   std::forward<decltype(a2)>(a2));
          },
-         vertex_properties)(edge_index);
+         vertex_props)(edge_index);
 }
 
 #include <boost/python.hpp>

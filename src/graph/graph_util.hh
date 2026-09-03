@@ -298,10 +298,10 @@ void parallel_loop_no_spawn(Range&& vals, F&& f,
     std::conditional_t<std::is_same_v<Except, void>,
                        int, Except> err;
     bool skip = false;
-
     #pragma omp for schedule(runtime)
-    for (auto&& [i, v] : enumerate(std::forward<Range>(vals)))
+    for (size_t i = 0; i < size_t(std::ranges::size(vals)); ++i)  // clang does not allow a range loop here without a warning
     {
+        auto&& v = *(std::ranges::begin(vals) + i);
         if constexpr (!std::is_same_v<Except, void>)
         {
             if (skip)

@@ -525,14 +525,14 @@ public:
                             auto tid = get_thread_num();
                             parallel_vertex_loop_no_spawn
                                 (state._bg,
-                                 [&state,&stop,&f,tid,this](auto r) // explict capture due to clang bug
+                                 [&state,&stop,&f,tid](auto r) // explict capture due to clang bug
                                  {
                                      if (state._deltas[r].empty())
                                          return;
 
                                      auto& m_entries = state._m_entries_pool[tid];
 
-                                     m_entries.set_move(r, _null_group, num_vertices(state._bg));
+                                     m_entries.set_move(r, state._null_group, num_vertices(state._bg));
 
                                      for (auto&& [s, delta] : state._deltas[r])
                                      {

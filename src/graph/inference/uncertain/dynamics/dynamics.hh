@@ -178,7 +178,7 @@ struct Dynamics
             }
         }
 
-        ~DynamicsState()
+        virtual ~DynamicsState()
         {
             for (auto& es : _u_edges)
                 for (auto& [v, e] : es)

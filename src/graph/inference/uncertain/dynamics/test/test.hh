@@ -76,6 +76,8 @@ public:
         }
     }
 
+    virtual ~TestStateBase() {}
+
     Graph& _g;
     State& _state;
     emap_t _p;

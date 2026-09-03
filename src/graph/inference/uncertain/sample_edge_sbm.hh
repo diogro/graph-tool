@@ -536,6 +536,7 @@ public:
 
     void check_counts()
     {
+#ifndef NDEBUG
         for (auto me : edges_range(_state._bg))
         {
             size_t mrs = _state._mrs[me];
@@ -608,6 +609,7 @@ public:
                 assert(mrs == ers);
             }
         }
+#endif
     }
 
     std::tuple<vertex_t, vertex_t> get_null_edge()

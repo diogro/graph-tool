@@ -514,9 +514,9 @@ public:
                                     static_cast<FontSlant>(_attrs.template get<int32_t>(VERTEX_FONT_SLANT)),
                                     static_cast<FontWeight>(_attrs.template get<int32_t>(VERTEX_FONT_WEIGHT)));
                 cr.set_font_size(get_user_dist(cr, _attrs.template get<double>(VERTEX_FONT_SIZE)));
-                Cairo::TextExtents extents;
-                cr.get_text_extents(text, extents);
-                double s = max(extents.width, extents.height) * 1.4;
+                Cairo::TextExtents cextents;
+                cr.get_text_extents(text, cextents);
+                double s = max(cextents.width, cextents.height) * 1.4;
                 vertex_shape_t shape = _attrs.template get<vertex_shape_t>(VERTEX_SHAPE);
                 if (shape >= SHAPE_DOUBLE_CIRCLE && shape != SHAPE_PIE)
                 {
@@ -855,15 +855,15 @@ public:
 
                 cr.rotate(text_rotation);
 
-                Cairo::TextExtents extents;
-                cr.get_text_extents(text, extents);
+                Cairo::TextExtents textents;
+                cr.get_text_extents(text, textents);
                 Cairo::FontExtents fextents;
                 cr.get_font_extents(fextents);
 
                 if (text_pos < 0)
                 {
-                    cr.translate(-extents.width / 2 - extents.x_bearing + text_offset[0],
-                                 extents.height / 2 + text_offset[1]);
+                    cr.translate(-textents.width / 2 - textents.x_bearing + text_offset[0],
+                                 textents.height / 2 + text_offset[1]);
                 }
                 else
                 {
@@ -878,10 +878,10 @@ public:
                     anchor.second = size * 1.2 * sin(angle);
 
                     anchor.first += text_offset[0];
-                    anchor.second += text_offset[1] + extents.height / 2;
+                    anchor.second += text_offset[1] + textents.height / 2;
 
                     if (anchor.first < 0)
-                        anchor.first -= extents.width;
+                        anchor.first -= textents.width;
 
                     cr.translate(anchor.first, anchor.second);
                 }
@@ -1262,9 +1262,9 @@ public:
                 cr.rotate(angle);
                 cr.translate(0, -text_dist);
 
-                Cairo::TextExtents extents;
-                cr.get_text_extents(text, extents);
-                cr.translate(-extents.width / 2, 0);
+                Cairo::TextExtents textents;
+                cr.get_text_extents(text, textents);
+                cr.translate(-textents.width / 2, 0);
             }
             else
             {

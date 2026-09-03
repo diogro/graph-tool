@@ -120,8 +120,9 @@ public:
         double S = 0;
 
         #pragma omp parallel for schedule(runtime) reduction(+:S) if (parallel)
-        for (auto r : rs)
+        for (size_t i = 0; i < std::ranges::size(rs); ++i) // clang doesn't allow range-based loop here
         {
+            auto r = *(std::ranges::begin(rs) + i);
             if (r == null_group)
                 continue;
             if (_total[r] + dn == 0)
@@ -141,8 +142,9 @@ public:
     {
         double S = 0;
         #pragma omp parallel for schedule(runtime) reduction(+:S) if (parallel)
-        for (auto r : rs)
+        for (size_t i = 0; i < std::ranges::size(rs); ++i) // clang doesn't allow range-based loop here
         {
+            auto r = *(std::ranges::begin(rs) + i);
             if (r == null_group)
                 continue;
             int64_t dm = 0;

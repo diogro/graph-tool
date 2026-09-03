@@ -75,17 +75,17 @@ struct ListMatch
 
 #ifdef HAVE_BOOST_COROUTINE
 
-typedef graph_tool::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+typedef graph_tool::coroutines::asymmetric_coroutine<boost::python::object> icoro_t;
 
 struct GenMatch
 {
-    GenMatch(coro_t::push_type& yield): _yield(yield) {}
+    GenMatch(icoro_t::push_type& yield): _yield(yield) {}
 
     template <class Graph1, class Graph2, class VertexMap>
     struct GetMatch
     {
         GetMatch(const Graph1& sub, const Graph2& g,
-                 coro_t::push_type& yield)
+                 icoro_t::push_type& yield)
             : _sub(sub), _g(g), _yield(yield)
         {}
 
@@ -109,7 +109,7 @@ struct GenMatch
 
         const Graph1& _sub;
         const Graph2& _g;
-        coro_t::push_type& _yield;
+        icoro_t::push_type& _yield;
     };
 
     template <class Graph1, class Graph2, class VertexMap>
@@ -121,7 +121,7 @@ struct GenMatch
         return GetMatch<Graph1, Graph2, VertexMap>(sub, g, _yield);
     }
 
-    coro_t::push_type& _yield;
+    icoro_t::push_type& _yield;
 };
 
 #endif // HAVE_BOOST_COROUTINE
