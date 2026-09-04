@@ -4,7 +4,10 @@
 
 - [ ] Are you running the latest `graph-tool` version?
 - [ ] Do you observe the problem with the current git version?
-- [ ] Are you using Macports or Homebrew? If yes, please submit an issue there instead: https://github.com/Homebrew/brew/issues and https://trac.macports.org/newticket
+- [ ] Are you using conda?
+  If so, consider submitting an issue to conda-forge instead: https://github.com/conda-forge/graph-tool-feedstock/issues
+- [ ] Are you using Macports or Homebrew?
+  If so, consider submitting an issue there instead: https://github.com/Homebrew/brew/issues and https://trac.macports.org/newticket
 - [ ] Did you compile `graph-tool` manually?
 - [ ] If you answered yes above, did you use the exact same compiler to build `graph-tool`, `boost-python` and `Python`?
 
