@@ -64,7 +64,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         r"""Base state for network reconstruction based on dynamical or
         behavioral data, using the stochastic block model as a prior. This class
         is not meant to be instantiated directly, only indirectly via one of its
-        subclasses. Nevertheless, its paramteres are inherited, and are
+        subclasses. Nevertheless, its parameters are inherited, and are
         documented as follows.
 
         Parameters
@@ -118,14 +118,14 @@ class DynamicsBlockStateBase(UncertainBaseState):
         x : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1.``)
             Initial value of the edge weights. If a ``float`` is given, the edge
             weights will be assumed to be the same for all edges.
-        x_range : pair of ``float``s (optional, default: ``(-np.inf, np.inf)``)
+        x_range : pair of ``float`` (optional, default: ``(-np.inf, np.inf)``)
             Determines the allowed range of edge weights.
         theta : :class:`~graph_tool.VertexPropertyMap` or list of ``float`` (optional, default: ``[0.]``)
             Initial value of the node parameters (a.k.a. node bias), which
             should be a property map of type ``vector<double>``. If a list of
             ``float`` is given, the node biases will be assumed to be the same
             for all nodes.
-        theta_range : list of pair of ``float``s (optional, default: ``[(-np.inf, np.inf)]``)
+        theta_range : list of pair of ``float`` (optional, default: ``[(-np.inf, np.inf)]``)
             Determines the allowed range of the node parameters.
         xdelta : ``float`` (optional, default: ``1e-8``)
             Initial value for the edge weight precision parameter.
