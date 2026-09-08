@@ -127,7 +127,12 @@ public:
         for (auto v : vertices_range(_g))
         {
             if (_vweight[v] == 0)
+            {
+                _b[v] = _null_group;
+                _clabel[v] = _null_group;
+                _pclabel[v] = _null_group;
                 continue;
+            }
             auto r = _b[v];
             B = std::max(B, size_t(r + 1));
             _bpclabel.get_checked()[r] = _pclabel[v];
@@ -911,11 +916,11 @@ public:
     void coupled_resize_vertices()
     {
         size_t N = num_vertices(_g);
-        _b.soft_reserve(N);
+        _b.soft_reserve(N, _null_group);
         _bfield.soft_reserve(N);
         _vweight.soft_reserve(N);
-        _clabel.soft_reserve(N);
-        _pclabel.soft_reserve(N);
+        _clabel.soft_reserve(N, _null_group);
+        _pclabel.soft_reserve(N, _null_group);
         _degs.resize(N);
         _spec.coupled_resize_vertices(N);
     }
@@ -1185,38 +1190,42 @@ public:
         return dS;
     }
 
-    template <class MEntries>
-    double virtual_move(vertex_t v, group_t r, group_t nr,
-                        const entropy_args_t& ea, MEntries& m_entries)
+    template <bool merge=false, class MEntries>
+    double virtual_move_groups(group_t s, group_t t, const entropy_args_t& ea,
+                               MEntries& m_entries, auto&& deg, auto&& n,
+                               vertex_t v = vertex_t{})
     {
-        get_move_entries(v, r, nr, m_entries);
+        if constexpr (!merge)
+            get_move_entries(v, s, t, m_entries);
+        else
+            get_move_entries(s, s, t, get(vertex_index_t(), _bg),
+                             get(vertex_index_t(), _bg), _bg,
+                             _mrs, num_vertices(_bg), m_entries);
 
-        assert(_vweight[v] != 0);
-
-        if (r == nr || _vweight[v] == 0)
+        if (s == t || n == 0)
             return 0;
 
-        if (!allow_move(r, nr))
+        assert(s == _null_group || _wr[s] != 0);
+
+        if (!allow_move(s, t))
             return std::numeric_limits<double>::infinity();
 
-        auto& [kin, kout] = _degs[v];
+        double dS = entries_dS(s, t, -n, n, get<0>(deg), get<1>(deg), ea, m_entries);
 
-        double dS = entries_dS(r, nr, -_vweight[v], _vweight[v], kin, kout,
-                               ea, m_entries);
-
-        double dS_dl = get_delta_partition_dl(v, r, nr, ea);
+        double dS_dl = get_delta_partition_dl<merge>(v, s, t, ea, n);
 
         if (_deg_corr && ea.degree_dl)
         {
-            auto& ds = _deg_stats;
-            dS_dl += ds.get_delta_dl(_degs[v], r, nr, ea.degree_dl_kind,
-                                     _vweight[v]);
+            if constexpr (!merge)
+                dS_dl += _deg_stats.get_delta_dl(deg, s, t, ea.degree_dl_kind, n);
+            else
+                dS_dl += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
         }
 
         count_t dB = 0;
-        if (r != _null_group && _wr[r] == _vweight[v])
+        if (s != _null_group && _wr[s] == n)
             dB--;
-        if (nr != _null_group && _wr[nr] == 0)
+        if (t != _null_group && _wr[t] == 0)
             dB++;
 
         if (spec_t::edges_dl && ea.edges_dl && dB != 0)
@@ -1233,9 +1242,21 @@ public:
             dS_dl -= (B < _Bfield.size()) ? _Bfield[B] : _Bfield.back();
         }
 
-        dS += _spec.virtual_move(v, r, nr, ea, m_entries);
+        if (!merge)
+            dS += _spec.virtual_move(v, s, t, ea, m_entries);
+        else
+            dS += _spec.virtual_merge(s, t, ea, m_entries);
 
         return dS + ea.beta_dl * dS_dl;
+    }
+
+
+    template <class MEntries>
+    double virtual_move(vertex_t v, group_t r, group_t nr,
+                        const entropy_args_t& ea, MEntries& m_entries)
+    {
+        return virtual_move_groups<false>(r, nr, ea, m_entries, _degs[v],
+                                          _vweight[v], v);
     }
 
     template <class MEntries>
@@ -1255,34 +1276,46 @@ public:
         return virtual_move(v, nr, ea, _m_entries);
     }
 
+    template <bool merge=false>
     double get_delta_partition_dl(vertex_t v, group_t r, group_t nr,
-                                  const entropy_args_t& ea)
+                                  const entropy_args_t& ea, vw_t vw = vw_t{})
     {
         if (r == nr)
             return 0;
 
         double dS = 0;
 
-        auto& f = _bfield[v];
-        if (!f.empty())
+        if constexpr (!merge)
         {
-            if (nr != _null_group)
-                dS -= (size_t(nr) < f.size()) ? f[nr] : f.back();
-            if (r != _null_group)
-                dS += (size_t(r) < f.size()) ? f[r] : f.back();
+            vw = _vweight[v];
+            auto& f = _bfield[v];
+            if (!f.empty())
+            {
+                if (nr != _null_group)
+                    dS -= (size_t(nr) < f.size()) ? f[nr] : f.back();
+                if (r != _null_group)
+                    dS += (size_t(r) < f.size()) ? f[r] : f.back();
+            }
         }
 
         if (ea.partition_dl)
         {
             if (r == _null_group)
-                dS += _ps.get_delta_dl(r, nr, _bpclabel[nr]);
+            {
+                if constexpr (!merge)
+                    dS += _ps.get_delta_dl(r, nr, _bpclabel[nr]);
+                else
+                    dS += _ps.get_delta_dl(r, nr, _bpclabel[nr], vw);
+            }
             else
-                dS += _ps.get_delta_dl(r, nr, _bpclabel[r], _vweight[v]);
+            {
+                dS += _ps.get_delta_dl(r, nr, _bpclabel[r], vw);
+            }
         }
 
         if (_coupled_state != nullptr && spec_t::propagate_delta)
         {
-            bool r_vacate = (r != _null_group && _wr[r] == _vweight[v]);
+            bool r_vacate = (r != _null_group && _wr[r] == vw);
             bool nr_occupy = (nr != _null_group && _wr[nr] == 0);
 
             auto& bh = _coupled_state->_b;
@@ -1308,68 +1341,9 @@ public:
     double virtual_merge(group_t s, group_t t, const entropy_args_t& ea,
                          MEntries& m_entries)
     {
-        get_move_entries(s, s, t, get(vertex_index_t(), _bg),
-                         get(vertex_index_t(), _bg), _bg,
-                         _mrs, num_vertices(_bg), m_entries);
-
-        if (s == t)
-            return 0;
-
-        assert(_wr[s] != 0);
-
-        if (!allow_move(s, t))
-            return std::numeric_limits<double>::infinity();
-
-        double dS = entries_dS(s, t, -_wr[s], _wr[s], _mrm[s], _mrp[s], ea,
-                               m_entries);
-
-        double dS_dl = 0;
-
-        if (ea.partition_dl)
-            dS_dl += _ps.get_delta_dl(s, t, _bpclabel[s], _wr[s]);
-
-        if (_deg_corr && ea.degree_dl)
-            dS_dl += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
-
-        int dB = 0;
-        if (_wr[s] != 0)
-            dB--;
-        if (_wr[t] == 0)
-            dB++;
-
-        if (spec_t::edges_dl && ea.edges_dl && dB != 0 && _coupled_state == nullptr)
-        {
-            dS_dl -= get_edges_dl(_actual_B, _E, _g);
-            dS_dl += get_edges_dl(_actual_B + dB, _E, _g);
-        }
-
-        if (!_Bfield.empty() && ea.Bfield && dB != 0)
-        {
-            size_t actual_B = _actual_B;
-            dS_dl += (actual_B < _Bfield.size()) ?
-                _Bfield[actual_B] : _Bfield.back();
-            actual_B += dB;
-            dS_dl -= (actual_B < _Bfield.size()) ?
-                _Bfield[actual_B] : _Bfield.back();
-        }
-
-        if (_coupled_state != nullptr)
-        {
-            auto& bh = _coupled_state->_b;
-
-            count_t dt = (_wr[t] == 0) ? 1 : 0;
-
-            if (dt > 0)
-                dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], bh[t],
-                                                                _coupled_entropy_args);
-            else
-                dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], _null_group,
-                                                                _coupled_entropy_args);
-        }
-
-        dS += _spec.virtual_merge(s, t, ea, m_entries);
-
-        return dS + ea.beta_dl * dS_dl;
+        return virtual_move_groups<true>(s, t, ea, m_entries,
+                                         std::forward_as_tuple(_mrm[s], _mrp[s]),
+                                         _wr[s]);
     }
 
     double virtual_merge(group_t s, group_t t, const entropy_args_t& ea)
@@ -2312,17 +2286,17 @@ public:
             for (auto r : vertices_range(_bg))
             {
                 assert((_wr[r] != 0) == (_coupled_state->_vweight[r] != 0));
-                auto wr = _wr[r];
+                auto nr = _wr[r];
                 auto vw = _coupled_state->_vweight[r];
                 if (vw == 0)
-                    assert(wr == 0);
-                else if (wr == 0)
+                    assert(nr == 0);
+                else if (nr == 0)
                     assert(vw == 0);
                 else
                 {
-                    wr = 1;
+                    nr = 1;
                     vw = 1;
-                    assert(wr == vw);
+                    assert(nr == vw);
                 }
             }
 
