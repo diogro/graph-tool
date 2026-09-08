@@ -282,6 +282,8 @@ class NestedBlockState(object):
         lrange = list(kwargs.pop("ls", range(len(self.levels))))
         if kwargs.pop("ls_shuffle", False):
             np.random.shuffle(lrange)
+        if kwargs.pop("ls_reverse", False):
+            lrange = reversed(lrange)
         for l in lrange:
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
