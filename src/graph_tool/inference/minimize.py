@@ -153,8 +153,8 @@ def minimize_blockmodel_dl(g, state=BlockState, state_args={},
 def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
                                   base_state=BlockState, state_args={},
                                   base_state_args={}, multilevel_mcmc_args={},
-                                  simple_init=False, base_factor=10.,
-                                  B_min_base=1000, top_factor=2.,
+                                  simple_init=False, simple_init_reverse=False,
+                                  base_factor=10.,  B_min_base=1000, top_factor=2.,
                                   strict=False, refine=True, epsilon=0.001):
     r"""Fit the nested stochastic block model, by minimizing its description length
     using an agglomerative heuristic.
@@ -181,6 +181,9 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
         number of nodes and the paramters ``base_factor``, ``top_factor``, and
         ``B_min_base``. This is meant to be used with ``refine == True`` for an
         alternative to the more expensive multilevel minimization algorithm.
+    simple_init_reverse : ``bool`` (optional, default: ``False``)
+        If ``True``, the initialization scheme will run from top to bottom in
+        the hierarchy, otherwise from bottom to top.
     base_factor : ``float`` (optional, default: ``10.``)
         If ``simple_init == True``, this will determine the minimum number of
         groups at the lowest level of the hierarchy as ``N/base_factor``, where
@@ -282,7 +285,10 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
     args.update(multilevel_mcmc_args)
 
     if simple_init:
-        for l, s in enumerate(state.levels):
+        levels = enumerate(state.levels)
+        if simple_init_reverse:
+            levels = reversed(list(levels))
+        for l, s in levels:
             if l == 0:
                 B = int(max(s.get_N() / base_factor, B_min_base))
             else:
