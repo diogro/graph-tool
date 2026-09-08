@@ -935,7 +935,8 @@ struct MergeSplit:
         get_group_vs<false>(r, vs);
         get_group_vs<false>(s, vs);
 
-        push_b(vs);
+        for (const auto& v : vs)
+            _btemp[v] = State::get_group(v);
 
         double lf = get<4>(split<RNG, false>(r, s, rng));
 
@@ -983,7 +984,12 @@ struct MergeSplit:
             }
         }
 
-        pop_b();
+        #pragma omp parallel for schedule(runtime) if (_parallel)
+        for (size_t i = 0; i < vs.size(); ++i)
+        {
+            const auto& v = vs[i];
+            move_node(v, _btemp[v]);
+        }
 
         return lp + lf;
     }
@@ -1153,8 +1159,6 @@ struct MergeSplit:
 
         if (s == r || !allow_merge(r, s))
             return {_null_group, 0., 0., 0.};
-
-        push_b(_groups[s]);
 
         double pf = 0, pb = 0;
         if (!std::isinf(_beta))
