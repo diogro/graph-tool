@@ -513,7 +513,7 @@ struct RankedBlockStateSpec
                        });
         }
 
-        double virtual_move_dS(group_t r, group_t nr, const entropy_args_t& ea,
+        double virtual_move(group_t r, group_t nr, const entropy_args_t& ea,
                                auto& m_entries, int n)
         {
             double dS_dl = 0;
@@ -606,16 +606,21 @@ struct RankedBlockStateSpec
             return dS_dl;
         }
 
-        double virtual_move_dS(vertex_t, group_t r, group_t nr,
+        double virtual_move(vertex_t, group_t r, group_t nr,
                                const entropy_args_t& ea, auto& m_entries)
         {
-            return virtual_move_dS(r, nr, ea, m_entries, 1);
+            return virtual_move(r, nr, ea, m_entries, 1);
         }
 
-        double virtual_merge_dS(group_t s, group_t t, const entropy_args_t& ea,
-                                auto& m_entries)
+        void move_vertex(vertex_t, group_t, group_t, auto& m_entries)
         {
-            return virtual_move_dS(s, t, ea, m_entries, _state._wr[s]);
+            apply_delta(m_entries);
+        }
+
+        double virtual_merge(group_t s, group_t t, const entropy_args_t& ea,
+                             auto& m_entries)
+        {
+            return virtual_move(s, t, ea, m_entries, _state._wr[s]);
         }
 
         void merge_groups(vertex_t, group_t, auto& m_entries)

@@ -50,7 +50,7 @@ struct MetropolisStateBase
     constexpr static size_t _null_move = std::numeric_limits<size_t>::max();
 
     template <class Node, class State>
-    constexpr std::tuple<double,double> virtual_move_dS(Node&&, State&&)
+    constexpr std::tuple<double,double> virtual_move(Node&&, State&&)
     { return {0,0}; };
 
     template <class Node, class State>
@@ -174,7 +174,7 @@ auto mcmc_sweep(MCMCState& state, RNG& rng)
             }
 
             double dS, mP;
-            std::tie(dS, mP) = state.virtual_move_dS(v, s);
+            std::tie(dS, mP) = state.virtual_move(v, s);
 
             nattempts += nsteps;
 

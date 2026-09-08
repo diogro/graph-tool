@@ -754,7 +754,7 @@ struct Multilevel:
         return S;
     }
 
-    double virtual_merge_dS(const Group& r, const Group& s)
+    double virtual_merge(const Group& r, const Group& s)
     {
         std::vector<Node> mvs;
         State::relax_update(true);
@@ -838,7 +838,7 @@ struct Multilevel:
                                 if constexpr (_has_merge)
                                     dS = State::virtual_merge(r, s, tnum);
                                 else
-                                    dS = virtual_merge_dS(r, s);
+                                    dS = virtual_merge(r, s);
                                 if (!std::isinf(dS) && dS < _best_merge[r].second)
                                     _best_merge[r] = {s, dS};
                                 past_merges.insert(s);
@@ -972,7 +972,7 @@ struct Multilevel:
                 if constexpr (_has_merge)
                     ndS = State::virtual_merge(s, t);
                 else
-                    ndS = virtual_merge_dS(s, t);
+                    ndS = virtual_merge(s, t);
 
                 if (!queue.empty() && ndS > dS[queue.top()])
                 {
@@ -1585,7 +1585,7 @@ struct Multilevel:
     }
 
     std::tuple<double, double>
-    virtual_move_dS(const Node&, size_t)
+    virtual_move(const Node&, size_t)
     {
         return {_dS, _a};
     }

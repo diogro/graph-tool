@@ -99,7 +99,7 @@ struct MCMC
         }
 
         group_t _nr;
-        double virtual_move_dS(vertex_t v, group_t nr, rng_t& rng)
+        double virtual_move(vertex_t v, group_t nr, rng_t& rng)
         {
             group_t r = _state._b[v];
             if (!_allow_new_group && nr != r && _state.virtual_remove_size(v) == 0)

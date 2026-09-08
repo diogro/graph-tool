@@ -45,7 +45,7 @@ void exhaustive_sweep(ExhaustiveState& state, Callback&& callback)
         size_t r = state.node_state(v);
         if (r < B - 1)
         {
-            S += state.virtual_move_dS(v, r + 1);
+            S += state.virtual_move(v, r + 1);
             state.perform_move(v, r + 1);
             if (S < S_min)
             {
@@ -62,7 +62,7 @@ void exhaustive_sweep(ExhaustiveState& state, Callback&& callback)
         }
         else
         {
-            S += state.virtual_move_dS(v, 0);
+            S += state.virtual_move(v, 0);
             state.perform_move(v, 0);
             pos++;
         }

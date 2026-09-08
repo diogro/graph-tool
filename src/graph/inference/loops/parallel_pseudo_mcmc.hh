@@ -77,7 +77,7 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
 
             state.lock_move();
 
-            auto [dS, mP] = state.virtual_move_dS(v, s);
+            auto [dS, mP] = state.virtual_move(v, s);
 
             if (metropolis_accept(dS, mP, beta, rng))
             {

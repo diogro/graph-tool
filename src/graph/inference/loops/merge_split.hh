@@ -935,8 +935,7 @@ struct MergeSplit:
         get_group_vs<false>(r, vs);
         get_group_vs<false>(s, vs);
 
-        for (const auto& v : vs)
-            _btemp[v] = State::get_group(v);
+        push_b(vs);
 
         double lf = get<4>(split<RNG, false>(r, s, rng));
 
@@ -984,12 +983,7 @@ struct MergeSplit:
             }
         }
 
-        #pragma omp parallel for schedule(runtime) if (_parallel)
-        for (size_t i = 0; i < vs.size(); ++i)
-        {
-            const auto& v = vs[i];
-            move_node(v, _btemp[v]);
-        }
+        pop_b();
 
         return lp + lf;
     }
@@ -1170,12 +1164,12 @@ struct MergeSplit:
         }
 
         if (_verbose)
-            cout << "merge " << r << " " << s << " " << get_wr(r) << " " << get_wr(s);
+            std::print("\t sample merge: {} {}, sizes: {} {}",  r, s, get_wr(r), get_wr(s));
 
         double dS = merge(r, s, rng);
 
         if (_verbose)
-            cout << " " << dS << " " << pf << "  " << pb << " " << endl;
+            std::println(", dS: {}, pb: {}, pf: {}, a: {}", dS, pb, pf,-dS + pb - pf);
 
         return {s, dS, pf, pb};
     }
@@ -1190,9 +1184,9 @@ struct MergeSplit:
             pb = merge_prob(s, r);
 
         if (_verbose)
-            cout << "split " << r << " " << s
-                 << " " << get_wr(r) << " " << get_wr(s)
-                 << " " << dS << " " << pf << " " << pb << endl;
+            std::println("\t split sample: {} {}, sizes: {} {}, dS: {}, pb: {}, pf: {}, a: {}",
+                         r, s, get_wr(r), get_wr(s), dS, pb, pf,
+                         -dS + pb - pf);
 
         return {s, dS, pf, pb};
     }
@@ -1234,6 +1228,11 @@ struct MergeSplit:
                 push_b(_vs);
                 move_node(v, s);
                 _nmoves++;
+
+                if (_verbose)
+                    std::println("single move proposal: {} {} {}, sizes: {} {}, dS: {}, pb: {}, pf: {}, a: {}",
+                                 v, r, s, get_wr(r), get_wr(s), _dS, pb, pf,
+                                 -_dS + pb - pf);
             }
             break;
 
@@ -1270,10 +1269,9 @@ struct MergeSplit:
                 }
 
                 if (_verbose)
-                    cout << "split proposal: " << r << " " << s << " "
-                         << get_wr(r) << " " << get_wr(s) << " "
-                         << _dS << " " << pb << " " << pf
-                         << " " << -_dS + pb - pf << endl;
+                    std::println("split proposal: {} {}, sizes: {} {}, dS: {}, pb: {}, pf: {}, a: {}",
+                                 r, s, get_wr(r), get_wr(s), _dS, pb, pf,
+                                 -_dS + pb - pf);
             }
             break;
 
@@ -1312,13 +1310,15 @@ struct MergeSplit:
                     pb += log(State::_psplit);
                 }
 
+                if (_verbose)
+                    std::print("merge proposal: {} {}, sizes: {} {}",
+                                 r, s, get_wr(r_), get_wr(s_));
+
                 _dS = merge(r, s, rng);
 
                 if (_verbose)
-                    cout << "merge proposal: " << r << " " << s
-                         << " " << get_wr(r_) << " "
-                         << get_wr(s_) << " " << _dS << " " << pb << " " << pf
-                         << " " << -_dS + pb - pf << endl;
+                    std::println(", dS: {}, pb: {}, pf: {}, a: {}",
+                                 _dS, pb, pf, -_dS + pb - pf);
             }
             break;
 
@@ -1361,11 +1361,9 @@ struct MergeSplit:
                 pb += get<3>(ret);
 
                 if (_verbose)
-                    cout << "mergesplit proposal: "
-                         << r << " " << s << " "
-                         << _dS << " "
-                         << pb << " " << pf  << " "
-                         << -_dS + pb - pf << endl;
+                    std::println("mergesplit proposal: {} {}, sizes: {} {}, dS: {}, pb: {}, pf: {}, a: {}",
+                                 r, s, get_wr(r), get_wr(s), _dS, pb, pf,
+                                 -_dS + pb - pf);
             }
             break;
 
@@ -1389,11 +1387,9 @@ struct MergeSplit:
                 _dS = merge(r, s, rng);
 
                 if (_verbose)
-                    cout << "movelabel proposal: "
-                         << r << " " << s << " "
-                         <<  get_wr(r) << " "
-                         << get_wr(s) << " " << _dS << " " << pb << " " << pf
-                         << " " << -_dS + pb - pf << endl;
+                    std::println("movelabel proposal: {} {}, sizes: {} {}, dS: {}, pb: {}, pf: {}, a: {}",
+                                 r, s, get_wr(r), get_wr(s), _dS, pb, pf,
+                                 -_dS + pb - pf);
             }
             break;
 
@@ -1426,13 +1422,15 @@ struct MergeSplit:
     }
 
     std::tuple<double, double>
-    virtual_move_dS(const Node&, size_t)
+    virtual_move(const Node&, size_t)
     {
         return {_dS, _a};
     }
 
     void perform_move(const Node&, size_t)
     {
+        if (_verbose)
+            std::println("-> accepted move");
         State::_nacceptance[size_t(_move)]++;
         clear_b();
         check_rlist();

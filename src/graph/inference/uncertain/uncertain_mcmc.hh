@@ -131,7 +131,7 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t, int64_t dm)
+        virtual_move(size_t, int64_t dm)
         {
             if (dm == 0)
                 return {0., 0.};

@@ -459,7 +459,7 @@ struct OverlapBlockStateSpec
         }
 
         template <bool concurrent = false>
-        void move_vertex(auto v, auto r, auto nr, auto& nb, auto&& skip)
+        void move_vertex_concurrent(auto v, auto r, auto nr, auto& nb, auto&& skip)
         {
             auto& g = _state._g;
             auto& eweight = _state._eweight;
@@ -519,12 +519,12 @@ struct OverlapBlockStateSpec
             }
         }
 
-        void move_vertex(auto v, auto r, auto nr)
+        void move_vertex(auto v, auto r, auto nr, auto&)
         {
-            move_vertex<false>(v, r, nr, _state._b, [](auto&){ return false; });
+            move_vertex_concurrent<false>(v, r, nr, _state._b, [](auto&){ return false; });
         }
 
-        double virtual_move_dS(auto v, auto r, auto nr, const entropy_args_t& ea,
+        double virtual_move(auto v, auto r, auto nr, const entropy_args_t& ea,
                                auto&&)
         {
             auto& g = _state._g;
@@ -608,12 +608,12 @@ struct OverlapBlockStateSpec
 
             for (auto v : _state._groups[s])
             {
-                move_vertex(v, s, t, nb, [](auto&){ return false; });
+                move_vertex_concurrent<false>(v, s, t, nb, [](auto&){ return false; });
                 bo[v] = t;
             }
         }
 
-        double virtual_merge_dS(group_t s, group_t t, const entropy_args_t& ea, auto&)
+        double virtual_merge(group_t s, group_t t, const entropy_args_t& ea, auto&)
         {
             auto get_delta_dl =
                 [&](auto& degs)

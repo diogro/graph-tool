@@ -207,12 +207,11 @@ struct BlockStateSpec
         constexpr double entropy(const entropy_args_t&) const { return 0; }
 
         constexpr double entries_dS(const entropy_args_t&, auto&) const { return 0; }
-        constexpr double virtual_move_dS(auto&, auto&, auto&, const entropy_args_t&, auto&) const { return 0; }
-        constexpr double virtual_merge_dS(auto, auto, auto&, auto&) const { return 0; }
+        constexpr double virtual_move(auto&, auto&, auto&, const entropy_args_t&, auto&) const { return 0; }
+        constexpr double virtual_merge(auto, auto, auto&, auto&) const { return 0; }
 
-        template <bool concurrent=false>
-        constexpr void move_vertex(auto, auto, auto, auto&, auto&&) {}
-        constexpr void move_vertex(auto, auto, auto) {}
+        constexpr void move_vertex_concurrent(auto, auto, auto, auto&, auto&&) {}
+        constexpr void move_vertex(auto, auto, auto, auto&) {}
         constexpr void move_vertices_parallel(auto&&, auto&&) {}
         template <bool concurrent=false, class Deltas = std::monostate>
         constexpr bool apply_delta(auto&, Deltas&& = std::monostate()) { return false; }

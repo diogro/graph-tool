@@ -445,7 +445,7 @@ struct MCMC
 
 
         std::tuple<double, double>
-        virtual_move_dS(size_t, move_t move)
+        virtual_move(size_t, move_t move)
         {
             auto& [u, v, s, t, m_uv, m_st, m_sv, m_ut, x_uv, x_st, x_sv, x_ut]
                 = _swaps[get_thread_num()];

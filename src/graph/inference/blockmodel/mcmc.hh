@@ -116,7 +116,7 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(vertex_t v, group_t nr)
+        virtual_move(vertex_t v, group_t nr)
         {
             group_t r = _state._b[v];
             if (r == nr)

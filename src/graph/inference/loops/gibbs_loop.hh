@@ -74,7 +74,7 @@ auto gibbs_sweep(GibbsState& state, RNG& rng)
              for (size_t j = 0; j < moves.size(); ++j)
              {
                  size_t s = moves[j];
-                 double dS = state.virtual_move_dS(v, s, rng);
+                 double dS = state.virtual_move(v, s, rng);
                  dS_min = std::min(dS, dS_min);
                  deltas[j] = dS;
                  idx[j] = j;

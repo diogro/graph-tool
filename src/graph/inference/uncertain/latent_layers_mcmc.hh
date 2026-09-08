@@ -188,7 +188,7 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t, const std::tuple<int, bool>& d)
+        virtual_move(size_t, const std::tuple<int, bool>& d)
         {
             int dm;
             bool lmove;

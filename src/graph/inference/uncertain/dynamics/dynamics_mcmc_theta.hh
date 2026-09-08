@@ -206,7 +206,7 @@ struct MCMCTheta
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t v, move_t nx)
+        virtual_move(size_t v, move_t nx)
         {
             auto x = _state._theta[v][_l];
             if (x == nx)

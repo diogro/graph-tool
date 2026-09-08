@@ -282,7 +282,7 @@ struct MCMCTDelta
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t, move_t ndelta)
+        virtual_move(size_t, move_t ndelta)
         {
             if (_verbose)
                 cout << _state._tdelta[_l] << " " << ndelta << " "

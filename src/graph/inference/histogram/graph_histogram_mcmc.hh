@@ -267,7 +267,7 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t, hmove_t move)
+        virtual_move(size_t, hmove_t move)
         {
             double dS = 0;
             double pf = 0;

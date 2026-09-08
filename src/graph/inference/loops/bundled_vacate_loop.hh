@@ -57,7 +57,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
                         continue;
                     past_moves.insert(s);
 
-                    double dS = state.virtual_move_dS(bundle, s);
+                    double dS = state.virtual_move(bundle, s);
 
                     if (dS < get<1>(best_move))
                     {
@@ -104,7 +104,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
                     double dS = 0;
                     for (auto& bundle : bundles)
                     {
-                        dS += state.virtual_move_dS(bundle, s);
+                        dS += state.virtual_move(bundle, s);
                         state.perform_move(bundle, s);
                     }
 
@@ -149,7 +149,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
                 }
                 bmoves.push_back(get<0>(best_move));
 
-                dS += state.virtual_move_dS(bundle, bmoves.back());
+                dS += state.virtual_move(bundle, bmoves.back());
                 state.perform_move(bundle, bmoves.back());
             }
 
@@ -240,7 +240,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
         {
             auto& bundle = bundles[i];
             auto s = bmoves[i];
-            S += state.virtual_move_dS(bundle, s);
+            S += state.virtual_move(bundle, s);
             state.perform_move(bundle, s);
         }
 

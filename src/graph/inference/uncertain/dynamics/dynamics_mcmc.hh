@@ -429,7 +429,7 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(std::tuple<size_t, size_t>& uv, move_t& mv)
+        virtual_move(std::tuple<size_t, size_t>& uv, move_t& mv)
         {
             auto& u = get<0>(uv);  // captures are not supported by clang w/ openmp
             auto& v = get<1>(uv);

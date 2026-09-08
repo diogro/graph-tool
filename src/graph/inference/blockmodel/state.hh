@@ -272,8 +272,7 @@ public:
         if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
-        _spec.move_vertex(v, r, nr);
-        _spec.apply_delta(m_entries);
+        _spec.move_vertex(v, r, nr, m_entries);
 
         apply_delta(*this, m_entries, spec_t::propagate_delta);
 
@@ -473,8 +472,8 @@ public:
                           });
 
                      insert_delta(*this, m_entries, _deltas);
-                     _spec.template move_vertex<true>(v, r, nr, nb,
-                                                      [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
+                     _spec.move_vertex_concurrent(v, r, nr, nb,
+                                                  [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
                  });
         }
 
@@ -1234,7 +1233,7 @@ public:
             dS_dl -= (B < _Bfield.size()) ? _Bfield[B] : _Bfield.back();
         }
 
-        dS += _spec.virtual_move_dS(v, r, nr, ea, m_entries);
+        dS += _spec.virtual_move(v, r, nr, ea, m_entries);
 
         return dS + ea.beta_dl * dS_dl;
     }
@@ -1324,8 +1323,6 @@ public:
         double dS = entries_dS(s, t, -_wr[s], _wr[s], _mrm[s], _mrp[s], ea,
                                m_entries);
 
-        dS += _spec.virtual_merge_dS(s, t, ea, m_entries);
-
         double dS_dl = 0;
 
         if (ea.partition_dl)
@@ -1369,6 +1366,8 @@ public:
                 dS_dl += _coupled_state->get_delta_partition_dl(s, bh[s], _null_group,
                                                                 _coupled_entropy_args);
         }
+
+        dS += _spec.virtual_merge(s, t, ea, m_entries);
 
         return dS + ea.beta_dl * dS_dl;
     }

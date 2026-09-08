@@ -84,7 +84,7 @@ struct Exhaustive
             return _state._b[v];
         }
 
-        double virtual_move_dS(vertex_t v, group_t nr)
+        double virtual_move(vertex_t v, group_t nr)
         {
             return _state.virtual_move(v, nr, _entropy_args);
         }
