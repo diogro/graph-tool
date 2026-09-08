@@ -1160,6 +1160,8 @@ struct MergeSplit:
         if (s == r || !allow_merge(r, s))
             return {_null_group, 0., 0., 0.};
 
+        push_b(_groups[s]);
+
         double pf = 0, pb = 0;
         if (!std::isinf(_beta))
         {
@@ -1267,7 +1269,7 @@ struct MergeSplit:
                     pf += -safelog_fast(_rlist.size());
 
                     pb = merge_prob(s, r);
-                    pb += -safelog_fast(_rlist.size()+1); //FIXME: empty groups!
+                    pb += -safelog_fast(_rlist.size()+1); // FIXME: empty groups!
 
                     pb += log(State::_pmerge);
                 }
