@@ -143,19 +143,19 @@ struct MCMC
 
             auto r = _state._b[v];
 
-            auto cstate = _state._coupled_state;
-            if (cstate != nullptr)
-            {
-                if constexpr (sample_branch)
-                {
-                    cstate->sample_branch(t, r, rng);
-                }
-                else
-                {
-                    auto& bh = cstate->_b;
-                    bh[t] = bh[r];
-                }
-            }
+            _state.visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     if constexpr (sample_branch)
+                     {
+                         cs.sample_branch(t, r, rng);
+                     }
+                     else
+                     {
+                         auto& bh = cs._b;
+                         bh[t] = bh[r];
+                     }
+                 });
             assert(_state.allow_move(r, t));
             assert(_state._wr[t] == 0);
             return t;
@@ -244,13 +244,16 @@ struct MCMC
 
         bool can_swap(group_t r, group_t s)
         {
-            auto cstate = _state._coupled_state;
-            if (cstate == nullptr)
+            if (!_state.has_coupled())
                 return _state._bclabel[r] == _state._bclabel[s];
-            auto& hb = cstate->_b;
-            auto rr = hb[r];
-            auto ss = hb[s];
-            return (rr == ss) && (_state._bclabel[r] == _state._bclabel[s]);
+            return _state.visit_coupled
+                ([&](auto&& cs, auto&)
+                 {
+                     auto& hb = cs._b;
+                     auto rr = hb[r];
+                     auto ss = hb[s];
+                     return (rr == ss) && (_state._bclabel[r] == _state._bclabel[s]);
+                 });
         }
 
         void relax_update(bool relax)

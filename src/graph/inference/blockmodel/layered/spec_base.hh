@@ -406,8 +406,12 @@ struct LayeredBlockStateSpec
         void couple_state(auto& state)
         {
             ibase_t::couple_state(state);
-            state._eweight.set_mutex(_state._mrs.get_mutex());
-            state._eweight.sync_size();
+            _state.visit_coupled
+                ([&](auto&& cs, auto&)
+                 {
+                     cs._eweight.set_mutex(_state._mrs.get_mutex());
+                     cs._eweight.sync_size();
+                 });
         }
 
         void update_group_weight(auto r, auto&& dw)
@@ -415,19 +419,20 @@ struct LayeredBlockStateSpec
             ibase_t::update_group_weight(r, dw);
             if constexpr (State::weight_t::_layered)
             {
-                if (_state._coupled_state != nullptr)
-                {
-                    auto& wr = _state._wr[r];
-                    for (auto&& [l, d] : dw._h)
-                    {
-                        if (d == 0)
-                            continue;
-                        if (wr.get(l) == 0)
-                            _state._coupled_state->_spec.set_vertex_weight(r, l, 1);
-                        else if (wr.get(l) + d == 0)
-                            _state._coupled_state->_spec.set_vertex_weight(r, l, 0);
-                    }
-                }
+                _state.visit_coupled_if
+                    ([&](auto&& cs, auto&)
+                     {
+                         auto& wr = _state._wr[r];
+                         for (auto&& [l, d] : dw._h)
+                         {
+                             if (d == 0)
+                                 continue;
+                             if (wr.get(l) == 0)
+                                 cs._spec.set_vertex_weight(r, l, 1);
+                             else if (wr.get(l) + d == 0)
+                                 cs._spec.set_vertex_weight(r, l, 0);
+                         }
+                     });
             }
         }
 

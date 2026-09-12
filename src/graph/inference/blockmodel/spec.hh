@@ -21,6 +21,8 @@
 #include "config.h"
 
 #include <any>
+#include <variant>
+#include <type_traits>
 #include <cstdint>
 
 #include "graph_tool.hh"
@@ -173,7 +175,43 @@ struct BlockStateSpec
                              return hana::type_c<typename State::template state_t<typename decltype(as)::type...>>;
                          });
 
-        typedef decltype(state_t)::type type;
+        typedef decltype(state_t)::type* type;
+    };
+
+    template <class State>
+    struct get_coupled_eargs_t
+    {
+        using type = typename decltype
+            ([]()
+             {
+                 using coupled_state_t = typename State::coupled_state_t;
+                 if constexpr (std::is_pointer_v<coupled_state_t>)
+                 {
+                     return std::type_identity<typename std::remove_pointer_t<coupled_state_t>::entropy_args_t>{};
+                 }
+                 else
+                 {
+                     constexpr auto types_of =
+                         []<class T, class... VTs>(hana::basic_type<std::variant<T, VTs...>>)
+                         {
+                             return hana::tuple_t<typename std::remove_pointer_t<VTs>::entropy_args_t...>;
+                         };
+
+                     constexpr auto uniq =
+                         [](auto ts)
+                         {
+                             return hana::fold_left
+                                 (ts, hana::make_tuple(),
+                                  [](auto acc, auto t)
+                                  {
+                                      return hana::if_(hana::contains(acc, t), acc, hana::append(acc, t));
+                                  });
+                         };
+
+                     constexpr auto ts = uniq(types_of(hana::type_c<coupled_state_t>));
+                     return std::type_identity<typename decltype(hana::unpack(ts, hana::template_<std::variant>))::type>{};
+                 }
+             }())::type;
     };
 
     static void python_export()

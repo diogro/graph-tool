@@ -125,13 +125,48 @@ REGISTER_MOD
                           return typename state_t::entropy_args_t();
                       })
                  .def("couple_state",
-                      &state_t::couple_state)
+                      +[](state_t& state, python::object ostate, python::object oea)
+                      {
+                          if constexpr (std::is_pointer_v<typename state_t::coupled_state_t>)
+                          {
+                              typedef std::remove_pointer_t<typename state_t::coupled_state_t> cstate_t;
+                              auto& cs = extract_param<cstate_t&>()(ostate);
+                              auto ea = extract_param<typename cstate_t::entropy_args_t>()(oea);
+                              state.couple_state(&cs, ea);
+                          }
+                          else
+                          {
+                              constexpr auto types_of =
+                                  []<class T, class... Ts>(hana::basic_type<std::variant<T, Ts...>>)
+                                  {
+                                      return hana::tuple_t<std::remove_pointer_t<Ts>&...>;
+                                  };
+
+                              constexpr auto ts = types_of(hana::type_c<typename state_t::coupled_state_t>);
+
+                              gt_dispatch<>()
+                                  ([&](auto& cs)
+                                   {
+                                       typedef std::decay_t<decltype(cs)> cstate_t;
+                                       auto ea = extract_param<typename cstate_t::entropy_args_t>()(oea);
+                                       state.couple_state(&cs, ea);
+                                   }, ts)(ostate);
+                          }
+                      })
                  .def("decouple_state",
                       &state_t::decouple_state)
                  .def("get_coupled_state",
-                       +[](state_t& state)
+                      +[](state_t& state)
                       {
-                          return size_t(state.get_coupled_state());
+                          return state.template visit_coupled<true>
+                              ([&](auto&& cs, auto&)
+                               {
+                                   if constexpr (std::is_same_v<std::decay_t<decltype(cs)>,
+                                                                std::monostate>)
+                                       return size_t(0);
+                                   else
+                                       return size_t(&cs);
+                               });
                       })
                  .def("get_ptr",
                       +[](state_t& state)

@@ -58,8 +58,7 @@ struct MCMC
 
         template <class... ATs>
         MCMCLoopStateImp(ATs&&... as)
-          : MCMCLoopStateBase<Ts...>(std::forward<ATs>(as)...),
-            _m_entries(get_num_threads())
+          : MCMCLoopStateBase<Ts...>(std::forward<ATs>(as)...)
         {
             GILRelease gil_release;
 
@@ -81,39 +80,30 @@ struct MCMC
                 _has_b_max = rs_max.size() == _B_max;
             }
 
-            size_t L = _state.get_L();
-
-            if constexpr (std::is_same_v<typename State::coupled_state_t::m_entries_t,
-                                         typename State::m_entries_t>)
-            {
-                for (auto&& [i, mes] : enumerate(_m_entries))
-                {
-                    mes.resize(L);
-                    for (size_t l = 0; l < L - 1; ++l)
-                        mes[l]._next = &mes[l+1];
-                }
-            }
-            else
-            {
-                _m_entries_coupled.resize(get_num_threads());
-                for (auto& mes : _m_entries_coupled)
-                {
-                    mes.resize(L);
-                    for (size_t l = 0; l < L - 1; ++l)
-                        mes[l]._next = &mes[l+1];
-                }
-
-                for (auto&& [i, mes] : enumerate(_m_entries))
-                {
-                    mes.resize(1);
-                    mes[0]._next = &_m_entries_coupled[i][0];
-                }
-            }
+            resize_m_entries();
 
             _state.clear_egroups();
         }
 
-        ~MCMCLoopStateImp() { _state.clear_egroups(); }
+        ~MCMCLoopStateImp()
+        {
+            _state.clear_egroups();
+            _state._m_entries_pool.clear();
+
+            auto clear_m_entries =
+                [&](this auto&& self, auto& state) -> void
+                {
+                    state._m_entries_pool.clear();
+                    state._m_entries_pool.shrink_to_fit();
+                    state.visit_coupled_if
+                        ([&](auto& cs, auto&)
+                         {
+                             self(cs);
+                         });
+                };
+
+            clear_m_entries(_state);
+        }
 
         constexpr static group_t null_group = State::null_group;
 
@@ -125,9 +115,6 @@ struct MCMC
 
         bool _has_b_max = false;
         bool _has_b_min = false;
-
-        std::vector<std::vector<typename State::m_entries_t>> _m_entries;
-        std::vector<std::vector<typename State::coupled_state_t::m_entries_t>> _m_entries_coupled;
 
         idx_set<group_t> _rs;
 
@@ -181,12 +168,33 @@ struct MCMC
             _state._empty_groups.erase(r);
         }
 
+        void resize_m_entries()
+        {
+            auto resize =
+                [&](this auto&& self, auto& state) -> void
+                {
+                    if (_parallel)
+                        state._m_entries_pool.resize(get_num_threads());
+                    else
+                        state._m_entries_pool.resize(1);
+                    state.visit_coupled_if
+                        ([&](auto& cs, auto&)
+                         {
+                             self(cs);
+                             for (auto&& [i, mes] : enumerate(state._m_entries_pool))
+                                 mes._next = &cs._m_entries_pool[i];
+                         });
+                };
+
+            resize(_state);
+        }
+
         auto& get_m_entries(int tnum)
         {
             if (_parallel)
-                return _m_entries[tnum][0];
+                return _state._m_entries_pool[tnum];
             else
-                return _m_entries[0][0];
+                return _state._m_entries_pool[0];
         }
 
         void move_node(vertex_t v, group_t r, bool cache)
@@ -203,7 +211,7 @@ struct MCMC
             if (std::ranges::size(vs) >= _parallel_thres)
             {
                 double Sb = entropy();
-                _state.move_vertices_parallel(vs, rs);
+                _state.template move_vertices_parallel<false>(vs, rs);
                 return entropy() - Sb;
             }
             else
@@ -226,8 +234,7 @@ struct MCMC
 
         double virtual_merge(group_t r, group_t s, int tnum=0)
         {
-            return _state.virtual_merge(r, s, _entropy_args,
-                                        _m_entries[tnum][0]);
+            return _state.virtual_merge(r, s, _entropy_args, get_m_entries(tnum));
         }
 
         void merge_groups(group_t r, group_t s)

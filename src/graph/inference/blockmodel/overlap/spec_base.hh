@@ -171,7 +171,7 @@ struct OverlapBlockStateSpec
                              return hana::type_c<COUPLED_BLOCK_MODEL<typename decltype(as)::type...>>;
                          });
 
-        typedef decltype(state_t)::type type;
+        typedef decltype(state_t)::type* type;
     };
 
     template <class State>

@@ -480,8 +480,14 @@ void apply_delta(auto& state, auto& m_entries, bool propagate=true)
                   });
          });
 
-    if (state._coupled_state != nullptr && propagate)
-        apply_delta<lock>(*state._coupled_state, *m_entries._next);
+    if (propagate)
+    {
+        state.visit_coupled_if
+            ([&](auto& cs, auto&)
+             {
+                 apply_delta<lock>(cs, *m_entries._next);
+             });
+    }
 }
 
 

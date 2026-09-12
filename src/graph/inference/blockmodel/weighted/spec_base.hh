@@ -750,11 +750,15 @@ struct WeightedBlockStateSpec
 
                      atomic_inc(_B_E, dB_E);
 
-                     if (dB_E != 0 && _state._coupled_state != nullptr)
+                     if (dB_E != 0)
                      {
-                         auto&& ew = _state._coupled_state->_eweight.get_checked()[me];
-                         set_weight(ew, 0, get_weight(ew, 0) + dB_E);
-                         _state._coupled_state->_eweight.sync_size();
+                         _state.visit_coupled_if
+                             ([&](auto&& cs, auto&)
+                              {
+                                  auto&& ew = cs._eweight.get_checked()[me];
+                                  set_weight(ew, 0, get_weight(ew, 0) + dB_E);
+                                  cs._eweight.sync_size();
+                              });
                      }
 
                      if (!_wc._normals.empty())
@@ -801,15 +805,15 @@ struct WeightedBlockStateSpec
                              }
                          }
 
-                         if (_state._coupled_state != nullptr)
-                         {
-                             auto& s = *_state._coupled_state;
-                             for (auto i : _wc._normals)
-                             {
-                                 auto&& ew = s._eweight.get_checked()[me];
-                                 set_dev(ew, i, std::pow(get_weight(ew, i) + get_weight(delta, i), 2));
-                             }
-                         }
+                         _state.visit_coupled_if
+                             ([&](auto&& s, auto&)
+                              {
+                                  for (auto i : _wc._normals)
+                                  {
+                                      auto&& ew = s._eweight.get_checked()[me];
+                                      set_dev(ew, i, std::pow(get_weight(ew, i) + get_weight(delta, i), 2));
+                                  }
+                              });
 
                          if (_Lrecdx[0] >= 0)
                          {
@@ -858,15 +862,19 @@ struct WeightedBlockStateSpec
         {
             ibase_t::couple_state(state);
 
-            state._spec._recsum = _recsum;
+            _state.visit_coupled
+                ([&](auto&& cs, auto&)
+                 {
+                    cs._spec._recsum = _recsum;
 
-            if (_state._Lrecdx[0] < 0)
-                _state._Lrecdx[0] = 0;
+                    if (cs._Lrecdx[0] < 0)
+                        cs._Lrecdx[0] = 0;
 
-            if (state._spec._B_E_D != 0)
-                state._spec._Lrecdx[0] += unity(state._spec._B_E_D);
-            for (auto i : _wc._normals)
-                state._spec._Lrecdx[i+1] += state._spec._recdx[i] * state._spec._B_E_D;
+                    if (cs._spec._B_E_D != 0)
+                        cs._spec._Lrecdx[0] += unity(cs._spec._B_E_D);
+                    for (auto i : _wc._normals)
+                        cs._spec._Lrecdx[i+1] += cs._spec._recdx[i] * cs._spec._B_E_D;
+                 });
 
             if (_is_base)
             {

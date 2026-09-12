@@ -112,7 +112,7 @@ public:
     using rw_t = property_traits<wr_t>::value_type;
 
     using coupled_state_t = spec_t::coupled_state_t<BlockState>::type;
-    using coupled_entropy_args_t = coupled_state_t::entropy_args_t;
+    using coupled_entropy_args_t = spec_t::get_coupled_eargs_t<BlockState>::type;
 
     template <class... ATs>
     BlockState(ATs&&... args)
@@ -257,12 +257,18 @@ public:
         if (r == _null_group || nr == _null_group)
             return true;
 
-        if (_coupled_state != nullptr)
+        if (has_coupled())
         {
-            auto& hb = _coupled_state->_b;
-            auto rr = hb[r];
-            auto ss = hb[nr];
-            if (rr != ss && !_coupled_state->allow_move(rr, ss))
+            if (!visit_coupled
+                    ([&](auto&& s, auto&)
+                     {
+                         auto& hb = s._b;
+                         auto rr = hb[r];
+                         auto ss = hb[nr];
+                         if (rr != ss && !s.allow_move(rr, ss))
+                             return false;
+                         return true;
+                     }))
                 return false;
         }
         return _bclabel[r] == _bclabel[nr];
@@ -342,7 +348,7 @@ public:
             return do_slock_pair<largs>(dispatch, r, s, *_group_mutex[r], *_group_mutex[s]);
     }
 
-    template <class Vs, class NRs>
+    template <bool clear_m_entries, class Vs, class NRs>
     void move_vertices_parallel_dispatch(Vs&& vs, NRs&& nrs)
     {
         static_assert(std::ranges::random_access_range<Vs>);
@@ -485,36 +491,47 @@ public:
         _spec.move_vertices_parallel(vs, nrs);
 
         auto dispatch_coupled =
-            [&](auto& state, auto&& dispatch)
+            [&](this auto&& self, auto& state) -> void
             {
                 typedef std::decay_t<decltype(state)> cstate_t;
 
                 state._m_entries_pool.resize(get_num_threads());
 
-                if (state._coupled_state != nullptr)
-                {
-                    state._coupled_state->_m_entries_pool.resize(get_num_threads());
+                state.visit_coupled_if
+                    ([&](auto& s, auto&)
+                     {
+                         s._m_entries_pool.resize(get_num_threads());
 
-                    for (auto&& [i, mes] : enumerate(state._m_entries_pool))
-                        mes.set_next(state._coupled_state->_m_entries_pool[i]);
+                         for (auto&& [i, mes] : enumerate(state._m_entries_pool))
+                             mes.set_next(s._m_entries_pool[i]);
 
-                    state._coupled_state->_deltas.resize(num_vertices(state._coupled_state->_bg));
-                }
+                         s._deltas.resize(num_vertices(s._bg));
+                     });
 
                 auto clear =
                     [&](bool coupled)
                     {
-                         state._m_entries_pool.clear();
-                         state._m_entries_pool.shrink_to_fit();
-                         state._deltas.clear();
-                         state._deltas.shrink_to_fit();
-                         if (coupled && state._coupled_state != nullptr)
-                         {
-                             state._coupled_state->_m_entries_pool.clear();
-                             state._coupled_state->_m_entries_pool.shrink_to_fit();
-                             state._coupled_state->_deltas.clear();
-                             state._coupled_state->_deltas.shrink_to_fit();
-                         }
+                        if constexpr (clear_m_entries)
+                        {
+                            state._m_entries_pool.clear();
+                            state._m_entries_pool.shrink_to_fit();
+                        }
+                        state._deltas.clear();
+                        state._deltas.shrink_to_fit();
+                        if (coupled)
+                        {
+                            state.visit_coupled_if
+                                ([&](auto& s, auto&)
+                                 {
+                                     if constexpr (clear_m_entries)
+                                     {
+                                         s._m_entries_pool.clear();
+                                         s._m_entries_pool.shrink_to_fit();
+                                     }
+                                     s._deltas.clear();
+                                     s._deltas.shrink_to_fit();
+                                 });
+                        }
                     };
 
                 auto lguard_ = boost::scope::make_scope_exit([&]() { clear(true); });
@@ -565,23 +582,30 @@ public:
 
                 dispatch_delta([&](auto& m_entries)
                                {
-                                   if (state._coupled_state != nullptr && cstate_t::spec_t::propagate_delta)
+                                   if constexpr (cstate_t::spec_t::propagate_delta)
                                    {
-                                       state._coupled_state->propagate_entries(state, m_entries, false);
-                                       insert_delta(*state._coupled_state, *m_entries._next, state._coupled_state->_deltas);
+                                       state.visit_coupled_if
+                                           ([&](auto& s, auto&)
+                                            {
+                                                s.propagate_entries(state, m_entries, false);
+                                                insert_delta(s, *m_entries._next, s._deltas);
+                                            });
                                    }
-
                                    apply_delta<true>(state, m_entries, false);
                                });
 
-                 if (stop || state._coupled_state == nullptr || !cstate_t::spec_t::propagate_delta)
+                 if (stop || !state.has_coupled() || !cstate_t::spec_t::propagate_delta)
                      return;
 
                  clear(false);
-                 dispatch(*state._coupled_state, dispatch);
+                 state.visit_coupled
+                     ([&](auto& s, auto&)
+                      {
+                          self(s);
+                      });
             };
 
-        dispatch_coupled(*this, dispatch_coupled);
+        dispatch_coupled(*this);
 
         for (auto r : _rset)
         {
@@ -635,38 +659,40 @@ public:
         _groups_in.clear();
         _groups_out.clear();
         _deltas.clear();
-        _m_entries_pool.clear();
         _vset.shrink_to_fit();
         _rset.shrink_to_fit();
         _groups_in.shrink_to_fit();
         _groups_out.shrink_to_fit();
         _deltas.shrink_to_fit();
-        _m_entries_pool.shrink_to_fit();
+        if constexpr (clear_m_entries)
+        {
+            _m_entries_pool.clear();
+            _m_entries_pool.shrink_to_fit();
+        }
         if (has_egroups)
             init_egroups();
     }
 
-    template <class Vs, class NRs>
-    void move_vertices_parallel(Vs&& vs, NRs&& nrs)
+    template <bool clear_m_entries=true>
+    void move_vertices_parallel(auto&& vs, auto&& nrs)
     {
-        if constexpr (std::ranges::random_access_range<Vs>)
+        if constexpr (std::ranges::random_access_range<std::decay_t<decltype(vs)>>)
         {
-            move_vertices_parallel_dispatch(vs, nrs);
+            move_vertices_parallel_dispatch<clear_m_entries>(vs, nrs);
         }
         else
         {
             std::vector<std::decay_t<decltype(*std::ranges::begin(vs))>>
                 vs_(std::from_range_t(), vs);
-            if constexpr (std::ranges::random_access_range<NRs>)
+            if constexpr (std::ranges::random_access_range<std::decay_t<decltype(nrs)>>)
             {
-                move_vertices_parallel_dispatch(vs_, nrs);
-
+                move_vertices_parallel_dispatch<clear_m_entries>(vs_, nrs);
             }
             else
             {
                 std::vector<std::decay_t<decltype(*std::ranges::begin(nrs))>>
                     nrs_(std::from_range_t(), nrs);
-                move_vertices_parallel_dispatch(vs_, nrs_);
+                move_vertices_parallel_dispatch<clear_m_entries>(vs_, nrs_);
             }
         }
     }
@@ -674,23 +700,27 @@ public:
     template <class VMap>
     void set_partition(VMap& b, bool parallel)
     {
-        std::decay_t<decltype(_coupled_state->_b)> hb;
-        if (_coupled_state != nullptr)
-            hb = _coupled_state->_b;
+        visit_coupled
+            ([&](auto&& s, auto&)
+             {
+                 std::decay_t<decltype(s._b)> hb;
+                 if (this->has_coupled())
+                     hb = s._b;
 
-        for (auto v : vertices_range(_g))
-        {
-            group_t r = b[v];
-            if (size_t(r) >= num_vertices(_bg))
-                add_group(r + 1 - num_vertices(_bg));
-            if (_wr[r] == 0)
-            {
-                if (_coupled_state != nullptr)
-                    hb[r] = hb[_b[v]];
-                _bclabel[r] = _bclabel[_b[v]];
-                _bpclabel[r] = _bpclabel[_b[v]];
-            }
-        }
+                 for (auto v : vertices_range(_g))
+                 {
+                     group_t r = b[v];
+                     if (size_t(r) >= num_vertices(_bg))
+                         add_group(r + 1 - num_vertices(_bg));
+                     if (_wr[r] == 0)
+                     {
+                         if (this->has_coupled())
+                             hb[r] = hb[_b[v]];
+                         _bclabel[r] = _bclabel[_b[v]];
+                         _bpclabel[r] = _bpclabel[_b[v]];
+                     }
+                 }
+             });
 
         if (parallel)
         {
@@ -763,11 +793,15 @@ public:
         _actual_B--;
         _ps.remove_item(r, _bpclabel[r], rw_t{});
 
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
+        if constexpr (spec_t::propagate_delta)
         {
-            auto& hb = _coupled_state->_b;
-            _coupled_state->remove_partition_node(r, hb[r]);
-            _coupled_state->set_vertex_weight(r, rw_t{});
+            visit_coupled_if
+                ([&](auto&& s, auto&)
+                 {
+                     auto& hb = s._b;
+                     s.remove_partition_node(r, hb[r]);
+                     s.set_vertex_weight(r, rw_t{});
+                 });
         }
     }
 
@@ -778,13 +812,17 @@ public:
         _actual_B++;
         _ps.add_item(r, _bpclabel[r], rw_t{});
 
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
+        if constexpr (spec_t::propagate_delta)
         {
-            auto& hb = _coupled_state->_b;
-            auto rw = w;
-            rw = 1; // NOTE: setting this way is important for the layered model
-            _coupled_state->set_vertex_weight(r, rw);
-            _coupled_state->add_partition_node(r, hb[r]);
+            visit_coupled_if
+                ([&](auto&& s, auto&)
+                 {
+                     auto& hb = s._b;
+                     auto rw = w;
+                     rw = 1; // NOTE: setting this way is important for the layered model
+                     s.set_vertex_weight(r, rw);
+                     s.add_partition_node(r, hb[r]);
+                 });
         }
     }
 
@@ -855,8 +893,11 @@ public:
         }
         _emat.add_group(_bg);
         _spec.add_group(n);
-        if (_coupled_state != nullptr)
-            _coupled_state->coupled_resize_vertices();
+        visit_coupled_if
+            ([&](auto&& s, auto&)
+             {
+                 s.coupled_resize_vertices();
+             });
         return r;
     }
 
@@ -864,30 +905,112 @@ public:
     // Nested states
     // =========================================================================
 
-    void couple_state(coupled_state_t& s, const coupled_entropy_args_t& ea)
+    bool has_coupled()
     {
-        _coupled_state = &s;
+        if constexpr (std::is_pointer_v<coupled_state_t>)
+            return _coupled_state != nullptr;
+        else
+            return _coupled_state.index() != 0;
+    }
+
+    template <bool mono = false>
+    decltype(auto) visit_coupled(auto&& f)
+    {
+        if constexpr (std::is_pointer_v<coupled_state_t>)
+        {
+            if constexpr (mono)
+            {
+                if (_coupled_state != nullptr)
+                    return f(*_coupled_state, _coupled_entropy_args);
+                else
+                    return f(std::monostate(), _coupled_entropy_args);
+            }
+            else
+            {
+                return f(*_coupled_state, _coupled_entropy_args);
+            }
+        }
+        else
+        {
+            return std::visit
+                ([&](auto s)
+                 {
+                     if constexpr (std::is_pointer_v<decltype(s)>)
+                     {
+                         return std::visit
+                             ([&](auto& ea)
+                              {
+                                  return f(*s, ea);
+                              }, _coupled_entropy_args);
+                     }
+                     else
+                     {
+                         if constexpr (mono)
+                         {
+                             return std::visit
+                                 ([&](auto&& ea)
+                                  {
+                                      return f(s, ea);
+                                  }, _coupled_entropy_args);
+                         }
+                         else
+                         {
+                             // will result in error; needed for return type deduction
+                             std::variant_alternative_t<1, coupled_state_t> st{};
+                             return std::visit
+                                 ([&](auto& ea)
+                                  {
+                                      return f(*st, ea);
+                                  }, _coupled_entropy_args);
+                         }
+                     }
+                 }, _coupled_state);
+        }
+    }
+
+    template <bool mono = false>
+    decltype(auto) visit_coupled_if(auto&& f)
+    {
+        visit_coupled<true>
+            ([&](auto&& s, auto& ea)
+             {
+                 if constexpr (!std::is_same_v<std::decay_t<decltype(s)>,
+                                               std::monostate>)
+                     f(s, ea);
+             });
+    }
+
+    void couple_state(coupled_state_t s, const coupled_entropy_args_t& ea)
+    {
+        _coupled_state = s;
         _coupled_entropy_args = ea;
-        _m_entries.set_next(s.get_m_entries());
+        visit_coupled
+            ([&](auto& cs, auto&)
+             {
+                 _m_entries.set_next(cs.get_m_entries());
+             });
         _spec.couple_state(s);
     }
 
     void decouple_state()
     {
-        _coupled_state = nullptr;
+        if constexpr (std::is_pointer_v<coupled_state_t>)
+            _coupled_state = nullptr;
+        else
+            _coupled_state = std::monostate();
     }
 
     template <class State>
-    size_t count_L(State* cstate)
+    size_t count_L(State& cstate)
     {
-        if (cstate != nullptr)
-            return 1 + count_L(cstate->_coupled_state);
+        if (cstate.has_coupled())
+            return 1 + cstate.visit_coupled([&](auto& s, auto&) { return count_L(s); });
         return 1;
     }
 
     size_t get_L()
     {
-        return count_L(_coupled_state);
+        return count_L(*this);
     }
 
     void set_concurrent(bool concurrent, size_t M = 0)
@@ -909,8 +1032,11 @@ public:
 
         _spec.set_concurrent(concurrent, M);
 
-        if (_coupled_state != nullptr)
-            _coupled_state->set_concurrent(concurrent, M / 2);
+        visit_coupled_if
+            ([&](auto& s, auto&)
+             {
+                 s.set_concurrent(concurrent, M / 2);
+             });
     }
 
     void coupled_resize_vertices()
@@ -946,8 +1072,14 @@ public:
     {
         modify_entries(v, r, nr, b, nb, g, eweight, B, m_entries, efilt);
 
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
-            _coupled_state->propagate_entries(*this, m_entries);
+        if constexpr (spec_t::propagate_delta)
+        {
+            visit_coupled_if
+                ([&](auto&& s, auto&)
+                 {
+                     s.propagate_entries(*this, m_entries);
+                 });
+        }
     }
 
     void get_move_entries(auto v, group_t r, group_t nr, auto&& b, auto&& nb,
@@ -991,8 +1123,14 @@ public:
                            (_b[t], _b[w], delta);
                    });
 
-        if (_coupled_state != nullptr && propagate)
-            _coupled_state->propagate_entries(*this, m_entries);
+        if (propagate)
+        {
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     cs.propagate_entries(*this, m_entries);
+                 });
+        }
     }
 
     // obtain the entropy difference given a set of entries in the e_rs matrix
@@ -1128,35 +1266,40 @@ public:
         dS += _spec.entries_dS(ea, m_entries);
 
         double dS_dl = 0;
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
+
+        if constexpr (spec_t::propagate_delta)
         {
-            using crw_t = typename coupled_state_t::rw_t;
-            crw_t ddr{}, ddnr{};
+            visit_coupled_if
+                ([&](auto&& cs, auto& cea)
+                 {
+                    using crw_t = typename std::decay_t<decltype(cs)>::rw_t;
+                    crw_t ddr{}, ddnr{};
 
-            if (r != nr)
-            {
-                if (r != _null_group)
-                {
-                    crw_t wr_r = _wr[r];
-                    crw_t n_wr_r = _wr[r] + dr;
-                    ddr = -thresh_diff(n_wr_r, wr_r);
-                }
-                if (nr != _null_group)
-                {
-                    crw_t wr_nr = _wr[nr];
-                    crw_t n_wr_nr = _wr[nr] + dnr;
-                    ddnr = thresh_diff(wr_nr, n_wr_nr);
-                }
-            }
-            else
-            {
-                ddr = ddnr = 0;
-            }
+                    if (r != nr)
+                    {
+                        if (r != _null_group)
+                        {
+                            crw_t wr_r = _wr[r];
+                            crw_t n_wr_r = _wr[r] + dr;
+                            ddr = -thresh_diff(n_wr_r, wr_r);
+                        }
+                        if (nr != _null_group)
+                        {
+                            crw_t wr_nr = _wr[nr];
+                            crw_t n_wr_nr = _wr[nr] + dnr;
+                            ddnr = thresh_diff(wr_nr, n_wr_nr);
+                        }
+                    }
+                    else
+                    {
+                        ddr = ddnr = 0;
+                    }
 
-            if (!m_entries._next->empty() || ddr != 0 || ddnr != 0)
-                dS_dl += _coupled_state->propagate_entries_dS(r, nr, ddr, ddnr,
-                                                              *m_entries._next,
-                                                              _coupled_entropy_args);
+                    if (!m_entries._next->empty() || ddr != 0 || ddnr != 0)
+                        dS_dl += cs.propagate_entries_dS(r, nr, ddr, ddnr,
+                                                         *m_entries._next,
+                                                         cea);
+                 });
         }
 
         return dS + ea.beta_dl * dS_dl;
@@ -1313,26 +1456,29 @@ public:
             }
         }
 
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
+        if constexpr (spec_t::propagate_delta)
         {
-            bool r_vacate = (r != _null_group && _wr[r] == vw);
-            bool nr_occupy = (nr != _null_group && _wr[nr] == 0);
+            visit_coupled_if
+                ([&](auto& cs, auto& cea)
+                 {
+                     bool r_vacate = (r != _null_group && _wr[r] == vw);
+                     bool nr_occupy = (nr != _null_group && _wr[nr] == 0);
 
-            auto& bh = _coupled_state->_b;
-            if (r_vacate && nr_occupy)
-            {
-                dS += _coupled_state->get_delta_partition_dl(r, bh[r], bh[nr],
-                                                             _coupled_entropy_args);
-            }
-            else
-            {
-                if (r_vacate)
-                    dS += _coupled_state->get_delta_partition_dl(r, bh[r], _null_group,
-                                                                 _coupled_entropy_args);
-                if (nr_occupy)
-                    dS += _coupled_state->get_delta_partition_dl(nr, _null_group, bh[nr],
-                                                                 _coupled_entropy_args);
-            }
+                     auto& bh = cs._b;
+                     if (r_vacate && nr_occupy)
+                     {
+                         dS += cs.get_delta_partition_dl(r, bh[r], bh[nr], cea);
+                     }
+                     else
+                     {
+                         if (r_vacate)
+                             dS += cs.get_delta_partition_dl(r, bh[r],
+                                                             _null_group, cea);
+                         if (nr_occupy)
+                             dS += cs.get_delta_partition_dl(nr, _null_group,
+                                                             bh[nr], cea);
+                     }
+                 });
         }
         return dS;
     }
@@ -1376,14 +1522,15 @@ public:
             _bpclabel[s] = _bpclabel[r];
             assert(_clabel[v] == _bclabel[r]);
 
-            if (_coupled_state != nullptr)
-            {
-                auto& hb = _coupled_state->_b;
-                auto& hpclabel = _coupled_state->_pclabel;
-                auto& hclabel = _coupled_state->_clabel;
-                hb[s] = hb[r];
-                hpclabel[s] = hclabel[s] = _pclabel[v];
-            }
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     auto& hb = cs._b;
+                     auto& hpclabel = cs._pclabel;
+                     auto& hclabel = cs._clabel;
+                     hb[s] = hb[r];
+                     hpclabel[s] = hclabel[s] = _pclabel[v];
+                 });
         }
 
         return s;
@@ -1399,8 +1546,11 @@ public:
         if (occupied_groups.size() < _N[_bclabel[r]] && new_r(rng))
         {
             s = get_empty_group(u, rng);
-            if (_coupled_state != nullptr)
-                _coupled_state->sample_branch(s, r, rng);
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     cs.sample_branch(s, r, rng);
+                 });
         }
         else
         {
@@ -1666,8 +1816,14 @@ public:
 
         S += _spec.entropy(ea);
 
-        if (_coupled_state != nullptr && ea.propagate && ea.beta_dl != 0)
-            S_dl += _coupled_state->entropy(_coupled_entropy_args);
+        if (ea.propagate && ea.beta_dl != 0)
+        {
+            visit_coupled_if
+                ([&](auto&& s, auto& cea)
+                 {
+                     S_dl += s.entropy(cea);
+                 });
+        }
 
         assert(!isnan(S) && !isnan(S_dl));
 
@@ -1704,7 +1860,7 @@ public:
                 _mrs.get_checked()[me] = weight_t{};
             }
 
-            if (_coupled_state == nullptr || !spec_t::propagate_delta)
+            if (!has_coupled() || !spec_t::propagate_delta)
                 _mrs[me] += dm;
 
             _mrp[r] += dm;
@@ -1713,7 +1869,7 @@ public:
         else
         {
             assert(me != _emat.get_null_edge());
-            if (_coupled_state == nullptr || !spec_t::propagate_delta)
+            if (!has_coupled() || !spec_t::propagate_delta)
             {
                 _mrs[me] -= dm;
                 if (int64_t(_mrs[me]) == 0)
@@ -1777,9 +1933,14 @@ public:
                 _deg_stats.add_vertex(_degs[v], s, _vweight[v]);
         }
 
-
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
-            _coupled_state->template modify_edge<Add, Deplete>(r, s, me, dm);
+        if constexpr (spec_t::propagate_delta)
+        {
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     cs.template modify_edge<Add, Deplete>(r, s, me, dm);
+                 });
+        }
 
         _spec.template modify_edge<Add, Deplete>(u, v, e, dm);
 
@@ -2051,10 +2212,13 @@ public:
             }
         }
 
-        if (_coupled_state != nullptr && spec_t::propagate_delta)
+        if constexpr (spec_t::propagate_delta)
         {
-            S_dl += _coupled_state->modify_edge_dS(r, s, me, dm,
-                                                   _coupled_entropy_args);
+            visit_coupled_if
+                ([&](auto&& cs, auto& cea)
+                 {
+                     S_dl += cs.modify_edge_dS(r, s, me, dm, cea);
+                 });
         }
         else
         {
@@ -2241,14 +2405,20 @@ public:
             assert(!std::isinf(eS) && !std::isnan(eS));
         }
 
-        if (_coupled_state != nullptr && propagate)
+        if (propagate)
         {
-             std::println("\nnext level\n");
-            if (!_coupled_state->check_edge_counts(false))
-            {
-                assert(false);
-                return false;
-            }
+            bool ret = true;
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     std::println("\nnext level\n");
+                     if (!cs.check_edge_counts(false))
+                     {
+                         assert(false);
+                         ret =  false;
+                     }
+                 });
+            return ret;
         }
         return true;
     }
@@ -2281,26 +2451,30 @@ public:
 
         assert(B == _actual_B);
 
-        if (_coupled_state != nullptr)
+        if (has_coupled())
         {
-            for (auto r : vertices_range(_bg))
-            {
-                assert((_wr[r] != 0) == (_coupled_state->_vweight[r] != 0));
-                auto nr = _wr[r];
-                auto vw = _coupled_state->_vweight[r];
-                if (vw == 0)
-                    assert(nr == 0);
-                else if (nr == 0)
-                    assert(vw == 0);
-                else
-                {
-                    nr = 1;
-                    vw = 1;
-                    assert(nr == vw);
-                }
-            }
+            visit_coupled
+                ([&](auto&& cs)
+                 {
+                     for (auto r : vertices_range(_bg))
+                     {
+                         assert((_wr[r] != 0) == (cs_vweight[r] != 0));
+                         auto nr = _wr[r];
+                         auto vw = cs_vweight[r];
+                         if (vw == 0)
+                             assert(nr == 0);
+                         else if (nr == 0)
+                             assert(vw == 0);
+                         else
+                         {
+                             nr = 1;
+                             vw = 1;
+                             assert(nr == vw);
+                         }
+                     }
 
-            _coupled_state->check_node_counts();
+                     cs.check_node_counts();
+                 });
         }
 #endif
     }
@@ -2310,8 +2484,14 @@ public:
         // if (_egroups)
         //     _egroups->check(_bg, _mrs);
         _egroups_update = !relax;
-        if (_coupled_state != nullptr)
-            _coupled_state->relax_update(relax);
+        if (has_coupled())
+        {
+            visit_coupled
+                ([&](auto&& cs, auto&)
+                 {
+                     cs.relax_update(relax);
+                 });
+        }
     }
 
     auto& get_occupied_groups(vertex_t v)
@@ -2356,8 +2536,8 @@ public:
     using m_entries_t = spec_t::m_entries_t<BlockState>::type;
     m_entries_t _m_entries;
 
-    coupled_state_t* _coupled_state = nullptr;
-    coupled_entropy_args_t _coupled_entropy_args;
+    coupled_state_t _coupled_state{};
+    coupled_entropy_args_t _coupled_entropy_args{};
 
     std::vector<std::shared_ptr<shared_canary_mutex>> _group_mutex;
 

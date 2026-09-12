@@ -111,9 +111,11 @@ struct MCMC
                     _state.virtual_remove_size(v) == 0)
                     return numeric_limits<double>::infinity();
                 _nr = nr = _state.get_empty_group(v, rng);
-                auto cstate = _state._coupled_state;
-                if (cstate != nullptr)
-                    cstate->sample_branch(nr, r, rng);
+                _state.visit_coupled_if
+                    ([&](auto& cs, auto&)
+                     {
+                         cs.sample_branch(nr, r, rng);
+                     });
             }
             return _state.virtual_move(v, nr, _entropy_args);
         }

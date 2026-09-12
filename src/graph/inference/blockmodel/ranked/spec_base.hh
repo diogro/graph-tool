@@ -132,7 +132,7 @@ struct RankedBlockStateSpec
                              return hana::type_c<block_model::BlockState<typename decltype(as)::type...>>;
                          });
 
-        typedef decltype(state_t)::type type;
+        typedef decltype(state_t)::type* type;
     };
 
     DEFINE_STRUCT_BASED(entropy_args_t, Base::entropy_args_t, REARGS_params);
