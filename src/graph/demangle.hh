@@ -21,13 +21,16 @@
 #include <typeinfo>
 #include <string>
 
-__attribute__ ((visibility("default")))
-std::string name_demangle(std::string name);
+#pragma GCC visibility push(default)
+
+std::string name_demangle(const std::string& name);
 
 template <class T>
 std::string get_type_name()
 {
     return name_demangle(typeid(T).name());
 }
+
+#pragma GCC visibility pop
 
 #endif // DEMANGLE_HH

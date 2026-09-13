@@ -20,7 +20,7 @@
 #include <cstdlib>
 #include <format>
 
-std::string name_demangle(std::string name)
+std::string name_demangle(const std::string& name)
 {
     int status = 0;
     char *realname = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
