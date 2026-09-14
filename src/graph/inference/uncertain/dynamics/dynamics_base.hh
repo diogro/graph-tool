@@ -195,7 +195,7 @@ public:
                           for (auto e : in_or_out_edges_range(v, s._u))
                           {
                               auto u = source(e, s._u);
-                              if (u == v && !s._self_loops)
+                              if ((u == v && !s._self_loops) || (!_active.empty() && !_active[n][u][t]))
                                   continue;
                               _spec.update_dm(m, _spec.transform_input(v, u, su(u)), xc[e]);
                           }
@@ -546,11 +546,13 @@ public:
 
         iter_time<true, false, true>
             (us, v,
-             [&](auto, auto, auto& su, auto&& m, int)
+             [&](auto n, auto t, auto& su, auto&& m, int)
              {
                  for (size_t i = 0; i < us.size(); ++i)
                  {
                      auto& u = us[i];
+                     if (!_active.empty() && !_active[n][u][t])
+                         continue;
                      _spec.update_dm(m, _spec.transform_input(v, u, su(u)), dx[i]);
                  }
              });
@@ -677,6 +679,8 @@ public:
                     for (size_t i = 0; i < us.size(); ++i)
                     {
                         auto& u = us[i];
+                        if (!_active.empty() && !_active[n][u][t])
+                            continue;
                         _spec.update_dm(dm, _spec.transform_input(v, u, su(u)), dx[i]);
                     }
                 };
@@ -718,6 +722,8 @@ public:
                     for (size_t i = 0; i < us.size(); ++i)
                     {
                         auto& u = us[i];
+                        if (!_active.empty() && !_active[n][u][t])
+                            continue;
                         _spec.update_dm(nm, _spec.transform_input(v, u, su(u)), dx[i]);
                     }
                 }
@@ -784,12 +790,14 @@ public:
 
         m_t dm;
         auto f =
-            [&](auto, auto, auto&& su, auto&& m, int w, auto s_v, auto... s_nv)
+            [&](auto n, auto t, auto&& su, auto&& m, int w, auto s_v, auto... s_nv)
             {
                 dm = _spec.get_m_zero();
                 for (size_t i = 0; i < us.size(); ++i)
                 {
                     auto& u = us[i];
+                    if (!_active.empty() && !_active[n][u][t])
+                        continue;
                     _spec.update_dm(dm, _spec.transform_input(v, u, su(u)), dx[i]);
                 }
 
