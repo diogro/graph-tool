@@ -490,6 +490,8 @@ public:
 
         _spec.move_vertices_parallel(vs, nrs);
 
+        auto& spec = _spec; // NOTE: alias needed to avoid bug with GCC 15
+
         auto dispatch_coupled =
             [&](this auto&& self, auto& state) -> void
             {
@@ -576,7 +578,7 @@ public:
                 {
                     dispatch_delta([&](auto& m_entries)
                                    {
-                                       _spec.template apply_delta<true>(m_entries, state._deltas);
+                                       spec.template apply_delta<true>(m_entries, state._deltas);
                                    });
                 }
 

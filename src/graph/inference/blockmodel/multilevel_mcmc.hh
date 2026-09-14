@@ -170,10 +170,11 @@ struct MCMC
 
         void resize_m_entries()
         {
+            auto parallel = _parallel; // NOTE: alias needed to avoid ICE with GCC 15
             auto resize =
                 [&](this auto&& self, auto& state) -> void
                 {
-                    if (_parallel)
+                    if (parallel)
                         state._m_entries_pool.resize(get_num_threads());
                     else
                         state._m_entries_pool.resize(1);
