@@ -68,7 +68,7 @@ class UncertainBaseState(EntropyState):
             self.eweight = self.u.own_property(self.eweight.copy())
             if nested:
                 bstate = bstate.copy(g=self.u,
-                                     base_state_args=dict(bstate.state_args,
+                                     base_state_args=dict(bstate.base_state_args,
                                                           eweight=self.eweight))
             else:
                 bstate = bstate.copy(g=self.u, eweight=self.eweight)
@@ -123,8 +123,12 @@ class UncertainBaseState(EntropyState):
         self.max_m = max_m
 
     def __getstate__(self):
-        state = EntropyState.__getstate__(self)
-        return dict(state, nested=self.nbstate is not None,
+        eargs = self.get_entropy_args()
+        sig = inspect.signature(self.entropy)
+        for k, v in sig.parameters.items():
+            if k in eargs and eargs[k] == v:
+                eargs.pop(k)
+        return dict(entropy_args=eargs, g=self.g, nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None else self.bstate))
 
     def get_block_state(self):
@@ -447,6 +451,10 @@ class UncertainBlockState(UncertainBaseState):
         self._state = libinference.make_uncertain_state(self.bstate._state,
                                                         self)
 
+    def __getstate__(self):
+        state = super().__getstate__()
+        return dict(state,  q=self._q, q_default=self._q_default)
+
     def __repr__(self):
         return "<UncertainBlockState object with %s, at 0x%x>" % \
             (self.nbstate if self.nbstate is not None else self.bstate,
@@ -592,6 +600,14 @@ class MeasuredBlockState(UncertainBaseState):
 
         self._state = libinference.make_measured_state(self.bstate._state,
                                                        self)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        return dict(state, n=self.n, x=self.x, n_default=self.n_default,
+                    x_default=self.x_default,
+                    fn_params=dict(alpha=self.alpha, beta=self.beta),
+                    fp_params=dict(mu=self.mu, nu=self.nu), lp=self.lp,
+                    lq=self.lq)
 
     def __repr__(self):
         return "<MeasuredBlockState object with %s, at 0x%x>" % \
@@ -856,6 +872,10 @@ class LatentMaskBlockState(UncertainBaseState):
 
         self._state = libinference.make_latent_mask_state(self.bstate._state,
                                                           self)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        return dict(state, ecount=self.ecount, f=self.f, f_default=self.f_default)
 
     def __repr__(self):
         return "<LatentMaskBlockState object with %s, at 0x%x>" % \

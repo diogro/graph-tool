@@ -296,6 +296,22 @@ class DynamicsBlockStateBase(UncertainBaseState):
     def theta_range(self):
         return list(zip(self.tmin_bound, self.tmax_bound))
 
+    def __getstate__(self):
+        state = UncertainBaseState.__getstate__(self)
+        return dict(state, s=self.s, t=self.t,
+                    active=self.active, x=self.x,
+                    x_range=(self.xmin_bound, self.xmax_bound),
+                    theta=self.theta,
+                    theta_range=list(zip(self.tmin_bound, self.tmax_bound)),
+                    xdelta=self.xdelta,
+                    tdelta=self.tdelta,
+                    disable_xdist=self.disable_xdist,
+                    disable_tdist=self.disable_tdist,
+                    rg=self.rg, elist=self.elist,
+                    ecandidates=self.ecandidates,
+                    max_m=self.max_m,
+                    **self.params)
+
     def __repr__(self):
         return "<%s object with %s, %d edge categories and %d node categories, at 0x%x>" % \
             (self.__class__.__name__,
@@ -2719,3 +2735,10 @@ class TestBlockState(DynamicsBlockStateBase):
     def _make_state(self):
         return libinference.make_test_state(self.g_ref._Graph__graph,
                                             self._state, vars(self))
+
+    def __getstate__(self):
+        return dict(DynamicsBlockStateBase.__getstate__(self),
+                    g=self.g_ref, p=self.p, mu=self.mu, sigma=self.sigma,
+                    p_default=self.p_default, mu_default=self.mu_default,
+                    sigma_default=self.sigma_default, mu_v=self.mu_v,
+                    sigma_v=self.sigma_v)
