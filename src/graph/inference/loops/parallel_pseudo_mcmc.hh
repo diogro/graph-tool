@@ -52,45 +52,42 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
         if (!state.is_deterministic())
             std::shuffle(vlist.begin(), vlist.end(), rng_);
 
-        #pragma omp parallel for schedule(runtime) \
-            reduction(+: S, nattempts, nmoves)
-        for (size_t i = 0; i < vlist.size(); ++i)
-        {
-            auto& rng = prng.get(rng_);
+        #pragma omp parallel reduction(+: S, nattempts, nmoves)
+        parallel_loop_rng_no_spawn
+            (vlist,
+             [&](auto, auto& v, auto, auto& rng)
+             {
+                 bool locked = state.stage_proposal(v, rng);
 
-            auto& v = vlist[i];
+                 if (!locked)
+                     return;
 
-            bool locked = state.stage_proposal(v, rng);
+                 auto s = state.move_proposal(v, rng);
 
-            if (!locked)
-                continue;
+                 nattempts++;
 
-            auto s = state.move_proposal(v, rng);
+                 if (s == state._null_move)
+                 {
+                     state.proposal_unlock(v);
+                     return;
+                 }
 
-            nattempts++;
+                 state.lock_move();
 
-            if (s == state._null_move)
-            {
-                state.proposal_unlock(v);
-                continue;
-            }
+                 auto [dS, mP] = state.virtual_move(v, s);
 
-            state.lock_move();
-
-            auto [dS, mP] = state.virtual_move(v, s);
-
-            if (metropolis_accept(dS, mP, beta, rng))
-            {
-                nmoves++;
-                state.perform_move(v, s); // should unlock
-                S += dS;
-            }
-            else
-            {
-                state.proposal_unlock(v);
-                state.unlock_move();
-            }
-        }
+                 if (metropolis_accept(dS, mP, beta, rng))
+                 {
+                     nmoves++;
+                     state.perform_move(v, s); // should unlock
+                     S += dS;
+                 }
+                 else
+                 {
+                     state.proposal_unlock(v);
+                     state.unlock_move();
+                 }
+             }, prng);
     }
 
     return make_tuple(S, nattempts, nmoves);

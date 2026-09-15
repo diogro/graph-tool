@@ -22,7 +22,6 @@
 #include "graph_filtering.hh"
 #include "graph_util.hh"
 #include "random.hh"
-#include "parallel_rng.hh"
 
 #include "../inference/support/util.hh"
 #include "samplers.hh"
@@ -365,15 +364,13 @@ public:
     template <class Graph, class VMap, class RNG>
     void marginal_sample(Graph& g, VMap s, RNG& rng_)
     {
-        parallel_rng<rng_t> prng(rng_);
-        parallel_vertex_loop
+        parallel_vertex_loop_rng
             (g,
-             [&] (auto v)
+             [&] (auto v, auto, auto& rng)
              {
-                 auto& rng = prng.get(rng_);
                  std::normal_distribution<> mrand(_vm_m[v], sqrt(_vm_s[v]));
                  s[v] = mrand(rng);
-             });
+             }, rng_);
     }
 
 private:

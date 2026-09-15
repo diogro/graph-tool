@@ -517,54 +517,46 @@ struct Multilevel:
         if (std::isinf(beta))
             push_b(vs);
 
-        parallel_rng<rng_t> prng(rng_);
+        parallel_loop_rng
+            (vs,
+             [&](auto vi, auto& v, auto tnum, auto& rng)
+             {
+                 auto r = State::get_group(v);
+                 Group s;
 
-        #pragma omp parallel
-        {
-            auto tnum = get_thread_num();
-            auto& rng = prng.get(rng_, tnum);
+                 if constexpr (smart)
+                 {
+                     s = State::sample_group(v, false, false, init_heuristic, rng); // c == 0!
+                     if ((rs.find(s) == rs.end() && !allow_new && rs.size() >= B_max) || s == r)
+                     {
+                         moves[vi] = r;
+                         return;
+                     }
+                 }
+                 else
+                 {
+                     s = r;
+                     while (s == r)
+                         s = uniform_sample(rs, rng);
+                 }
 
-            #pragma omp for schedule(runtime)
-            for (size_t vi = 0; vi < std::ranges::size(vs); ++vi) // clang doesn't allow a range loop here
-            {
-                auto& v = vs[vi];
-                auto r = State::get_group(v);
-                Group s;
+                 double dS = State::virtual_move(v, s, tnum);
 
-                if constexpr (smart)
-                {
-                    s = State::sample_group(v, false, false, init_heuristic, rng); // c == 0!
-                    if ((rs.find(s) == rs.end() && !allow_new && rs.size() >= B_max) || s == r)
-                    {
-                        moves[vi] = r;
-                        continue;
-                    }
-                }
-                else
-                {
-                    s = r;
-                    while (s == r)
-                        s = uniform_sample(rs, rng);
-                }
+                 double pf = 0, pb = 0;
+                 if constexpr (smart)
+                 {
+                     if (!std::isinf(beta) && s != r && !init_heuristic)
+                     {
+                         pf = State::get_move_prob(v, r, s, false, rs.size() > B_min, false, tnum);
+                         pb = State::get_move_prob(v, s, r, false, rs.size() > B_min, true, tnum);
+                     }
+                 }
 
-                double dS = State::virtual_move(v, s, tnum);
-
-                double pf = 0, pb = 0;
-                if constexpr (smart)
-                {
-                    if (!std::isinf(beta) && s != r && !init_heuristic)
-                    {
-                        pf = State::get_move_prob(v, r, s, false, rs.size() > B_min, false, tnum);
-                        pb = State::get_move_prob(v, s, r, false, rs.size() > B_min, true, tnum);
-                    }
-                }
-
-                if (metropolis_accept(dS, pb - pf, beta, rng))
-                    moves[vi] = s;
-                else
-                    moves[vi] = r;
-            }
-        }
+                 if (metropolis_accept(dS, pb - pf, beta, rng))
+                     moves[vi] = s;
+                 else
+                     moves[vi] = r;
+             }, rng_);
 
         double Sb = 0;
 
@@ -701,31 +693,24 @@ struct Multilevel:
         if constexpr (_has_parallel_relabel)
         {
             std::vector<decltype(State::group_label(*rs.begin()))> moves(rs.size());
-            parallel_rng<rng_t> prng(rng_);
-            #pragma omp parallel
-            {
-                auto tnum = get_thread_num();
-                auto& rng = prng.get(rng_, tnum);
-
-                #pragma omp for schedule(runtime)
-                for (size_t ri = 0; ri < std::ranges::size(rs); ++ri) // clang doesn't allow a range loop here
-                {
-                    auto&& r = *(std::ranges::begin(rs) + ri);
-                    auto v = State::group_label(r);
-                    auto u = State::sample_group_label(r, rng);
-                    double dS = State::relabel_group_dS(r, u);
-                    double pf = 0, pb = 0;
-                    if (!std::isinf(beta))
-                    {
-                        pf = State::get_relabel_prob(r, v, u, false);
-                        pb = State::get_relabel_prob(r, u, v, true);
-                    }
-                    if (metropolis_accept(dS, pb - pf, beta, rng))
-                        moves[ri] = u;
-                    else
-                        moves[ri] = v;
-                }
-            }
+            parallel_loop_rng
+                (rs,
+                 [&](auto ri, auto& r, auto, auto& rng)
+                 {
+                     auto v = State::group_label(r);
+                     auto u = State::sample_group_label(r, rng);
+                     double dS = State::relabel_group_dS(r, u);
+                     double pf = 0, pb = 0;
+                     if (!std::isinf(beta))
+                     {
+                         pf = State::get_relabel_prob(r, v, u, false);
+                         pb = State::get_relabel_prob(r, u, v, true);
+                     }
+                     if (metropolis_accept(dS, pb - pf, beta, rng))
+                         moves[ri] = u;
+                     else
+                         moves[ri] = v;
+                 }, rng_);
 
             S -= State::entropy();
             State::relabel_groups_parallel(rs, moves);
@@ -811,51 +796,45 @@ struct Multilevel:
         if (_has_merge)
             std::shuffle(rlist.begin(), rlist.end(), rng_);
 
-
-        parallel_rng<rng_t> prng(rng_);
+        parallel_rng prng(rng_);
         #pragma omp parallel if (_has_merge)
-        {
-            int tnum = get_thread_num();
-            #pragma omp for schedule(runtime)
-            for (size_t j = 0; j < rlist.size(); ++j)
-            {
-                auto& rng = prng.get(rng_, tnum);
+        parallel_loop_rng_no_spawn
+            (rlist,
+             [&](auto, auto& r, auto tnum, auto& rng)
+             {
+                 gt_hash_set<Group> past_merges;
+                 auto find_candidates =
+                     [&](bool allow_random)
+                     {
+                         for (size_t i = 0; i < niter; ++i)
+                         {
+                             auto v = uniform_sample(_groups[r], rng);
+                             auto s = State::sample_group(v, allow_random, false, false, rng);
+                             if (s != r &&
+                                 rs.find(s) != rs.end() &&
+                                 past_merges.find(s) == past_merges.end())
+                             {
+                                 double dS;
+                                 if constexpr (_has_merge)
+                                     dS = State::virtual_merge(r, s, tnum);
+                                 else
+                                     dS = virtual_merge(r, s);
+                                 if (!std::isinf(dS) && dS < _best_merge[r].second)
+                                     _best_merge[r] = {s, dS};
+                                 past_merges.insert(s);
+                             }
+                         }
+                     };
 
-                gt_hash_set<Group> past_merges;
-                auto& r = rlist[j];
-                auto find_candidates =
-                    [&](bool allow_random)
-                    {
-                        for (size_t i = 0; i < niter; ++i)
-                        {
-                            auto v = uniform_sample(_groups[r], rng);
-                            auto s = State::sample_group(v, allow_random, false, false, rng);
-                            if (s != r &&
-                                rs.find(s) != rs.end() &&
-                                past_merges.find(s) == past_merges.end())
-                            {
-                                double dS;
-                                if constexpr (_has_merge)
-                                    dS = State::virtual_merge(r, s, tnum);
-                                else
-                                    dS = virtual_merge(r, s);
-                                if (!std::isinf(dS) && dS < _best_merge[r].second)
-                                    _best_merge[r] = {s, dS};
-                                past_merges.insert(s);
-                            }
-                        }
-                    };
+                 // Prefer smart constrained moves. If no candidates were found, the
+                 // group is likely to be "stuck" (e.g. isolated or constrained by
+                 // clabel); attempt random movements instead.
 
-                // Prefer smart constrained moves. If no candidates were found, the
-                // group is likely to be "stuck" (e.g. isolated or constrained by
-                // clabel); attempt random movements instead.
+                 find_candidates(false);
 
-                find_candidates(false);
-
-                if (_best_merge[r].first == r)
-                    find_candidates(true);
-            }
-        }
+                 if (_best_merge[r].first == r)
+                     find_candidates(true);
+             }, prng);
 
         std::vector<std::pair<Group, Group>> pairs;
         std::vector<double> dS;

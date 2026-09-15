@@ -32,7 +32,7 @@ class parallel_rng
 {
 public:
     parallel_rng(RNG& rng)
-        : _rngs(get_rngs(rng))
+        : _rng(rng), _rngs(get_rngs(rng))
     {
         size_t num_threads = get_num_threads();
         for (size_t i = _rngs.size(); i < num_threads - 1; ++i)
@@ -47,16 +47,16 @@ public:
         _trngs.clear();
     }
 
-    RNG& get(RNG& rng)
+    RNG& get()
     {
         auto tnum = get_thread_num();
-        return get(rng, tnum);
+        return get(tnum);
     }
 
-    RNG& get(RNG& rng, int tnum)
+    RNG& get(int tnum)
     {
         if (tnum == 0)
-            return rng;
+            return _rng;
         return _rngs[tnum - 1];
     }
 
@@ -68,6 +68,7 @@ private:
         return _trngs[&rng];
     }
 
+    RNG& _rng;
     std::vector<RNG>& _rngs;
     static inline std::unordered_map<RNG*, std::vector<RNG>> _trngs;
     static inline std::mutex _init_mutex;

@@ -41,17 +41,16 @@ void GraphInterface::copy_vertex_property(const GraphInterface& g_src,
              bool parallel =
                  (num_vertices(g) > get_openmp_min_thresh() && !is_python);
 
-             std::tuple<bool, std::string> ret;
+             std::exception_ptr eptr{};
              #pragma omp parallel if (parallel)
-             ret = parallel_vertex_loop_no_spawn
+             eptr = parallel_vertex_loop_no_spawn<true>
                  (g,
                   [&](auto v)
                   {
                       tgt[v] = get(src, v);
-                  }, (ValueException*)(nullptr));
-
-             if (get<0>(ret))
-                 throw ValueException(get<1>(ret));
+                  });
+             if (eptr)
+                 std::rethrow_exception(eptr);
          },
          all_graph_views,
          writable_vertex_properties,
@@ -76,18 +75,16 @@ void GraphInterface::copy_edge_property(const GraphInterface& g_src,
              bool parallel =
                  (num_vertices(g) > get_openmp_min_thresh() && !is_python);
 
-             std::tuple<bool, std::string> ret;
+             std::exception_ptr eptr{};
              #pragma omp parallel if (parallel)
-             ret = parallel_edge_loop_no_spawn
+             eptr = parallel_edge_loop_no_spawn<true>
                  (g,
                   [&](auto e)
                   {
                       tgt[e] = get(src, e);
-                  },
-                  (ValueException*)(nullptr));
-
-             if (get<0>(ret))
-                 throw ValueException(get<1>(ret));
+                  });
+             if (eptr)
+                 std::rethrow_exception(eptr);
          },
          all_graph_views,
          writable_edge_properties,
@@ -115,19 +112,17 @@ bool compare_vertex_properties(const GraphInterface& g_src,
 
              bool ret_ = true; // clang workaround
 
-             std::tuple<bool, std::string> eret;
+             std::exception_ptr eptr{};
              #pragma omp parallel if (parallel)
-             eret = parallel_vertex_loop_no_spawn
+             eptr = parallel_vertex_loop_no_spawn<true>
                  (g,
                   [&](auto v)
                   {
                       if (get(tgt, v) != get(src, v))
                           ret_ = false;
-                  },
-                  (ValueException*)(nullptr));
-
-             if (get<0>(eret))
-                 throw ValueException(get<1>(eret));
+                  });
+             if (eptr)
+                 std::rethrow_exception(eptr);
 
              ret = ret_;
          },
@@ -158,19 +153,17 @@ bool compare_edge_properties(const GraphInterface& g_src,
 
              bool ret_ = true; // clang workaround
 
-             std::tuple<bool, std::string> eret;
+             std::exception_ptr eptr{};
              #pragma omp parallel if (parallel)
-             eret = parallel_edge_loop_no_spawn
+             eptr = parallel_edge_loop_no_spawn<true>
                  (g,
                   [&](auto e)
                   {
                       if (get(tgt, e) != get(src, e))
                           ret_ = false;
-                  },
-                  (ValueException*)(nullptr));
-
-             if (get<0>(eret))
-                 throw ValueException(get<1>(eret));
+                  });
+             if (eptr)
+                 std::rethrow_exception(eptr);
 
              ret = ret_;
          },

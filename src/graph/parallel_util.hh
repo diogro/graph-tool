@@ -25,6 +25,8 @@
 
 #include <boost/scope/scope_exit.hpp>
 
+#include "parallel_rng.hh"
+
 namespace graph_tool
 {
 
@@ -393,6 +395,106 @@ decltype(auto) atomic_div(T1&& x, T2&& d)
     return x;
 }
 
+template <bool except=false, class Range, class F>
+auto parallel_loop_no_spawn(Range&& vals, F&& f)
+{
+    std::exception_ptr eptr{};
+    bool skip = false;
+
+    #pragma omp for schedule(runtime)
+    for (size_t i = 0; i < size_t(std::ranges::size(vals)); ++i)  // clang does not allow a range loop here without a warning
+    {
+        auto&& v = *(std::ranges::begin(vals) + i);
+        if constexpr (except)
+        {
+            if (skip)
+                continue;
+        }
+
+        if constexpr (!except)
+        {
+            f(i, v);
+        }
+        else
+        {
+            try
+            {
+                f(i, v);
+            }
+            catch (...)
+            {
+                if (!skip)
+                {
+                    skip = true;
+                    eptr = std::current_exception();
+                }
+            }
+        }
+    }
+
+    return eptr;
+}
+
+template <bool except=false, class Loop>
+auto parallel_loop_spawn(Loop&& loop, bool enable)
+{
+    std::exception_ptr eptr{};
+    #pragma omp parallel if (enable)
+    eptr = loop();
+    if (except && eptr)
+        std::rethrow_exception(eptr);
+}
+
+template <bool except=false, class Range, class F>
+auto parallel_loop(Range&& vals, F&& f, size_t thresh = get_openmp_min_thresh())
+{
+    parallel_loop_spawn
+        ([&]()
+         {
+             return parallel_loop_no_spawn<except>(std::forward<Range>(vals),
+                                                   std::forward<F>(f));
+         }, std::ranges::size(vals) > thresh);
+}
+
+template <bool except = false, class Range, class F>
+auto parallel_loop_tnum_no_spawn(Range&& vals, F&& f)
+{
+    auto tid = get_thread_num();
+    return parallel_loop_no_spawn<except>(std::forward<Range>(vals),
+                                          [&](auto i, auto&& v) { f(i, v, tid); });
+}
+
+template <bool except=false, class Range, class F>
+auto parallel_loop_tnum(Range&& vals, F&& f, size_t thresh = get_openmp_min_thresh())
+{
+    parallel_loop_spawn
+        ([&]()
+         {
+             return parallel_loop_tnum_no_spawn<except>(std::forward<Range>(vals),
+                                                        std::forward<F>(f));
+         }, std::ranges::size(vals) > thresh);
+}
+
+template <bool except = false, class Range, class F, class RNG>
+auto parallel_loop_rng_no_spawn(Range&& vals, F&& f, RNG& prng)
+{
+    auto tid = get_thread_num();
+    auto& rng = prng.get(tid);
+    return parallel_loop_no_spawn<except>(std::forward<Range>(vals),
+                                          [&](auto i, auto&& v) { f(i, v, tid, rng); });
+}
+
+template <bool except=false, class Range, class F, class RNG>
+auto parallel_loop_rng(Range&& vals, F&& f, RNG& rng, size_t thresh = get_openmp_min_thresh())
+{
+    parallel_rng prng(rng);
+    parallel_loop_spawn
+        ([&]()
+         {
+             return parallel_loop_rng_no_spawn<except>(std::forward<Range>(vals),
+                                                       std::forward<F>(f), prng);
+         }, std::ranges::size(vals) > thresh);
+}
 
 } // namespace graph_tool
 

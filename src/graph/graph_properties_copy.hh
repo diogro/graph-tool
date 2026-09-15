@@ -58,10 +58,9 @@ void copy_external_edge_property_dispatch(const GraphSrc& src, const GraphTgt& t
     bool parallel =
         (num_vertices(src) > get_openmp_min_thresh() && !is_python);
 
-    std::tuple<bool, std::string> ret;
-
+    std::exception_ptr eptr{};
     #pragma omp parallel if (parallel)
-    ret = parallel_vertex_loop_no_spawn
+    eptr = parallel_vertex_loop_no_spawn<true>
         (src,
          [&](auto u)
          {
@@ -80,10 +79,9 @@ void copy_external_edge_property_dispatch(const GraphSrc& src, const GraphTgt& t
                  put(tgt_map, iter->second.front(), get(src_map, e));
                  iter->second.pop_front();
              }
-         }, (ValueException*)(nullptr));
-
-    if (get<0>(ret))
-        throw ValueException(get<1>(ret));
+         });
+    if (eptr)
+        std::rethrow_exception(eptr);
 }
 
 

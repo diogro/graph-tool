@@ -288,7 +288,7 @@ struct extract_param<eprop_map_t<std::vector<WeightCount<double, int64_t, LWVEC_
             ([&](auto& g)
              {
                  ecx.resize(base_graph(g).get_edge_index_range());
-                 parallel_edge_loop
+                 parallel_edge_loop<true>
                      (g,
                       [&](auto e)
                       {
@@ -314,7 +314,7 @@ struct extract_param<eprop_map_t<std::vector<WeightCount<double, int64_t, LWVEC_
                               }
                               ++idx;
                           }
-                      }, get_openmp_min_thresh(), (ValueException*) nullptr);
+                      });
              }, all_graph_views)
             (gi.get_graph_view());
 

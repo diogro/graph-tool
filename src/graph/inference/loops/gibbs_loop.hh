@@ -23,7 +23,6 @@
 #include <tuple>
 
 #include "hash_map_wrap.hh"
-#include "parallel_rng.hh"
 #include "graph_python_interface.hh"
 #include "samplers.hh"
 

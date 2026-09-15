@@ -25,7 +25,6 @@
 #include <omp.h>
 #endif
 #include "random.hh"
-#include "parallel_rng.hh"
 #include "idx_map.hh"
 
 namespace graph_tool
@@ -180,14 +179,12 @@ private:
 template <class Graph, class State, class RNG>
 void get_diff_sync(Graph& g, State state, double t, double dt, RNG& rng_)
 {
-    parallel_rng<rng_t> prng(rng_);
-    parallel_vertex_loop
+    parallel_vertex_loop_rng
         (g,
-         [&] (auto v)
+         [&] (auto v, auto, auto& rng)
          {
-             auto& rng = prng.get(rng_);
              state._s_diff[v] = state.get_node_diff(g, v, t, dt, rng);
-         });
+         }, rng_);
 
 }
 

@@ -1369,7 +1369,7 @@ struct Dynamics
 
                         if (!_xvals.empty())
                         {
-                            auto& rng = prng.get(rng_);
+                            auto& rng = prng.get();
                             nx = sampler.bisect_fb(_xvals, rng);
                             dS = std::min(dS, sampler.f(nx));
                         }

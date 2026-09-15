@@ -16,7 +16,6 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "graph_tool.hh"
-#include "parallel_rng.hh"
 #include "../support/util.hh"
 
 #include "uncertain.hh"
@@ -65,15 +64,13 @@ void marginal_graph_sample(GraphInterface& gi, std::any ap,
     gt_dispatch<>()
         ([&](auto& g, auto p, auto x)
          {
-             parallel_rng<rng_t> prng(rng_);
-             parallel_edge_loop
+             parallel_edge_loop_rng
                  (g,
-                  [&](auto& e)
+                  [&](auto& e, auto, auto& rng)
                   {
                       std::bernoulli_distribution sample(get(p, e));
-                      auto& rng = prng.get(rng_);
                       put(x, e, sample(rng));
-                  });
+                  }, rng_);
          },
          all_graph_views,
          hana::tuple_t<eprop_map_t<double>, edprop_map_t<double>>,

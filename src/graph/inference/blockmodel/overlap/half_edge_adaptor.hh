@@ -655,38 +655,47 @@ odeg_t out_degree(const auto& v, const half_edge_adaptor<Graph>& g, const EWeigh
 namespace graph_tool
 {
 
-template <class Graph, class F, class Except = void>
-auto parallel_vertex_loop_no_spawn(const half_edge_adaptor<Graph>& g, F&& f,
-                                   Except* ex=(void*)(nullptr))
+template <bool except=false, class Graph, class F>
+auto parallel_vertex_loop_no_spawn_meta(const half_edge_adaptor<Graph>& g, F&& f,
+                                        auto&& spawn)
 {
-    std::string err;
-    bool skip = false;
-    parallel_edge_loop_no_spawn
+    return spawn
         (g.base(),
-         [&](auto e)
+         [&](auto e, auto&&... as)
          {
              half_edge v(e, source(e, g.base()));
-             f(v);
+             f(v, as...);
              v.swap_endpoint();
-             f(v);
-         }, ex);
-    return std::make_tuple(skip, err);
+             f(v, as...);
+         });
 }
 
-template <class Graph, class F, class Except = void>
-void parallel_vertex_loop(half_edge_adaptor<Graph>& g, F&& f,
-                          size_t thres = get_openmp_min_thresh(),
-                          [[maybe_unused]] Except* ex=(void*)(nullptr))
+template <bool except=false, class Graph, class F>
+auto parallel_vertex_loop_no_spawn(const half_edge_adaptor<Graph>& g, F&& f)
 {
-    std::tuple<bool, std::string> ret;
-    #pragma omp parallel if (num_vertices(g) > thres)
-    ret = parallel_vertex_loop_no_spawn<Graph, F>(g, std::forward<F>(f), ex);
+    return parallel_vertex_loop_no_spawn_meta<except>
+        (g, std::forward<F>(f),
+         [&]<class G, class F_>(G& g_, F_&& f_)
+         { return parallel_edge_loop_no_spawn(g_, std::forward<F_>(f_)); });
+}
 
-    if constexpr (!std::is_same_v<Except, void>)
-    {
-        if (get<0>(ret))
-            throw Except(get<1>(ret));
-    }
+template <bool except=false, class Graph, class F>
+auto parallel_vertex_loop_tnum_no_spawn(const half_edge_adaptor<Graph>& g, F&& f)
+{
+    return parallel_vertex_loop_no_spawn_meta<except>
+        (g, std::forward<F>(f),
+         [&]<class G, class F_>(G& g_, F_&& f_)
+         { return parallel_edge_loop_tnum_no_spawn(g_, std::forward<F_>(f_)); });
+}
+
+template <bool except=false, class Graph, class F, class RNG&>
+auto parallel_vertex_loop_rng_no_spawn(const half_edge_adaptor<Graph>& g, F&& f,
+                                       RNG& rng)
+{
+    return parallel_vertex_loop_no_spawn_meta<except>
+        (g, std::forward<F>(f),
+         [&]<class G, class F_>(G& g_, F_&& f_)
+         { return parallel_edge_loop_rng_no_spawn(g_, std::forward<F_>(f_), rng); });
 }
 
 template <class Graph>

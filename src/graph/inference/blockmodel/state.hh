@@ -210,7 +210,7 @@ public:
 
         _degs.resize(num_vertices(_g));
 
-        parallel_vertex_loop
+        parallel_vertex_loop<true>
             (_g,
              [&, this](auto v)
              {
@@ -228,7 +228,7 @@ public:
                      if (kin + kout > 0 && _vweight[v] == 0)
                          throw ValueException("Invalid graph: vweight cannot be zero if total degree is non-zero!");
                  }
-             }, get_openmp_min_thresh(), (ValueException*)(nullptr));
+             });
 
         set_concurrent(false);
 

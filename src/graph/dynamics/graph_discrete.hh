@@ -25,7 +25,6 @@
 #include <omp.h>
 #endif
 #include "random.hh"
-#include "parallel_rng.hh"
 #include "samplers.hh"
 #include "idx_map.hh"
 
@@ -1163,8 +1162,6 @@ size_t discrete_iter_sync(Graph& g, State state, size_t niter, RNG& rng_)
 {
     size_t nflips = 0;
 
-    parallel_rng<rng_t> prng(rng_);
-
     auto& active = *state._active;
 
     for (size_t i = 0; i < niter; ++i)
@@ -1172,17 +1169,17 @@ size_t discrete_iter_sync(Graph& g, State state, size_t niter, RNG& rng_)
         if (active.empty())
             break;
 
+        parallel_rng prng(rng_);
         #pragma omp parallel firstprivate(state) reduction(+:nflips)
-        parallel_loop_no_spawn
+        parallel_loop_rng_no_spawn
             (active,
-             [&] (auto, auto v)
+             [&] (auto, auto v, auto, auto& rng)
              {
-                 auto& rng = prng.get(rng_);
                  state._s_temp[v] = state._s[v];
                  nflips += state.template update_node<true>(g, v,
                                                             state._s_temp,
                                                             rng);
-             });
+             }, prng);
 
         state.update_sync(g);
 

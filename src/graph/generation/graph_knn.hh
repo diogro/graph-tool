@@ -27,7 +27,6 @@
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
-#include "parallel_rng.hh"
 #include "idx_map.hh"
 
 #include "random.hh"
@@ -141,8 +140,6 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                double epsilon, bool c_stop, size_t max_iter, Weight eweight,
                Hint& hint, bool verbose, RNG& rng_)
 {
-    parallel_rng<rng_t> prng(rng_);
-
     auto cmp =
         [] (auto& x, auto& y)
         {
@@ -164,12 +161,12 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
     if (verbose)
         cout << "random init" << endl;
 
+    parallel_rng prng(rng_);
     #pragma omp parallel if (parallel) firstprivate(vs_) firstprivate(seen) reduction(+:n_tot)
-    parallel_loop_no_spawn
+    parallel_loop_rng_no_spawn
         (vs,
-         [&](auto, auto v)
+         [&](auto, auto v, auto, auto& rng)
          {
-             auto& rng = prng.get(rng_);
              seen.clear();
              auto& Bv = B[v];
              for (auto u : random_permutation_range(vs_, rng))
@@ -210,7 +207,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                  for (auto w : all_neighbors_range(u, hint))
                      update(u, w);
              }
-         });
+         }, prng);
 
     auto build_vertex = [&](auto v)
         {
@@ -254,11 +251,10 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         }
 
         #pragma omp parallel if (parallel)
-        parallel_loop_no_spawn
+        parallel_loop_rng_no_spawn
             (vs,
-             [&](auto, auto v)
+             [&](auto, auto v, auto, auto& rng)
              {
-                 auto& rng = prng.get(rng_);
                  auto& us = out_neighbors[v];
                  us.clear();
                  for (auto u : out_neighbors_range(v, g))
@@ -273,7 +269,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                      }
                      us.erase(us.begin() + max_rk, us.end());
                  }
-             });
+             }, prng);
 
         if (verbose)
             cout << "update neighbors" << endl;
@@ -282,12 +278,10 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
         size_t n = 0;
 
         #pragma omp parallel if (parallel) firstprivate(seen) reduction(+:c,n,n_tot)
-        parallel_loop_no_spawn
+        parallel_loop_rng_no_spawn
             (vs,
-             [&](auto, auto v)
+             [&](auto, auto v, auto, auto& rng)
              {
-                 auto& rng = prng.get(rng_);
-
                  auto& Bv = B[v];
 
                  seen.clear();
@@ -338,7 +332,7 @@ size_t gen_knn(Graph& g, Dist&& d, size_t k, double r, size_t max_rk,
                      for (auto w : out_neighbors[u])
                          update(u, w);
                  }
-             });
+             }, prng);
 
         delta = c / double(vs.size() * k);
 

@@ -16,7 +16,6 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "graph_tool.hh"
-#include "parallel_rng.hh"
 #include "samplers.hh"
 #include "../support/util.hh"
 #include "uncertain.hh"
@@ -30,17 +29,14 @@ void marginal_multigraph_sample(GraphInterface& gi, std::any axs, std::any axc,
     gt_dispatch<>()
         ([&](auto& g, auto xs, auto xc, auto x)
          {
-             parallel_rng<rng_t> prng(rng_);
-             parallel_edge_loop
+             parallel_edge_loop_rng
                  (g,
-                  [&](auto& e)
+                  [&](auto& e, auto, auto& rng)
                   {
                       typedef typename property_traits<decltype(xs)>::value_type::value_type val_t;
                       Sampler<val_t> sample(get(xs, e), get(xc, e));
-
-                      auto& rng = prng.get(rng_);
                       put(x, e, sample.sample(rng));
-                  });
+                  }, rng_);
          },
          all_graph_views,
          hana::tuple_t<eprop_map_t<std::vector<int32_t>>, edprop_map_t<std::vector<int32_t>>>,
