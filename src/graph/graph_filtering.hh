@@ -190,8 +190,8 @@ template <run_action_args rargs = {}>
 struct run_action
     : public gt_dispatch<rargs.dargs>
 {
-    template <class Dispatch, class... TRS>
-    auto operator()(GraphInterface& gi, Dispatch&& a, TRS&&... trs)
+    template <class G, class Dispatch, class... TRS>
+    auto operator()(G&& gi, Dispatch&& a, TRS&&... trs)
     {
         using TR = decltype(rargs.tr)::type;
         auto dispatcher =
@@ -200,8 +200,12 @@ struct run_action
              std::forward<TRS>(trs)...);
         return [=, &gi](auto&&... as)
                {
-                   dispatcher(gi.get_graph_view(),
-                              std::forward<decltype(as)>(as)...);
+                   if constexpr (std::is_same_v<std::decay_t<G>, GraphInterface>)
+                       dispatcher(gi.get_graph_view(),
+                                  std::forward<decltype(as)>(as)...);
+                   else
+                       dispatcher(gi,
+                                  std::forward<decltype(as)>(as)...);
                };
     }
 };
