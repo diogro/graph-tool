@@ -2456,13 +2456,13 @@ public:
         if (has_coupled())
         {
             visit_coupled
-                ([&](auto&& cs)
+                ([&](auto& cs, auto&&)
                  {
                      for (auto r : vertices_range(_bg))
                      {
-                         assert((_wr[r] != 0) == (cs_vweight[r] != 0));
+                         assert((_wr[r] != 0) == (cs._vweight[r] != 0));
                          auto nr = _wr[r];
-                         auto vw = cs_vweight[r];
+                         auto vw = cs._vweight[r];
                          if (vw == 0)
                              assert(nr == 0);
                          else if (nr == 0)
