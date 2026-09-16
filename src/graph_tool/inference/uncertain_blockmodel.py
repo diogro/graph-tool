@@ -68,8 +68,7 @@ class UncertainBaseState(EntropyState):
             self.eweight = self.u.own_property(self.eweight.copy())
             if nested:
                 bstate = bstate.copy(g=self.u,
-                                     base_state_args=dict(bstate.base_state_args,
-                                                          eweight=self.eweight))
+                                     base_state_args=dict(eweight=self.eweight))
             else:
                 bstate = bstate.copy(g=self.u, eweight=self.eweight)
 
