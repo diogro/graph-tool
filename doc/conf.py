@@ -290,7 +290,7 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'scipy': ('https://docs.scipy.org/doc/scipy/', None),
                        'matplotlib': ('https://matplotlib.org/stable/', None),
                        'cairo': ('https://pycairo.readthedocs.io/en/latest/', None),
-                       'ipython': ('https://ipython.org/ipython-doc/stable/', None),
+                       'ipython': ('https://ipython.readthedocs.io/en/stable/', None),
                        'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
                        'basemap': ('https://matplotlib.org/basemap/stable/', None),
                        'myst': ('https://myst-parser.readthedocs.io/en/latest/', None)
