@@ -403,8 +403,7 @@ public:
              });
 
         auto insert_delta =
-            [&]
-            (auto& state, auto& m_entries, auto& deltas)
+            [&](auto& state, auto& m_entries, auto& deltas)
             {
                 typedef std::decay_t<decltype(state)> cstate_t;
 
@@ -451,42 +450,38 @@ public:
 
         _m_entries_pool.resize(get_num_threads());
 
-        #pragma omp parallel
-        {
-            auto tid = get_thread_num();
-            parallel_loop_no_spawn
-                (std::views::zip(vs, nrs),
-                 [&] (auto, const auto& vnr)
-                 {
-                     const auto& [v, nr] = vnr;
-                     auto r = _b[v];
+        parallel_loop_tnum
+            (std::views::zip(vs, nrs),
+             [&](auto, const auto& vnr, auto tid)
+             {
+                 const auto& [v, nr] = vnr;
+                 auto r = _b[v];
 
-                     if (nr == r)
-                         return;
+                 if (nr == r)
+                     return;
 
-                     auto& m_entries = _m_entries_pool[tid];
+                 auto& m_entries = _m_entries_pool[tid];
 
-                     modify_entries
-                         (v, r, nr, _b, nb, _g, _eweight, num_vertices(_bg), m_entries,
-                          [&](auto& e, bool out)
+                 modify_entries
+                     (v, r, nr, _b, nb, _g, _eweight, num_vertices(_bg), m_entries,
+                      [&](auto& e, bool out)
+                      {
+                          if constexpr (is_directed_v<g_t>)
                           {
-                              if constexpr (is_directed_v<g_t>)
-                              {
-                                  auto u = (out) ? target(e, _g) : source(e, _g);
-                                  return (!out && (_vset[u] != _null_group));
-                              }
-                              else
-                              {
-                                  auto u = target(e, _g);
-                                  return ((v > u) && (_vset[u] != _null_group));
-                              }
-                          });
+                              auto u = (out) ? target(e, _g) : source(e, _g);
+                              return (!out && (_vset[u] != _null_group));
+                          }
+                          else
+                          {
+                              auto u = target(e, _g);
+                              return ((v > u) && (_vset[u] != _null_group));
+                          }
+                      });
 
-                     insert_delta(*this, m_entries, _deltas);
-                     _spec.move_vertex_concurrent(v, r, nr, nb,
-                                                  [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
-                 });
-        }
+                 insert_delta(*this, m_entries, _deltas);
+                 _spec.move_vertex_concurrent(v, r, nr, nb,
+                                              [&](auto u){ return (v > u) && (_vset[u] != _null_group); });
+             });
 
         _spec.move_vertices_parallel(vs, nrs);
 
@@ -543,35 +538,31 @@ public:
                 auto dispatch_delta =
                     [&](auto&& f)
                     {
-                        #pragma omp parallel
-                        {
-                            auto tid = get_thread_num();
-                            parallel_vertex_loop_no_spawn
-                                (state._bg,
-                                 [&state,&stop,&f,tid](auto r) // explict capture due to clang bug
+                        parallel_vertex_loop_tnum
+                            (state._bg,
+                             [&](auto r, auto tid)
+                             {
+                                 if (state._deltas[r].empty())
+                                     return;
+
+                                 auto& m_entries = state._m_entries_pool[tid];
+
+                                 m_entries.set_move(r, state._null_group, num_vertices(state._bg));
+
+                                 for (auto&& [s, delta] : state._deltas[r])
                                  {
-                                     if (state._deltas[r].empty())
-                                         return;
+                                     if (delta == 0)
+                                         continue;
+                                     m_entries.template insert_delta_rnr<true, true, true>(r, s, delta);
+                                 }
 
-                                     auto& m_entries = state._m_entries_pool[tid];
+                                 if (m_entries.empty())
+                                      return;
 
-                                     m_entries.set_move(r, state._null_group, num_vertices(state._bg));
+                                 stop = false;
 
-                                     for (auto&& [s, delta] : state._deltas[r])
-                                     {
-                                         if (delta == 0)
-                                             continue;
-                                         m_entries.template insert_delta_rnr<true, true, true>(r, s, delta);
-                                     }
-
-                                     if (m_entries.empty())
-                                          return;
-
-                                     stop = false;
-
-                                     f(m_entries);
-                                 });
-                         }
+                                 f(m_entries);
+                             });
                     };
 
                 if constexpr (!std::is_same_v<decltype(_spec.template apply_delta<true>(state._m_entries_pool[0], state._deltas)), bool>)
