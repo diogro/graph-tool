@@ -168,7 +168,8 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
     @property
     def B(self):
         r"""Nominal number of groups"""
-        return int(self.b.fa.max()) + 1
+        idx = self.vweight.fa > 0
+        return int(self.b.fa[idx].max()) + 1
 
     @contextmanager
     def _mk_state(self):
