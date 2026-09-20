@@ -248,7 +248,7 @@ class NestedBlockState(object):
             try:
                 cg.vp["count"] = cg.own_property(bstate.vweight.copy())
             except ValueError:
-                pass
+                cg.vp["count"] = cg.new_vp("int", val=1)
 
             bstack.append(cg)
             if bstate.get_N() == 1:
@@ -591,6 +591,8 @@ def get_hierarchy_tree(state, empty_branches=False):
             order[v] = vi
 
         for vi, v in enumerate(g.vertices()):
+            if g.vp.count[v] == 0:
+                continue
             w = t_vertices[vi + last_pos]
             if s.num_vertices() == 1:
                 u = t_vertices[pos]
