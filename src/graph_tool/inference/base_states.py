@@ -55,8 +55,8 @@ def copy_state_wrap(func):
             Salt = state_copy.entropy(*args, test=False, **kwargs)
 
             assert math.isclose(S, Salt, abs_tol=1e-8), \
-                "entropy discrepancy after copying (%g %g %g)" % (S, Salt,
-                                                                  S - Salt)
+                "entropy discrepancy after copying (%g %g %g), eargs: %s" % \
+                (S, Salt, S - Salt, kwargs)
         return S
 
     return wrapper
@@ -65,12 +65,12 @@ def mcmc_sweep_wrap(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         test = kwargs.pop("test", True)
-        entropy_args = kwargs.get("entropy_args", {})
 
         if not kwargs.get("dispatch", True):
             return func(self, *args, **kwargs)
 
         if _bm_test() and test:
+            entropy_args = kwargs.get("entropy_args", {})
             if hasattr(self, "_check_clabel"):
                 assert self._check_clabel(), "invalid clabel before sweep"
             Si = self.entropy(**entropy_args)
