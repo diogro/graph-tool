@@ -600,13 +600,30 @@ public:
                                    const std::vector<double>& x,
                                    const std::vector<double>& nx);
 
+    double get_edges_dS_compressed(const std::array<size_t,2>& us, size_t v,
+                                   const std::array<double,2>& x,
+                                   const std::array<double,2>& nx);
+
+    double get_edges_dS_compressed(const std::array<size_t,3>& us, size_t v,
+                                   const std::array<double,3>& x,
+                                   const std::array<double,3>& nx);
+
     double get_edges_dS_uncompressed(const std::vector<size_t>& us, size_t v,
                                      const std::vector<double>& x,
                                      const std::vector<double>& nx);
 
-    double get_edges_dS(const std::array<size_t,2>& us, size_t v,
-                        const std::array<double,2>& x,
-                        const std::array<double,2>& nx)
+    double get_edges_dS_uncompressed(const std::array<size_t,2>& us, size_t v,
+                                     const std::array<double,2>& x,
+                                     const std::array<double,2>& nx);
+
+    double get_edges_dS_uncompressed(const std::array<size_t,3>& us, size_t v,
+                                     const std::array<double,3>& x,
+                                     const std::array<double,3>& nx);
+
+    template <size_t n>
+    double get_edges_dS_dispatch(const std::array<size_t,n>& us, size_t v,
+                                 const std::array<double,n>& x,
+                                 const std::array<double,n>& nx)
     {
         if (_t.empty())
             return get_edges_dS_uncompressed(us, v, x, nx);
@@ -614,13 +631,19 @@ public:
             return get_edges_dS_compressed(us, v, x, nx);
     }
 
-    double get_edges_dS_compressed(const std::array<size_t,2>& us, size_t v,
-                                   const std::array<double,2>& x,
-                                   const std::array<double,2>& nx);
+    double get_edges_dS(const std::array<size_t,2>& us, size_t v,
+                        const std::array<double,2>& x,
+                        const std::array<double,2>& nx)
+    {
+        return get_edges_dS_dispatch(us, v, x, nx);
+    }
 
-    double get_edges_dS_uncompressed(const std::array<size_t,2>& us, size_t v,
-                                     const std::array<double,2>& x,
-                                     const std::array<double,2>& nx);
+    double get_edges_dS(const std::array<size_t,3>& us, size_t v,
+                        const std::array<double,3>& x,
+                        const std::array<double,3>& nx)
+    {
+        return get_edges_dS_dispatch(us, v, x, nx);
+    }
 
     template <bool compressed, bool m_offload, class VS, class DX>
     double get_edge_dS_dispatch_direct(VS&& us, size_t v, const DX& x,

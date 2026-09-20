@@ -111,6 +111,34 @@ template double DState::base_t::get_edges_dS_compressed(const std::vector<size_t
 template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
 double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
+get_edges_dS_compressed(const std::array<size_t,2>& us, size_t v,
+                        const std::array<double,2>& x, const std::array<double,2>& nx)
+{
+    return get_edge_dS_dispatch_indirect<true>(us, v, x, nx);
+};
+
+template double DState::base_t::get_edges_dS_compressed(const std::array<size_t,2>& us,
+                                                        size_t v,
+                                                        const std::array<double,2>& x,
+                                                        const std::array<double,2>& nx);
+
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
+[[gnu::hot]]
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
+get_edges_dS_compressed(const std::array<size_t,3>& us, size_t v,
+                        const std::array<double,3>& x, const std::array<double,3>& nx)
+{
+    return get_edge_dS_dispatch_indirect<true>(us, v, x, nx);
+};
+
+template double DState::base_t::get_edges_dS_compressed(const std::array<size_t,3>& us,
+                                                        size_t v,
+                                                        const std::array<double,3>& x,
+                                                        const std::array<double,3>& nx);
+
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
+[[gnu::hot]]
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
 get_edges_dS_uncompressed(const std::vector<size_t>& us, size_t v,
                           const std::vector<double>& x, const std::vector<double>& nx)
 {
@@ -122,19 +150,6 @@ template double DState::base_t::get_edges_dS_uncompressed(const std::vector<size
                                                           const std::vector<double>& x,
                                                           const std::vector<double>& nx);
 
-template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
-[[gnu::hot]]
-double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
-get_edges_dS_compressed(const std::array<size_t,2>& us, size_t v,
-                        const std::array<double,2>& x, const std::array<double,2>& nx)
-{
-    return get_edge_dS_dispatch_indirect<true>(us, v, x, nx);
-};
-
-template double DState::base_t::get_edges_dS_compressed(const std::array<size_t,2>& us,
-                                                        size_t v,
-                                                        const std::array<double,2>& x,
-                                                        const std::array<double,2>& nx);
 
 template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]
@@ -150,6 +165,21 @@ template double DState::base_t::get_edges_dS_uncompressed(const std::array<size_
                                                           size_t v,
                                                           const std::array<double,2>& x,
                                                           const std::array<double,2>& nx);
+
+template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
+[[gnu::hot]]
+double NSumStateBase<Spec, MT, discrete, keep_k, tshift>::
+get_edges_dS_uncompressed(const std::array<size_t,3>& us, size_t v,
+                          const std::array<double,3>& x,
+                          const std::array<double,3>& nx)
+{
+    return get_edge_dS_dispatch_direct<false, false>(us, v, x, nx);
+};
+
+template double DState::base_t::get_edges_dS_uncompressed(const std::array<size_t,3>& us,
+                                                          size_t v,
+                                                          const std::array<double,3>& x,
+                                                          const std::array<double,3>& nx);
 
 template <class Spec, class MT, bool discrete, bool keep_k, bool tshift>
 [[gnu::hot]]

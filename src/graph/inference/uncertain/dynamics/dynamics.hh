@@ -103,6 +103,9 @@ public:
     virtual double get_edges_dS(const std::array<size_t,2>& us, size_t v,
                                 const std::array<double,2>& x,
                                 const std::array<double,2>& nx) = 0;
+    virtual double get_edges_dS(const std::array<size_t,3>& us, size_t v,
+                                const std::array<double,3>& x,
+                                const std::array<double,3>& nx) = 0;
 
     virtual double get_node_dS(size_t v, size_t l, double t, double nt) = 0;
     virtual double get_node_prob(size_t v) = 0;
@@ -435,7 +438,7 @@ struct Dynamics
             Sb += get_S(nr, ns, W, xmin, xmax);
             Sa += get_S(nr - dn, ns + dn, W + dW, nxmin, nxmax);
 
-            assert(!isinf(Sa-Sb));
+            assert(!std::isinf(Sa-Sb));
 
             return Sa - Sb;
         }
@@ -520,7 +523,7 @@ struct Dynamics
             Sb += get_S(N,      nr,      W,      xmin,  xmax);
             Sa += get_S(N + dN, nr + dN, W + dW, nxmin, nxmax);
 
-            assert(!isinf(Sa-Sb));
+            assert(!std::isinf(Sa-Sb));
             return Sa - Sb;
         }
 
@@ -614,16 +617,24 @@ struct Dynamics
         }
 
         double dstate_edge_dS(size_t u, size_t v, double x, double nx,
-                              const dentropy_args_t& ea,
-                              bool reciprocal = true)
+                              const dentropy_args_t& ea, bool reciprocal = true)
         {
             if (!ea.latent_edges)
                 return 0;
             double dS = 0;
-            dS += _dstate->get_edge_dS(u, v, x, nx);
-            if (u != v && !is_directed(_u) && !isinf(dS) && reciprocal)
-                dS += _dstate->get_edge_dS(v, u, x, nx);
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            if (!is_directed(_u) && u == v)
+            {
+                dS += _dstate->get_edges_dS(std::array<size_t,2>{u, u}, v,
+                                            std::array<double,2>{x, x},
+                                            std::array<double,2>{nx, nx});
+            }
+            else
+            {
+                dS += _dstate->get_edge_dS(u, v, x, nx);
+                if (!is_directed(_u) && !std::isinf(dS) && reciprocal)
+                    dS += _dstate->get_edge_dS(v, u, x, nx);
+            }
+            assert(std::isfinite(dS));
             return dS * ea.alpha;
         }
 
@@ -634,17 +645,8 @@ struct Dynamics
             if (!ea.latent_edges)
                 return 0;
             double dS = _dstate->get_edges_dS(us, v, x, nx);
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            assert(std::isfinite(dS));
             return dS * ea.alpha;
-        }
-
-        double dstate_edges_dS_a(const std::array<size_t,2>& us, size_t v,
-                                 const std::array<double,2>& x,
-                                 const std::array<double,2>& nx,
-                                 const dentropy_args_t& ea)
-        {
-            return dstate_edges_dS<std::array<size_t,2>,
-                                   std::array<double,2>>(us, v, x, nx, ea);
         }
 
         double dstate_edges_dS(const std::vector<size_t>& us, size_t v,
@@ -662,7 +664,7 @@ struct Dynamics
             if (!ea.latent_edges)
                 return 0;
             double dS = _dstate->get_node_dS(v, l, t, nt);
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            assert(std::isfinite(dS));
             return dS * ea.alpha;
         }
 
@@ -763,7 +765,7 @@ struct Dynamics
                 }
             }
 
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            assert(std::isfinite(dS));
             return dS;
         }
 
@@ -807,7 +809,7 @@ struct Dynamics
                 dS += dm * log1p(1./T);
             }
 
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            assert(std::isfinite(dS));
 
             if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
             {
@@ -815,11 +817,11 @@ struct Dynamics
                 {
                     if (dstate)
                         dS += dstate_edge_dS(u, v, 0, x, ea);
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
 
                     dS += edge_x_S(x, ea) - edge_x_S(0, ea);
 
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
                     if (ea.xdist && !_disable_xdist)
                     {
                         do_slock_d([&]()
@@ -829,14 +831,14 @@ struct Dynamics
                                                                   ea.xdist_uniform,
                                                                   ea.xl1, _xdelta,
                                                                   true);
-                                       assert(!isinf(dS));
+                                       assert(!std::isinf(dS));
                                    }, lock, _x_mutex);
                     }
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
                 }
             }
 
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            assert(std::isfinite(dS));
             return dS;
         }
 
@@ -859,11 +861,11 @@ struct Dynamics
                     if (dstate)
                         dS += dstate_edge_dS(u, v, x, nx, ea);
 
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
 
                     dS += (edge_x_S(nx, ea) - edge_x_S(x, ea));
 
-                    assert(!std::isinf(dS) && !std::isnan(dS));
+                    assert(std::isfinite(dS));
 
                     if (ea.xdist && !_disable_xdist)
                     {
@@ -872,13 +874,13 @@ struct Dynamics
                                        dS += hist_move_dS(x, nx, _M, _xhist,
                                                           _xvals, ea.xdist_uniform,
                                                           ea.xl1, _xdelta, ea.sbm);
-                                       assert(!std::isinf(dS) && !std::isnan(dS));
+                                       assert(std::isfinite(dS));
                                    }, lock, _x_mutex);
                     }
                 }
             }
 
-            assert(!std::isinf(dS) && !std::isnan(dS));
+            assert(std::isfinite(dS));
             return dS;
         }
 
@@ -1002,7 +1004,7 @@ struct Dynamics
                 if (dstate)
                 {
                     _dstate->update_edge(u, v, x, 0);
-                    if (u != v && !is_directed(_u))
+                    if (!is_directed(_u))
                         _dstate->update_edge(v, u, x, 0);
                 }
             }
@@ -1061,7 +1063,7 @@ struct Dynamics
                     if (dstate)
                     {
                         _dstate->update_edge(u, v, 0, nx);
-                        if (u != v && !is_directed(_u))
+                        if (!is_directed(_u))
                             _dstate->update_edge(v, u, 0, nx);
                     }
                 }
@@ -1110,7 +1112,7 @@ struct Dynamics
                 if (dstate)
                 {
                     _dstate->update_edge(u, v, x, nx);
-                    if (u != v && !is_directed(_u))
+                    if (!is_directed(_u))
                         _dstate->update_edge(v, u, x, nx);
                 }
             }

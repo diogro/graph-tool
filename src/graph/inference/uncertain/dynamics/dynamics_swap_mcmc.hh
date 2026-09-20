@@ -247,16 +247,16 @@ struct MCMC
                     }
 
                     // swap s->v and u->v
-                    dS += _state.dstate_edges_dS_a({u, s}, v,
-                                                   {x_uv, x_sv},
-                                                   {x_sv, x_uv},
-                                                   _entropy_args);
+                    dS += dstate_edges_dS({u, s}, v,
+                                          {x_uv, x_sv},
+                                          {x_sv, x_uv});
+
                     if (!is_directed(_state._u))
                     {
-                        dS += _state.dstate_edge_dS(v, u, x_uv, x_sv,
-                                                    _entropy_args, false);
-                        dS += _state.dstate_edge_dS(v, s, x_sv, x_uv,
-                                                    _entropy_args, false);
+                        if (u != v)
+                            dS += _state.dstate_edge_dS(v, u, x_uv, x_sv, _entropy_args, false);
+                        if (s != v)
+                            dS += _state.dstate_edge_dS(v, s, x_sv, x_uv, _entropy_args, false);
                     }
                 }
                 break;
@@ -271,27 +271,23 @@ struct MCMC
                     }
 
                     if (x_uv != x_sv)
-                        dS += _state.dstate_edges_dS_a({u, s}, v,
-                                                       {x_uv, x_sv},
-                                                       {x_sv, x_uv},
-                                                     _entropy_args);
+                        dS += dstate_edges_dS({u, s}, v,
+                                              {x_uv, x_sv},
+                                              {x_sv, x_uv});
                     if (x_st != x_ut)
-                        dS += _state.dstate_edges_dS_a({s, u}, t,
-                                                       {x_st, x_ut},
-                                                       {x_ut, x_st},
-                                                       _entropy_args);
+                        dS += dstate_edges_dS({s, u}, t,
+                                              {x_st, x_ut},
+                                              {x_ut, x_st});
                     if (!is_directed(_state._u))
                     {
                         if (x_uv != x_sv || x_ut != x_st)
-                            dS += _state.dstate_edges_dS_a({v, t}, u,
-                                                           {x_uv, x_ut},
-                                                           {x_sv, x_st},
-                                                           _entropy_args);
+                            dS += dstate_edges_dS({v, t}, u,
+                                                  {x_uv, x_ut},
+                                                  {x_sv, x_st});
                         if (x_st != x_ut || x_sv != x_uv)
-                            dS += _state.dstate_edges_dS_a({t, v}, s,
-                                                           {x_st, x_sv},
-                                                           {x_ut, x_uv},
-                                                           _entropy_args);
+                            dS += dstate_edges_dS({t, v}, s,
+                                                  {x_st, x_sv},
+                                                  {x_ut, x_uv});
                     }
                 }
                 break;
@@ -300,6 +296,25 @@ struct MCMC
             }
 
             return true;
+        }
+
+        double dstate_edges_dS(const std::array<size_t, 2>& us, size_t v,
+                               const std::array<double, 2>& x,
+                               const std::array<double, 2>& nx)
+        {
+            if (!is_directed(_state._u) && (us[0] == v || us[1] == v))
+            {
+                double xv = (us[0] == v) ? x[0] : x[1];
+                double nxv = (us[0] == v) ? nx[0] : nx[1];
+                return _state.dstate_edges_dS(std::array<size_t, 3>{us[0], us[1], v}, v,
+                                              std::array<double, 3>{x[0],  x[1], xv},
+                                              std::array<double, 3>{nx[0], nx[1], nxv},
+                                              _entropy_args);
+            }
+            else
+            {
+                return _state.dstate_edges_dS(us, v, x, nx, _entropy_args);
+            }
         }
 
         void proposal_unlock(size_t)
@@ -405,9 +420,9 @@ struct MCMC
             {
             case move_t::replace:
                 update_edge(u, v, m_uv, m_sv,
-                            x_uv, x_sv);
+                                  x_uv, x_sv);
                 update_edge(s, v, m_sv, m_uv,
-                            x_sv, x_uv);
+                                  x_sv, x_uv);
                 if (_verbose > 0)
                     cout << "replace\t" << v << ":\t " << u
                          << " ( " << x_uv << " )"

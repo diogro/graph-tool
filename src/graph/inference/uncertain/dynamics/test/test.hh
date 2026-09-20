@@ -185,6 +185,13 @@ public:
         return get_edges_dS_dispatch(us, v, x, nx);
     }
 
+    double get_edges_dS(const std::array<size_t,3>& us, size_t v,
+                        const std::array<double,3>& x,
+                        const std::array<double,3>& nx)
+    {
+        return get_edges_dS_dispatch(us, v, x, nx);
+    }
+
     double get_node_prob(size_t u)
     {
         double L = 0;
