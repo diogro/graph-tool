@@ -142,12 +142,12 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
         size_t s = c[v];
         if (s >= cprobs.size())
             cprobs.resize(s + 1, 0);
-        cprobs[r] += 1;
+        cprobs[s] += 1;
 
         s = v;
         for (size_t l = 0; l < groups.size(); ++l)
         {
-            r = groups[l][s];
+            s = groups[l][s];
             rvs[l][s].push_back(v);
         }
     }
