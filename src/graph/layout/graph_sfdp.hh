@@ -33,6 +33,12 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
+template <class T>
+T pow2(T x)
+{
+    return x * x;
+}
+
 template <class Pos1, class Pos2>
 double dist(const Pos1& p1, const Pos2& p2)
 {
@@ -101,6 +107,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
 
     typedef typename property_traits<VertexWeightMap>::value_type vweight_t;
 
+    vector<size_t> all_vertices(std::from_range, vertices_range(g));
     vector<size_t> vertices;
 
     double ocenter = 0;
@@ -228,64 +235,21 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
             }
         }
 
-        QuadTree<val_t, vweight_t> qt(ll, ur, max_level, num_vertices(g));
-        for (auto v : vertices_range(g))
-            qt.put_pos(0, pos[v], vweight[v]);
+        QuadTree<val_t, vweight_t> qt(all_vertices |
+                                      std::views::transform
+                                      ([&](auto v) -> std::tuple<std::vector<val_t>&, vweight_t>
+                                       {
+                                           return {pos[v], get(vweight, v)};
+                                       }), 0, max_level);
+
+        qt.barnes_hut_init(theta);
 
         size_t nmoves = 0;
-        vector<size_t> Q;
-        Q.reserve(num_vertices(g));
-
-        size_t nopen = 0;
-
-        auto get_rf_bh =
-            [&](size_t v, auto& qt_, auto& Q_, auto&& f)
-            {
-                pos_t cm{0, 0}, diff{0, 0};
-
-                Q_.push_back(0);
-                while (!Q_.empty())
-                {
-                    size_t q = Q_.back();
-                    Q_.pop_back();
-
-                    auto& dleaves = qt_.get_dense_leaves(q);
-                    if (!dleaves.empty())
-                    {
-                        for (auto& dleaf : dleaves)
-                        {
-                            f(get<0>(dleaf), get<1>(dleaf));
-                            nopen++;
-                        }
-                    }
-                    else
-                    {
-                        double w = qt_[q].get_w();
-                        qt_[q].get_cm(cm);
-                        double d = get_diff(cm, pos[v], diff);
-                        if (w > theta * d)
-                        {
-                            auto leaf = qt_.get_leaves(q);
-                            for (size_t i = 0; i < 4; ++i)
-                            {
-                                if (qt_[leaf].get_count() > 0)
-                                    Q_.push_back(leaf);
-                                ++leaf;
-                            }
-                        }
-                        else
-                        {
-                            f(cm, qt_[q].get_count());
-                            nopen++;
-                        }
-                    }
-                }
-            };
 
         double adist = 0;
 
         #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh())   \
-            firstprivate(Q) reduction(+:adist)
+            reduction(+:adist)
         parallel_loop_no_spawn
             (vertices,
              [&](size_t, auto v)
@@ -297,18 +261,18 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
                  auto& pos_v = pos[v];
 
                  // global repulsive forces
-                 get_rf_bh(v, qt, Q,
-                           [&](auto& lpos, auto w)
-                           {
-                               auto f = f_r(C, K, p, pos_v, lpos);
-                               if (f == 0)
-                                   return;
-                               f *= w * get(vweight, v);
-                               auto d = get_diff(lpos, pos_v, diff);
-                               for (size_t l = 0; l < 2; ++l)
-                                   ftot[l] += f * diff[l];
-                               adist += d * w;
-                           });
+                 qt.barnes_hut(pos_v,
+                               [&](auto& lpos, auto w, auto...)
+                               {
+                                   auto f = f_r(C, K, p, pos_v, lpos);
+                                   if (f == 0)
+                                       return;
+                                   f *= w * get(vweight, v);
+                                   auto d = get_diff(lpos, pos_v, diff);
+                                   for (size_t l = 0; l < 2; ++l)
+                                       ftot[l] += f * diff[l];
+                                   adist += d * w;
+                               });
 
                  // local attractive forces
                  for (auto e : out_edges_range(v, g))
@@ -411,8 +375,7 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
 
         if (verbose)
             cout << n_iter << " " << E << " " << step << " "
-                 << delta << " " << max_level << " "
-                 << nopen / double(HN) << endl;
+                 << delta << " " << max_level << endl;
 
         if (simple)
         {

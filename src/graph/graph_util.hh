@@ -51,6 +51,19 @@ namespace graph_tool
 
 using boost::detail::soft_resize;
 
+// Useful concepts
+template <typename T>
+concept Scalar = std::is_scalar_v<T>;
+
+template <typename T>
+concept Indexable =
+    requires(T& t, std::size_t i)
+    {
+        t.begin();
+        t.end();
+        t[i];
+    };
+
 //
 // Metaprogramming
 // ===============
@@ -62,7 +75,7 @@ inline constexpr bool is_specialization_of_v = std::false_type{};
 template<template<class...> class U, class... Vs>
 inline constexpr bool is_specialization_of_v<U<Vs...>,U> = std::true_type{};
 
-// useful metafunction to determine whether a graph is directed or not
+// useful metafunction to determine whether a graph is directed or notemplate <class T>
 
 struct is_directed_
 {

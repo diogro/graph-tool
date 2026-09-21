@@ -59,9 +59,6 @@ extern std::vector<double> __lgamma_cache;
 constexpr size_t __max_size = std::numeric_limits<size_t>::max();
 
 template <class T>
-concept Scalar = std::is_scalar_v<T>;
-
-template <class T>
 size_t get_next_size(T n)
 {
     size_t k = 1;
