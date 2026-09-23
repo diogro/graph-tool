@@ -348,16 +348,15 @@ struct RankedBlockStateSpec
 
             double S = 0;
 
-            if (_state._coupled_state == nullptr)
-            {
-                auto dE_tot = std::accumulate(dE.begin(), dE.end(), 0);
-                S += lbinom_fast((B * (B + 1)) / 2 + _state._E + dE_tot - 1,
-                                 _state._E + dE_tot);
-            }
-
             E_t E;
             for (auto&& [Ei, Ei_, dEi] : std::views::zip(E, _E, dE))
                 Ei = Ei_ + dEi;
+
+            if (_state._coupled_state == nullptr)
+            {
+                auto E_tot = std::accumulate(E.begin(), E.end() - 1, 0);
+                S += lbinom_fast((B * (B + 1)) / 2 + E_tot - 1, E_tot);
+            }
 
             if (_distance)
             {
@@ -514,7 +513,7 @@ struct RankedBlockStateSpec
         }
 
         double virtual_move(group_t r, group_t nr, const entropy_args_t& ea,
-                               auto& m_entries, int n)
+                            auto& m_entries, int n)
         {
             double dS_dl = 0;
 
@@ -603,7 +602,7 @@ struct RankedBlockStateSpec
                 dS_dl += lbinom_fast(_M + B + dB - 1, B + dB);
             }
 
-            return dS_dl;
+            return ea.beta_dl * dS_dl;
         }
 
         double virtual_move(vertex_t, group_t r, group_t nr,
