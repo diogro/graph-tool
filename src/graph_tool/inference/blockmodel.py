@@ -140,10 +140,18 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         r""":class:`~graph_tool.EdgePropertyMap` with edge multiplicities"""
         return self._eweight
 
+    @eweight.setter
+    def eweight(self, value):
+        self._eweight = value
+
     @property
     def vweight(self):
         r""":class:`~graph_tool.VertexPropertyMap` with node multiplicities"""
         return self._vweight
+
+    @vweight.setter
+    def vweight(self, value):
+        self._vweight = value
 
     @property
     def mrs(self):
