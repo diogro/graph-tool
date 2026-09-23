@@ -485,13 +485,9 @@ public:
 
         _spec.move_vertices_parallel(vs, nrs);
 
-        auto& spec = _spec; // NOTE: alias needed to avoid bug with GCC 15
-
         auto dispatch_coupled =
-            [&](this auto&& self, auto& state) -> void
+            [&]<class cstate_t>(this auto&& self, cstate_t& state) -> void
             {
-                typedef std::decay_t<decltype(state)> cstate_t;
-
                 state._m_entries_pool.resize(get_num_threads());
 
                 state.visit_coupled_if
@@ -565,11 +561,11 @@ public:
                              });
                     };
 
-                if constexpr (!std::is_same_v<decltype(_spec.template apply_delta<true>(state._m_entries_pool[0], state._deltas)), bool>)
+                if constexpr (!std::is_same_v<decltype(state._spec.template apply_delta<true>(state._m_entries_pool[0], state._deltas)), bool>)
                 {
                     dispatch_delta([&](auto& m_entries)
                                    {
-                                       spec.template apply_delta<true>(m_entries, state._deltas);
+                                       state._spec.template apply_delta<true>(m_entries, state._deltas);
                                    });
                 }
 
@@ -962,7 +958,7 @@ public:
     }
 
     template <bool mono = false>
-    decltype(auto) visit_coupled_if(auto&& f)
+    void visit_coupled_if(auto&& f)
     {
         visit_coupled<true>
             ([&](auto&& s, auto& ea)
