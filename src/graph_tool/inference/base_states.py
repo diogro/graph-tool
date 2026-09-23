@@ -173,7 +173,8 @@ class EntropyState(ABC):
         self._entropy_args = {}
         self.reset_entropy_args()
         self._entropy_args.update(entropy_args)
-        self._ignore_state_args = []
+        if not hasattr(self, "_ignore_state_args"):
+            self._ignore_state_args = []
 
     def get_entropy_args(self):
         """Return the current default values for the parameters of the function
