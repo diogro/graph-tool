@@ -24,6 +24,7 @@ import numpy
 from collections.abc import Iterable
 
 from .. topology import shortest_distance, is_bipartite
+from .. util import find_vertex
 from .. import _check_prop_scalar, perfect_prop_hash
 
 try:
@@ -2126,7 +2127,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     heprops = _convert_props(heprops, "e", t, kwargs.get("ecmap", None),
                              kwargs.get("ecnorm", None), pmap_default=True)
 
-    vcmap = kwargs.get("vcmap", None)
+    vcmap = kwargs.get("vcmap", default_cm)
     ecmap = kwargs.get("ecmap", vcmap)
 
     B = state.levels[0].get_B()
@@ -2292,13 +2293,12 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
 def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 
-    if state.levels[0].overlap:
+    if isinstance(state.levels[0], OverlapBlockState):
         g = state.g
         ostate = state.levels[0]
         bv, bcin, bcout, bc = ostate.get_overlap_groups()
-        be = ostate.get_edge_blocks()
 
-        n_r = zeros(ostate.get_B())
+        n_r = np.zeros(ostate.B)
         b = g.new_vertex_property("int")
         for v in g.vertices():
             i = bc[v].a.argmax()
@@ -2317,34 +2317,31 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 
     g = state.g
 
-    deg = g.degree_property_map("total")
-
     t, tb, order = get_hierarchy_tree(state)
 
-    root = t.vertex(t.num_vertices(True) - 1)
-    if root.out_degree() > 2:
-        clabel = is_bipartite(g, partition=True)[1].copy("int")
-        if state.levels[0].overlap:
-            ostate = OverlapBlockState(g, b=clabel)
-            ostate = orig_state.copy(clabel=clabel)
-            bc = ostate.propagate_clabel(len(state.levels) - 2)
-        else:
-            state = state.copy(clabel=clabel)
-            bc = state.propagate_clabel(len(state.levels) - 2)
+    root = find_vertex(t, "in", 0)[0]
+    # if root.out_degree() > 2:
+    #     clabel = is_bipartite(g, partition=True)[1].copy("int")
+    #     if isinstance(state.levels[0], OverlapBlockState):
+    #         ostate = OverlapBlockState(g, b=clabel)
+    #         bc = ostate.levels[len(state.levels) - 2].b
+    #     else:
+    #         state = state.copy(b=clabel)
+    #         bc = state.propagate_clabel(len(state.levels) - 2)
 
-        ps = list(root.out_neighbors())
-        t.clear_vertex(root)
+    #     ps = list(root.out_neighbors())
+    #     t.clear_vertex(root)
 
-        p1 = t.add_vertex()
-        p2 = t.add_vertex()
+    #     p1 = t.add_vertex()
+    #     p2 = t.add_vertex()
 
-        t.add_edge(root, p1)
-        t.add_edge(root, p2)
-        for p in ps:
-            if bc.a[tb[p]] == 0:
-                t.add_edge(p2, p)
-            else:
-                t.add_edge(p1, p)
+    #     t.add_edge(root, p1)
+    #     t.add_edge(root, p2)
+    #     for p in ps:
+    #         if bc.a[tb[p]] == 0:
+    #             t.add_edge(p2, p)
+    #         else:
+    #             t.add_edge(p1, p)
 
     w = t.new_vertex_property("double")
     for v in t.vertices():
@@ -2359,7 +2356,7 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 
     pos[root] = (0., 0.)
 
-    p1, p2 = root.out_neighbors()
+    p1, p2 = list(root.out_neighbors())[:2]
 
     if ((w[p1] == w[p2] and p1.out_degree() > p2.out_degree()) or
         w[p1] > w[p2]):
