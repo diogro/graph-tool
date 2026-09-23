@@ -145,10 +145,11 @@ auto uniform_sample_iter(Iter begin, const Iter& end, RNG& rng)
     return begin;
 }
 
-template <class Container, class RNG>
-auto uniform_sample_iter(Container&& v, RNG& rng)
+template <class Range, class RNG>
+auto uniform_sample_iter(Range&& v, RNG& rng)
 {
-    return uniform_sample_iter(v.begin(), v.end(), rng);
+    return uniform_sample_iter(std::ranges::begin(v),
+                               std::ranges::end(v), rng);
 }
 
 template <class Iter, class RNG>
@@ -159,10 +160,10 @@ uniform_sample(const Iter& begin, const Iter& end, RNG& rng)
     return *iter;
 }
 
-template <class Container, class RNG>
-decltype(auto) uniform_sample(Container&& v, RNG& rng)
+template <class Range, class RNG>
+decltype(auto) uniform_sample(Range&& v, RNG& rng)
 {
-    return *uniform_sample_iter(v, rng);
+    return *uniform_sample_iter(std::forward<Range>(v), rng);
 }
 
 template <class Graph, class RNG>
