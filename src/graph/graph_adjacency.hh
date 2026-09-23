@@ -231,9 +231,8 @@ public:
 
     struct get_vertex
     {
-        get_vertex() {}
-        typedef Vertex result_type;
-        Vertex operator()(const std::pair<vertex_t, vertex_t>& v) const
+        typedef const vertex_t& result_type;
+        const vertex_t& operator()(const std::pair<vertex_t, vertex_t>& v) const
         { return v.first; }
     };
 
@@ -242,6 +241,9 @@ public:
         adjacency_iterator;
 
     typedef adjacency_iterator in_adjacency_iterator;
+
+    static_assert(std::input_or_output_iterator<adjacency_iterator>);
+    static_assert(std::random_access_iterator<adjacency_iterator>);
 
     template <class Base>
     struct edge_iter_facade:
@@ -256,8 +258,8 @@ public:
         public edge_iter_facade<base_edge_iterator<Dereference>>
     {
         base_edge_iterator() {}
-        base_edge_iterator(vertex_t v, typename edge_list_t::const_iterator&& iter)
-            : _v(v), _iter(std::forward<typename edge_list_t::const_iterator>(iter))
+        base_edge_iterator(vertex_t v, const typename edge_list_t::const_iterator& iter)
+            : _v(v), _iter(iter)
         {}
 
     private:
@@ -288,6 +290,19 @@ public:
         edge_descriptor operator*() const
         {
             return edge_iter_facade<base_edge_iterator>::operator*();
+        }
+
+        base_edge_iterator& operator+=(auto n) { _iter += n; return *this; }
+        base_edge_iterator& operator-=(auto n) { _iter -= n; return *this; }
+
+        decltype(auto) operator[](auto n) const { return *(*this + n); }
+
+        friend base_edge_iterator operator+(base_edge_iterator i, auto n) { return i += n; }
+        friend base_edge_iterator operator+(auto n, base_edge_iterator i) { return i += n; }
+        friend base_edge_iterator operator-(base_edge_iterator i, auto n) { return i -= n; }
+        friend auto operator-(const base_edge_iterator& a,  const base_edge_iterator& b)
+        {
+            return a._iter - b._iter;
         }
 
     protected:
@@ -324,6 +339,11 @@ public:
     typedef base_edge_iterator<make_out_edge> out_edge_iterator;
     typedef base_edge_iterator<make_in_edge> in_edge_iterator;
 
+    static_assert(std::input_or_output_iterator<out_edge_iterator>);
+    static_assert(std::input_or_output_iterator<in_edge_iterator>);
+    static_assert(std::random_access_iterator<out_edge_iterator>);
+    static_assert(std::random_access_iterator<in_edge_iterator>);
+
     template <class Iter>
     struct make_in_or_out_edge
     {
@@ -343,19 +363,42 @@ public:
     struct all_edge_iterator:
         public base_edge_iterator<make_in_or_out_edge<all_edge_iterator>>
     {
+        typedef base_edge_iterator<make_in_or_out_edge<all_edge_iterator>> base_t;
         all_edge_iterator() {}
         all_edge_iterator(vertex_t v,
-                          typename edge_list_t::const_iterator&& iter,
+                          const typename edge_list_t::const_iterator& iter,
                           const typename edge_list_t::const_iterator& pos)
-            : base_edge_iterator<make_in_or_out_edge<all_edge_iterator>>
-                  (v, std::forward<typename edge_list_t::const_iterator>(iter)),
+            : base_t(v, iter),
               _pos(pos)
         {}
+
+        const base_t& base() const { return *this; }
+
+        all_edge_iterator& operator++() { base_t::operator++(); return *this; }
+        all_edge_iterator  operator++(int) { auto t = *this; ++*this; return t; }
+        all_edge_iterator& operator--() { base_t::operator--(); return *this; }
+        all_edge_iterator  operator--(int) { auto t = *this; --*this; return t; }
+        all_edge_iterator& operator+=(auto n) { base_t::operator+=(n); return *this; }
+        all_edge_iterator& operator-=(auto n) { base_t::operator-=(n); return *this; }
+
+        decltype(auto) operator[](auto n) const { return *(*this + n); }
+
+        friend all_edge_iterator operator+(all_edge_iterator i, auto n) { return i += n; }
+        friend all_edge_iterator operator+(auto n, all_edge_iterator i) { return i += n; }
+        friend all_edge_iterator operator-(all_edge_iterator i, auto n) { return i -= n; }
+        friend auto operator-(const all_edge_iterator& a,
+                              const all_edge_iterator& b)
+        {
+            return a.base() - b.base();
+        }
 
     private:
         friend struct make_in_or_out_edge<all_edge_iterator>;
         typename edge_list_t::const_iterator _pos;
     };
+
+    static_assert(std::input_or_output_iterator<all_edge_iterator>);
+    static_assert(std::random_access_iterator<all_edge_iterator>);
 
     class edge_iterator:
         public boost::iterator_facade<edge_iterator,
@@ -414,6 +457,8 @@ public:
         typename vertex_list_t::const_iterator _vi;
         typename edge_list_t::const_iterator _ei;
     };
+
+    static_assert(std::input_or_output_iterator<edge_iterator>);
 
     void reindex_edges()
     {
