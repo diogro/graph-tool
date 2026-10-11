@@ -20,6 +20,16 @@
 
 #include "base64.hh"
 
+// Expat 2.9.0 deprecates XML_GetCurrent{Line,Column}Number() in favor of
+// their 64 bit versions, which do not exist in earlier versions.
+#if XML_MAJOR_VERSION > 2 || (XML_MAJOR_VERSION == 2 && XML_MINOR_VERSION >= 9)
+#   define XML_LINE_NUMBER XML_GetCurrentLineNumber64
+#   define XML_COLUMN_NUMBER XML_GetCurrentColumnNumber64
+#else
+#   define XML_LINE_NUMBER XML_GetCurrentLineNumber
+#   define XML_COLUMN_NUMBER XML_GetCurrentColumnNumber
+#endif
+
 using namespace boost;
 namespace boost
 {
@@ -71,8 +81,8 @@ public:
         if (!okay)
         {
             std::stringstream s;
-            s << "on line " << XML_GetCurrentLineNumber(m_parser)
-              <<", column " << XML_GetCurrentColumnNumber(m_parser)
+            s << "on line " << XML_LINE_NUMBER(m_parser)
+              <<", column " << XML_COLUMN_NUMBER(m_parser)
               << ": " << XML_ErrorString(XML_GetErrorCode(m_parser));
             throw parse_error(s.str());
         }
@@ -191,9 +201,9 @@ private:
                     {
                         std::stringstream s;
                         s << "on line "
-                          << XML_GetCurrentLineNumber(self->m_parser)
+                          << XML_LINE_NUMBER(self->m_parser)
                           << ", column "
-                          << XML_GetCurrentColumnNumber(self->m_parser)
+                          << XML_COLUMN_NUMBER(self->m_parser)
                           << ": unrecognized key kind '" << value << "'";
                         throw parse_error(s.str());
                     }
@@ -297,8 +307,8 @@ private:
             catch (bad_lexical_cast&)
             {
                 std::stringstream s;
-                s << "on line " << XML_GetCurrentLineNumber(m_parser)
-                  << ", column " << XML_GetCurrentColumnNumber(m_parser)
+                s << "on line " << XML_LINE_NUMBER(m_parser)
+                  << ", column " << XML_COLUMN_NUMBER(m_parser)
                   << ": invalid vertex: " << v;
                 throw parse_error(s.str());
             }
@@ -403,8 +413,8 @@ private:
         catch (parse_error &e)
         {
             std::stringstream s;
-            s << "on line " << XML_GetCurrentLineNumber(m_parser)
-              << ", column " << XML_GetCurrentColumnNumber(m_parser)
+            s << "on line " << XML_LINE_NUMBER(m_parser)
+              << ", column " << XML_COLUMN_NUMBER(m_parser)
               << ": " << e.error;
             throw parse_error(s.str());
         }
@@ -422,8 +432,8 @@ private:
         catch (parse_error &e)
         {
             std::stringstream s;
-            s << "on line " << XML_GetCurrentLineNumber(m_parser)
-              << ", column " << XML_GetCurrentColumnNumber(m_parser)
+            s << "on line " << XML_LINE_NUMBER(m_parser)
+              << ", column " << XML_COLUMN_NUMBER(m_parser)
               << ": " << e.error;
             throw parse_error(s.str());
         }
@@ -441,8 +451,8 @@ private:
         catch (parse_error &e)
         {
             std::stringstream s;
-            s << "on line " << XML_GetCurrentLineNumber(m_parser)
-              << ", column " << XML_GetCurrentColumnNumber(m_parser)
+            s << "on line " << XML_LINE_NUMBER(m_parser)
+              << ", column " << XML_COLUMN_NUMBER(m_parser)
               << ": " << e.error;
             throw parse_error(s.str());
         }

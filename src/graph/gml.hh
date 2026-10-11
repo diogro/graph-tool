@@ -40,7 +40,6 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <codecvt>
 
 #include "base64.hh"
 
@@ -60,6 +59,14 @@ private:
     std::string _what;
 };
 
+// Convert a string of UTF-32 code points (as produced by the parser below) to
+// UTF-8
+inline std::string to_utf8(const std::wstring& s)
+{
+    typedef u32_to_u8_iterator<std::wstring::const_iterator, char> iter_t;
+    return std::string(iter_t(s.begin()), iter_t(s.end()));
+}
+
 struct to_dict_visitor: public boost::static_visitor<>
 {
     to_dict_visitor(const std::string& key_, boost::python::dict& dict_)
@@ -73,8 +80,7 @@ struct to_dict_visitor: public boost::static_visitor<>
 
     void operator()(std::wstring& val) const
     {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-        const_cast<boost::python::dict&>(dict)[key] =  conv.to_bytes(val);
+        const_cast<boost::python::dict&>(dict)[key] = to_utf8(val);
     }
 
     template <class Val>
@@ -104,8 +110,7 @@ struct prop_val_visitor: public boost::static_visitor<>
 
     void operator()(std::wstring& val) const
     {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-        put(name, const_cast<dynamic_properties&>(dp), v, conv.to_bytes(val));
+        put(name, const_cast<dynamic_properties&>(dp), v, to_utf8(val));
     }
 
     template <class Val>

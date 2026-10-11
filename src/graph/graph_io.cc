@@ -214,6 +214,14 @@ struct create_dynamic_map
 
     create_dynamic_map(VertexIndexMap vertex_map, EdgeIndexMap edge_map)
         :_vertex_map(vertex_map), _edge_map(edge_map) {}
+
+    // A user-provided copy constructor makes this type non-trivially
+    // copyable, so that boost::function uses it instead of a memcpy() of its
+    // whole small-object buffer, which triggers a -Wmaybe-uninitialized false
+    // positive with LTO.
+    create_dynamic_map(const create_dynamic_map& other)
+        :_vertex_map(other._vertex_map), _edge_map(other._edge_map) {}
+    create_dynamic_map& operator=(const create_dynamic_map&) = default;
     DP_SMART_PTR<dynamic_property_map> operator()(const string&,
                                                   const boost::any& key,
                                                   const boost::any& value)

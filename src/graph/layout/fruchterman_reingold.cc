@@ -57,9 +57,11 @@ struct convert_dispatch<typename convex_topology<2>::point, vector<Val> >
 {
     typename convex_topology<2>::point operator()(const vector<Val>& v) const
     {
+        // point's default constructor does not initialize its values, so
+        // missing coordinates are explicitly set to zero
         typename convex_topology<2>::point p;
-        for (size_t i = 0; i < min(size_t(2), v.size()); ++i)
-            p[i] = v[i];
+        for (size_t i = 0; i < 2; ++i)
+            p[i] = (i < v.size()) ? Val(v[i]) : Val(0);
         return p;
     }
 };

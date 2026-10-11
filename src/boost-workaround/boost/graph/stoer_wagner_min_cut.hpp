@@ -22,6 +22,8 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/typeof/typeof.hpp>
 
+#include "graph_util.hh"
+
 namespace boost {
   
   namespace detail {
@@ -76,7 +78,7 @@ namespace boost {
       
       vertex_descriptor s = boost::graph_traits<UndirectedGraph>::null_vertex();
       vertex_descriptor t = boost::graph_traits<UndirectedGraph>::null_vertex();
-      weight_type w;
+      weight_type w{};
       while (!pq.empty()) { // while PQ \neq {} do
         const vertex_descriptor u = pq.top(); // u = extractmax(PQ)
         w = get(keys, u);
@@ -152,7 +154,9 @@ namespace boost {
       BOOST_CONCEPT_ASSERT((boost::Convertible<vertex_descriptor, typename boost::property_traits<VertexAssignmentMap>::value_type>));
       BOOST_CONCEPT_ASSERT((boost::KeyedUpdatableQueueConcept<KeyedUpdatablePriorityQueue>));
       
-      vertices_size_type n = num_vertices(g);
+      // num_vertices() includes filtered-out vertices in graph-tool's graph
+      // views; the number of phases depends on the actual vertex count
+      vertices_size_type n = graph_tool::hard_num_vertices(g);
       if (n < 2)
         throw boost::bad_graph("the input graph must have at least two vertices.");
       else if (!pq.empty())

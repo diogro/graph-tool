@@ -31,9 +31,22 @@ struct get_min_cut
     template <class Graph, class EdgeWeight, class PartMap>
     void operator()(Graph& g, EdgeWeight eweight, PartMap part_map, double& mc) const
     {
+        typedef typename property_traits<EdgeWeight>::value_type weight_t;
+        typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+
+        // The default priority queue keeps its keys in an uninitialized
+        // array, which triggers -Wmaybe-uninitialized false positives; we
+        // pass one with zero-initialized keys instead.
+        auto vindex = get(vertex_index_t(), g);
+        typename vprop_map_t<weight_t>::unchecked_t keys(vindex, num_vertices(g));
+        typename vprop_map_t<size_t>::unchecked_t pos(vindex, num_vertices(g));
+        d_ary_heap_indirect<vertex_t, 4, decltype(pos), decltype(keys),
+                            std::greater<weight_t>> pq(keys, pos);
+
         try
         {
-            mc = stoer_wagner_min_cut(g, eweight, parity_map(part_map));
+            mc = stoer_wagner_min_cut(g, eweight,
+                                      parity_map(part_map).max_priority_queue(pq));
         }
         catch (bad_graph&)
         {
