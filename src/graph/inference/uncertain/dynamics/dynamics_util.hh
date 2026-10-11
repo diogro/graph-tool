@@ -28,8 +28,8 @@ inline double norm_lpdf(T x, T m, T s, T log_s)
 #ifndef __clang__
     constexpr
 #endif
-        double l2pi = std::log(2 * M_PI);
-    return - ((a * a) + l2pi) / 2 - log_s;
+        double l2pi2 = std::log(2 * M_PI)/2;
+    return -(a * a) / 2 - log_s - l2pi2;
 }
 
 template <class T>
