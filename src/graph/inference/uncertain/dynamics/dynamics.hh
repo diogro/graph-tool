@@ -33,7 +33,7 @@
 #include "../../support/segment_sampler.hh"
 #include "../../support/bisection_sampler.hh"
 #include "../uncertain_util.hh"
-#include "../../../generation/graph_knn.hh"
+#include "../../../generation/knn.hh"
 
 #include "../../../parallel_util.hh"
 

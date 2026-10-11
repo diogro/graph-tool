@@ -1,0 +1,77 @@
+// graph-tool -- a general graph modification and manipulation thingy
+//
+// Copyright (C) 2006-2026 Tiago de Paula Peixoto <tiago@skewed.de>
+//
+// This program is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option) any
+// later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+#include "graph.hh"
+#include "python_interface.hh"
+#include "properties.hh"
+#include "graph_filtering.hh"
+#include "selectors.hh"
+#include "graph_util.hh"
+#include "hash_map_wrap.hh"
+
+using namespace std;
+using namespace boost;
+using namespace graph_tool;
+
+struct do_perfect_ehash
+{
+    template <class Graph, class EdgePropertyMap, class HashProp>
+    void operator()(Graph& g, EdgePropertyMap prop, HashProp hprop,
+                    std::any& adict) const
+    {
+        typedef typename property_traits<EdgePropertyMap>::value_type val_t;
+        typedef typename property_traits<HashProp>::value_type hash_t;
+        typedef unordered_map<val_t, hash_t> dict_t;
+
+        if (!adict.has_value())
+            adict = dict_t();
+
+        dict_t& dict = std::any_cast<dict_t&>(adict);
+
+        for (auto e : edges_range(g))
+        {
+            auto val = prop[e];
+            auto iter = dict.find(val);
+            hash_t h;
+            if (iter == dict.end())
+            {
+                h = dict.size();
+                dict[val] = h;
+            }
+            else
+            {
+                h = iter->second;
+            }
+            hprop[e] = h;
+        }
+    }
+};
+
+void perfect_ehash(GraphInterface& gi, std::any prop, std::any hprop,
+                   std::any& dict)
+{
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed)>}>()
+        (gi,
+         [&](auto&& graph, auto&& a2, auto&& a3)
+         {
+             return do_perfect_ehash()
+                 (std::forward<decltype(graph)>(graph),
+                  std::forward<decltype(a2)>(a2),
+                  std::forward<decltype(a3)>(a3), dict);
+         },
+         edge_properties, writable_scalar_edge_properties)(prop, hprop);
+}

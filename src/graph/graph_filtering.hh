@@ -27,7 +27,7 @@
 #include "graph_adaptor.hh"
 #include "graph_filtered.hh"
 #include "graph_reverse.hh"
-#include "graph_properties.hh"
+#include "properties.hh"
 #include "graph_util.hh"
 #include "gil_release.hh"
 #include "dispatch.hh"

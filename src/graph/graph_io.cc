@@ -31,10 +31,10 @@
 
 #include "graph.hh"
 #include "graph_filtering.hh"
-#include "graph_properties.hh"
+#include "properties.hh"
 #include "graph_util.hh"
 
-#include "graph_python_interface.hh"
+#include "python_interface.hh"
 #include "str_repr.hh"
 
 #include "gml.hh"

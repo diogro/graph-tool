@@ -26,7 +26,7 @@
 
 #include "numpy_bind.hh"
 #include "coroutine.hh"
-#include "graph_python_interface.hh"
+#include "python_interface.hh"
 
 using namespace boost;
 

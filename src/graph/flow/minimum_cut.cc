@@ -1,0 +1,110 @@
+// graph-tool -- a general graph modification and manipulation thingy
+//
+// Copyright (C) 2006-2026 Tiago de Paula Peixoto <tiago@skewed.de>
+//
+// This program is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option) any
+// later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+#include "graph_filtering.hh"
+#include "graph.hh"
+#include "properties.hh"
+
+#include "augment.hh"
+#include <boost/graph/stoer_wagner_min_cut.hpp>
+
+using namespace std;
+using namespace boost;
+using namespace graph_tool;
+
+struct get_min_cut
+{
+    template <class Graph, class EdgeWeight, class PartMap>
+    void operator()(Graph& g, EdgeWeight eweight, PartMap part_map, double& mc) const
+    {
+        try
+        {
+            mc = stoer_wagner_min_cut(g, eweight, parity_map(part_map));
+        }
+        catch (bad_graph&)
+        {
+            throw ValueException("Graph has less than 2 vertices.");
+        }
+    }
+
+};
+
+double min_cut(GraphInterface& gi, std::any weight, std::any part_map)
+{
+    double mc = 0;
+
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
+
+    if (!weight.has_value())
+        weight = cweight_t();
+
+    auto weight_maps = hana::append(writable_scalar_edge_properties,
+                                    hana::type<cweight_t>());
+
+    run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
+        (gi,
+         [&](auto&& graph, auto&& a2, auto&& a3)
+         {
+             return get_min_cut()
+                 (std::forward<decltype(graph)>(graph),
+                  std::forward<decltype(a2)>(a2),
+                  std::forward<decltype(a3)>(a3), mc);
+         },
+         weight_maps, writable_scalar_vertex_properties)(weight, part_map);
+    return mc;
+}
+
+struct do_get_residual_graph
+{
+    template <class Graph, class CapacityMap, class ResidualMap,
+              class AugmentedMap>
+    void operator()(Graph& g, CapacityMap capacity, ResidualMap res,
+                    AugmentedMap augmented) const
+    {
+        residual_graph(g, capacity, res, augmented);
+    }
+};
+
+void get_residual_graph(GraphInterface& gi, std::any capacity,
+                        std::any res, std::any oaugment)
+{
+    typedef eprop_map_t<uint8_t>
+        emap_t;
+    emap_t augment = std::any_cast<emap_t>(oaugment);
+    run_action<>()
+        (gi,
+         [&](auto&& graph, auto&& a2, auto&& a3)
+         {
+             return do_get_residual_graph()
+                 (std::forward<decltype(graph)>(graph),
+                  std::forward<decltype(a2)>(a2),
+                  std::forward<decltype(a3)>(a3), augment);
+         },
+         scalar_edge_properties, scalar_edge_properties)(capacity, res);
+}
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+#define __MOD__ flow
+#include "module_registry.hh"
+REGISTER_MOD
+([]
+ {
+     def("min_cut", &min_cut);
+     def("residual_graph", &get_residual_graph);
+ });

@@ -25,7 +25,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "demangle.hh"
-#include "graph_exceptions.hh"
+#include "exceptions.hh"
 
 namespace boost
 {

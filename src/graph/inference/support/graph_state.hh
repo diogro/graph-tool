@@ -32,8 +32,8 @@
 #include <boost/vmd/vmd.hpp>
 
 #include "graph.hh"
-#include "graph_selectors.hh"
-#include "graph_properties.hh"
+#include "selectors.hh"
+#include "properties.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
 

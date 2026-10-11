@@ -33,7 +33,7 @@
 
 #include "parallel_util.hh"
 
-#include "graph_python_interface.hh"
+#include "python_interface.hh"
 
 #ifndef COUPLED_BLOCK_MODEL
 #define COUPLED_BLOCK_MODEL block_model::BlockState

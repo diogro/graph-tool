@@ -41,7 +41,7 @@ namespace boost { namespace python { namespace detail {
 
 #include <boost/functional/hash.hpp>
 
-#include "graph_selectors.hh"
+#include "selectors.hh"
 #include "graph_filtered.hh"
 #include "graph_adjacency.hh"
 #include "parallel_util.hh"

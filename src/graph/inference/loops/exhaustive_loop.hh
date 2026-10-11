@@ -19,7 +19,7 @@
 #define EXHAUSTIVE_LOOP_HH
 
 #include "config.h"
-#include "graph_python_interface.hh"
+#include "python_interface.hh"
 
 namespace graph_tool
 {

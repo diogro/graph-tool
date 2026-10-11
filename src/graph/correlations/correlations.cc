@@ -1,0 +1,79 @@
+// graph-tool -- a general graph modification and manipulation thingy
+//
+// Copyright (C) 2006-2026 Tiago de Paula Peixoto <tiago@skewed.de>
+//
+// This program is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option) any
+// later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+#include "graph_filtering.hh"
+
+#include <boost/python.hpp>
+
+#include "graph.hh"
+#include "histogram.hh"
+#include "selectors.hh"
+#include "properties.hh"
+
+#include "corr_hist.hh"
+
+#include <iostream>
+
+using namespace std;
+using namespace boost;
+using namespace graph_tool;
+
+typedef UnityPropertyMap<int,GraphInterface::edge_t> cweight_map_t;
+
+boost::python::object
+get_vertex_correlation_histogram(GraphInterface& gi,
+                                 GraphInterface::deg_t deg1,
+                                 GraphInterface::deg_t deg2,
+                                 std::any weight,
+                                 const vector<long double>& xbin,
+                                 const vector<long double>& ybin)
+{
+    boost::python::object hist;
+    boost::python::object ret_bins;
+
+    std::array<vector<long double>,2> bins;
+    bins[0] = xbin;
+    bins[1] = ybin;
+
+    any weight_prop;
+    typedef DynamicPropertyMapWrap<long double, GraphInterface::edge_t>
+        wrapped_weight_t;
+
+    if (weight.has_value())
+        weight_prop = wrapped_weight_t(weight, scalar_edge_properties);
+    else
+        weight_prop = cweight_map_t();
+
+    run_action<{.dargs={.gil_release=false}}>()
+        (gi, get_correlation_histogram<GetNeighborsPairs>
+         (hist, bins, ret_bins),
+         all_selectors, all_selectors,
+         hana::tuple_t<cweight_map_t, wrapped_weight_t>)
+        (degree_selector(deg1), degree_selector(deg2), weight_prop);
+
+    return boost::python::make_tuple(hist, ret_bins);
+}
+
+using namespace boost::python;
+
+#define __MOD__ correlations
+#include "module_registry.hh"
+REGISTER_MOD
+([]
+ {
+     def("vertex_correlation_histogram", &get_vertex_correlation_histogram);
+ });

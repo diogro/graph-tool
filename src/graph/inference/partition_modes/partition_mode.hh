@@ -24,7 +24,7 @@
 
 #include "../support/util.hh"
 #include "../support/contingency.hh"
-#include "../../topology/graph_bipartite_weighted_matching.hh"
+#include "../../topology/bipartite_weighted_matching.hh"
 #include "../../samplers.hh"
 
 namespace graph_tool

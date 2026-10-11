@@ -25,7 +25,7 @@
 #include "mcmc_loop.hh"
 
 #include <boost/range/combine.hpp>
-#include "../../topology/graph_bipartite_weighted_matching.hh"
+#include "../../topology/bipartite_weighted_matching.hh"
 #include "../support/bisection_search.hh"
 #include "../support/contingency.hh"
 #include "../support/util.hh"

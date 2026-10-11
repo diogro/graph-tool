@@ -1,0 +1,58 @@
+// graph-tool -- a general graph modification and manipulation thingy
+//
+// Copyright (C) 2006-2026 Tiago de Paula Peixoto <tiago@skewed.de>
+//
+// This program is free software; you can redistribute it and/or modify it under
+// the terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option) any
+// later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+#include "graph.hh"
+#include "properties.hh"
+#include "graph_filtering.hh"
+#include "selectors.hh"
+
+#include "properties_group.hh"
+
+using namespace std;
+using namespace boost;
+using namespace graph_tool;
+
+
+void group_vector_property(GraphInterface& g, std::any vector_prop,
+                           std::any prop, size_t pos, bool edge)
+{
+    if (edge)
+        run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>}>()
+            (g,
+             [&](auto&& graph, auto&& a2, auto&& a3)
+             {
+                 return do_group_vector_property<boost::mpl::true_,
+                                                 boost::mpl::true_>()(
+                     std::forward<decltype(graph)>(graph),
+                     std::forward<decltype(a2)>(a2),
+                     std::forward<decltype(a3)>(a3), pos);
+             },
+             vector_edge_properties, edge_properties)(vector_prop, prop);
+    else
+        run_action<{.tr=graph_tool::type<decltype(graph_tool::always_directed_never_reversed)>}>()
+            (g,
+             [&](auto&& graph, auto&& a2, auto&& a3)
+             {
+                 return do_group_vector_property<boost::mpl::true_,
+                                                 boost::mpl::false_>()(
+                     std::forward<decltype(graph)>(graph),
+                     std::forward<decltype(a2)>(a2),
+                     std::forward<decltype(a3)>(a3), pos);
+             },
+             vector_vertex_properties,
+             vertex_properties)(vector_prop, prop);
+}

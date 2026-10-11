@@ -17,7 +17,7 @@
 
 #include "graph_tool.hh"
 #include "random.hh"
-#include "graph_python_interface.hh"
+#include "python_interface.hh"
 
 #include "bisection_sampler.hh"
 

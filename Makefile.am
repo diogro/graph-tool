@@ -108,27 +108,26 @@ libgraph_tool_core_la_SOURCES = \
 	src/graph/base64.cc \
 	src/graph/demangle.cc \
 	src/graph/graph.cc \
-	src/graph/graph_exceptions.cc \
-	src/graph/graph_bind.cc \
-	src/graph/graph_copy.cc \
+	src/graph/exceptions.cc \
+	src/graph/bind.cc \
+	src/graph/copy.cc \
 	src/graph/graph_filtering.cc \
 	src/graph/graph_io.cc \
-	src/graph/graph_openmp.cc \
-	src/graph/graph_properties.cc \
-	src/graph/graph_properties_imp1.cc \
-	src/graph/graph_properties_imp2.cc \
-	src/graph/graph_properties_imp3.cc \
-	src/graph/graph_properties_imp4.cc \
-	src/graph/graph_properties_copy.cc \
-	src/graph/graph_properties_copy_imp1.cc \
-	src/graph/graph_properties_group.cc \
-	src/graph/graph_properties_ungroup.cc \
-	src/graph/graph_properties_map_values.cc \
-	src/graph/graph_properties_map_values_imp1.cc \
-	src/graph/graph_python_interface.cc \
-	src/graph/graph_python_interface_imp1.cc \
-	src/graph/graph_python_interface_export.cc \
-	src/graph/graph_selectors.cc \
+	src/graph/properties.cc \
+	src/graph/properties_imp1.cc \
+	src/graph/properties_imp2.cc \
+	src/graph/properties_imp3.cc \
+	src/graph/properties_imp4.cc \
+	src/graph/properties_copy.cc \
+	src/graph/properties_copy_imp1.cc \
+	src/graph/properties_group.cc \
+	src/graph/properties_ungroup.cc \
+	src/graph/properties_map_values.cc \
+	src/graph/properties_map_values_imp1.cc \
+	src/graph/python_interface.cc \
+	src/graph/python_interface_imp1.cc \
+	src/graph/python_interface_export.cc \
+	src/graph/selectors.cc \
 	src/graph/graphml.cpp \
 	src/graph/openmp.cc \
 	src/graph/random.cc \
@@ -147,17 +146,17 @@ nobase_libgraph_tool_core_la_include_HEADERS = \
 	src/graph/graph.hh \
 	src/graph/graph_adaptor.hh \
 	src/graph/graph_adjacency.hh \
-	src/graph/graph_exceptions.hh \
+	src/graph/exceptions.hh \
 	src/graph/graph_filtered.hh \
 	src/graph/graph_filtering.hh \
 	src/graph/graph_io_binary.hh \
-	src/graph/graph_properties.hh \
-	src/graph/graph_properties_copy.hh \
-	src/graph/graph_properties_group.hh \
-	src/graph/graph_properties_map_values.hh \
-	src/graph/graph_python_interface.hh \
+	src/graph/properties.hh \
+	src/graph/properties_copy.hh \
+	src/graph/properties_group.hh \
+	src/graph/properties_map_values.hh \
+	src/graph/python_interface.hh \
 	src/graph/graph_reverse.hh \
-	src/graph/graph_selectors.hh \
+	src/graph/selectors.hh \
 	src/graph/graph_tool.hh \
 	src/graph/graph_util.hh \
 	src/graph/hash_map_wrap.hh \
@@ -219,23 +218,23 @@ libgraph_tool_centrality_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_centrality_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_centrality_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_centrality_la_SOURCES = \
-	src/graph/centrality/graph_betweenness.cc \
-	src/graph/centrality/graph_centrality_bind.cc \
-	src/graph/centrality/graph_closeness.cc \
-	src/graph/centrality/graph_eigentrust.cc \
-	src/graph/centrality/graph_eigenvector.cc \
-	src/graph/centrality/graph_hits.cc \
-	src/graph/centrality/graph_katz.cc \
-	src/graph/centrality/graph_pagerank.cc \
-	src/graph/centrality/graph_trust_transitivity.cc
+	src/graph/centrality/betweenness.cc \
+	src/graph/centrality/centrality_bind.cc \
+	src/graph/centrality/closeness.cc \
+	src/graph/centrality/eigentrust.cc \
+	src/graph/centrality/eigenvector.cc \
+	src/graph/centrality/hits.cc \
+	src/graph/centrality/katz.cc \
+	src/graph/centrality/pagerank.cc \
+	src/graph/centrality/trust_transitivity.cc
 nobase_libgraph_tool_centrality_la_include_HEADERS = \
-	src/graph/centrality/graph_closeness.hh \
-	src/graph/centrality/graph_eigentrust.hh \
-	src/graph/centrality/graph_eigenvector.hh \
-	src/graph/centrality/graph_pagerank.hh \
-	src/graph/centrality/graph_hits.hh \
-	src/graph/centrality/graph_katz.hh \
-	src/graph/centrality/graph_trust_transitivity.hh \
+	src/graph/centrality/closeness.hh \
+	src/graph/centrality/eigentrust.hh \
+	src/graph/centrality/eigenvector.hh \
+	src/graph/centrality/pagerank.hh \
+	src/graph/centrality/hits.hh \
+	src/graph/centrality/katz.hh \
+	src/graph/centrality/trust_transitivity.hh \
 	src/graph/centrality/minmax.hh
 
 #########################
@@ -249,13 +248,13 @@ libgraph_tool_clustering_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_clustering_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_clustering_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_clustering_la_SOURCES = \
-	src/graph/clustering/graph_clustering.cc \
-	src/graph/clustering/graph_extended_clustering.cc \
-	src/graph/clustering/graph_motifs.cc
+	src/graph/clustering/clustering.cc \
+	src/graph/clustering/extended_clustering.cc \
+	src/graph/clustering/motifs.cc
 nobase_libgraph_tool_clustering_la_include_HEADERS = \
-	src/graph/clustering/graph_clustering.hh \
-	src/graph/clustering/graph_extended_clustering.hh \
-	src/graph/clustering/graph_motifs.hh
+	src/graph/clustering/clustering.hh \
+	src/graph/clustering/extended_clustering.hh \
+	src/graph/clustering/motifs.hh
 
 ###########################
 # src/graph/correlations/ #
@@ -268,17 +267,17 @@ libgraph_tool_correlations_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_correlations_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_correlations_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_correlations_la_SOURCES = \
-	src/graph/correlations/graph_assortativity.cc \
-	src/graph/correlations/graph_correlations.cc \
-	src/graph/correlations/graph_avg_correlations.cc \
-	src/graph/correlations/graph_avg_correlations_combined.cc \
-	src/graph/correlations/graph_correlations_combined.cc \
-	src/graph/correlations/graph_correlations_bind.cc
+	src/graph/correlations/assortativity.cc \
+	src/graph/correlations/correlations.cc \
+	src/graph/correlations/avg_correlations.cc \
+	src/graph/correlations/avg_correlations_combined.cc \
+	src/graph/correlations/correlations_combined.cc \
+	src/graph/correlations/correlations_bind.cc
 nobase_libgraph_tool_correlations_la_include_HEADERS = \
-	src/graph/correlations/graph_assortativity.hh \
-	src/graph/correlations/graph_correlations.hh \
-	src/graph/correlations/graph_corr_hist.hh \
-	src/graph/correlations/graph_avg_correlations.hh
+	src/graph/correlations/assortativity.hh \
+	src/graph/correlations/correlations.hh \
+	src/graph/correlations/corr_hist.hh \
+	src/graph/correlations/avg_correlations.hh
 
 ###################
 # src/graph/draw/ #
@@ -291,8 +290,8 @@ libgraph_tool_draw_la_CPPFLAGS = $(AM_CPPFLAGS) $(CAIROMM_CFLAGS)
 libgraph_tool_draw_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_draw_la_LDFLAGS = $(MOD_LDFLAGS) $(CAIROMM_LIBS)
 libgraph_tool_draw_la_SOURCES = \
-	src/graph/draw/graph_cairo_draw.cc \
-	src/graph/draw/graph_tree_cts.cc
+	src/graph/draw/cairo_draw.cc \
+	src/graph/draw/tree_cts.cc
 nobase_libgraph_tool_draw_la_include_HEADERS =
 
 libgt_pycairo_auxdir = $(MOD_DIR)/draw
@@ -316,16 +315,16 @@ libgraph_tool_dynamics_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_dynamics_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_dynamics_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_dynamics_la_SOURCES = \
-	src/graph/dynamics/graph_continuous.cc \
-	src/graph/dynamics/graph_discrete.cc \
-	src/graph/dynamics/graph_dynamics.cc \
-	src/graph/dynamics/graph_normal_bp.cc \
-	src/graph/dynamics/graph_potts_bp.cc
+	src/graph/dynamics/continuous.cc \
+	src/graph/dynamics/discrete.cc \
+	src/graph/dynamics/dynamics.cc \
+	src/graph/dynamics/normal_bp.cc \
+	src/graph/dynamics/potts_bp.cc
 nobase_libgraph_tool_dynamics_la_include_HEADERS = \
-	src/graph/dynamics/graph_continuous.hh \
-	src/graph/dynamics/graph_discrete.hh \
-	src/graph/dynamics/graph_normal_bp.hh \
-	src/graph/dynamics/graph_potts_bp.hh
+	src/graph/dynamics/continuous.hh \
+	src/graph/dynamics/discrete.hh \
+	src/graph/dynamics/normal_bp.hh \
+	src/graph/dynamics/potts_bp.hh
 
 ###################
 # src/graph/flow/ #
@@ -338,13 +337,13 @@ libgraph_tool_flow_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_flow_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_flow_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_flow_la_SOURCES = \
-	src/graph/flow/graph_edmonds_karp.cc \
-	src/graph/flow/graph_push_relabel.cc \
-	src/graph/flow/graph_kolmogorov.cc \
-	src/graph/flow/graph_minimum_cut.cc \
-	src/graph/flow/graph_flow_bind.cc
+	src/graph/flow/edmonds_karp.cc \
+	src/graph/flow/push_relabel.cc \
+	src/graph/flow/kolmogorov.cc \
+	src/graph/flow/minimum_cut.cc \
+	src/graph/flow/flow_bind.cc
 nobase_libgraph_tool_flow_la_include_HEADERS = \
-	src/graph/flow/graph_augment.hh
+	src/graph/flow/augment.hh
 
 #########################
 # src/graph/generation/ #
@@ -358,45 +357,45 @@ libgraph_tool_generation_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS
 libgraph_tool_generation_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_generation_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_generation_la_SOURCES = \
-	src/graph/generation/graph_bip_projection.cc \
-	src/graph/generation/graph_complete.cc \
-	src/graph/generation/graph_contract_edges.cc \
-	src/graph/generation/graph_generation.cc \
-	src/graph/generation/graph_geometric.cc \
-	src/graph/generation/graph_knn.cc \
-	src/graph/generation/graph_lattice.cc \
-	src/graph/generation/graph_line_graph.cc \
-	src/graph/generation/graph_maxent_sbm.cc \
-	src/graph/generation/graph_merge.cc \
-	src/graph/generation/graph_merge_imp.cc \
-	src/graph/generation/graph_merge_eprop.cc \
-	src/graph/generation/graph_merge_vprop.cc \
-	src/graph/generation/graph_parallel.cc \
-	src/graph/generation/graph_predecessor.cc \
-	src/graph/generation/graph_price.cc \
-	src/graph/generation/graph_random_edges.cc \
-	src/graph/generation/graph_rewiring.cc \
-	src/graph/generation/graph_sbm.cc \
-	src/graph/generation/graph_triadic_closure.cc \
-	src/graph/generation/graph_triangulation.cc
+	src/graph/generation/bip_projection.cc \
+	src/graph/generation/complete.cc \
+	src/graph/generation/contract_edges.cc \
+	src/graph/generation/generation.cc \
+	src/graph/generation/geometric.cc \
+	src/graph/generation/knn.cc \
+	src/graph/generation/lattice.cc \
+	src/graph/generation/line_graph.cc \
+	src/graph/generation/maxent_sbm.cc \
+	src/graph/generation/merge.cc \
+	src/graph/generation/merge_imp.cc \
+	src/graph/generation/merge_eprop.cc \
+	src/graph/generation/merge_vprop.cc \
+	src/graph/generation/parallel.cc \
+	src/graph/generation/predecessor.cc \
+	src/graph/generation/price.cc \
+	src/graph/generation/random_edges.cc \
+	src/graph/generation/rewiring.cc \
+	src/graph/generation/sbm.cc \
+	src/graph/generation/triadic_closure.cc \
+	src/graph/generation/triangulation.cc
 nobase_libgraph_tool_generation_la_include_HEADERS = \
-	src/graph/generation/graph_bip_projection.hh \
-	src/graph/generation/graph_complete.hh \
-	src/graph/generation/graph_contract_edges.hh \
-	src/graph/generation/graph_generation.hh \
-	src/graph/generation/graph_geometric.hh \
-	src/graph/generation/graph_knn.hh \
-	src/graph/generation/graph_lattice.hh \
-	src/graph/generation/graph_maxent_sbm.hh \
-	src/graph/generation/graph_merge.hh \
-	src/graph/generation/graph_parallel.hh \
-	src/graph/generation/graph_predecessor.hh \
-	src/graph/generation/graph_price.hh \
-	src/graph/generation/graph_random_edges.hh \
-	src/graph/generation/graph_rewiring.hh \
-	src/graph/generation/graph_sbm.hh \
-	src/graph/generation/graph_triadic_closure.hh \
-	src/graph/generation/graph_triangulation.hh
+	src/graph/generation/bip_projection.hh \
+	src/graph/generation/complete.hh \
+	src/graph/generation/contract_edges.hh \
+	src/graph/generation/generation.hh \
+	src/graph/generation/geometric.hh \
+	src/graph/generation/knn.hh \
+	src/graph/generation/lattice.hh \
+	src/graph/generation/maxent_sbm.hh \
+	src/graph/generation/merge.hh \
+	src/graph/generation/parallel.hh \
+	src/graph/generation/predecessor.hh \
+	src/graph/generation/price.hh \
+	src/graph/generation/random_edges.hh \
+	src/graph/generation/rewiring.hh \
+	src/graph/generation/sbm.hh \
+	src/graph/generation/triadic_closure.hh \
+	src/graph/generation/triangulation.hh
 
 ########################
 # src/graph/inference/ #
@@ -704,15 +703,15 @@ libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_layout_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_layout_la_SOURCES = \
-	src/graph/layout/graph_arf.cc \
-	src/graph/layout/graph_planar_layout.cc \
-	src/graph/layout/graph_fruchterman_reingold.cc \
-	src/graph/layout/graph_sfdp.cc \
-	src/graph/layout/graph_radial.cc \
-	src/graph/layout/graph_bind_layout.cc
+	src/graph/layout/arf.cc \
+	src/graph/layout/planar_layout.cc \
+	src/graph/layout/fruchterman_reingold.cc \
+	src/graph/layout/sfdp.cc \
+	src/graph/layout/radial.cc \
+	src/graph/layout/bind_layout.cc
 nobase_libgraph_tool_layout_la_include_HEADERS = \
-	src/graph/layout/graph_arf.hh \
-	src/graph/layout/graph_sfdp.hh \
+	src/graph/layout/arf.hh \
+	src/graph/layout/sfdp.hh \
 	src/graph/layout/quad_tree.hh
 
 #####################
@@ -726,14 +725,14 @@ libgraph_tool_search_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_search_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_search_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_search_la_SOURCES = \
-	src/graph/search/graph_bfs.cc \
-	src/graph/search/graph_dfs.cc \
-	src/graph/search/graph_dijkstra.cc \
-	src/graph/search/graph_bellman_ford.cc \
-	src/graph/search/graph_astar.hh \
-	src/graph/search/graph_astar.cc \
-	src/graph/search/graph_astar_implicit.cc \
-	src/graph/search/graph_search_bind.cc
+	src/graph/search/bfs.cc \
+	src/graph/search/dfs.cc \
+	src/graph/search/dijkstra.cc \
+	src/graph/search/bellman_ford.cc \
+	src/graph/search/astar.hh \
+	src/graph/search/astar.cc \
+	src/graph/search/astar_implicit.cc \
+	src/graph/search/search_bind.cc
 nobase_libgraph_tool_search_la_include_HEADERS =
 
 #######################
@@ -747,19 +746,19 @@ libgraph_tool_spectral_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_spectral_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_spectral_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_spectral_la_SOURCES = \
-	src/graph/spectral/graph_adjacency.cc \
-	src/graph/spectral/graph_incidence.cc \
-	src/graph/spectral/graph_laplacian.cc \
-	src/graph/spectral/graph_norm_laplacian.cc \
-	src/graph/spectral/graph_matrix.cc \
-	src/graph/spectral/graph_transition.cc \
-	src/graph/spectral/graph_nonbacktracking.cc
+	src/graph/spectral/adjacency.cc \
+	src/graph/spectral/incidence.cc \
+	src/graph/spectral/laplacian.cc \
+	src/graph/spectral/norm_laplacian.cc \
+	src/graph/spectral/matrix.cc \
+	src/graph/spectral/transition.cc \
+	src/graph/spectral/nonbacktracking.cc
 nobase_libgraph_tool_spectral_la_include_HEADERS = \
-	src/graph/spectral/graph_adjacency.hh \
-	src/graph/spectral/graph_incidence.hh \
-	src/graph/spectral/graph_laplacian.hh \
-	src/graph/spectral/graph_transition.hh \
-	src/graph/spectral/graph_nonbacktracking.hh
+	src/graph/spectral/adjacency.hh \
+	src/graph/spectral/incidence.hh \
+	src/graph/spectral/laplacian.hh \
+	src/graph/spectral/transition.hh \
+	src/graph/spectral/nonbacktracking.hh
 
 ####################
 # src/graph/stats/ #
@@ -772,16 +771,16 @@ libgraph_tool_stats_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_stats_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_stats_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_stats_la_SOURCES = \
-	src/graph/stats/graph_histograms.cc \
-	src/graph/stats/graph_average.cc \
-	src/graph/stats/graph_distance.cc \
-	src/graph/stats/graph_distance_sampled.cc \
-	src/graph/stats/graph_stats_bind.cc
+	src/graph/stats/histograms.cc \
+	src/graph/stats/average.cc \
+	src/graph/stats/distance.cc \
+	src/graph/stats/distance_sampled.cc \
+	src/graph/stats/stats_bind.cc
 nobase_libgraph_tool_stats_la_include_HEADERS = \
-	src/graph/stats/graph_histograms.hh \
-	src/graph/stats/graph_average.hh \
-	src/graph/stats/graph_distance_sampled.hh \
-	src/graph/stats/graph_distance.hh
+	src/graph/stats/histograms.hh \
+	src/graph/stats/average.hh \
+	src/graph/stats/distance_sampled.hh \
+	src/graph/stats/distance.hh
 
 #######################
 # src/graph/topology/ #
@@ -794,42 +793,42 @@ libgraph_tool_topology_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_topology_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_topology_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_topology_la_SOURCES = \
-	src/graph/topology/graph_all_circuits.cc \
-	src/graph/topology/graph_all_distances.cc \
-	src/graph/topology/graph_bipartite.cc \
-	src/graph/topology/graph_components.cc \
-	src/graph/topology/graph_distance.cc \
-	src/graph/topology/graph_diameter.cc \
-	src/graph/topology/graph_dominator_tree.cc \
-	src/graph/topology/graph_isomorphism.cc \
-	src/graph/topology/graph_kcore.cc \
-	src/graph/topology/graph_matching.cc \
-	src/graph/topology/graph_maximal_cliques.cc \
-	src/graph/topology/graph_maximal_planar.cc \
-	src/graph/topology/graph_maximal_vertex_set.cc \
-	src/graph/topology/graph_minimum_spanning_tree.cc \
-	src/graph/topology/graph_percolation.cc \
-	src/graph/topology/graph_planar.cc \
-	src/graph/topology/graph_random_matching.cc \
-	src/graph/topology/graph_random_spanning_tree.cc \
-	src/graph/topology/graph_reciprocity.cc \
-	src/graph/topology/graph_sequential_color.cc \
-	src/graph/topology/graph_similarity.cc \
-	src/graph/topology/graph_similarity_imp.cc \
-	src/graph/topology/graph_subgraph_isomorphism.cc \
-	src/graph/topology/graph_topological_sort.cc \
-	src/graph/topology/graph_topology.cc \
-	src/graph/topology/graph_tsp.cc \
-	src/graph/topology/graph_transitive_closure.cc \
-	src/graph/topology/graph_vertex_similarity.cc
+	src/graph/topology/all_circuits.cc \
+	src/graph/topology/all_distances.cc \
+	src/graph/topology/bipartite.cc \
+	src/graph/topology/components.cc \
+	src/graph/topology/distance.cc \
+	src/graph/topology/diameter.cc \
+	src/graph/topology/dominator_tree.cc \
+	src/graph/topology/isomorphism.cc \
+	src/graph/topology/kcore.cc \
+	src/graph/topology/matching.cc \
+	src/graph/topology/maximal_cliques.cc \
+	src/graph/topology/maximal_planar.cc \
+	src/graph/topology/maximal_vertex_set.cc \
+	src/graph/topology/minimum_spanning_tree.cc \
+	src/graph/topology/percolation.cc \
+	src/graph/topology/planar.cc \
+	src/graph/topology/random_matching.cc \
+	src/graph/topology/random_spanning_tree.cc \
+	src/graph/topology/reciprocity.cc \
+	src/graph/topology/sequential_color.cc \
+	src/graph/topology/similarity.cc \
+	src/graph/topology/similarity_imp.cc \
+	src/graph/topology/subgraph_isomorphism.cc \
+	src/graph/topology/topological_sort.cc \
+	src/graph/topology/topology.cc \
+	src/graph/topology/tsp.cc \
+	src/graph/topology/transitive_closure.cc \
+	src/graph/topology/vertex_similarity.cc
 nobase_libgraph_tool_topology_la_include_HEADERS = \
-	src/graph/topology/graph_bipartite_weighted_matching.hh \
-	src/graph/topology/graph_components.hh \
-	src/graph/topology/graph_kcore.hh \
-	src/graph/topology/graph_maximal_cliques.hh \
-	src/graph/topology/graph_percolation.hh \
-	src/graph/topology/graph_similarity.hh \
-	src/graph/topology/graph_vertex_similarity.hh
+	src/graph/topology/bipartite_weighted_matching.hh \
+	src/graph/topology/components.hh \
+	src/graph/topology/kcore.hh \
+	src/graph/topology/maximal_cliques.hh \
+	src/graph/topology/percolation.hh \
+	src/graph/topology/similarity.hh \
+	src/graph/topology/vertex_similarity.hh
 
 ###################
 # src/graph/util/ #
@@ -842,10 +841,10 @@ libgraph_tool_util_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_util_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_util_la_CXXFLAGS = $(MOD_CXXFLAGS)
 libgraph_tool_util_la_SOURCES = \
-	src/graph/util/graph_search.cc \
-	src/graph/util/graph_util_bind.cc
+	src/graph/util/search.cc \
+	src/graph/util/util_bind.cc
 nobase_libgraph_tool_util_la_include_HEADERS = \
-	src/graph/util/graph_search.hh
+	src/graph/util/search.hh
 
 ###################
 # src/graph_tool/ #

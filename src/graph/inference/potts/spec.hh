@@ -20,7 +20,7 @@
 
 #define STATE_NAME potts
 
-#include "graph_properties.hh"
+#include "properties.hh"
 
 #define SPEC_params                                                            \
    ((theta, tmap_t, 0))                                                        \

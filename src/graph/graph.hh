@@ -42,7 +42,7 @@ using std::iterator_traits;
 #include <boost/variant.hpp>
 #include <boost/mpl/bool_fwd.hpp>
 
-#include "graph_properties.hh"
+#include "properties.hh"
 
 #include "openmp.hh"
 
