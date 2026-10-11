@@ -166,7 +166,7 @@ Model log-evidence for deg_corr = True: -650.781410...
 Model log-evidence for deg_corr = False: -660.200191...
 ```
 
-The situation is the same: The non-degree-corrected model possesses the largest
+In this case, however, the degree-corrected model possesses the largest
 evidence. Note also that we observe a better evidence for the nested models
 themselves, when comparing to the evidences for the non-nested model --- which
 is not quite surprising, since the non-nested model is a special case of the

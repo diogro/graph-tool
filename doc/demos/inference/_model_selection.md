@@ -29,7 +29,7 @@ Degree-corrected DL:        61411.6708563...
 
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
-be accessed by inspecting the posterior odds ratio
+be assessed by inspecting the posterior odds ratio
 {cite}`inf-peixoto_nonparametric_2017`
 
 $$
@@ -40,7 +40,7 @@ $$
 
 where $\mathcal{H}_\text{NDC}$ and $\mathcal{H}_\text{DC}$
 correspond to the non-degree-corrected and degree-corrected model
-hypotheses (assumed to be equally likely `a priori`), respectively, and
+hypotheses (assumed to be equally likely *a priori*), respectively, and
 $\Delta\Sigma$ is the difference of the description length of both
 fits. In our particular case, we have
 
@@ -57,7 +57,7 @@ ln Λ:  -1773.785699...
 The precise threshold that should be used to decide when to [reject a
 hypothesis](https://en.wikipedia.org/wiki/Hypothesis_testing) is subjective and
 context-dependent, but the value above implies that the particular
-degree-corrected fit is around $\mathrm{e}^{1496} \approx 10^{650}$ times more
+degree-corrected fit is around $\mathrm{e}^{1774} \approx 10^{770}$ times more
 likely than the non-degree corrected one, and hence it can be safely concluded
 that it provides a substantially better fit.
 
@@ -77,7 +77,7 @@ state_dc  = gt.minimize_nested_blockmodel_dl(g, base_state_args=dict(deg_corr=Tr
 
 print("Non-degree-corrected DL:\t", state_ndc.entropy())
 print("Degree-corrected DL:\t", state_dc.entropy())
-print(u"ln \u039b:\t\t\t", state_ndc.entropy() - state_dc.entropy())
+print(u"ln \u039b:\t\t\t", state_dc.entropy() - state_ndc.entropy())
 ```
 
 ```{testoutput} model-selection-football
@@ -85,10 +85,10 @@ print(u"ln \u039b:\t\t\t", state_ndc.entropy() - state_dc.entropy())
 
 Non-degree-corrected DL:    1733.525685...
 Degree-corrected DL:        1782.195884...
-ln Λ:                       -48.670199...
+ln Λ:                       48.670199...
 ```
 
 Hence, with a posterior odds ratio of $\Lambda \approx
-\mathrm{e}^{-48} \approx 10^{-21}$ in favor of the non-degree-corrected
+\mathrm{e}^{48} \approx 10^{21}$ in favor of the non-degree-corrected
 model, we conclude that the degree-corrected variant is an unnecessarily
 complex description for this network.

@@ -50,7 +50,7 @@ $$
 \end{align}
 $$
 
-with uncertainty given by $\sigma_y$. This is gives us a complete
+with uncertainty given by $\sigma_y$. This gives us a complete
 probabilistic reconstruction framework that fully reflects both the
 information and the uncertainty in the measurement data. Furthermore,
 the use of the SBM means that the reconstruction can take advantage of
@@ -108,7 +108,7 @@ P(\boldsymbol x | \boldsymbol n, \boldsymbol A, \alpha=1,\beta=1,\mu=1,\nu=1).
 $$
 
 In this situation the priors $P(p|\alpha=1,\beta=1)$ and
-$P(q|\mu=1,\nu=1)$ are uniform distribution in the interval $[0,1]$.
+$P(q|\mu=1,\nu=1)$ are uniform distributions in the interval $[0,1]$.
 
 :::{note}
 Since this approach also makes use of the *correlations* between
@@ -146,7 +146,7 @@ e = g.add_edge(15, 73)
 n[e] = 2                 # pretend we have measured non-edge (15, 73) twice,
 x[e] = 1                 # but observed it as an edge once.
 
-# We inititialize MeasuredBlockState, assuming that each non-edge has
+# We initialize MeasuredBlockState, assuming that each non-edge has
 # been measured only once (as opposed to twice for the observed
 # edges), as specified by the 'n_default' and 'x_default' parameters.
 
@@ -238,7 +238,7 @@ each non-edge has been measured only once, with the exception of edge
 have been measured twice and recorded as an edge once. Despite the
 ambiguity, both errors are successfully corrected by the
 reconstruction. The pie fractions on the nodes correspond to the
-probability of being in group associated with the respective color.
+probability of being in the group associated with the respective color.
 :::
 
 ### Heterogeneous errors
@@ -265,7 +265,7 @@ $$
 where $P(p_{ij}|\alpha,\beta)$ and $P(q_{ij}|\mu,\nu)$ are
 [Beta prior distributions](https://en.wikipedia.org/wiki/Beta_distribution), like
 before. Instead of pre-specifying the hyperparameters, we include them
-from the posterior distribution
+in the posterior distribution
 
 $$
 P(\boldsymbol A, \boldsymbol b, \alpha,\beta,\mu,\nu | \boldsymbol x, \boldsymbol n) =
@@ -385,7 +385,7 @@ q[e] = .5                     # ambiguous true edge
 e = g.add_edge(15, 73)
 q[e] = .5                     # ambiguous spurious edge
 
-# We inititialize UncertainBlockState, assuming that each non-edge
+# We initialize UncertainBlockState, assuming that each non-edge
 # has an uncertainty of q_default, chosen to preserve the expected
 # density of the original network:
 
@@ -467,12 +467,12 @@ bstate.draw(pos=u.own_property(g.vp.pos), vertex_shape="pie", vertex_pie_fractio
 :width: 450px
 
 Reconstructed network of characters in the novel Les Misérables,
-assuming that each edge as a measurement probability of
+assuming that each edge has a measurement probability of
 $.98$. Edge (11, 36), shown in red, and non-edge (15, 73),
 shown in green, both have probability $0.5$. Despite the
 ambiguity, both errors are successfully corrected by the
 reconstruction. The pie fractions on the nodes correspond to the
-probability of being in group associated with the respective color.
+probability of being in the group associated with the respective color.
 :::
 
 ## Latent Poisson multigraphs
@@ -487,7 +487,7 @@ heterogeneous density, such as strong community structure and broad
 degree distributions {cite}`pred-peixoto_latent_2020`. This can be incorporated
 into the scheme of Eq. {eq}`posterior-reconstruction` by considering
 the data to be the observed simple graph,
-$\boldsymbol{\mathcal{D}} = \boldsymbol G$. We proceed in same
+$\boldsymbol{\mathcal{D}} = \boldsymbol G$. We proceed in the same
 way as in the previous reconstruction scenarios, but using instead
 {class}`~graph_tool.inference.LatentMultigraphBlockState`.
 
@@ -547,7 +547,7 @@ bstate.draw(pos=u.own_property(g.vp.pos), vertex_shape="pie", vertex_pie_fractio
 Reconstructed latent Poisson degree-corrected SBM for a network of
 political books, showing the marginal mean edge multiplicities as
 line thickness. The pie fractions on the nodes correspond to the
-probability of being in group associated with the respective color.
+probability of being in the group associated with the respective color.
 :::
 
 ## Latent triadic closures
@@ -557,7 +557,7 @@ network is the outcome of a mixture of different edge placement
 mechanisms. One example is the combination of triadic closure with
 community structure {cite}`pred-peixoto_disentangling_2022`. This approach can be
 used to separate the effects of triangle formation from node homophily,
-which are typically conflated. We proceed in same way as in the previous
+which are typically conflated. We proceed in the same way as in the previous
 reconstruction scenarios, but using instead
 {class}`~graph_tool.inference.LatentClosureBlockState`.
 
@@ -628,7 +628,7 @@ bstate.draw(pos=u.own_property(g.vp.pos), vertex_shape="pie", vertex_pie_fractio
 Reconstructed degree-corrected SBM with latent closure edges for a
 network of political books, showing the marginal probability of an
 edge being due to triadic closure as the color red. The pie fractions
-on the nodes correspond to the probability of being in group
+on the nodes correspond to the probability of being in the group
 associated with the respective color.
 :::
 
@@ -659,7 +659,7 @@ e = g.add_edge(15, 73)
 n[e] = 2                 # pretend we have measured non-edge (15, 73) twice,
 x[e] = 1                 # but observed it as an edge once.
 
-# We inititialize MeasuredBlockState, assuming that each non-edge has
+# We initialize MeasuredClosureBlockState, assuming that each non-edge has
 # been measured only once (as opposed to twice for the observed
 # edges), as specified by the 'n_default' and 'x_default' parameters.
 

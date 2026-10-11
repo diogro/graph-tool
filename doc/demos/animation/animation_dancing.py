@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# This simple example on how to do animations using graph-tool, where the layout
-# changes dynamically. We start with some network, and randomly rewire its
+# This is a simple example of how to do animations using graph-tool, where the
+# layout changes dynamically. We start with some network, and randomly rewire its
 # edges, and update the layout dynamically, where edges are rewired only if
 # their euclidean distance is reduced. It is thus a very simplistic model for
 # spatial segregation.

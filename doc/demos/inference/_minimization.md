@@ -4,7 +4,7 @@ The simplest and most efficient approach is to find the best partition of the
 network by maximizing Eq. {eq}`model-posterior` according to some version of the
 model. This is obtained via the functions
 {func}`~graph_tool.inference.minimize_blockmodel_dl` or
-{func}`~graph_tool.inference.minimize_nested_blockmodel_dl`, which employs an
+{func}`~graph_tool.inference.minimize_nested_blockmodel_dl`, which employ an
 agglomerative multilevel minimization algorithm
 {cite}`inf-peixoto_efficient_2014`.
 
@@ -52,14 +52,14 @@ and select the partition with the largest posterior probability of
 Eq. {eq}`model-posterior`, or equivalently, the minimum description
 length of Eq. {eq}`model-dl`. The description length of a fit can be
 obtained with the {meth}`~graph_tool.inference.BlockState.entropy`
-method. See also Sec. {ref}`sec_model_selection` below.
+method. See also Sec. {ref}`model_selection` below.
 
 Also, when dealing with very large networks, some optimizations are usually
 possible. See section {ref}`large_networks`.
 :::
 
 We may perform a drawing of the partition obtained via the
-{mod}`~graph_tool.inference.BlockState.draw` method, that functions as a
+{meth}`~graph_tool.inference.BlockState.draw` method, that functions as a
 convenience wrapper to the {func}`~graph_tool.draw.graph_draw` function
 
 ```{testcode} football
@@ -79,7 +79,7 @@ the nodes.
 
 We can obtain the group memberships as a
 {class}`~graph_tool.PropertyMap` on the vertices via the
-{mod}`~graph_tool.inference.BlockState.get_blocks` method:
+{meth}`~graph_tool.inference.BlockState.get_blocks` method:
 
 ```{testcode} football
 b = state.get_blocks()
@@ -101,7 +101,7 @@ network.
 :::
 
 We may also access the matrix of edge counts between groups via
-{mod}`~graph_tool.inference.BlockState.get_matrix`
+{meth}`~graph_tool.inference.BlockState.get_matrix`
 
 ```{testcode} football
 # let us obtain a contiguous range first, which will facilitate
@@ -132,8 +132,6 @@ bg = state.get_bg()
 ers = state.mrs    # edge counts
 nr = state.wr      # node counts
 ```
-
-(sec_model_selection)=
 
 ## Hierarchical partitions
 
@@ -205,7 +203,7 @@ l: 4, N: 1, B: 1
 ```
 
 The hierarchical levels themselves are represented by individual
-{meth}`~graph_tool.inference.BlockState` instances obtained via the
+{class}`~graph_tool.inference.BlockState` instances obtained via the
 {meth}`~graph_tool.inference.NestedBlockState.get_levels()` method:
 
 ```{testcode} celegans
@@ -254,7 +252,7 @@ algorithm based on a merge-split MCMC with zero temperature
 {cite}`inf-peixoto_merge-split_2020`. This is achieved by following the
 instructions in Sec. {ref}`sampling`, while setting the inverse
 temperature parameter `beta` to infinity. For example, an equivalent
-to the above minimization for the `C. elegans` network is the following:
+to the above minimization for the *C. elegans* network is the following:
 
 ```{testcode} celegans-mcmc
 g = gt.collection.data["celegansneural"]
@@ -280,7 +278,7 @@ the result with the smallest description length (obtained via the
 {meth}`~graph_tool.inference.BlockState.entropy` method)
 should be chosen. In more demanding situations, better results still can
 be obtained, at the expense of a longer computation time, by using the
-{meth}`~graph_tool.inference.mcmc_anneal` function, which
+{func}`~graph_tool.inference.mcmc_anneal` function, which
 implements [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing):
 
 ```{testcode} celegans-mcmc-anneal

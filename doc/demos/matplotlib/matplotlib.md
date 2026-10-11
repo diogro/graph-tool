@@ -29,17 +29,17 @@ of {class}`matplotlib.figure.Figure`.
 Drawing with matplotlib is done by calling {func}`~graph_tool.draw.graph_draw`
 and passing a container (e.g. {class}`matplotlib.axes.Axes`) as the `mplfig`
 parameter. When this option is passed, the function will return a
-{func}`~graph_tool.draw.GraphArtist` object that has been added to the figure.
+{class}`~graph_tool.draw.GraphArtist` object that has been added to the figure.
 
 :::{tip}
 :class: margin
 
 [Axis autoscaling](https://matplotlib.org/stable/users/explain/axes/autoscale.html) will work
-as expected with {func}`~graph_tool.draw.GraphArtist`, but the aspect ratio
-will be set the by the figure axis shape, rather than the node positions themselves.
+as expected with {class}`~graph_tool.draw.GraphArtist`, but the aspect ratio
+will be set by the figure axis shape, rather than the node positions themselves.
 
 In order to restore the aspect ratio independently of the axis shape,
-{func}`~graph_tool.draw.GraphArtist` offers a
+{class}`~graph_tool.draw.GraphArtist` offers a
 {meth}`~graph_tool.draw.GraphArtist.fit_view` method that does this automatically.
 
 Furthermore, when calling {func}`~graph_tool.draw.graph_draw` without
@@ -127,6 +127,7 @@ As a slightly more elaborate example, below we show how we can draw the
 
 ```{testcode} matplotlib
 
+import numpy as np
 from itertools import chain
 from mpl_toolkits.basemap import Basemap
 
@@ -153,13 +154,13 @@ a = gt.graph_draw(g, pos=pos.t(lambda x: m(*x)),          # project positions
 
 a.fit_view()
 a.set_zorder(10)
-tight_layout()
+plt.tight_layout()
 fig.savefig("gt-map.svg")
 ```
 
 :::{figure} output/gt-map.svg
 :width: 90%
 
-{ns}`Network of European fligths <eu_airlines>` drawn on the globe with an
+{ns}`Network of European flights <eu_airlines>` drawn on the globe with an
 [orthographic projection](https://en.wikipedia.org/wiki/Orthographic_projection).
 :::

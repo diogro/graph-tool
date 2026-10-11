@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# This simple example on how to interactive animations using graph-tool. Here we
-# show the BFS tree of length 3 for the currently selected vertex.
+# This is a simple example of how to do interactive animations using graph-tool.
+# Here we show the BFS tree of length 3 for the currently selected vertex.
 
 from graph_tool.all import *
 
@@ -68,7 +68,7 @@ def update_bfs(widget, event):
         pixbuf.savev(r'./frames/bfs%06d.png' % count, 'png', [], [])
         count += 1
 
-# Bind the function above as a montion notify handler
+# Bind the function above as a motion-notify handler
 win.graph.connect("motion_notify_event", update_bfs)
 
 # We will give the user the ability to stop the program by closing the window.

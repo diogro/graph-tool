@@ -3,19 +3,19 @@
 
 // The function below will take the graph that comes from graph-tool (always an
 // instance of GraphInterface) and the property map (always an instance of
-// boost::any).
+// std::any).
 
 void kcore_bind(GraphInterface& gi, std::any core_map)
 {
     // We don't know the actual type of the graph represented by 'gi' and the
-    // property map 'core_map'. We need to evoke the appropriate instance of the
+    // property map 'core_map'. We need to invoke the appropriate instance of the
     // algorithm at run-time using the gt_dispatch<>() function.
     //
     // The gt_dispatch<>() function takes as first argument the template
     // function object that will be called with the correct types, and the
     // remaining (variadic) arguments are the list of types that will be
     // considered for every argument of the function passed in the first
-    // argument. In the case below 'all_graph_views()' represents all possible
+    // argument. In the case below 'all_graph_views' represents all possible
     // graph views (directed, undirected, filtered, reversed, etc.) and
     // 'writable_scalar_vertex_properties' represents all vertex property maps
     // with scalar types that are writable (this excludes the vertex index
@@ -33,7 +33,7 @@ void kcore_bind(GraphInterface& gi, std::any core_map)
         (gi.get_graph_view(), core_map);
 };
 
-// The lines below setup a Python module called 'libkcore' that reflects the
+// The lines below set up a Python module called 'libkcore' that reflects the
 // function 'kcore_bind' above as 'kcore' when imported from Python.
 
 BOOST_PYTHON_MODULE(libkcore)

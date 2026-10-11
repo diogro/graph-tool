@@ -4,7 +4,7 @@
 
 When analyzing empirical networks, one should be open to the possibility
 that there will be more than one fit of the SBM with similar posterior
-probabilities. In such situations, one should instead `sample`
+probabilities. In such situations, one should instead *sample*
 partitions from the posterior distribution, instead of simply finding
 its maximum. One can then compute quantities that are averaged over the
 different model fits, weighted according to their posterior
@@ -18,8 +18,8 @@ different groups with specific probabilities, and [accepting or
 rejecting](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm)
 such moves so that, after a sufficiently long time, the partitions will be
 observed with the desired posterior probability. The algorithm is designed so
-that its run-time (i.e. each sweep of the MCMC) is linear on the number of edges
-in the network, and independent on the number of groups being used in the model,
+that its run-time (i.e. each sweep of the MCMC) is linear in the number of edges
+in the network, and independent of the number of groups being used in the model,
 and hence is suitable for use on very large networks.
 
 In order to perform such moves, one needs again to operate with
@@ -35,15 +35,14 @@ in general preferred.
 
 For example, the following will perform 1000 sweeps of the algorithm
 with the network of characters in the novel Les Misérables, starting
-from a random partition into 20 groups
+from a single group
 
 ```{testcode} model-averaging
 g = gt.collection.data["lesmis"]
 
 state = gt.BlockState(g)   # This automatically initializes the state with a partition
-                           # into one group. The user could also pass a higher number
-                           # to start with a random partition of a given size, or pass a
-                           # specific initial partition using the 'b' parameter.
+                           # into one group. The user could also pass a specific
+                           # initial partition using the 'b' parameter.
 
 # Now we run 1,000 sweeps of the MCMC. Note that the number of groups
 # is allowed to change, so it will eventually move from the initial
@@ -62,7 +61,7 @@ Number of accepted vertex moves: 70549
 
 Although the above is sufficient to implement sampling from the
 posterior, there is a convenience function called
-{func}`~graph_tool.inference.mcmc_equilibrate` that is intend to
+{func}`~graph_tool.inference.mcmc_equilibrate` that is intended to
 simplify the detection of equilibration, by keeping track of the maximum
 and minimum values of description length encountered and how many sweeps
 have been made without a "record breaking" event. For example,
@@ -121,7 +120,7 @@ state.draw(pos=g.vp.pos, vertex_shape="pie", vertex_pie_fractions=pv,
 Marginal probabilities of group memberships of the network of
 characters in the novel Les Misérables, according to the
 degree-corrected SBM. The [pie fractions](https://en.wikipedia.org/wiki/Pie_chart) on the nodes correspond
-to the probability of being in group associated with the respective
+to the probability of being in the group associated with the respective
 color.
 :::
 
@@ -184,7 +183,7 @@ dS, nmoves = 0, 0
 for i in range(100):
     ret = state.multiflip_mcmc_sweep(niter=10)
     dS += ret[0]
-    nmoves += ret[1]
+    nmoves += ret[2]
 
 print("Change in description length:", dS)
 print("Number of accepted vertex moves:", nmoves)
@@ -192,7 +191,7 @@ print("Number of accepted vertex moves:", nmoves)
 
 ```{testoutput} nested-model-averaging
 Change in description length: -70.952119...
-Number of accepted vertex moves: 296061
+Number of accepted vertex moves: 51862
 ```
 
 :::{warning}
@@ -208,7 +207,7 @@ functions several times, i.e. it is not enough to call it once with a
 large value of `niter`.
 :::
 
-Similarly to the the non-nested case, we can use
+Similarly to the non-nested case, we can use
 {func}`~graph_tool.inference.mcmc_equilibrate` to do most of the boring
 work, and we can now obtain vertex marginals on all hierarchical levels:
 
@@ -248,7 +247,7 @@ state.draw(vertex_shape="pie", vertex_pie_fractions=pv,
 Marginal probabilities of group memberships of the network of
 characters in the novel Les Misérables, according to the nested
 degree-corrected SBM. The pie fractions on the nodes correspond to
-the probability of being in group associated with the respective
+the probability of being in the group associated with the respective
 color.
 :::
 
@@ -354,7 +353,7 @@ order to summarize it, we can infer the modes of the distribution using
 described in {cite}`inf-peixoto_revealing_2021`. This amounts to identifying
 clusters of partitions that are very similar to each other, but
 sufficiently different from those that belong to other
-clusters. Collective, such "modes" represent the different stories that
+clusters. Collectively, such "modes" represent the different stories that
 the data is telling us through the model. Here is an example using again
 the Les Misérables network:
 
@@ -378,7 +377,7 @@ def collect_partitions(s):
    global bs
    bs.append(s.get_bs())
 
-# We will collect only partitions 2000 partitions. For more accurate
+# We will collect only 2000 partitions. For more accurate
 # results, this number should be increased.
 gt.mcmc_equilibrate(state, force_niter=2000, mcmc_args=dict(niter=10),
                     callback=collect_partitions)
@@ -428,5 +427,9 @@ Below are the marginal node distributions representing the partitions that belon
 ```
 
 ```{image} output/lesmis-partition-mode-3.svg
+:width: 24%
+```
+
+```{image} output/lesmis-partition-mode-4.svg
 :width: 24%
 ```

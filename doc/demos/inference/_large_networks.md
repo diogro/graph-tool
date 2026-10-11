@@ -68,7 +68,7 @@ Elapsed time: 28.49 seconds
 ```
 
 In this case the agglomerative algorithm was not only faster, but actually
-resulted in a shorter description length! This is not always what happens; on
+resulted in a shorter description length! This is not always what happens; in
 most cases the bisection search will actually yield better answers, but the
 agglomerative version is at least competitive, and usually faster. In the
 example above we only won around 18 seconds, but this is a speedup of
@@ -85,7 +85,7 @@ back to a lower level whenever this is not the case. As a result, the same
 level, including the bottom one which is the most time consuming, needs to be
 clustered repeatedly from scratch.
 
-An alternative is possible. which combines the strictly agglomerative algorithm
+An alternative is possible, which combines the strictly agglomerative algorithm
 considered before, consisting of a heuristic that estimates an upper bound on
 the number of groups at each level. In this way we can proceed simultaneously
 for every level of the hierarchy, without having to restart the search at any

@@ -5,9 +5,9 @@
 In some cases, direct measurements of the edges of a network are either
 impossible, or can be done only at significant experimental cost. In such
 situations, we need to infer the network of interactions from the observed
-functional behavior {cite}`rec-peixoto_network_2025`. In `graph_tool` this can be done
+functional behavior {cite}`rec-peixoto_network_2025`. In `graph-tool` this can be done
 for a variety of static and dynamical models, where the data $\boldsymbol
-X$ is a $N\times M$ matrix containing $M$ samples (or "features")
+X$ is an $N\times M$ matrix containing $M$ samples (or "features")
 for each node.
 
 For static models we have that the likelihood is given by
@@ -23,7 +23,7 @@ likelihood
 
 $$
 P(\boldsymbol X | \boldsymbol W,\boldsymbol\theta) =
-\prod_m P(\boldsymbol X_{m}|X_{m-1},\boldsymbol W, \boldsymbol\theta).
+\prod_m P(\boldsymbol X_{m}|\boldsymbol X_{m-1},\boldsymbol W, \boldsymbol\theta).
 $$
 
 In both cases above, $\boldsymbol W$ represents the weighted adjacency
@@ -84,7 +84,7 @@ gt.graph_draw(g, g.vp.pos, output="dolphin.svg")
 :class: margin
 
 :::{figure} output/dolphin.svg
-This is the {ns}`dolphins` network we will attempt to reconstruct from a
+This is the {ns}`dolphins` network we will attempt to reconstruct from
 the kinetic Ising model.
 :::
 ::::
@@ -119,8 +119,8 @@ convergence is reached:
 When doing reconstruction, the default for
 {meth}`~graph_tool.inference.IsingGlauberBlockState.mcmc_sweep` is the
 inverse "temperature" `beta=1`, meaning that this function performs
-sweeps of a MCMC. Here we are interested in a greedy optimization instead, so
-we need to pass `beta=numpy.inf`.
+sweeps of an MCMC. Here we are interested in a greedy optimization instead, so
+we need to pass `beta=np.inf`.
 :::
 
 ```{testcode} dynamics
@@ -143,10 +143,10 @@ This outputs the following deltas, indicating that convergence was achieved.
 -3.836930773104541e-13
 -3.694822225952521e-13
 -4.405364961712621e-13
- 0.0
+0.0
 ```
 
-We can compare the reconstructed network using the {func}`~graph_tool.topology.similarity` function, as follows
+We can compare the reconstructed network with the original one using the {func}`~graph_tool.topology.similarity` function, as follows
 
 ```{testcode} dynamics
 u = state.get_graph()      # reconstructed network
@@ -200,18 +200,18 @@ which outputs the networks below:
 :::{note}
 The algorithm implemented is the one described in {cite}`rec-peixoto_scalable_2024`
 combined with the MDL regularization based on weight quantization from
-{cite}`rec-peixoto_network_2025` {cite}`rec-peixoto_uncertainty_2025`, which includes also a
+{cite}`rec-peixoto_network_2025` {cite}`rec-peixoto_uncertainty_2025`, which also includes an
 SBM as part of the prior for the latent edges.
 
 The algorithm runs in time $O(N\log^2 N)$ in the typical case, where
 $N$ is the number of nodes, and if enabled during compilation will run
-in parallel using [OpenMP](https://de.wikipedia.org/wiki/OpenMP), and
+in parallel using [OpenMP](https://en.wikipedia.org/wiki/OpenMP), and
 therefore can be employed to reconstruct large networks.
 :::
 
 ### $L_1$ regularization
 
-The default reconstruction methods employs a nonparametric regularization scheme
+The default reconstruction method employs a nonparametric regularization scheme
 {cite}`rec-peixoto_network_2025`, but optionally $L_1$ can be used instead.
 This is done by initializing the reconstruction state as
 

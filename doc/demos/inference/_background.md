@@ -51,7 +51,7 @@ with $\boldsymbol\theta$ above being the only choice compatible with
 $\boldsymbol A$ and $\boldsymbol b$. The inference procedures considered
 here will consist in either finding a network partition that maximizes
 Eq. {eq}`model-posterior`, or sampling different partitions according
-its posterior probability.
+to its posterior probability.
 
 As we will show below, this approach also enables the comparison of
 *different* models according to statistical evidence (a.k.a. *model
@@ -177,9 +177,9 @@ $B_{\text{max}}=O(\sqrt{N})$, where $N$ is the number of
 nodes in the network, if Bayesian inference is performed
 {cite}`inf-peixoto_parsimonious_2013`. In order to circumvent this, we need to
 replace the noninformative priors used by a hierarchy of priors and
-hyperpriors, which amounts to a `nested SBM`, where the groups
+hyperpriors, which amounts to a *nested SBM*, where the groups
 themselves are clustered into groups, and the matrix $e$ of edge
-counts are generated from another SBM, and so on recursively
+counts is generated from another SBM, and so on recursively
 {cite}`inf-peixoto_hierarchical_2014`, as illustrated below.
 
 :::{figure} nested-diagram.*

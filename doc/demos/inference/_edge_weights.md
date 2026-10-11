@@ -88,7 +88,7 @@ so that multiple edge weights can be used simultaneously.
 For example, let us consider a network of suspected terrorists involved
 in the train bombing of Madrid on March 11, 2004
 {cite}`inf-hayes_computing_2006`. An edge indicates that a connection between
-the two persons have been identified, and the weight of the edge (an
+the two persons has been identified, and the weight of the edge (an
 integer in the range $[0,3]$) indicates the "strength" of the
 connection. We can apply the weighted SBM, using a Binomial model for
 the weights, as follows:
@@ -103,7 +103,7 @@ gt.seed_rng(46)
 g = gt.collection.ns["train_terrorists"]
 
 # This network contains an internal edge property map with name
-# "weight" that contains the strength of interactions. The values
+# "weight" that contains the strength of interactions. The values are
 # integers in the range [0, 3].
 
 state = gt.minimize_nested_blockmodel_dl(g, base_state=gt.WeightedBlockState, 
@@ -139,7 +139,7 @@ scaling of the probability density, as described in
 
 For example, consider a [food web](https://en.wikipedia.org/wiki/Food_web) between species in south
 Florida {cite}`inf-ulanowicz_network_2005`. A directed link exists from species
-$i$ to $j$ if a energy flow exists between them, and a
+$i$ to $j$ if an energy flow exists between them, and a
 weight $x_{ij}$ on this edge indicates the magnitude of the energy
 flow (a positive real value, i.e. $x_{ij}\in [0,\infty]$). One
 possibility, therefore, is to use the `"real-exponential"` model, as
@@ -255,15 +255,15 @@ print(u"ln \u039b: ", L2 - L1)
 ln Λ: -96.153069...
 ```
 
-A value of $\Lambda \approx \mathrm{e}^{138} \approx 10^{60}$ in
-favor the exponential model indicates that the log-normal model does not
+A value of $\Lambda \approx \mathrm{e}^{96} \approx 10^{42}$ in
+favor of the exponential model indicates that the log-normal model does not
 provide a better fit for this particular data.
 
 ## Posterior sampling
 
 The procedure to sample from the posterior distribution is identical to
 what is described in Sec. {ref}`sampling`, but with the appropriate
-initialization, e.g..
+initialization, e.g.:
 
 ```{testcode} weighted-model
 g = gt.collection.ns["foodweb_baywet"]

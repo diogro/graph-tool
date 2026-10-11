@@ -45,4 +45,4 @@ network of American college football teams.
 :::
 
 It is possible to perform model comparison with other model variations
-in the same manner as described in {ref}`sec_model_selection` below.
+in the same manner as described in Sec. {ref}`model_selection` above.

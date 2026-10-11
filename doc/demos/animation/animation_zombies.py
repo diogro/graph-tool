@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# This simple example on how to do animations using graph-tool. Here we do a
+# This is a simple example of how to do animations using graph-tool. Here we do a
 # simple simulation of an S->I->R->S epidemic model, where each vertex can be in
 # one of the following states: Susceptible (S), infected (I), recovered (R). A
 # vertex in the S state becomes infected either spontaneously with a probability
@@ -40,9 +40,10 @@ x = 0.001    # spontaneous outbreak probability
 r = 0.1      # I->R probability
 s = 0.01     # R->S probability
 
-# (Note that the S->I transition happens simultaneously for every vertex with a
-#  probability equal to the fraction of non-recovered neighbors which are
-#  infected.)
+# (Note that the vertices are updated sequentially in random order, and the S->I
+#  transition happens if a randomly chosen non-recovered neighbor is infected,
+#  i.e. with a probability equal to the fraction of non-recovered neighbors
+#  which are infected.)
 
 S = 0
 I = 1
@@ -96,6 +97,7 @@ else:
                             vertex_fill_color=[1.,1.,1.,0.],
                             vertex_surface=vertex_sfcs,
                             vertex_halo=newly_infected,
+                            vertex_halo_size=1.2,
                             vertex_halo_color=[0.8, 0, 0, 0.6])
     win.add(win.graph)
 

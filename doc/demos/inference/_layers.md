@@ -1,21 +1,24 @@
 # Layered networks
 
 The edges of the network may be distributed in discrete "layers", representing
-distinct types if interactions {cite}`inf-peixoto_inferring_2015`. Extensions to
+distinct types of interactions {cite}`inf-peixoto_inferring_2015`. Extensions to
 the SBM may be defined for such data, and they can be inferred using the exact
 same interface shown above, except one should use the
 {class}`~graph_tool.inference.LayeredBlockState` class, instead of
 {class}`~graph_tool.inference.BlockState`. This class takes two additional
 parameters: the `ec` parameter, that must correspond to an edge
 {class}`~graph_tool.PropertyMap` with the layer/covariate values on the edges,
-and the Boolean `indepenednet` parameter, which if `True` (the default)
+and the Boolean `independent` parameter, which if `True` (the default)
 specifies an independent layered model, otherwise one with categorical edge
 covariates (not to be confused with the weighted models in Sec. {ref}`weights`).
 
 If we use {func}`~graph_tool.inference.minimize_blockmodel_dl`, this can
-be achieved simply by passing the option `independent=True` as well as the
-appropriate value of `state_args`, which will be propagated to
-{class}`~graph_tool.inference.LayeredBlockState`'s constructor.
+be achieved simply by passing the option `state=gt.LayeredBlockState`
+together with the appropriate value of `state_args` (e.g.
+`state_args=dict(ec=ec, independent=True)`), which will be propagated to
+{class}`~graph_tool.inference.LayeredBlockState`'s constructor. With
+{func}`~graph_tool.inference.minimize_nested_blockmodel_dl`, the options
+`base_state` and `base_state_args` are used instead, as in the example below.
 
 As an example, let us consider a social network of tribes, where two
 types of interactions were recorded, amounting to either friendship or
@@ -30,7 +33,7 @@ gt.seed_rng(43)
 ```{testcode} layered-model
 g = gt.collection.ns["new_guinea_tribes"]
 
-# The edge types are stored in the edge property map "weights".
+# The edge types are stored in the edge property map "weight".
 
 state = gt.minimize_nested_blockmodel_dl(g, base_state=gt.LayeredBlockState,
                                          base_state_args=dict(ec=g.ep.weight))

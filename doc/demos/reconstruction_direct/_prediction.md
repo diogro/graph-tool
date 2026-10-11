@@ -42,10 +42,13 @@ $$
 which do not depend on the normalization constant.
 
 The values $P(\delta \boldsymbol A | \boldsymbol A, \boldsymbol b)$
-can be computed with
-{meth}`~graph_tool.inference.BlockState.get_edges_prob`. Hence, we can
-compute spurious/missing edge probabilities just as if we were
-collecting marginal distributions when doing model averaging.
+can be obtained from the difference in description length $\Delta S$
+(i.e. the negative log-likelihood difference) incurred by modifying the
+graph according to $\delta \boldsymbol A$, which is computed by
+{meth}`~graph_tool.inference.BlockState.modify_edge_dS`, since
+$\ln P(\boldsymbol A \cup \delta\boldsymbol A| \boldsymbol b) - \ln P(\boldsymbol A| \boldsymbol b) = -\Delta S$.
+Hence, we can compute spurious/missing edge probabilities just as if we
+were collecting marginal distributions when doing model averaging.
 
 Below is an example for predicting the two following edges in the
 football network, using the nested model (for which we need to replace
@@ -93,8 +96,6 @@ g = gt.collection.data["football"]
 
 missing_edges = [(0, 101), (17, 56)]
 
-L = 10
-
 state = gt.minimize_nested_blockmodel_dl(g)
 
 probs = ([], [])
@@ -137,7 +138,7 @@ entirely analogous fashion.
 
 [^prediction_posterior]: Note that the posterior of Eq. {eq}`posterior-missing`
     cannot be used to sample the reconstruction $\delta \boldsymbol
-    G$, as it is not informative of the overall network density
+    A$, as it is not informative of the overall network density
     (i.e. absolute number of missing and spurious edges). It can,
     however, be used to compare different reconstructions with the same
     density.

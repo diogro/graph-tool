@@ -33,8 +33,8 @@ for file in glob.glob(r'../*png'):
 
 The drawing capabilities of `graph-tool` (see {mod}`~graph_tool.draw`
 module) can be harnessed to perform animations in a straightforward
-manner. Here we show some examples which uses [GTK+](http://www.gtk.org/) to display animations in an
-{class}`~graph_tool.draw.interactive_window`, as well as offscreen to a
+manner. Here we show some examples which use [GTK+](http://www.gtk.org/) to display animations in an
+{func}`~graph_tool.draw.interactive_window`, as well as offscreen to a
 file. The idea is to easily generate visualizations which can be used in
 presentations, and embedded in websites.
 
@@ -42,7 +42,7 @@ presentations, and embedded in websites.
 
 The {func}`~graph_tool.draw.graph_draw` function can optionally return
 and be passed a GTK+ window object where drawing can be updated. In this
-way, simple animations can be done very easily, specially when done in
+way, simple animations can be done very easily, especially when done in
 an interactive shell. For example, the following will simulate from an
 Ising model (see {class}`~graph_tool.dynamics.IsingGlauberState`) and
 show the states in an interactive window:
@@ -64,7 +64,7 @@ approaches that can be more suitable in some more elaborate scenarios.
 
 ## SIRS epidemics
 
-Here we implement a simple [SIRS epidemics](http://en.wikipedia.org/wiki/Epidemic_model) on a network, and we
+Here we implement a simple [SIRS epidemic model](http://en.wikipedia.org/wiki/Epidemic_model) on a network, and we
 construct an animation showing the time evolution. Nodes which are
 susceptible (S) are shown in white, whereas infected (I) nodes are shown
 in black. Recovered (R) nodes are removed from the layout, since they
@@ -78,7 +78,7 @@ The script which performs the animation is called
 ```
 
 If called without arguments, the script will show the animation inside an
-{class}`~graph_tool.draw.interactive_window`. If the parameter
+{func}`~graph_tool.draw.interactive_window`. If the parameter
 `offscreen` is passed, individual frames will be saved in the
 `frames` directory:
 
@@ -166,7 +166,7 @@ The script which performs the animation is called
 
 This example works like the SIRS example above, and if we pass the
 `offscreen` parameter, the frames will be dumped to disk, otherwise
-the animation is displayed inside an {class}`~graph_tool.draw.interactive_window`.
+the animation is displayed inside an {func}`~graph_tool.draw.interactive_window`.
 
 ```bash
 $ ./animation_dancing.py offscreen
@@ -185,7 +185,7 @@ format](http://www.webmproject.org):
 
 ```bash
 $ mencoder mf://frames/dancing*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o dancing.yuy
-$ vpxenc dancing.yuy -o dancing.webm -w 500 -h 400 --fps=100/1 --target-bitrate=5000 --good --threads=16
+$ vpxenc dancing.yuy -o dancing.webm -w 500 -h 400 --fps=100/1 --target-bitrate=2000 --good --threads=16
 ```
 
 ```{doctest} animations
@@ -219,7 +219,7 @@ below. When called, it will open an interactive window.
 ```
 
 ```bash
-$ ../interactive_bst.py offscreen
+$ ./interactive_bst.py offscreen
 ```
 
 ```{doctest} animations
@@ -235,8 +235,8 @@ user. But for the purpose of this demo, it also saves the frames to a
 file, so we can encode the animation with the [WebM format](http://www.webmproject.org):
 
 ```bash
-$ mencoder mf://frames/bfs*.png -mf w=type=png -ovc raw -of rawvideo -vf format=i420,scale=500:400 -nosound -o bfs.yuy
-$ vpxenc bfs.yuy -o bfs.webm -w 500 -h 400 --fps=5/1 --target-bitrate=5000 --good --threads=16
+$ mencoder mf://frames/bfs*.png -mf type=png -ovc raw -of rawvideo -vf format=i420,scale=500:400 -nosound -o bfs.yuy
+$ vpxenc bfs.yuy -o bfs.webm -w 500 -h 400 --fps=5/1 --target-bitrate=2000 --good --threads=16
 ```
 
 ```{doctest} animations

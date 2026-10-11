@@ -45,7 +45,7 @@ The function `gt_dispatch<>()` will automatically release Python's
 dispatch, so that multiple algorithms can run in parallel (see Sec.
 {ref}`parallel_algorithms`). If you wish to use the Python interpreter from
 inside your dispatch you need first to acquire the GIL, or alternatively disable
-the GIL release by calling instead `gt_dispatch<>(false)`.
+the GIL release by calling instead `gt_dispatch<{.gil_release=false}>()`.
 :::
 
 When using the `gt_dispatch<>()` function, we can make use of the following
@@ -58,11 +58,11 @@ When using the `gt_dispatch<>()` function, we can make use of the following
 `all_graph_views`,                 All possible graph views
 `always_directed`,                 All directed graph views
 `never_directed`,                  All undirected graph views
-`always_reversed`,                 All directed but reversed graph views
 `never_reversed`,                  All undirected and directed but not reversed graph views
 `always_directed_never_reversed`,  All directed but not reversed graph views
 `never_filtered`,                  All unfiltered graph views
 `never_filtered_never_reversed`,   All unfiltered and not reversed graph views
+`always_directed_never_filtered_never_reversed`,  All directed, unfiltered and not reversed graph views
 ```
 
 Likewise, for the types of property maps we have:
@@ -71,24 +71,28 @@ Likewise, for the types of property maps we have:
 :header:  >
 : "List of property maps", "Description"
 
-`vertex_properties`,                  All vertex property maps
-`edge_properties`,                    All edge property maps
-`writable_vertex_properties`,         All writable vertex property maps
-`writable_edge_properties`,           All writable edge property maps
-`vertex_scalar_properties`,           All scalar-valued vertex property maps
-`edge_scalar_properties`,             All scalar-valued edge property maps
-`writable_vertex_scalar_properties`,  All writable scalar-valued vertex property maps
-`writable_edge_scalar_properties`,    All writable scalar-valued edge property maps
-`vertex_integer_properties`,          All integer-valued vertex property maps
-`edge_integer_properties`,            All integer-valued edge property maps
-`vertex_floating_properties`,         All floating-point-valued vertex property maps
-`edge_floating_properties`,           All floating-point-valued edge property maps
-`vertex_scalar_vector_properties`,    All vertex property maps with vector of scalar types
-`edge_scalar_vector_properties`,      All edge property maps with vector of scalar types
-`vertex_integer_vector_properties`,   All vertex property maps with vector of integer types
-`edge_integer_vector_properties`,     All edge property maps with vector of integer types
-`vertex_floating_vector_properties`,  All vertex property maps with vector of floating-point types
-`edge_floating_vector_properties`,    All edge property maps with vector of floating-point types
+`vertex_properties`,                   All vertex property maps
+`edge_properties`,                     All edge property maps
+`writable_vertex_properties`,          All writable vertex property maps
+`writable_edge_properties`,            All writable edge property maps
+`scalar_vertex_properties`,            All scalar-valued vertex property maps
+`scalar_edge_properties`,              All scalar-valued edge property maps
+`writable_scalar_vertex_properties`,   All writable scalar-valued vertex property maps
+`writable_scalar_edge_properties`,     All writable scalar-valued edge property maps
+`integer_vertex_properties`,           All integer-valued vertex property maps
+`integer_edge_properties`,             All integer-valued edge property maps
+`writable_integer_vertex_properties`,  All writable integer-valued vertex property maps
+`writable_integer_edge_properties`,    All writable integer-valued edge property maps
+`floating_vertex_properties`,          All floating-point-valued vertex property maps
+`floating_edge_properties`,            All floating-point-valued edge property maps
+`vector_vertex_properties`,            All vertex property maps with vector of scalar or string types
+`vector_edge_properties`,              All edge property maps with vector of scalar or string types
+`scalar_vector_vertex_properties`,     All vertex property maps with vector of scalar types
+`scalar_vector_edge_properties`,       All edge property maps with vector of scalar types
+`integer_vector_vertex_properties`,    All vertex property maps with vector of integer types
+`integer_vector_edge_properties`,      All edge property maps with vector of integer types
+`floating_vector_vertex_properties`,   All vertex property maps with vector of floating-point types
+`floating_vector_edge_properties`,     All edge property maps with vector of floating-point types
 ```
 
 Finally, we need to bind things from the Python side with the file
@@ -101,8 +105,7 @@ Finally, we need to bind things from the Python side with the file
 Naturally, before we can use the extension, we need to compile it. To do
 this, we need to inform the compiler where to find the graph-tool
 include files. For that we use the [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/)
-infrastructure, by calling `pkg-config --cflags --libs graph-tool-py`
-(in case graph-tool was compiled for Python 3.7). To keep things
+infrastructure, by calling `pkg-config --cflags --libs graph-tool-py`. To keep things
 organized, we create a {download}`Makefile <Makefile>`:
 
 ```{literalinclude} Makefile
@@ -165,7 +168,7 @@ an analogous fashion.
 
 ## Extracting specific property maps
 
-Sometimes it's more convenient to extract property map of known types
+Sometimes it's more convenient to extract property maps of known types
 directly instead of relying on `gt_dispatch<>()`. This can be done
 simply by calling `std::any_cast` as follows:
 
@@ -173,7 +176,7 @@ simply by calling `std::any_cast` as follows:
 void kcore_bind(GraphInterface& gi, std::any core_map)
 {
     // Vertex property map of type int32_t
-    typedef typename vprop_map_t<int32_t>::type vprop_t;
+    typedef vprop_map_t<int32_t> vprop_t;
     vprop_t c = std::any_cast<vprop_t>(core_map);
 
     gt_dispatch<>()
@@ -188,11 +191,11 @@ Property maps in graph-tool can either be 'checked' or 'unchecked', when
 they are seen from the C++ side. A checked property map automatically
 resizes itself if the underlying graph changes (via the addition of
 nodes or edges). However this involves bounds checking for every lookup,
-which can result in performance hit. For static graphs, it's better to
+which can result in a performance hit. For static graphs, it's better to
 use unchecked property maps, which do not perform bounds checking (but
 do not adapt to a changing graph).
 
-The default property map types are by default `checked`:
+The default property map types are `checked`:
 
 ```c++
 // vprop_t and eprop_t below are checked vertex and edge
