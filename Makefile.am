@@ -468,16 +468,16 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/graph_latent_multigraph.cc \
 	src/graph/inference/graph_modularity.cc \
 	src/graph/inference/uncertain/dynamics/dynamics.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_tdelta.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_xdelta.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_parallel_mcmc.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_parallel_mcmc_theta.cc \
-	src/graph/inference/uncertain/dynamics/dynamics_parallel_swap_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/mcmc.cc \
+	src/graph/inference/uncertain/dynamics/swap_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/multiflip_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/multiflip_mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/mcmc_tdelta.cc \
+	src/graph/inference/uncertain/dynamics/mcmc_xdelta.cc \
+	src/graph/inference/uncertain/dynamics/parallel_mcmc.cc \
+	src/graph/inference/uncertain/dynamics/parallel_mcmc_theta.cc \
+	src/graph/inference/uncertain/dynamics/parallel_swap_mcmc.cc \
 	src/graph/inference/uncertain/dynamics/cising_glauber/state.cc \
 	src/graph/inference/uncertain/dynamics/epidemics/state.cc \
 	src/graph/inference/uncertain/dynamics/ising_glauber/state.cc \
@@ -648,21 +648,21 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 	src/graph/inference/support/util.hh \
 	src/graph/inference/uncertain/dynamics/cising_glauber/setup.hh \
 	src/graph/inference/uncertain/dynamics/dynamics.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_base.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_base_imp.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_continuous.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_discrete.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_discrete_potts.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_elist_state.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_imp.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_tdelta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_theta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_mcmc_xdelta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_multiflip_mcmc_theta.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_swap_mcmc.hh \
-	src/graph/inference/uncertain/dynamics/dynamics_util.hh \
+	src/graph/inference/uncertain/dynamics/base.hh \
+	src/graph/inference/uncertain/dynamics/base_imp.hh \
+	src/graph/inference/uncertain/dynamics/continuous.hh \
+	src/graph/inference/uncertain/dynamics/discrete.hh \
+	src/graph/inference/uncertain/dynamics/discrete_potts.hh \
+	src/graph/inference/uncertain/dynamics/elist_state.hh \
+	src/graph/inference/uncertain/dynamics/imp.hh \
+	src/graph/inference/uncertain/dynamics/mcmc.hh \
+	src/graph/inference/uncertain/dynamics/mcmc_tdelta.hh \
+	src/graph/inference/uncertain/dynamics/mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/mcmc_xdelta.hh \
+	src/graph/inference/uncertain/dynamics/multiflip_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/multiflip_mcmc_theta.hh \
+	src/graph/inference/uncertain/dynamics/swap_mcmc.hh \
+	src/graph/inference/uncertain/dynamics/util.hh \
 	src/graph/inference/uncertain/dynamics/epidemics/setup.hh \
 	src/graph/inference/uncertain/dynamics/ising_glauber/setup.hh \
 	src/graph/inference/uncertain/dynamics/linear_normal/setup.hh \

@@ -24,8 +24,8 @@
 #define BOOST_PYTHON_MAX_ARITY 30
 #include "python_interface.hh"
 
-#include "dynamics_base.hh"
-#include "dynamics_util.hh"
+#include "base.hh"
+#include "util.hh"
 
 namespace graph_tool
 {

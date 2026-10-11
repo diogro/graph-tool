@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "dynamics_base.hh"
+#include "base.hh"
 
 namespace graph_tool
 {

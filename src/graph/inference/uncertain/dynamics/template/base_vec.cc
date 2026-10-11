@@ -16,4 +16,4 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "setup.hh"
-#include "../dynamics_base_imp.hh"
+#include "../base_imp.hh"

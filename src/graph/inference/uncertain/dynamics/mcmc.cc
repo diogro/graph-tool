@@ -24,9 +24,9 @@
 #include "../../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "dynamics.hh"
-#include "dynamics_mcmc_theta.hh"
+#include "mcmc.hh"
 #include "../../support/graph_state.hh"
-#include "../../loops/parallel_pseudo_mcmc.hh"
+#include "../../loops/mcmc_loop.hh"
 
 using namespace boost;
 using namespace graph_tool;
@@ -40,7 +40,7 @@ GEN_DISPATCH(dynamics_state, Dyn<BaseState>::template DynamicsState,
              DYNAMICS_STATE_params)
 
 template <class State>
-GEN_DISPATCH(mcmc_dynamics_state, MCMCTheta<State>::template MCMCDynamicsState,
+GEN_DISPATCH(mcmc_dynamics_state, MCMC<State>::template MCMCDynamicsState,
              MCMC_DYNAMICS_STATE_params(State))
 
 #define __MOD__ inference
@@ -60,7 +60,7 @@ REGISTER_MOD
                       typedef std::decay_t<decltype(*state)> state_t;
                       auto& c = __MOD__::get_class<state_t, bases<>, std::shared_ptr<state_t>,
                                                    boost::noncopyable>();
-                      c.def("pseudo_mcmc_theta_sweep",
+                      c.def("mcmc_sweep",
                             +[](state_t&, python::object omcmc_state, rng_t& rng)
                              {
                                  boost::python::tuple ret;
@@ -68,7 +68,7 @@ REGISTER_MOD
                                      (omcmc_state,
                                       [&](auto& s)
                                       {
-                                          auto ret_ = pseudo_mcmc_sweep(*s, rng);
+                                          auto ret_ = mcmc_sweep(*s, rng);
                                           ret = std::apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                                       });
                                  return ret;

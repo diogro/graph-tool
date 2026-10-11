@@ -29,7 +29,7 @@
 #include "samplers.hh"
 #include "openmp.hh"
 
-#include "dynamics_elist_state.hh"
+#include "elist_state.hh"
 
 #include "../../loops/mcmc_loop.hh"
 

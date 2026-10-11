@@ -21,7 +21,7 @@
                      + __GNUC_MINOR__ * 100 \
                      + __GNUC_PATCHLEVEL__)
 
-#include "dynamics_discrete.hh"
+#include "discrete.hh"
 
 namespace graph_tool
 {

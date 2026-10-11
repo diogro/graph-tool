@@ -24,7 +24,7 @@
 #include "../../../blockmodel/state.hh"
 
 #include "../dynamics.hh"
-#include "../dynamics_base.hh"
+#include "../base.hh"
 #include "../../../support/graph_state.hh"
 
 #include "test.hh"

@@ -36,7 +36,7 @@
 
 #include "../../../parallel_util.hh"
 
-#include "dynamics_util.hh"
+#include "util.hh"
 
 #undef MODULE_PRIO
 #define MODULE_PRIO 15

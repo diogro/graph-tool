@@ -24,7 +24,7 @@
 #include "../../blockmodel/state.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "dynamics.hh"
-#include "dynamics_mcmc.hh"
+#include "mcmc.hh"
 #include "../../support/graph_state.hh"
 #include "../../loops/parallel_pseudo_mcmc.hh"
 

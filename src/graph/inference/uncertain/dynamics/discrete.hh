@@ -24,7 +24,7 @@
 #define BOOST_PYTHON_MAX_ARITY 30
 
 #include "python_interface.hh"
-#include "dynamics_base.hh"
+#include "base.hh"
 
 #include "../../support/util.hh"
 
