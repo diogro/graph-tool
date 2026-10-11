@@ -339,7 +339,7 @@ class PropertyMap(object):
         ``long double``
         ``string``
         ``vector<bool>``            ``vector<uint8_t>``
-        ``vector<int16_t>``         ``short``
+        ``vector<int16_t>``         ``vector<short>``
         ``vector<int32_t>``         ``vector<int>``
         ``vector<int64_t>``         ``vector<long>``, ``vector<long long>``
         ``vector<double>``          ``vector<float>``
@@ -479,7 +479,7 @@ class PropertyMap(object):
 
     def get_array(self):
         """Get a :class:`numpy.ndarray` subclass (:class:`~graph_tool.PropertyArray`)
-        pointint to the property values.
+        pointing to the property values.
 
         .. note::
 
@@ -585,10 +585,11 @@ class PropertyMap(object):
                      expected.
 
                      Importantly, this means that this operation runs in time
-                     :math:`O(N)` or `O(N + E)` for node and edge properties,
-                     respectively, where :math:`N` is the number of vertices and
-                     :math:`E` the number of edges in the unfiltered graph, and
-                     therefore can be significantly slower than using the
+                     :math:`O(N)` or :math:`O(N + E)` for node and edge
+                     properties, respectively, where :math:`N` is the number of
+                     vertices and :math:`E` the number of edges in the
+                     unfiltered graph, and therefore can be significantly
+                     slower than using the
                      :attr:`~PropertyMap.a` attribute, which runs in time
                      :math:`O(1)`.""")
 
@@ -639,7 +640,7 @@ class PropertyMap(object):
                      Unlike :attr:`~PropertyMap.fa`, the masked array does *not*
                      copy the property map values.
 
-                     This function runs in time :math:`O(N)` or `O(N + E)`
+                     This function runs in time :math:`O(N)` or :math:`O(N + E)`
                      for node and edge properties, respectively, where :math:`N`
                      is the number of vertices and :math:`E` the number of edges
                      in the unfiltered graph.
@@ -701,7 +702,7 @@ class PropertyMap(object):
         array ``a`` of shape ``(M,N)``, where ``N`` is the number of vertices or
         edges, and ``M`` is the size of each property vector. If given, the
         parameter ``pos`` must be a sequence of integers which specifies the
-        indices of the property values which will be set (i.e. rows if the ``a``
+        indices of the property values which will be set (i.e. rows of the ``a``
         matrix).
         """
 
@@ -807,7 +808,7 @@ class PropertyMap(object):
         value type for the new property map.
 
         If the value type of the original map allows, the values will be passed
-        to ``f`` as a :class:`numpy.ndarray`, unless `no_array` is ``True``.
+        to ``f`` as a :class:`numpy.ndarray`, unless ``no_array`` is ``True``.
         Otherwise, they will be passed individually.
 
         If ``inplace == True`` the transformation happens in-place, without
@@ -1367,11 +1368,13 @@ def map_property_values(src_prop, tgt_prop, map_func):
                                 map_func, k == 'e')
 
 def infect_vertex_property(g, prop, vals=None):
-    """Propagate the `prop` values of vertices with value `val` to all their
+    """Propagate the `prop` values of vertices with value in `vals` to all their
     out-neighbors.
 
     Parameters
     ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
     prop : :class:`~graph_tool.VertexPropertyMap`
         Property map to be modified.
     vals : list (optional, default: `None`)
@@ -1400,12 +1403,14 @@ def infect_vertex_property(g, prop, vals=None):
 @_limit_args({"endpoint": ["source", "target"]})
 def edge_endpoint_property(g, prop, endpoint, eprop=None):
     """Return an edge property map corresponding to the vertex property `prop` of
-    either the target and source of the edge, according to `endpoint`.
+    either the target or source of the edge, according to `endpoint`.
 
     Parameters
     ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
     prop : :class:`~graph_tool.VertexPropertyMap`
-        Vertex property map to be used to propagated to the edge.
+        Vertex property map to be propagated to the edge.
     endpoint : `"source"` or `"target"`
         Edge endpoint considered. If the graph is undirected, the source is
         always the vertex with the lowest index.
@@ -1458,6 +1463,8 @@ def incident_edges_op(g, direction, op, eprop, vprop=None):
 
     Parameters
     ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
     direction : `"in"` or `"out"`
         Direction of the incident edges.
     op : `"sum"`, `"prod"`, `"min"` or `"max"`
@@ -2179,11 +2186,11 @@ class Graph(object):
         r"""Return an iterator over the edge properties list ``eprops`` for
         parallel edges between vertices ``s`` and ``t``.
 
-        This operation normally will take :math:`O(\times\min(k(s), k(t)))` time,
+        This operation normally will take :math:`O(\min(k(s), k(t)))` time,
         where :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
         out-degree if undirected) of vertices :math:`s` and :math:`t`. However,
         if :meth:`~Graph.set_fast_edge_lookup` is set to `True`, this operation
-        becomes :math:`O(m)`, where :math:`m` being the number of parallel edges.
+        becomes :math:`O(m)`, where :math:`m` is the number of parallel edges.
 
         .. note::
 
@@ -2213,11 +2220,11 @@ class Graph(object):
         number of parallel edges, and each line will contain the edge property
         values.
 
-        This operation normally will take :math:`O(\times\min(k(s), k(t)))` time,
+        This operation normally will take :math:`O(\min(k(s), k(t)))` time,
         where :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
         out-degree if undirected) of vertices :math:`s` and :math:`t`. However,
         if :meth:`~Graph.set_fast_edge_lookup` is set to `True`, this operation
-        becomes :math:`O(m)`, where :math:`m` being the number of parallel edges.
+        becomes :math:`O(m)`, where :math:`m` is the number of parallel edges.
 
         .. note::
 
@@ -2255,7 +2262,7 @@ class Graph(object):
         return eiter
 
     def iter_edges(self, eprops=[]):
-        """Return an iterator over the edge ```(source, target)`` pairs, and optional
+        """Return an iterator over the edge ``(source, target)`` pairs, and optional
         edge properties list ``eprops``.
 
         .. note::
@@ -2310,7 +2317,7 @@ class Graph(object):
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
     def iter_out_edges(self, v, eprops=[]):
-        """Return an iterator over the out-edge ```(source, target)`` pairs for vertex
+        """Return an iterator over the out-edge ``(source, target)`` pairs for vertex
         ``v``, and optional edge properties list ``eprops``.
 
         .. note::
@@ -2358,7 +2365,7 @@ class Graph(object):
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
     def iter_in_edges(self, v, eprops=[]):
-        """Return an iterator over the in-edge ```(source, target)`` pairs for vertex
+        """Return an iterator over the in-edge ``(source, target)`` pairs for vertex
         ``v``, and optional edge properties list ``eprops``.
 
         .. note::
@@ -2401,7 +2408,7 @@ class Graph(object):
         return numpy.reshape(edges, (E, 2 + len(eprops)))
 
     def iter_all_edges(self, v, eprops=[]):
-        """Return an iterator over the in- and out-edge ```(source, target)`` pairs for
+        """Return an iterator over the in- and out-edge ``(source, target)`` pairs for
         vertex ``v``, and optional edge properties list ``eprops``.
 
         .. note::
@@ -2430,8 +2437,8 @@ class Graph(object):
         return eiter
 
     def get_all_edges(self, v, eprops=[]):
-        """Return a :class:`numpy.ndarray` containing the in- and out-edges of vertex v,
-        and optional edge properties list ``eprops``. The shape of the array
+        """Return a :class:`numpy.ndarray` containing the in- and out-edges of
+        vertex ``v``, and optional edge properties list ``eprops``. The shape of the array
         will be ``(E, 2 + len(eprops))``, where ``E`` is the number of edges,
         and each line will contain the source, target and the edge property
         values.
@@ -2485,7 +2492,7 @@ class Graph(object):
     def get_out_neighbors(self, v, vprops=[]):
         """Return a :class:`numpy.ndarray` containing the out-neighbors of vertex ``v``,
         and optional vertex properties list ``vprops``. If ``vprops`` is not
-        empty, the shape of the array will be ``(V, 1 + len(eprops))``, where
+        empty, the shape of the array will be ``(V, 1 + len(vprops))``, where
         ``V`` is the number of vertices, and each line will contain a vertex and
         its property values.
 
@@ -2535,7 +2542,7 @@ class Graph(object):
     def get_in_neighbors(self, v, vprops=[]):
         """Return a :class:`numpy.ndarray` containing the in-neighbors of vertex ``v``,
         and optional vertex properties list ``vprops``. If ``vprops`` is not
-        empty, the shape of the array will be ``(V, 1 + len(eprops))``, where
+        empty, the shape of the array will be ``(V, 1 + len(vprops))``, where
         ``V`` is the number of vertices, and each line will contain a vertex and
         its property values.
 
@@ -2591,7 +2598,7 @@ class Graph(object):
         """Return a :class:`numpy.ndarray` containing the in-neighbors and
         out-neighbors of vertex ``v``, and optional vertex properties list
         ``vprops``. If ``vprops`` is not empty, the shape of the array will be
-        ``(V, 1 + len(eprops))``, where ``V`` is the number of vertices, and
+        ``(V, 1 + len(vprops))``, where ``V`` is the number of vertices, and
         each line will contain a vertex and its property values.
 
         Examples
@@ -2822,7 +2829,7 @@ class Graph(object):
         maps that will be filled with the remaining values at each row, if there
         are more than two. Alternatively, ``eprops`` can contain a list of
         ``(name, value_type)`` pairs, in which case new internal edge property
-        maps will be created with the corresponding name name and value type.
+        maps will be created with the corresponding name and value type.
 
         .. note::
 
@@ -2922,7 +2929,7 @@ class Graph(object):
     properties = property(lambda self: self.__properties,
                           doc=
     """Dictionary of internal properties. Keys must always be a tuple, where the
-    first element if a string from the set ``{'v', 'e', 'g'}``, representing a
+    first element is a string from the set ``{'v', 'e', 'g'}``, representing a
     vertex, edge or graph property, respectively, and the second element is the
     name of the property map.
 
@@ -3009,7 +3016,7 @@ class Graph(object):
     vertex_index = property(_get_vertex_index,
                             doc="""Vertex index map.
 
-                            It maps for each vertex in the graph an unique
+                            It maps for each vertex in the graph a unique
                             integer in the range [0, :meth:`~graph_tool.Graph.num_vertices` - 1].
 
                             .. note::
@@ -3023,7 +3030,7 @@ class Graph(object):
         return self.__edge_index
     edge_index = property(_get_edge_index, doc="""Edge index map.
 
-                            It maps for each edge in the graph an unique
+                            It maps for each edge in the graph a unique
                             integer.
 
                             .. note::
@@ -3069,7 +3076,7 @@ class Graph(object):
 
     def new_property(self, key_type, value_type, vals=None, val=None):
 
-        """Create a new (uninitialized) vertex property map of key type
+        """Create a new (uninitialized) property map of key type
         ``key_type`` (``v``, ``e`` or ``g``), value type ``value_type``, and
         return it. If provided, the values will be initialized by ``vals``,
         which should be a sequence, or by ``val`` which should be a single
@@ -3086,7 +3093,7 @@ class Graph(object):
 
     def new_vertex_property(self, value_type, vals=None, val=None):
         """Create a new vertex property map of type ``value_type``, and return it. If
-        provided, the values will be initialized by ``vals``, which should be
+        provided, the values will be initialized by ``vals``, which should be a
         sequence or by ``val`` which should be a single value.
         """
         prop = VertexPropertyMap(new_vertex_property(_type_alias(value_type),
@@ -3107,7 +3114,7 @@ class Graph(object):
 
     def new_edge_property(self, value_type, vals=None, val=None):
         """Create a new edge property map of type ``value_type``, and return it. If
-        provided, the values will be initialized by ``vals``, which should be
+        provided, the values will be initialized by ``vals``, which should be a
         sequence or by ``val`` which should be a single value.
         """
         prop = EdgePropertyMap(new_edge_property(_type_alias(value_type),
@@ -3148,8 +3155,8 @@ class Graph(object):
         then a new property map of the same type (or with the type given by the
         optional ``value_type`` parameter) is created, and returned. The
         optional parameter ``g`` specifies the source graph to copy properties
-        from (defaults to the graph than owns `src`). If ``full == False``, then
-        in the case of filtered graphs only the unmasked values are copied (with
+        from (defaults to the graph that owns ``src``). If ``full == False``,
+        then in the case of filtered graphs only the unmasked values are copied (with
         the remaining ones taking the type-dependent default value).
 
         .. note::
@@ -3504,7 +3511,7 @@ class Graph(object):
     def set_vertex_filter(self, prop):
         """Set the vertex boolean filter property. Only the vertices with value
         different than ``False`` are kept in the filtered graph. If the supplied
-        property is ``None``, the filter is replaced by an uniform filter
+        property is ``None``, the filter is replaced by a uniform filter
         allowing all vertices.
 
         .. note::
@@ -3544,7 +3551,7 @@ class Graph(object):
     def set_edge_filter(self, prop):
         """Set the edge boolean filter property. Only the edges with value
         different than ``False`` are kept in the filtered graph. If the supplied
-        property is ``None``, the filter is replaced by an uniform filter
+        property is ``None``, the filter is replaced by a uniform filter
         allowing all edges.
 
         .. note::
@@ -3615,7 +3622,7 @@ class Graph(object):
         with an :math:`O(V + E)` complexity. This is the default behaviour if no
         option is given.
 
-        .. note :
+        .. note::
 
            The graph will remain in a filtered state after this operation, since
            there might be edge filters present. To return the graph to an
@@ -3665,7 +3672,7 @@ class Graph(object):
         """Remove all edges of the graph which are currently being filtered out. This
         operation is not reversible.
 
-        .. note :
+        .. note::
 
            The graph will remain in a filtered state after this operation, since
            there might be vertex filters present. To return the graph to an
@@ -3775,12 +3782,12 @@ def load_graph_from_csv(file_name, directed=False, eprop_types=None,
     Parameters
     ----------
     file_name : ``str`` or file-like object
-        File in :mod:``csv`` format, with edges given in each row.
+        File in :mod:`csv` format, with edges given in each row.
     directed : ``bool`` (optional, default: ``False``)
         Whether or not the graph is directed.
     eprop_types : list of ``str`` (optional, default: ``None``)
         List of edge property types to be read from remaining columns (if this
-        is ``None``, all properties will be of type ``string``.
+        is ``None``, all properties will be of type ``string``).
     eprop_names : list of ``str`` (optional, default: ``None``)
         List of edge property names to be used for the remaining columns (if
         this is ``None``, and ``skip_first`` is ``True`` their values will be
@@ -3792,12 +3799,12 @@ def load_graph_from_csv(file_name, directed=False, eprop_types=None,
         to vertex indices according to the order in which they are encountered,
         and a vertex property map with the vertex values is returned.
     hash_type : ``str`` (optional, default: ``string``)
-        If ``hashed == True``, this will determined the type of the vertex values.
+        If ``hashed == True``, this will determine the type of the vertex values.
         It can be any property map value type (see :class:`PropertyMap`).
     skip_first : ``bool`` (optional, default: ``False``)
         If ``True`` the first line of the file will be skipped.
     strip_whitespace : ``bool`` (optional, default: ``True``)
-        If ``True`` whitespace will be striped from the start and end of values,
+        If ``True`` whitespace will be stripped from the start and end of values,
         before processing them.
     ecols : pair of ``int`` (optional, default: ``(0,1)``)
         Line columns used as source and target for the edges.
@@ -3917,7 +3924,7 @@ class GraphView(Graph):
     class. If specified, ``vfilt`` and ``efilt`` select which vertices and edges
     are filtered, respectively. These parameters can either be a boolean-valued
     :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`, which specify
-    which vertices/edges are selected, or an unary function that returns
+    which vertices/edges are selected, or a unary function that returns
     ``True`` if a given vertex/edge is to be selected, or ``False`` otherwise.
 
     The boolean parameter ``directed`` can be used to set the directionality of
@@ -4026,7 +4033,7 @@ class GraphView(Graph):
         self.properties.update({k: self.own_property(v) for k, v in props.items()})
 
 def value_types():
-    """Return a list of possible properties value types."""
+    """Return a list of possible property value types."""
     return libcore.get_property_types()
 
 # Vertex and Edge Types
@@ -4044,14 +4051,14 @@ def _in_neighbors(self):
         yield e.source()
 
 def _all_edges(self):
-    """Return an iterator over all edges (both in or out)."""
+    """Return an iterator over all edges (both in and out)."""
     for e in self.out_edges():
         yield e
     for e in self.in_edges():
         yield e
 
 def _all_neighbors(self):
-    """Return an iterator over all neighbors (both in or out)."""
+    """Return an iterator over all neighbors (both in and out)."""
     for v in self.out_neighbors():
         yield v
     for v in self.in_neighbors():

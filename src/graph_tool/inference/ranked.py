@@ -46,19 +46,19 @@ class RankedBlockState(BlockState):
         be used.
     u : :class:`~graph_tool.PropertyMap` or iterable (optional, default: ``None``)
         Ordering of the group labels. It should contain a map from each group
-        label to an integer label, inidicating how the groups
+        label to an integer label, indicating how the groups
         should be ordered. If not supplied, the numeric values of the group
-        lalbels will be used to initialize the ordering.
+        labels will be used to initialize the ordering.
     distance : ``bool`` (optional, default: ``False``)
         If ``True``, the distance-based version of the model will be used.
-    unique : ``bool`` (optional, default: ``True``)
+    unique : ``bool`` (optional, default: ``False``)
         If ``True``, the model version with unique group positions will be used.
         Otherwise, groups are allowed to have the same position.
     M : ``int`` (optional, default: ``None``)
-        If ``unique == True``, this parameter will determine the number of
+        If ``unique == False``, this parameter will determine the number of
         positions available. If the value ``None`` is passed (the default), the
         value will correspond to the number of nodes.
-    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+    **kwargs : ``(keyword parameters)`` (optional, default: ``(none)``)
         Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
 
     References
@@ -251,7 +251,9 @@ class RankedBlockState(BlockState):
         return edir
 
     def get_Es(self):
-        """Return the number of dowstream, lateral, and upstream edges."""
+        """Return a tuple with the number of upstream, lateral, and downstream
+        edges, followed by the number of edges between nodes of the same
+        group."""
         return self._state.get_Es()
 
     def _entropy(self, label_dl=True, **kwargs):

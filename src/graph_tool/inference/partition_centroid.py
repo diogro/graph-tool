@@ -72,12 +72,12 @@ class PartitionCentroidState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def get_Be(self):
         r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with
         :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
-        the number of nodes in group r.
+        the number of nodes in group :math:`r`.
         """
         w = np.array(np.bincount(self.b), dtype="double")
         w = w[w>0]
         w /= w.sum()
-        return np.exp(-(w*log(w)).sum())
+        return np.exp(-(w*np.log(w)).sum())
 
     @copy_state_wrap
     def _entropy(self, **kwargs):
@@ -94,7 +94,7 @@ def variation_information(x, y, norm=False):
         First partition.
     y : iterable of ``int`` values
         Second partition.
-    norm : (optional, default: ``False``)
+    norm : ``bool`` (optional, default: ``False``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
 
     Returns
@@ -155,6 +155,7 @@ def variation_information(x, y, norm=False):
         VI /= np.log(N)
     return float(VI)
 
+@_parallel
 @_limit_args({"avg_method": ["min", "max", "arithmetic", "geometric"]})
 def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"):
     r"""Returns the mutual information between two partitions.
@@ -165,14 +166,14 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
         First partition.
     y : iterable of ``int`` values
         Second partition.
-    norm : ``bool`` (optional, default: ``True``)
+    norm : ``bool`` (optional, default: ``False``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
     adjusted : ``bool`` (optional, default: ``False``)
         If ``True``, the adjusted mutual information will be computed. Note that
         if ``adjusted == True``, the parameter ``norm`` is ignored.
-    avg_method : ``bool`` (optional, default: ``"arithmetic"``)
+    avg_method : ``str`` (optional, default: ``"arithmetic"``)
         Determines how the adjusted normalization average should be
-        computed. Must be one of: ``"min"``, ``"max"``, ``"arithmethic"``, or
+        computed. Must be one of: ``"min"``, ``"max"``, ``"arithmetic"``, or
         ``"geometric"``. This option has an effect only if ``adjusted == True``.
 
     Returns
@@ -201,7 +202,7 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
         2\frac{\text{MI}(\boldsymbol x,\boldsymbol y)}{H_x + H_y}
 
     which lies in the unit interval :math:`[0,1]`, and where :math:`H_x =
-    -\frac{1}{N}\sum_rn_r\ln\frac{n_r}{N}` and :math:`H_x =
+    -\frac{1}{N}\sum_rn_r\ln\frac{n_r}{N}` and :math:`H_y =
     -\frac{1}{N}\sum_rn'_r\ln\frac{n'_r}{N}`.
 
     If ``adjusted == True``, the adjusted mutual information is returned, defined
@@ -224,14 +225,14 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
 
     is the expected value of :math:`\text{MI}(\boldsymbol x,\boldsymbol y)` if
     either partition has its labels randomly permuted, and :math:`\text{avg}` is the
-    function corresponding to the parameter ``avg_methdod``.
+    function corresponding to the parameter ``avg_method``.
 
     This algorithm runs in time :math:`O(N)` where :math:`N` is
     the length of :math:`\boldsymbol x` and :math:`\boldsymbol y`.
 
     @parallel@
 
-        If ``adjusted == False``, the algorith will not run in parallel.
+        If ``adjusted == False``, the algorithm will not run in parallel.
 
     Examples
     --------
@@ -274,7 +275,7 @@ def mutual_information(x, y, norm=False, adjusted=False, avg_method="arithmetic"
         elif avg_method == "arithmetic":
             avg = (H1 + H2) / 2
         elif avg_method == "geometric":
-            avg = sqrt(H1 * H2)
+            avg = np.sqrt(H1 * H2)
         R = avg - EMI
         if R < 0:
             R = min((R, -np.finfo("float64").eps))
@@ -342,7 +343,7 @@ def reduced_mutual_information(x, y, norm=False, norm_method="asymmetric"):
 
     .. warning::
 
-        Note that both the pseudo-normalized and unormalized RMI values can be
+        Note that both the pseudo-normalized and unnormalized RMI values can be
         negative. In addition, the pseudo-normalized RMI can take values larger
         than unity for different partitions. These are issues with the
         definition of RMI, not bugs in this particular implementation.

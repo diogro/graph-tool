@@ -72,7 +72,7 @@ In this module, most documentation examples will make use of the network
    :align: center
 
    This is the network used in the examples below. The width of the edges
-   correspond to the values of the "weight" property map.
+   corresponds to the values of the "weight" property map.
 
 """
 
@@ -136,9 +136,10 @@ class BFSVisitor(object):
         return
 
     def finish_vertex(self, u):
-        """This invoked on a vertex after all of its out edges have been added
-        to the search tree and all of the adjacent vertices have been discovered
-        (but before the out-edges of the adjacent vertices have been examined).
+        """This is invoked on a vertex after all of its out edges have been
+        added to the search tree and all of the adjacent vertices have been
+        discovered (but before the out-edges of the adjacent vertices have been
+        examined).
         """
         return
 
@@ -284,8 +285,8 @@ def bfs_search(g, source=None, visitor=BFSVisitor()):
         pass
 
 def bfs_iterator(g, source=None, array=False):
-    r"""Return an iterator of the edges corresponding to a breath-first traversal of
-    the graph.
+    r"""Return an iterator of the edges corresponding to a breadth-first
+    traversal of the graph.
 
     Parameters
     ----------
@@ -296,13 +297,13 @@ def bfs_iterator(g, source=None, array=False):
         iterating over starting vertices according to their index in increasing
         order.
     array : ``bool`` (optional, default: ``False``)
-        If ``True``, a :class:`numpy.ndarray` with the edge endpoints be
-        returned instead.
+        If ``True``, a :class:`numpy.ndarray` with the edge endpoints will
+        be returned instead.
 
     Returns
     -------
     bfs_iterator : Iterator or :class:`numpy.ndarray`
-        An iterator over the edges in breath-first order. If ``array == True``,
+        An iterator over the edges in breadth-first order. If ``array == True``,
         this will be a :class:`numpy.ndarray` instead, of shape ``(E,2)``,
         containing the edge endpoints.
 
@@ -415,7 +416,7 @@ class DFSVisitor(object):
         """
         return
 
-    def finish_vertex(self, e):
+    def finish_vertex(self, u):
         """
         This is invoked on vertex u after finish_vertex has been called for all
         the vertices in the DFS-tree rooted at vertex u. If vertex u is a leaf
@@ -604,8 +605,8 @@ def dfs_iterator(g, source=None, array=False):
         iterating over starting vertices according to their index in increasing
         order.
     array : ``bool`` (optional, default: ``False``)
-        If ``True``, a :class:`numpy.ndarray` with the edge endpoints be
-        returned instead.
+        If ``True``, a :class:`numpy.ndarray` with the edge endpoints will
+        be returned instead.
 
     Returns
     -------
@@ -718,8 +719,8 @@ class DijkstraVisitor(object):
 
     def finish_vertex(self, u):
         """
-        This invoked on a vertex after all of its out edges have been added to
-        the search tree and all of the adjacent vertices have been discovered
+        This is invoked on a vertex after all of its out edges have been added
+        to the search tree and all of the adjacent vertices have been discovered
         (but before their out-edges have been examined).
         """
         return
@@ -754,7 +755,7 @@ def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=
         This function is used to combine distances to compute the distance of a
         path.
     compare : binary function (optional, default: ``lambda a, b: a < b``)
-        This function is use to compare distances to determine which vertex is
+        This function is used to compare distances to determine which vertex is
         closer to the source vertex.
     zero : int or float (optional, default: ``0``)
          Value assumed to correspond to a distance of zero by the combine and
@@ -991,7 +992,7 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
         This function is used to combine distances to compute the distance of a
         path.
     compare : binary function (optional, default: ``lambda a, b: a < b``)
-        This function is use to compare distances to determine which vertex is
+        This function is used to compare distances to determine which vertex is
         closer to the source vertex.
     zero : int or float (optional, default: ``0``)
          Value assumed to correspond to a distance of zero by the combine and
@@ -1000,12 +1001,12 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
          Value assumed to correspond to a distance of infinity by the combine
          and compare functions.
     array : ``bool`` (optional, default: ``False``)
-        If ``True``, a :class:`numpy.ndarray` with the edge endpoints be
-        returned instead.
+        If ``True``, a :class:`numpy.ndarray` with the edge endpoints will
+        be returned instead.
 
     Returns
     -------
-    dfs_iterator : Iterator or :class:`numpy.ndarray`
+    dijkstra_iterator : Iterator or :class:`numpy.ndarray`
         An iterator over the edges in Dijkstra order. If ``array == True``,
         this will be a :class:`numpy.ndarray` instead, of shape ``(E,2)``,
         containing the edge endpoints.
@@ -1168,10 +1169,10 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
         Source vertex.
     weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with weight values.
-    visitor : :class:`~graph_tool.search.DijkstraVisitor` (optional, default: ``DijkstraVisitor()``)
+    visitor : :class:`~graph_tool.search.BellmanFordVisitor` (optional, default: ``BellmanFordVisitor()``)
         A visitor object that is invoked at the event points inside the
         algorithm. This should be a subclass of
-        :class:`~graph_tool.search.DijkstraVisitor`.
+        :class:`~graph_tool.search.BellmanFordVisitor`.
     dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
@@ -1182,7 +1183,7 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
         This function is used to combine distances to compute the distance of a
         path.
     compare : binary function (optional, default: ``lambda a, b: a < b``)
-        This function is use to compare distances to determine which vertex is
+        This function is used to compare distances to determine which vertex is
         closer to the source vertex.
     zero : int or float (optional, default: ``0``)
          Value assumed to correspond to a distance of zero by the combine and
@@ -1216,7 +1217,7 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
     paths problem for a graph with both positive and negative edge weights. If
     you only need to solve the shortest paths problem for positive edge weights,
     :func:`~graph_tool.search.dijkstra_search` provides a more efficient
-    alternative. If all the edge weights are all equal, then
+    alternative. If all the edge weights are equal, then
     :func:`~graph_tool.search.bfs_search` provides an even more efficient
     alternative.
 
@@ -1482,7 +1483,7 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
         This function is used to combine distances to compute the distance of a
         path.
     compare : binary function (optional, default: ``lambda a, b: a < b``)
-        This function is use to compare distances to determine which vertex is
+        This function is used to compare distances to determine which vertex is
         closer to the source vertex.
     implicit : bool (optional, default: ``False``)
         If true, the underlying graph will be assumed to be implicit
@@ -1660,7 +1661,7 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
     The :math:`A^*` algorithm is very useful for searching *implicit* graphs,
     i.e. graphs which are not entirely stored in memory and are generated
     "on-the-fly" during the search. In the following example we will carry out a
-    search in a hamming hypercube of 10 bits witch has random weights on its
+    search in a Hamming hypercube of 10 bits which has random weights on its
     edges in the range :math:`[0,1]`. The vertices of the hypercube will be
     created during the search.
 
@@ -1856,7 +1857,7 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
         This function is used to combine distances to compute the distance of a
         path.
     compare : binary function (optional, default: ``lambda a, b: a < b``)
-        This function is use to compare distances to determine which vertex is
+        This function is used to compare distances to determine which vertex is
         closer to the source vertex.
     zero : int or float (optional, default: ``0``)
          Value assumed to correspond to a distance of zero by the combine and
@@ -1865,8 +1866,8 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
          Value assumed to correspond to a distance of infinity by the combine
          and compare functions.
     array : ``bool`` (optional, default: ``False``)
-        If ``True``, a :class:`numpy.ndarray` with the edge endpoints be
-        returned instead.
+        If ``True``, a :class:`numpy.ndarray` with the edge endpoints will
+        be returned instead.
 
     Returns
     -------

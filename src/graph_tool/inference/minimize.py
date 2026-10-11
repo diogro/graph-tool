@@ -164,7 +164,7 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
     g : :class:`~graph_tool.Graph`
         The graph.
     state : nested SBM state class (optional, default: :class:`~graph_tool.inference.NestedBlockState`)
-        Type of next model that will be used.
+        Type of nested model that will be used.
     base_state : base SBM state class (optional, default: :class:`~graph_tool.inference.BlockState`)
         Type of model that will be used at the bottom of the hierarchy.
     state_args : ``dict`` (optional, default: ``{}``)
@@ -178,7 +178,7 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
     simple_init : ``bool`` (optional, default: ``False``)
         If ``True``, a simple initialization scheme will be used, where the
         hierarchy shape will be upper bounded by an initial guess based on the
-        number of nodes and the paramters ``base_factor``, ``top_factor``, and
+        number of nodes and the parameters ``base_factor``, ``top_factor``, and
         ``B_min_base``. This is meant to be used with ``refine == True`` for an
         alternative to the more expensive multilevel minimization algorithm.
     simple_init_reverse : ``bool`` (optional, default: ``False``)
@@ -272,7 +272,7 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
     References
     ----------
     .. [peixoto-hierarchical-2014] Tiago P. Peixoto, "Hierarchical block
-       structures and high-resolution model selection in large networks ",
+       structures and high-resolution model selection in large networks",
        Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
        :arxiv:`1310.4377`.
 

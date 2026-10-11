@@ -50,7 +50,7 @@ class NestedBlockState(object):
     base_state_args : ``dict`` (optional, default: ``{}``)
         Keyword arguments to be passed to base type constructor.
     extra_args : ``list`` of ``dict`` (optional, default: ``None``)
-        Extra parameters to be passed to each hierarchy state,
+        Extra parameters to be passed to each hierarchy state.
     **kwargs :  keyword arguments
         Keyword arguments to be passed to base type constructor. The
         ``base_state_args`` parameter overrides this.
@@ -188,9 +188,9 @@ class NestedBlockState(object):
 
         The keyword arguments are passed to the ``entropy()`` method of the
         underlying state objects
-        (e.g. :class:`graph_tool.inference.BlockState.entropy`,
-        :class:`graph_tool.inference.OverlapBlockState.entropy`, or
-        :class:`graph_tool.inference.LayeredBlockState.entropy`).
+        (e.g. :meth:`graph_tool.inference.BlockState.entropy`,
+        :meth:`graph_tool.inference.OverlapBlockState.entropy`, or
+        :meth:`graph_tool.inference.LayeredBlockState.entropy`).
 
         """
         S = self.levels[0].entropy(**dict(kwargs, test=False))
@@ -480,7 +480,7 @@ class NestedBlockState(object):
 
         Returns
         -------
-        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        h : :class:`~graph_tool.inference.PartitionHist`
             Updated Partition histogram.
 
         """
@@ -520,7 +520,7 @@ def get_hierarchy_tree(state, empty_branches=False):
 
     tree : :class:`~graph_tool.Graph`
        A directed graph, where vertices are blocks, and a directed edge points
-       to an upper to a lower level in the hierarchy.
+       from an upper to a lower level in the hierarchy.
     label : :class:`~graph_tool.VertexPropertyMap`
        A vertex property map containing the block label for each node.
     order : :class:`~graph_tool.VertexPropertyMap`

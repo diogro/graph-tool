@@ -167,7 +167,7 @@ class GraphWidget(Gtk.DrawingArea):
             Initial speed of the layout algorithm.
         multilevel : ``bool`` (optional, default: ``False``)
             Parameter ``multilevel`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        coarse_method : ``bool`` (optional, default: ``hybrid``)
+        coarse_method : ``str`` (optional, default: ``"hybrid"``)
             Parameter ``coarse_method`` passed to :func:`~graph_tool.draw.sfdp_layout`.
         sfdp_args : ``dict`` (optional, default: ``{}``)
             Additional parameters to be passed to :func:`~graph_tool.draw.sfdp_layout`.
@@ -186,43 +186,44 @@ class GraphWidget(Gtk.DrawingArea):
             once to figure out the bounding box, before the actual drawing is
             made. Otherwise, only the vertex positions will be used for this
             purpose. If the value is ``None``, then it will be assumed ``True``
-            for networks of size 10,000 nodes or less, otherwise it will be
+            for networks of size 1,000 nodes or less, otherwise it will be
             assumed ``False``.
         bg_color : str or sequence (optional, default: ``None``)
             Background color. The default is white.
         max_render_time : ``int`` (optional, default: ``300``)
             Maximum amount of time (in milliseconds) spent rendering portions of
             the graph.
-        layout_callback : function (optional, default: ``Node``)
+        layout_callback : function (optional, default: ``None``)
             User-supplied callback to be called whenever the positions of the layout
             have changed. It needs to have the following signature:
 
             .. code-block:: python
 
-               def callback(g, picked, pos, vprops, eprops):
+               def callback(widget, g, picked, pos, vprops, eprops):
                    ...
 
-            where ``g`` is the graph being drawn, ``picked`` is either a single
+            where ``widget`` is the :class:`~graph_tool.draw.GraphWidget`
+            instance, ``g`` is the graph being drawn, ``picked`` is either a single
             vertex or a boolean vertex property map representing the vertices
             currently selected, ``pos`` the vertex positions, and ``vprops`` and
             ``eprops`` are dictionaries with the vertex and edge properties
             currently being used by the layout.
-        key_press_callback : function (optional, default: ``Node``)
-
+        key_press_callback : function (optional, default: ``None``)
             User-supplied callback to be called whenever a key-press event has
             happened. It needs to have the following signature:
 
             .. code-block:: python
 
-               def callback(g, keyval, picked, pos, vprops, eprops):
+               def callback(widget, g, keyval, picked, pos, vprops, eprops):
                    ...
 
-            where ``g`` is the graph being drawn, ``keyval`` is the key id,
+            where ``widget`` is the :class:`~graph_tool.draw.GraphWidget`
+            instance, ``g`` is the graph being drawn, ``keyval`` is the key id,
             ``picked`` is either a single vertex or a boolean vertex property
             map representing the vertices currently selected, ``pos`` the vertex
             positions, and ``vprops`` and ``eprops`` are dictionaries with the
             vertex and edge properties currently being used by the layout.
-        highligth_color : str or sequence (optional, default: ``None``)
+        highlight_color : str or sequence (optional, default: ``None``)
             Color used to highlight the currently selected node and its incident
             edges. The default is red.
         vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
@@ -772,7 +773,7 @@ class GraphWidget(Gtk.DrawingArea):
             return (x - ox, y - oy)
 
     def pos_from_device(self, pos, dist=False, surface=False, cr=None):
-        """Convert a position from the widget space to the device space."""
+        """Convert a position from the widget space to the graph space."""
         ox, oy = self.get_window().get_position()
         if cr is None:
             cr = self.get_window().cairo_create()
@@ -1242,7 +1243,7 @@ class GraphWindow(Gtk.Window):
             If provided, defines the relative order in which the edges are drawn.
         nodesfirst : ``bool`` (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
-        update_layout : ``bool`` (optional, default: ``True``)
+        update_layout : ``bool`` (optional, default: ``False``)
             If ``True``, the layout will be updated dynamically.
         **kwargs
             Any extra parameters are passed to :class:`~graph_tool.draw.GraphWidget` and
@@ -1311,9 +1312,12 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
     -------
     pos : :class:`~graph_tool.VertexPropertyMap`
         Vector vertex property map with the x and y coordinates of the vertices.
-    selected : :class:`~graph_tool.VertexPropertyMap` (optional, only if ``output is None``)
+    selected : :class:`~graph_tool.VertexPropertyMap`
         Boolean-valued vertex property map marking the vertices which were
         selected interactively.
+    window : :class:`~graph_tool.draw.GraphWindow` (only if ``return_window == True``)
+        The GTK+ window. If ``return_window == True``, only this object is
+        returned.
 
     Notes
     -----

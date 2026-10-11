@@ -57,6 +57,9 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=np.inf,
         ``state.multiflip_mcmc_sweep`` instead of ``state.mcmc_sweep``.
     mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to ``state.mcmc_sweep`` (or ``state.gibbs_sweep``).
+    entropy_args : ``dict`` (optional, default: ``{}``)
+        Currently unused. The arguments passed to ``state.entropy()`` are taken
+        from ``mcmc_args["entropy_args"]`` instead.
     history : ``bool`` (optional, default: ``False``)
         If ``True``, a list of tuples of the form ``(nattempts, nmoves,
         entropy)`` will be kept and returned, where ``entropy`` is the current
@@ -64,13 +67,13 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=np.inf,
     callback : ``function`` (optional, default: ``None``)
         If given, this function will be called after each iteration. The
         function must accept the current state as an argument, and its return
-        value must be either `None` or a (possibly empty) list of values that
-        will be append to the history, if ``history == True``.
+        value must be either ``None`` or a (possibly empty) list of values that
+        will be appended to the history, if ``history == True``.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
         where ``level`` is a positive integer that specifies the level of
-        detail, and ``prefix`` is a string that is prepended to the all output
+        detail, and ``prefix`` is a string that is prepended to all output
         messages.
 
     Notes
@@ -194,14 +197,15 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
         Number of steps (in logspace) from the starting temperature to the final
         one.
     history : ``bool`` (optional, default: ``False``)
-        If ``True``, a list of tuples of the form ``(nattempts, nmoves, beta, entropy)``
+        If ``True``, a list of tuples of the form ``(nattempts, nmoves, beta,
+        entropy)`` will be kept and returned.
     mcmc_equilibrate_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :func:`~graph_tool.inference.mcmc_equilibrate`.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
         where ``level`` is a positive integer that specifies the level of
-        detail, and ``prefix`` is a string that is prepended to the all output
+        detail, and ``prefix`` is a string that is prepended to all output
         messages.
 
     Notes
@@ -209,12 +213,12 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
 
     This algorithm employs exponential cooling, where the value of beta is
     multiplied by a constant at each iteration, so that starting from
-    `beta_range[0]` the value of `beta_range[1]` is reached after `niter`
-    iterations.
+    ``beta_range[0]`` the value of ``beta_range[1]`` is reached after
+    ``niter`` iterations.
 
     At each iteration, the function
     :func:`~graph_tool.inference.mcmc_equilibrate` is called with the current
-    value of `beta` (via the ``mcmc_args`` parameter).
+    value of ``beta`` (via the ``mcmc_args`` parameter).
 
     Returns
     -------
@@ -259,7 +263,7 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
             hist[1].extend(ret[1])
             hist[2].extend([beta] * len(ret[0]))
             hist[3].extend(ret[2])
-            S = ret[0][-1]
+            S = ret[2][-1]
         else:
             S = ret[0]
             nattempts += ret[1]
@@ -268,7 +272,7 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
         beta *= speed
 
     if history:
-        return list(zip(hist))
+        return list(zip(*hist))
     else:
         return S, nattempts, nmoves
 
@@ -286,6 +290,13 @@ class TemperingState(object):
         Initial parallel states.
     betas : list of floats
         Inverse temperature values.
+    idx : list of ``int`` (optional, default: ``None``)
+        Initial indices used to track the identity of the states as they are
+        swapped. If not supplied, ``list(range(len(betas)))`` will be used.
+    beta_dl : ``bool`` (optional, default: ``False``)
+        If ``True``, the inverse temperature will be passed to the states'
+        ``entropy()`` method via the ``beta_dl`` keyword argument, instead of
+        multiplying the entropy values.
     """
 
     def __init__(self, states, betas, idx=None, beta_dl=False):
@@ -294,14 +305,15 @@ class TemperingState(object):
         self.states = states
         self.betas = betas
         if idx is None:
-            self.idx = list(range(len(betas)))
+            idx = list(range(len(betas)))
+        self.idx = idx
         self.beta_dl = beta_dl
         self.swap_attempts = 0
         self.swaps = np.zeros(len(states), dtype="int")
 
     def entropy(self, **kwargs):
         """Returns the sum of the entropy of the parallel states. All keyword
-        arguments are propagated to the individual states' `entropy()`
+        arguments are propagated to the individual states' ``entropy()``
         method.
         """
         if self.beta_dl:
@@ -313,7 +325,7 @@ class TemperingState(object):
 
     def entropies(self, **kwargs):
         """Returns the entropies of the parallel states. All keyword
-        arguments are propagated to the individual states' `entropy()`
+        arguments are propagated to the individual states' ``entropy()``
         method.
         """
         if self.beta_dl:
@@ -326,7 +338,7 @@ class TemperingState(object):
     def states_swap(self,  **kwargs):
         """Perform a full sweep of the parallel states, where swaps are attempted. All
         relevant keyword arguments are propagated to the individual states'
-        `entropy()` method."""
+        ``entropy()`` method."""
 
         verbose = kwargs.get("verbose", False)
         eargs = kwargs.get("entropy_args", {})
@@ -375,7 +387,7 @@ class TemperingState(object):
 
     def states_move(self, sweep_algo, **kwargs):
         """Perform a full sweep of the parallel states, where state moves are
-        attempted by calling `sweep_algo(state, beta=beta, **kwargs)`."""
+        attempted by calling ``sweep_algo(state, beta=beta, **kwargs)``."""
         algo_states = []
 
         if isinstance(self.states[0], NestedBlockState):
@@ -409,33 +421,35 @@ class TemperingState(object):
             return self.states_move(algo, **dict(kwargs, verbose=False))
 
     def mcmc_sweep(self, **kwargs):
-        """Perform a full mcmc sweep of the parallel states, where swap or moves are
-        chosen randomly. It accepts an keyword argument ``r`` (default: ``0.1``)
-        specifying the relative probability with which state swaps are performed
-        with respect to node moves.  All remaining keyword arguments are
-        propagated to the individual states' `mcmc_sweep()` method.
+        """Perform a full mcmc sweep of the parallel states, where swaps or
+        moves are chosen randomly. It accepts a keyword argument ``r`` (default:
+        ``0.1``) specifying the relative probability with which state swaps are
+        performed with respect to node moves. All remaining keyword arguments
+        are propagated to the individual states' ``mcmc_sweep()`` method.
         """
         algo = (lambda s, **kw: s.mcmc_sweep(**kw),
                 lambda states, sweeps: type(self.states[0])._mcmc_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
 
     def multiflip_mcmc_sweep(self, **kwargs):
-        """Perform a full mcmc sweep of the parallel states, where swap or moves are
-        chosen randomly. It accepts an keyword argument ``r`` (default: ``0.1``)
-        specifying the relative probability with which state swaps are performed
-        with respect to node moves.  All remaining keyword arguments are
-        propagated to the individual states' `mcmc_sweep()` method.
+        """Perform a full mcmc sweep of the parallel states, where swaps or
+        moves are chosen randomly. It accepts a keyword argument ``r`` (default:
+        ``0.1``) specifying the relative probability with which state swaps are
+        performed with respect to node moves. All remaining keyword arguments
+        are propagated to the individual states' ``multiflip_mcmc_sweep()``
+        method.
         """
         algo = (lambda s, **kw: s.multiflip_mcmc_sweep(**kw),
                 lambda states, sweeps: type(self.states[0])._multiflip_mcmc_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
 
     def gibbs_sweep(self, **kwargs):
-        """Perform a full Gibbs mcmc sweep of the parallel states, where swap or moves
-        are chosen randomly. It accepts an keyword argument ``r`` (default:
-        ``0.1``) specifying the relative probability with which state swaps are
-        performed with respect to node moves.  All remaining keyword arguments
-        are propagated to the individual states' `gibbs_sweep()` method.
+        """Perform a full Gibbs mcmc sweep of the parallel states, where swaps
+        or moves are chosen randomly. It accepts a keyword argument ``r``
+        (default: ``0.1``) specifying the relative probability with which state
+        swaps are performed with respect to node moves. All remaining keyword
+        arguments are propagated to the individual states' ``gibbs_sweep()``
+        method.
         """
         algo = (lambda s, **kw: s.gibbs_sweep(**kw),
                 lambda states, sweeps: type(self.states[0])._gibbs_sweep_parallel_dispatch(states, sweeps))

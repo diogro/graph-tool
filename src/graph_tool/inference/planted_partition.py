@@ -52,14 +52,14 @@ class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
         Partition constraint labels on the vertices. This has the same
         interpretation as ``clabel``, but will be used to compute the partition
         description length.
-    uniform : ``bool`` (optional, default: ``True``)
+    uniform : ``bool`` (optional, default: ``False``)
         If ``True``, the uniform model variant will be assumed.
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
-    entropy_args: ``dict`` (optional, default: ``{}``)
+    entropy_args : ``dict`` (optional, default: ``{}``)
         Override default arguments for :meth:`~PPBlockState.entropy()`
-        method and releated operations.
+        method and related operations.
 
     References
     ----------
@@ -115,7 +115,7 @@ class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
     def get_Be(self):
         r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with
         :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
-        the number of nodes in group r.
+        the number of nodes in group :math:`r`.
         """
         w = np.array(np.bincount(self.b.fa), dtype="double")
         w = w[w>0]
@@ -131,12 +131,35 @@ class PPBlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
         Parameters
         ----------
-        uniform : ``bool`` (optional, default: ``False``)
-            If ``True``, the uniform planted partition model is used, otherwise
-            a non-uniform version is used.
+        adjacency : ``bool`` (optional, default: ``True``)
+            If ``True``, the adjacency term of the description length will be
+            included.
+        parallel_entropy : ``bool`` (optional, default: ``True``)
+            If ``True``, the entropy term relating to the multiplicities of
+            parallel edges, which is independent of the network partition, will
+            be included.
+        degree_entropy : ``bool`` (optional, default: ``True``)
+            If ``True``, the degree entropy term that is independent of the
+            network partition will be included (for degree-corrected models).
+        dl : ``bool`` (optional, default: ``True``)
+            If ``True``, the description length for the parameters will be
+            included.
+        partition_dl : ``bool`` (optional, default: ``True``)
+            If ``True``, and ``dl == True`` the partition description length
+            will be included.
+        degree_dl : ``bool`` (optional, default: ``True``)
+            If ``True``, and ``dl == True`` the degree sequence description
+            length will be included (for degree-corrected models).
+        edges_dl : ``bool`` (optional, default: ``True``)
+            If ``True``, and ``dl == True`` the edge count description length
+            will be included.
         degree_dl_kind : ``str`` (optional, default: ``"distributed"``)
             This specifies the prior used for the degree sequence. It must be
             one of: ``"uniform"`` or ``"distributed"`` (default).
+        constants : ``bool`` (optional, default: ``True``)
+            If ``True``, the terms that are independent of the network
+            partition (controlled by ``degree_entropy`` and
+            ``parallel_entropy``) will be included.
 
         Notes
         -----

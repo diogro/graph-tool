@@ -34,16 +34,6 @@ structure via the statistical inference of generative models.
 Nonparametric stochastic block model inference
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-High-level functions
-====================
-
-.. autosummary::
-   :nosignatures:
-   :toctree: autosummary
-
-   minimize_blockmodel_dl
-   minimize_nested_blockmodel_dl
-
 State classes
 =============
 
@@ -124,6 +114,7 @@ Comparing and manipulating partitions
    reduced_mutual_information
    contingency_graph
    shuffle_partition_labels
+   shuffle_nested_partition_labels
    order_partition_labels
    order_nested_partition_labels
    align_partition_labels

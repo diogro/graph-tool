@@ -68,7 +68,7 @@ def LCF_graph(n, shift_list, repeats):
     ----------
     n : ``int``
         Number of nodes. The starting graph is the n-cycle with nodes
-        :math:`0,\dots,n-1`.  (The empty graph is returned if ``n < 0``.)
+        :math:`0,\dots,n-1`.  (The empty graph is returned if ``n <= 0``.)
 
     shift_list : ``list``
         A list :math:`[s_1,s_2,\dots,s_k]` of integer shifts :math:`\mod n`.
@@ -76,12 +76,12 @@ def LCF_graph(n, shift_list, repeats):
     repeats : ``int``
       Integer specifying the number of times that shifts in ``shift_list``
       are successively applied to each ``v_current`` in the n-cycle
-      to generate an edge between ``v_current`` and `v_current + shift mod n.`
+      to generate an edge between ``v_current`` and ``v_current + shift mod n``.
 
     Notes
     -----
 
-    The Lederberg-Coxeter-Fruchte (LCF) notation is a compressed notation used
+    The Lederberg-Coxeter-Frucht (LCF) notation is a compressed notation used
     in the generation of various cubic Hamiltonian graphs of high symmetry
     [LCF]_.
 
@@ -91,8 +91,8 @@ def LCF_graph(n, shift_list, repeats):
     :func:`~graph_tool.collection.pappus_graph`.
 
     For ``v1`` cycling through the n-cycle a total of ``k * repeats`` with shift
-    cycling through shiftlist repeats times connect ``v1`` with ``v1 + shift mod
-    n``.
+    cycling through ``shift_list`` repeats times connect ``v1`` with
+    ``v1 + shift mod n``.
 
     Examples
     --------
@@ -132,7 +132,7 @@ def petersen_graph():
 
     Notes
     -----
-    The Peterson graph is a cubic, undirected graph with 10 nodes and 15 edges
+    The Petersen graph is a cubic, undirected graph with 10 nodes and 15 edges
     [petersen]_.
 
     Julius Petersen constructed the graph as the smallest counterexample against
@@ -235,9 +235,9 @@ def bull_graph():
     Notes
     -----
     The Bull Graph has 5 nodes and 5 edges. It is a planar undirected
-    graph in the form of a triangle with two disjoint pendant edges [bull_graph]_
-    The name comes from the triangle and pendant edges representing
-    respectively the body and legs of a bull.
+    graph in the form of a triangle with two disjoint pendant edges
+    [bull_graph]_. The name comes from the triangle and pendant edges
+    representing respectively the body and legs of a bull.
 
     Returns
     -------
@@ -260,7 +260,7 @@ def chvatal_graph():
     -----
     The Chvátal Graph is an undirected graph with 12 nodes and 24 edges
     [chvatal_wiki]_.  It has 370 distinct (directed) Hamiltonian cycles, giving
-    a unique generalized LCF notation of order 4, two of order 6 , and 43 of
+    a unique generalized LCF notation of order 4, two of order 6, and 43 of
     order 1 [chvatal]_.
 
 
@@ -291,7 +291,7 @@ def cubical_graph():
 
     Notes
     -----
-    The skeleton of the cube (the nodes and edges) form a graph, with 8 nodes,
+    The skeleton of the cube (the nodes and edges) forms a graph, with 8 nodes,
     and 12 edges. It is a special case of the hypercube graph.  It is one of 5
     Platonic graphs, each a skeleton of its Platonic solid [cubical]_. Such
     graphs arise in parallel processing in computers.
@@ -345,7 +345,7 @@ def diamond_graph():
 
     Notes
     -----
-    The Diamond Graph is  planar undirected graph with 4 nodes and 5 edges.
+    The Diamond Graph is a planar undirected graph with 4 nodes and 5 edges.
     It is also sometimes known as the double triangle graph or kite graph [diamond]_.
 
     Returns
@@ -388,7 +388,7 @@ def frucht_graph():
 
     Notes
     -----
-    The Frucht Graph is the smallest cubical graph whose automorphism group
+    The Frucht Graph is the smallest cubic graph whose automorphism group
     consists only of the identity element [frucht_wiki]_.  It has 12 nodes and
     18 edges and no nontrivial symmetries. It is planar and Hamiltonian
     [frucht]_.
@@ -625,7 +625,7 @@ def octahedral_graph():
     Notes
     -----
     The octahedral graph is the 6-node 12-edge Platonic graph having the
-    connectivity of the octahedron [octahedral]_. If 6 couples go to a party,
+    connectivity of the octahedron [octahedral]_. If 3 couples go to a party,
     and each person shakes hands with every person except his or her partner,
     then this graph describes the set of handshakes that take place;
     for this reason it is also called the cocktail party graph [octahedral_wiki]_.
@@ -700,7 +700,7 @@ def tetrahedral_graph():
     Returns
     -------
     g : :class:`~graph_tool.Graph`
-        Tetrahedral Grpah
+        Tetrahedral Graph
 
     References
     ----------

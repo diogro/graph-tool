@@ -22,7 +22,7 @@
 ``graph_tool.util``
 -------------------
 
-This module contains miscelaneous utility functions.
+This module contains miscellaneous utility functions.
 
 Summary
 +++++++
@@ -86,7 +86,7 @@ def find_edge(g, prop, match):
 
 def find_edge_range(g, prop, range):
     """Find all edges `e` for which `range[0] <= prop[e] <= range[1]`. The
-    parameter prop can be either a :class:`~graph_tool.EdgePropertyMap`."""
+    parameter prop must be a :class:`~graph_tool.EdgePropertyMap`."""
     convert = _converter(prop.value_type())
     ret = libgraph_tool_util.\
           find_edge_range(g._Graph__graph, _prop("e", g, prop),

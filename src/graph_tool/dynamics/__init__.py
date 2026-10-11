@@ -110,7 +110,7 @@ __all__ = ["DiscreteStateBase", "EpidemicStateBase", "SIState", "SISState",
 
 class DiscreteStateBase(object):
     def __init__(self, g, make_state, params, s=None, stype="int32_t"):
-        r"""Base state for discrete-time dynamics. This class it not meant to be
+        r"""Base state for discrete-time dynamics. This class is not meant to be
         instantiated directly."""
 
         self.g = g
@@ -170,7 +170,7 @@ class DiscreteStateBase(object):
 
 class EpidemicStateBase(DiscreteStateBase):
     def __init__(self, g, constant_beta, make_state, params, v0=None, s=None):
-        r"""Base state for epidemic dynamics. This class it not meant to be
+        r"""Base state for epidemic dynamics. This class is not meant to be
         instantiated directly."""
 
         if s is not None:
@@ -228,7 +228,8 @@ class SIState(EpidemicStateBase):
            effect if ``exposed=True``.
         v0 : ``int`` or :class:`~graph_tool.Vertex` (optional, default: ``None``)
            Initial infectious vertex. If not provided, and if the global state is
-           also not provided via paramter ``s``, a random vertex will be chosen.
+           also not provided via parameter ``s``, a random vertex will be
+           chosen.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, all vertices will be
            initialized to the susceptible state.
@@ -336,7 +337,8 @@ class SISState(DiscreteStateBase):
            effect if ``exposed=True``.
         v0 : ``int`` or :class:`~graph_tool.Vertex` (optional, default: ``None``)
            Initial infectious vertex. If not provided, and if the global state is
-           also not provided via paramter ``s``, a random vertex will be chosen.
+           also not provided via parameter ``s``, a random vertex will be
+           chosen.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, all vertices will be
            initialized to the susceptible state.
@@ -446,7 +448,8 @@ class SIRState(DiscreteStateBase):
            effect if ``exposed=True``.
         v0 : ``int`` or :class:`~graph_tool.Vertex` (optional, default: ``None``)
            Initial infectious vertex. If not provided, and if the global state is
-           also not provided via paramter ``s``, a random vertex will be chosen.
+           also not provided via parameter ``s``, a random vertex will be
+           chosen.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, all vertices will be
            initialized to the susceptible state.
@@ -469,9 +472,10 @@ class SIRState(DiscreteStateBase):
         given as follows:
 
         1. If :math:`s_i(t) = 0`, we have :math:`s_i(t+1) = 1` with probability
-            .. math::
 
-               (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
+           .. math::
+
+              (1-r_i)\left[1-\prod_j(1-\beta_{ij})^{A_{ij}\delta_{s_j(t),1}}\right] + r_i,
 
            otherwise :math:`s_i(t+1) = 0`.
 
@@ -568,7 +572,8 @@ class SIRSState(DiscreteStateBase):
            effect if ``exposed=True``.
         v0 : ``int`` or :class:`~graph_tool.Vertex` (optional, default: ``None``)
            Initial infectious vertex. If not provided, and if the global state is
-           also not provided via paramter ``s``, a random vertex will be chosen.
+           also not provided via parameter ``s``, a random vertex will be
+           chosen.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, all vertices will be
            initialized to the susceptible state.
@@ -691,7 +696,7 @@ class VoterState(DiscreteStateBase):
         -----
 
         This implements the voter model dynamics [clifford-model-1973]_
-        [holley-ergodic-1075]_ on a network.
+        [holley-ergodic-1975]_ on a network.
 
         If a node :math:`i` is updated at time :math:`t`, the transition
         probabilities from state :math:`s_i(t)` to state :math:`s_i(t+1)` are
@@ -701,7 +706,7 @@ class VoterState(DiscreteStateBase):
         :math:`x`, is chosen uniformly at random, and assigned to :math:`i`,
         i.e. :math:`s_i(t+1) = x`.
 
-        2. Otherwise, a random (in-)neighbour :math:`j` is chosen. and its
+        2. Otherwise, a random (in-)neighbour :math:`j` is chosen, and its
         opinion is copied, i.e. :math:`s_i(t+1) = s_j(t)`.
 
 
@@ -747,7 +752,7 @@ class VoterState(DiscreteStateBase):
         ----------
         .. [clifford-model-1973] Clifford, P., Sudbury, A., "A model for spatial
            conflict", Biometrika 60, 581–588 (1973). :doi:`10.1093/biomet/60.3.581`.
-        .. [holley-ergodic-1075] Holley, R. A., Liggett, T. M., "Ergodic
+        .. [holley-ergodic-1975] Holley, R. A., Liggett, T. M., "Ergodic
            Theorems for Weakly Interacting Infinite Systems and the Voter Model",
            Ann. Probab. 3, 643–663 (1975). :doi:`10.1214/aop/1176996306`.
 
@@ -1190,14 +1195,14 @@ class PottsGlauberState(DiscreteStateBase):
         w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1.``)
            Edge interaction strength. If a scalar is provided, it's used for all edges.
         h : :class:`~graph_tool.VertexPropertyMap` or iterable or ``float`` (optional, default: ``0.``)
-           Vertex local field. It should be property map of type
+           Vertex local field. It should be a property map of type
            ``vector<double>``. If an iterable is provided, it will be used as
            the field for all vertices. If a scalar is provided, it will be used
-           for all spins values and vertices.
+           for all spin values and vertices.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
         shift : ``int`` (optional, default: ``0``)
-           The node states will be shifted be assumed to lie in the range
+           The node states will be assumed to lie in the range
            ``[-shift, q-1-shift]``, which will then be translated to the range
            ``[0, q-1]`` before the transition probabilities are computed.
 
@@ -1285,11 +1290,11 @@ class PottsMetropolisState(DiscreteStateBase):
         h : :class:`~graph_tool.VertexPropertyMap` or iterable or ``float`` (optional, default: ``0.``)
            Vertex local field. If an iterable is provided, it will be used as
            the field for all vertices. If a scalar is provided, it will be used
-           for all spins values and vertices.
+           for all spin values and vertices.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
         shift : ``int`` (optional, default: ``0``)
-           The node states will be shifted be assumed to lie in the range
+           The node states will be assumed to lie in the range
            ``[-shift, q-1-shift]``, which will then be translated to the range
            ``[0, q-1]`` before the transition probabilities are computed.
 
@@ -1328,7 +1333,7 @@ class PottsMetropolisState(DiscreteStateBase):
            >>> gt.remove_parallel_edges(g)
            >>> g = gt.extract_largest_component(g, prune=True)
            >>> f = np.eye(4) * 0.1
-           >>> state = gt.PottsGlauberState(g, f)
+           >>> state = gt.PottsMetropolisState(g, f)
            >>> ret = state.iterate_async(niter=1000 * g.num_vertices())
            >>> gt.graph_draw(g, g.vp.pos, vertex_fill_color=state.s,
            ...               output="metropolis-potts.svg")
@@ -1401,11 +1406,11 @@ class KirmanState(DiscreteStateBase):
         If a node :math:`i` is updated at time :math:`t`, the transition
         to state :math:`s_i(t+1) \in \{0,1\}` is done as follows:
 
-        1. If :math:`s_i(t) = 0`, we have :math:`s_i(t) = 1` with probability
+        1. If :math:`s_i(t) = 0`, we have :math:`s_i(t+1) = 1` with probability
            :math:`c_1`.
 
-        2. Otherwise if :math:`s_i(t) = 1`, we have :math:`s_i(t) = 0` with probability
-           :math:`c_2`.
+        2. Otherwise if :math:`s_i(t) = 1`, we have :math:`s_i(t+1) = 0`
+           with probability :math:`c_2`.
 
         3. Otherwise we have :math:`s_i(t+1) = 1 - s_i(t)` with probability
 
@@ -1633,7 +1638,7 @@ class NormalState(DiscreteStateBase):
         Parameters
         ----------
         g : :class:`~graph_tool.Graph`
-           Graph represening the conditional dependencies.
+           Graph representing the conditional dependencies.
         w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``0``)
            Inverse covariance (i.e. coupling strength) between nodes.
         sigma : :class:`~graph_tool.VertexPropertyMap` or ``float`` (optional, default: ``1``)
@@ -1662,7 +1667,7 @@ class NormalState(DiscreteStateBase):
         .. math::
 
            P(\boldsymbol s | \boldsymbol W) =
-           \frac{\mathrm{e}^{-\frac{1}{2} {\boldsymbol x}^{\top}\boldsymbol W \boldsymbol x}}
+           \frac{\mathrm{e}^{-\frac{1}{2} {\boldsymbol s}^{\top}\boldsymbol W \boldsymbol s}}
                 {\sqrt{(2\pi)^N |\boldsymbol W^{-1}|}},
 
         where :math:`W_{ij}=w_{ij}` for :math:`i\neq j` and :math:`W_{ii}=1/\sigma_i^2`.
@@ -1715,16 +1720,16 @@ class NormalState(DiscreteStateBase):
 
 class LinearNormalState(DiscreteStateBase):
     def __init__(self, g, w=0, sigma=1, s=None):
-        r"""Linear distrecte-time dynamical system with noise.
+        r"""Linear discrete-time dynamical system with noise.
 
         Parameters
         ----------
         g : :class:`~graph_tool.Graph`
            Graph to be used for the dynamics
-        w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``1``)
+        w : :class:`~graph_tool.EdgePropertyMap` or ``float`` (optional, default: ``0``)
            Coupling strength of each edge. If a scalar is given, it will be
            used for all edges.
-        sigma : ``float`` (optional, default: ``.0``)
+        sigma : ``float`` (optional, default: ``1``)
            Stochastic noise magnitude.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
@@ -1732,9 +1737,9 @@ class LinearNormalState(DiscreteStateBase):
         Notes
         -----
 
-        This implements a distrecte time linear dynamical system with noise,
-        i.e. each node has an variable :math:`s_i`, which evolves in time
-        according to a Markov chain with transitio probabilities:
+        This implements a discrete time linear dynamical system with noise,
+        i.e. each node has a variable :math:`s_i`, which evolves in time
+        according to a Markov chain with transition probabilities:
 
         .. math::
 
@@ -1802,7 +1807,7 @@ class LinearNormalState(DiscreteStateBase):
 
 class ContinuousStateBase(object):
     def __init__(self, g, make_state, params, t0=0, s=None, stype="double"):
-        r"""Base state for continuous-time dynamics. This class it not meant to
+        r"""Base state for continuous-time dynamics. This class is not meant to
         be instantiated directly.
         """
         self.g = g
@@ -1861,7 +1866,7 @@ class ContinuousStateBase(object):
         return ret
 
     def solve_euler(self, t, dt=0.001):
-        r"""Integrate the system up o time ``t`` using a simple Euler's method
+        r"""Integrate the system up to time ``t`` using a simple Euler's method
         with step size ``dt``. This solver is suitable for stochastic ODEs."""
         if t == self.t:
             return
@@ -1884,6 +1889,8 @@ class LinearState(ContinuousStateBase):
            used for all edges.
         sigma : ``float`` (optional, default: ``.0``)
            Stochastic noise magnitude.
+        t0 : ``float`` (optional, default: ``0``)
+           Initial time.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
 
@@ -1891,7 +1898,7 @@ class LinearState(ContinuousStateBase):
         -----
 
         This implements a linear dynamical system with noise, i.e. each node has
-        an variable :math:`s_i`, which evolves in time obeying the
+        a variable :math:`s_i`, which evolves in time obeying the
         differential equation:
 
         .. math::
@@ -1974,13 +1981,18 @@ class LVState(ContinuousStateBase):
            used for all nodes.
         sigma : ``float`` (optional, default: ``.0``)
            Stochastic noise magnitude.
+        mig : :class:`~graph_tool.VertexPropertyMap` or ``float`` (optional, default: ``0``)
+           Constant migration rate, added to the time derivative of each
+           node. If a scalar is given, it will be used for all nodes.
+        t0 : ``float`` (optional, default: ``0``)
+           Initial time.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
 
         Notes
         -----
         This implements a generalized Lotka-Volterra (gLV) dynamical system with
-        demographic noise, i.e. each node has an variable :math:`s_i`, which
+        demographic noise, i.e. each node has a variable :math:`s_i`, which
         evolves in time obeying the differential equation:
 
         .. math::
@@ -2074,6 +2086,8 @@ class KuramotoState(ContinuousStateBase):
         sigma : :class:`~graph_tool.VertexPropertyMap` or ``float`` (optional, default: ``0``)
            Stochastic noise magnitude for each node. If a scalar is given, it will
            be used for all nodes.
+        t0 : ``float`` (optional, default: ``0``)
+           Initial time.
         s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
            Initial global state. If not provided, a random state will be chosen.
 

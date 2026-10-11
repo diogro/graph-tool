@@ -52,11 +52,11 @@ class BPBaseState(ABC):
 
     @_parallel
     def iterate(self, niter=1, parallel=True, update_marginals=True):
-        """Updates meassages synchronously (or asyncrhonously if
+        """Updates messages synchronously (or asynchronously if
         ``parallel=False``), `niter` number of times. This function returns the
-        interation delta of the last iteration.
+        iteration delta of the last iteration.
 
-        If ``update_marignals=True``, this function calls
+        If ``update_marginals=True``, this function calls
         :meth:`~BPBaseState.update_marginals()` at the end.
 
         @parallel@
@@ -74,11 +74,14 @@ class BPBaseState(ABC):
         """Calls :meth:`~BPBaseState.iterate()` until delta falls below
         ``epsilon`` or the number of iterations exceeds ``max_niter``.
 
-        If ``update_marignals=True``, this function calls
-        :meth:`~BPBaseState.update_marginals()` at the end.
+        The function :meth:`~BPBaseState.update_marginals()` is always called
+        at the end, regardless of the value of ``update_marginals``.
 
         The remaining keyword arguments are passed to
         :meth:`~BPBaseState.iterate()`.
+
+        This function returns a tuple ``(niter, delta)``, with the number of
+        iterations performed and the delta of the last iteration.
         """
         delta = epsilon + 1
         niter = 0
@@ -98,7 +101,7 @@ class BPBaseState(ABC):
         return self._state.log_Z(self.g._Graph__graph)
 
     def sample_energy(self, s):
-        """Obtains the energy (Hamiltonean) of state ``s`` (a
+        """Obtains the energy (Hamiltonian) of state ``s`` (a
         :class:`~graph_tool.VertexPropertyMap`).
 
         If ``s`` is vector valued, it's assumed to correspond to multiple
@@ -116,7 +119,7 @@ class BPBaseState(ABC):
     def log_prob(self, s):
         """Obtains the log-probability of state ``s`` (a
         :class:`~graph_tool.VertexPropertyMap`), computed as the negative energy
-        of ``s``` minus the logarithm of the partition function.
+        of ``s`` minus the logarithm of the partition function.
 
         If ``s`` is vector valued, it's assumed to correspond to multiple
         states, and the total log-probability sum is returned.
@@ -147,10 +150,10 @@ class BPBaseState(ABC):
                                               _prop("v", self.g, s))
 
     def marginal_sample(self, update_marginals=True, val_type="int"):
-        """Samples a state from the marignal distribution. This functio returns
+        """Samples a state from the marginal distribution. This function returns
         a :class:`~graph_tool.VertexPropertyMap` of type given by ``val_type``.
 
-        If ``update_marignals=True``, this function calls
+        If ``update_marginals=True``, this function calls
         :meth:`~BPBaseState.update_marginals()` before sampling.
         """
         if update_marginals:
@@ -163,25 +166,25 @@ class BPBaseState(ABC):
 class GenPottsBPState(BPBaseState):
     def __init__(self, g, f, x=1, theta=0, m=None, em=None, vm=None,
                  marginal_init=False, frozen=None, converge=True):
-        r"""Belief-propagtion equations for a genralized Potts model.
+        r"""Belief-propagation equations for a generalized Potts model.
 
         Parameters
         ----------
         g : :class:`~graph_tool.Graph`
            Graph to be used for the dynamics.
         f : :class:`~numpy.ndarray` or list of list
-           :math:`q\times q` 2D symmetric with iteraction strengths between the
-           :math:`q` spin values.
+           :math:`q\times q` 2D symmetric matrix with interaction strengths
+           between the :math:`q` spin values.
         x : ``float`` or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``1``)
             Edge coupling weights. If a :class:`~graph_tool.EdgePropertyMap` is
             given, it needs to be of type ``double``. If a scalar is given, this
-            will be determine the value for every edge.
+            will determine the value for every edge.
         theta : ``float`` or iterable or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``0.``)
             Vertex fields. If :class:`~graph_tool.VertexPropertyMap`, this needs
             to be of type ``vector<double>``, containing :math:`q` field values
-            for every node. If it's an iterable, it should contains :math:`q`
+            for every node. If it's an iterable, it should contain :math:`q`
             field values, which are the same for every node. If a scalar is
-            given, this will be determine the value for every field and vertex.
+            given, this will determine the value for every field and vertex.
         m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap`
             of type ``vector<double>``, containing the edge messages.
@@ -195,7 +198,7 @@ class GenPottsBPState(BPBaseState):
            If ``True``, the messages will be initialized from the node marginals.
         frozen : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
-            of type ``bool``, where a value `True` means that a vertex is not
+            of type ``bool``, where a value ``True`` means that a vertex is not
             a variable, but a fixed field.
         converge : ``boolean`` (optional, default: ``True``)
            If ``True``, the function :meth:`GenPottsBPState.converge()` will be
@@ -220,7 +223,7 @@ class GenPottsBPState(BPBaseState):
 
         .. math::
 
-             \log Z(\boldsymbol A, \boldsymbol x, \boldsymbol\theta) = \log Z_i
+             \log Z(\boldsymbol A, \boldsymbol x, \boldsymbol\theta) = \sum_i\log Z_i
              - \sum_{i<j}A_{ij}\log Z_{ij}
 
         with :math:`Z_{ij}=Z_j/Z_{j\to i}=Z_i/Z_{i\to j}`, obtained from the
@@ -453,10 +456,10 @@ class IsingBPState(GenPottsBPState):
         x : ``float`` or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``1``)
             Edge coupling weights. If a :class:`~graph_tool.EdgePropertyMap` is
             given, it needs to be of type ``double``. If a scalar is given, this
-            will be determine the value for every edge.
+            will determine the value for every edge.
         theta : ``float`` or iterable or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``0.``)
             Vertex fields. If :class:`~graph_tool.VertexPropertyMap`, this needs
-            to be of type ``double``. If a scalar is given, this will be
+            to be of type ``double``. If a scalar is given, this will
             determine the value for every vertex.
         m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap`
@@ -471,8 +474,11 @@ class IsingBPState(GenPottsBPState):
            If ``True``, the messages will be initialized from the node marginals.
         frozen : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
-            of type ``bool``, where a value `True` means that a vertex is not
+            of type ``bool``, where a value ``True`` means that a vertex is not
             a variable, but a fixed field.
+        has_zero : ``boolean`` (optional, default: ``False``)
+           If ``True``, a three-state model with :math:`\sigma_i\in\{-1,0,1\}`
+           is used.
         converge : ``boolean`` (optional, default: ``True``)
            If ``True``, the function :meth:`GenPottsBPState.converge()` will be
            called just after construction.
@@ -491,8 +497,8 @@ class IsingBPState(GenPottsBPState):
 
         where :math:`\sigma_i\in\{-1,1\}` and :math:`Z(\boldsymbol A,
         \boldsymbol x, \boldsymbol\theta)` is the partition function. This is
-        equivalent to a gereralized Potts model with :math:`s_i=(\sigma_i +
-        1)/2` and :math:`f_{rs} = -(2r-1)(2s-1)`. See
+        equivalent to a generalized Potts model with :math:`s_i=(\sigma_i +
+        1)/2` and :math:`f_{rs} = (2r-1)(2s-1)`. See
         :class:`~graph_tool.dynamics.GenPottsBPState` for more details.
 
         If ``has_zero == True``, then it is assumed :math:`\sigma_i\in\{-1,0,1\}`.
@@ -624,15 +630,15 @@ class NormalBPState(BPBaseState):
         x : ``float`` or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``1.``)
             Inverse covariance couplings. If a :class:`~graph_tool.EdgePropertyMap` is
             given, it needs to be of type ``double``. If a scalar is given, this
-            will be determine the value for every edge.
+            will determine the value for every edge.
         mu : ``float`` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``0.``)
             Node means. If a :class:`~graph_tool.VertexPropertyMap` is given, it
-            needs to be of type ``double``. If a scalar is given, this will be
+            needs to be of type ``double``. If a scalar is given, this will
             determine the value for every vertex.
         theta : ``float`` or iterable or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``1.``)
             Diagonal of the inverse covariance matrix. If
             :class:`~graph_tool.VertexPropertyMap`, this needs to be of type
-            ``double``. If a scalar is given, this will be determine the value
+            ``double``. If a scalar is given, this will determine the value
             for every vertex.
         m_m : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.EdgePropertyMap` of
@@ -643,29 +649,29 @@ class NormalBPState(BPBaseState):
             variances.
         vm_m : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
-            of type ``vector<double>``, containing the node marginal means.
+            of type ``double``, containing the node marginal means.
         vm_s : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
-            of type ``vector<double>``, containing the node marginal variances.
+            of type ``double``, containing the node marginal variances.
         marginal_init : ``boolean`` (optional, default: ``False``)
            If ``True``, the messages will be initialized from the node marginals.
         frozen : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, it should be an :class:`~graph_tool.VertexPropertyMap`
-            of type ``bool``, where a value `True` means that a vertex is not
+            of type ``bool``, where a value ``True`` means that a vertex is not
             a variable, but a fixed field.
         converge : ``boolean`` (optional, default: ``True``)
-           If ``True``, the function :meth:`GenPottsBPState.converge()` will be
+           If ``True``, the function :meth:`~BPBaseState.converge()` will be
            called just after construction.
 
         Notes
         -----
 
         This implements BP equations [mezard_information_2009]_ for the
-        mutivariate Normal distribution given by
+        multivariate Normal distribution given by
 
         .. math::
 
-           P(\boldsymbol s | \boldsymbol A, \boldsymbol x, \boldsymbol \mu \boldsymbol\theta)
+           P(\boldsymbol s | \boldsymbol A, \boldsymbol x, \boldsymbol \mu, \boldsymbol\theta)
            = \frac{\exp\left(-\frac{1}{2}(\boldsymbol s-\boldsymbol\mu)^{\intercal} \boldsymbol X (\boldsymbol s - \boldsymbol\mu)\right)}
            {Z(\boldsymbol X)}
 
@@ -677,7 +683,7 @@ class NormalBPState(BPBaseState):
 
         .. math::
 
-             \log Z(\boldsymbol X) = \log Z_i
+             \log Z(\boldsymbol X) = \sum_i\log Z_i
              - \sum_{i<j}A_{ij}\log Z_{ij}
 
         with :math:`Z_{ij}=Z_j/Z_{j\to i}=Z_i/Z_{i\to j}`, obtained from the
@@ -762,7 +768,7 @@ class NormalBPState(BPBaseState):
         if not isinstance(mu, VertexPropertyMap):
             mu = g.new_vp("double", val=mu)
         elif mu.value_type() != "double":
-            mu = theta.copy("double")
+            mu = mu.copy("double")
         self.mu = self.g.own_property(mu)
         if not isinstance(theta, VertexPropertyMap):
             theta = g.new_vp("double", val=theta)

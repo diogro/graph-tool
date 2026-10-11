@@ -223,7 +223,7 @@ def em_infer(state, max_iter=1000, max_e_iter=1, epsilon=1e-3,
     learn_first : ``bool`` (optional, default: ``False``)
         If ``True``, the maximization (a.k.a parameter learning) is converged
         before the main loop is run.
-    verbose : ``bool`` (optional, default: ``True``)
+    verbose : ``bool`` (optional, default: ``False``)
         If ``True``, convergence information is displayed.
 
     Returns

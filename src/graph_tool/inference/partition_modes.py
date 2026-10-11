@@ -117,7 +117,8 @@ class PartitionModeState(object):
 
     def virtual_add_partition(self, b, relabel=True):
         r"""Computes the entropy difference (negative log probability) if partition ``b``
-        were inserted the ensemble, after relabelling it if ``relabel=True``.
+        were inserted into the ensemble, after relabelling it if
+        ``relabel=True``.
         """
         if self.nested:
             b = [Vector_int64_t(init=x) for x in b]
@@ -127,13 +128,13 @@ class PartitionModeState(object):
 
     def virtual_remove_partition(self, b, relabel=True):
         r"""Computes the entropy difference (negative log probability) if partition ``b``
-        were removed from the ensemble, after relabelling it if ``relabel=True``.
+        were removed from the ensemble. The parameter ``relabel`` is ignored.
         """
         if self.nested:
             b = [Vector_int64_t(init=x) for x in b]
         else:
             b = [Vector_int64_t(init=b)]
-        return self._base.virtual_add_partition(b, relabel)
+        return self._base.virtual_remove_partition(b)
 
     def replace_partitions(self):
         r"""Removes and re-adds every partition, after relabelling, and returns
@@ -186,7 +187,7 @@ class PartitionModeState(object):
 
     def posterior_entropy(self, MLE=True):
         r"""Return the entropy of the random label model, using maximum likelihood
-        estimates for the marginal node probabilities if ```MLE=True```,
+        estimates for the marginal node probabilities if ``MLE=True``,
         otherwise using posterior mean estimates.
         """
         return self._base.posterior_entropy(MLE)
@@ -194,14 +195,14 @@ class PartitionModeState(object):
     def posterior_cdev(self, MLE=True):
         r"""Return the uncertainty of the mode in the range :math:`[0,1]`, using maximum
         likelihood estimates for the marginal node probabilities if
-        ```MLE=True```, otherwise using posterior mean estimates.
+        ``MLE=True``, otherwise using posterior mean estimates.
         """
         return self._base.posterior_cdev(MLE)
 
     def posterior_lprob(self, b, MLE=True):
         r"""Return the log-probability of partition ``b``, using maximum
         likelihood estimates for the marginal node probabilities if
-        ```MLE=True```, otherwise using posterior mean estimates.
+        ``MLE=True``, otherwise using posterior mean estimates.
         """
         if self.nested:
             b = [Vector_int64_t(init=x) for x in b]
@@ -249,14 +250,14 @@ class PartitionModeState(object):
         return self._base.get_M()
 
     def sample_partition(self, MLE=True):
-        r"""Sampled a partition from the inferred model, using maximum likelihood
-        estimates for the marginal node probabilities if ```MLE=True```,
+        r"""Samples a partition from the inferred model, using maximum likelihood
+        estimates for the marginal node probabilities if ``MLE=True``,
         otherwise using posterior mean estimates."""
         return self._base.sample_partition(MLE, _get_rng())
 
     def sample_nested_partition(self, MLE=True, fix_empty=True):
-        r"""Sampled a nested partition from the inferred model, using maximum likelihood
-        estimates for the marginal node probabilities if ```MLE=True```,
+        r"""Samples a nested partition from the inferred model, using maximum likelihood
+        estimates for the marginal node probabilities if ``MLE=True``,
         otherwise using posterior mean estimates."""
         return self._base.sample_nested_partition(MLE, fix_empty, _get_rng())
 
@@ -340,8 +341,8 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     def get_modes(self, sort=True):
         r"""Return the list of nonempty modes, as instances of
-        :class:`~graph_tool.inference.PartitionModeState`. If `sorted == True`,
-        the modes are retured in decreasing order with respect to their size.
+        :class:`~graph_tool.inference.PartitionModeState`. If ``sort == True``,
+        the modes are returned in decreasing order with respect to their size.
         """
         modes = [self.get_mode(r) for r in np.unique(self.b)]
         if sort:
@@ -413,7 +414,7 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
 
     def posterior_entropy(self, MLE=True):
         r"""Return the entropy of the random label model, using maximum likelihood
-        estimates for the marginal node probabilities if ```MLE=True```,
+        estimates for the marginal node probabilities if ``MLE=True``,
         otherwise using posterior mean estimates.
         """
         return self._state.posterior_entropy(MLE)
@@ -421,7 +422,7 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
     def posterior_lprob(self, r, b, MLE=True):
         r"""Return the log-probability of partition ``b`` belonging to mode ``r``, using
         maximum likelihood estimates for the marginal node probabilities if
-        ```MLE=True```, otherwise using posterior mean estimates."""
+        ``MLE=True``, otherwise using posterior mean estimates."""
         if self.nested:
             b = [Vector_int64_t(init=x) for x in b]
         else:
@@ -434,15 +435,15 @@ class ModeClusterState(MCMCState, MultiflipMCMCState, MultilevelMCMCState,
         return self._state.replace_partitions(_get_rng())
 
     def sample_partition(self, MLE=True):
-        r"""Sampled a cluster label and partition from the inferred model, using maximum
+        r"""Samples a cluster label and partition from the inferred model, using maximum
         likelihood estimates for the marginal node probabilities if
-        ```MLE=True```, otherwise using posterior mean estimates."""
+        ``MLE=True``, otherwise using posterior mean estimates."""
         return self._state.sample_partition(MLE, _get_rng())
 
     def sample_nested_partition(self, MLE=True, fix_empty=True):
-        r"""Sampled a cluster label and nested partition from the inferred model, using
+        r"""Samples a cluster label and nested partition from the inferred model, using
         maximum likelihood estimates for the marginal node probabilities if
-        ```MLE=True```, otherwise using posterior mean estimates.
+        ``MLE=True``, otherwise using posterior mean estimates.
         """
         return self._state.sample_nested_partition(MLE, fix_empty, _get_rng())
 
@@ -494,7 +495,7 @@ def partition_overlap(x, y, norm=True):
         First partition.
     y : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Second partition.
-    norm : (optional, default: ``True``)
+    norm : ``bool`` (optional, default: ``True``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
 
     Returns
@@ -571,7 +572,7 @@ def nested_partition_overlap(x, y, norm=True):
         First partition.
     y : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         Second partition.
-    norm : (optional, default: ``True``)
+    norm : ``bool`` (optional, default: ``True``)
         If ``True``, the result will be normalized in the range :math:`[0,1]`.
 
     Returns
@@ -604,7 +605,7 @@ def nested_partition_overlap(x, y, norm=True):
 
     which lies in the unit interval :math:`[0,1]`, where
     :math:`N_l=\max(N_{{\boldsymbol x}^l}, N_{{\boldsymbol y}^l})` is the number of
-    nodes in level `l`.
+    nodes in level :math:`l`.
 
     This algorithm runs in time :math:`O[\sum_l N_l + (B_x^l+B_y^l)E_m^l]` where
     :math:`B_x^l` and :math:`B_y^l` are the number of labels in partitions
@@ -744,7 +745,7 @@ def shuffle_nested_partition_labels(x):
 
     Parameters
     ----------
-    x : iterable iterable of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
+    x : iterable of iterables of ``int`` values or iterable of :class:`~graph_tool.PropertyMap`
         Partition.
 
     Returns
@@ -756,7 +757,7 @@ def shuffle_nested_partition_labels(x):
     --------
     >>> x = [[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 0, 1], [1, 0]]
     >>> gt.shuffle_nested_partition_labels(x)
-    [array([0, 0, 0, 2, 2, 2, 1, 1, 1]), array([1, 0, 1]), array([1, 0])]
+    [array([0, 0, 0, 2, 2, 2, 1, 1, 1]), array([1, 0, 1]), array([0, 1])]
     """
 
     x = [np.asarray(xl, dtype="int64") for xl in x]
@@ -817,14 +818,14 @@ def order_nested_partition_labels(x):
 
 @_handle_props
 def align_partition_labels(x, y):
-    r"""Returns a copy of partition ``x``, with the group labels aligned as to
-    maximize the overlap with ``y``.
+    r"""Returns a copy of partition ``x``, with the group labels aligned so as
+    to maximize the overlap with ``y``.
 
     Parameters
     ----------
     x : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Partition.
-    y : iterables of ``int`` values or :class:`~graph_tool.PropertyMap`
+    y : iterable of ``int`` values or :class:`~graph_tool.PropertyMap`
         Reference partition.
 
     Returns
@@ -863,8 +864,8 @@ def align_partition_labels(x, y):
 
 @_handle_nprops
 def align_nested_partition_labels(x, y):
-    r"""Returns a copy of nested partition ``x``, with the group labels aligned as to
-    maximize the overlap with ``y``.
+    r"""Returns a copy of nested partition ``x``, with the group labels aligned
+    so as to maximize the overlap with ``y``.
 
     Parameters
     ----------
@@ -1001,7 +1002,7 @@ def nested_partition_overlap_center(bs, init=None, return_bs=False):
     init : iterable of iterables of ``int`` values (optional, default: ``None``)
         If given, it will determine the initial nested partition.
     return_bs : ``bool`` (optional, default: ``False``)
-        If ``True`` the an update list of nested partitions will be return with
+        If ``True``, an updated list of nested partitions will be returned with
         relabelled values.
 
     Returns

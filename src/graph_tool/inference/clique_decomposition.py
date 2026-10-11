@@ -46,7 +46,7 @@ class CliqueState(object):
         occupied.
     init_max_cliques : ``bool`` (optional, default: ``True``)
         If ``True``, the state will be initialized with the maximal cliques.
-    init_list : ``dict`` (optional, default: ``{}``)
+    init_list : ``dict`` (optional, default: ``None``)
         If given, this will give the initialization state. Keys are the clique
         nodes and values are the counts.
 

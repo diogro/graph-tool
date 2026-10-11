@@ -51,6 +51,14 @@ class NormCutState(CLabelState, MCMCState, MultiflipMCMCState,
     b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Initial partition. If not supplied, a partition into a single group will
         be used.
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Edge weights.
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Constraint labels on the vertices. If supplied, vertices with different
+        label values will not be clustered in the same group.
+    entropy_args : ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~NormCutState.entropy()`
+        method and related operations.
 
     """
 
@@ -79,12 +87,12 @@ class NormCutState(CLabelState, MCMCState, MultiflipMCMCState,
     def get_Be(self):
         r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with
         :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
-        the number of nodes in group r.
+        the number of nodes in group :math:`r`.
         """
         w = np.array(np.bincount(self.b.fa), dtype="double")
         w = w[w>0]
         w /= w.sum()
-        return np.exp(-(w*log(w)).sum())
+        return np.exp(-(w*np.log(w)).sum())
 
     @copy_state_wrap
     def _entropy(self, **kwargs):

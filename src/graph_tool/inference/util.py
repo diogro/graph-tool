@@ -103,8 +103,8 @@ def partition_entropy(B, N, nr=None):
     return S
 
 def pmap(prop, value_map):
-    """Maps all the values of `prop` to the values given by `value_map` in-place
-    according to: ``prop[i] = value_map[prop[i]]``."""
+    """Maps all the values of ``prop`` to the values given by ``value_map``
+    in-place according to: ``prop[i] = value_map[prop[i]]``."""
     if isinstance(prop, PropertyMap):
         a = prop.fa
     else:
@@ -122,8 +122,8 @@ def pmap(prop, value_map):
         prop.fa = a
 
 def reverse_map(prop, value_map):
-    """Modify `value_map` such that the positions indexed by the values in `prop`
-    correspond to their index in `prop`."""
+    """Modify ``value_map`` such that the positions indexed by the values in
+    ``prop`` correspond to their index in ``prop``."""
     if isinstance(prop, PropertyMap):
         prop = prop.fa
     if isinstance(value_map, PropertyMap):

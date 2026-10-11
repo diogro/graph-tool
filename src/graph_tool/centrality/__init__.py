@@ -64,28 +64,30 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    damping : float, optional (default: 0.85)
+    damping : float (optional, default: ``0.85``)
         Damping factor.
-    pers : :class:`~graph_tool.VertexPropertyMap`, optional (default: None)
+    pers : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Personalization vector. If omitted, a constant value of :math:`1/N`
         will be used.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights. If omitted, a constant value of 1 will be used.
-    prop : :class:`~graph_tool.VertexPropertyMap`, optional (default: None)
+    prop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map to store the PageRank values. If supplied, it will
         be used uninitialized.
-    epsilon : float, optional (default: 1e-6)
+    epsilon : float (optional, default: ``1e-6``)
         Convergence condition. The iteration will stop if the total delta of all
-        vertices are below this value.
-    max_iter : int, optional (default: None)
+        vertices is below this value.
+    max_iter : int (optional, default: ``None``)
         If supplied, this will limit the total number of iterations.
-    ret_iter : bool, optional (default: False)
+    ret_iter : bool (optional, default: ``False``)
         If true, the total number of iterations is also returned.
 
     Returns
     -------
     pagerank : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the PageRank values.
+    iterations : int
+        Total number of iterations. Only returned if ``ret_iter == True``.
 
     See Also
     --------
@@ -157,7 +159,7 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
        :align: center
        :width: 80%
 
-       PageRank values of the a political blogs network of [adamic-polblogs]_.
+       PageRank values of a political blogs network of [adamic-polblogs]_.
 
     Now with a personalization vector, and edge weights:
 
@@ -184,7 +186,7 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
        :align: center
        :width: 80%
 
-       Personalized PageRank values of the a political blogs network of
+       Personalized PageRank values of a political blogs network of
        [adamic-polblogs]_, where vertices with very low degree are given
        artificially high scores.
 
@@ -225,24 +227,26 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    pivots : list or :class:`numpy.ndarray`, optional (default: None)
+    pivots : list or :class:`numpy.ndarray` (optional, default: ``None``)
         If provided, the betweenness will be estimated using the vertices in
         this list as pivots. If the list contains all nodes (the default) the
         algorithm will be exact, and if the vertices are randomly chosen the
         result will be an unbiased estimator.
-    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: None)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map to store the vertex betweenness values.
-    eprop : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
+    eprop : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map to store the edge betweenness values.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map corresponding to the weight value of each edge.
-    norm : bool, optional (default: True)
+    norm : bool (optional, default: ``True``)
         Whether or not the betweenness values should be normalized.
 
     Returns
     -------
-    vertex_betweenness : A vertex property map with the vertex betweenness values.
-    edge_betweenness : An edge property map with the edge betweenness values.
+    vertex_betweenness : :class:`~graph_tool.VertexPropertyMap`
+        A vertex property map with the vertex betweenness values.
+    edge_betweenness : :class:`~graph_tool.EdgePropertyMap`
+        An edge property map with the edge betweenness values.
 
     See Also
     --------
@@ -270,7 +274,7 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
 
     The algorithm used here is defined in [brandes-faster-2001]_, and has a
     complexity of :math:`O(VE)` for unweighted graphs and :math:`O(VE +
-    V(V+E)\log V)` for weighted graphs. The space complexity is :math:`O(VE)`.
+    V(V+E)\log V)` for weighted graphs. The space complexity is :math:`O(V+E)`.
 
     If the ``pivots`` parameter is given, the complexity will be instead
     :math:`O(PE)` for unweighted graphs and :math:`O(PE + P(V+E)\log V)` for
@@ -305,7 +309,7 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
        :align: center
        :width: 80%
 
-       Betweenness values of the a political blogs network of [adamic-polblogs]_.
+       Betweenness values of a political blogs network of [adamic-polblogs]_.
 
     References
     ----------
@@ -352,22 +356,24 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map corresponding to the weight value of each edge.
-    source : :class:`~graph_tool.Vertex`, optional (default: ``None``)
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         If specified, the centrality is computed for this vertex alone.
-    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map to store the vertex centrality values.
-    norm : bool, optional (default: ``True``)
+    norm : bool (optional, default: ``True``)
         Whether or not the centrality values should be normalized.
-    harmonic : bool, optional (default: ``False``)
+    harmonic : bool (optional, default: ``False``)
         If true, the sum of the inverse of the distances will be computed,
         instead of the inverse of the sum.
 
     Returns
     -------
-    vertex_closeness : :class:`~graph_tool.VertexPropertyMap`
-        A vertex property map with the vertex closeness values.
+    vertex_closeness : :class:`~graph_tool.VertexPropertyMap` or float
+        A vertex property map with the vertex closeness values. If ``source``
+        is specified, a single float with the closeness of that vertex is
+        returned instead.
 
     See Also
     --------
@@ -404,7 +410,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     :math:`i`. If ``harmonic == True``, they are instead simply normalized by
     :math:`V-1`.
 
-    The algorithm complexity of :math:`O(V(V + E))` for unweighted graphs and
+    The algorithm has a complexity of :math:`O(V(V + E))` for unweighted graphs and
     :math:`O(V(V+E) \log V)` for weighted graphs. If the option ``source`` is
     specified, this drops to :math:`O(V + E)` and :math:`O((V+E)\log V)`
     respectively.
@@ -437,7 +443,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
        :align: center
        :width: 80%
 
-       Closeness values of the a political blogs network of [adamic-polblogs]_.
+       Closeness values of a political blogs network of [adamic-polblogs]_.
 
     References
     ----------
@@ -505,7 +511,7 @@ def central_point_dominance(g, betweenness):
         C'_B = \frac{1}{|V|-1} \sum_{v} C_B(v^*) - C_B(v)
 
     where :math:`C_B(v)` is the normalized betweenness centrality of vertex
-    v. The value of :math:`C_B` lies in the range [0,1].
+    v. The value of :math:`C'_B` lies in the range [0,1].
 
     The algorithm has a complexity of :math:`O(V)`.
 
@@ -542,13 +548,13 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
         Graph to be used.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
-    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map where the values of eigenvector must be stored. If
         provided, it will be used uninitialized.
-    epsilon : float, optional (default: ``1e-6``)
+    epsilon : float (optional, default: ``1e-6``)
         Convergence condition. The iteration will stop if the total delta of all
-        vertices are below this value.
-    max_iter : int, optional (default: ``None``)
+        vertices is below this value.
+    max_iter : int (optional, default: ``None``)
         If supplied, this will limit the total number of iterations.
 
     Returns
@@ -617,7 +623,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
        :align: center
        :width: 80%
 
-       Eigenvector values of the a political blogs network of
+       Eigenvector values of a political blogs network of
        [adamic-polblogs]_, with random weights attributed to the edges.
 
     References
@@ -655,23 +661,23 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
-        Edge property map with the edge weights.
-    alpha : float, optional (default: ``0.01``)
+    alpha : float (optional, default: ``0.01``)
         Free parameter :math:`\alpha`. This must be smaller than the inverse of
         the largest eigenvalue of the adjacency matrix.
-    beta : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
-        Vertex property map where the local personalization values. If not
+    beta : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Vertex property map with the local personalization values. If not
         provided, the global value of 1 will be used.
-    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
-        Vertex property map where the values of eigenvector must be stored. If
-        provided, it will be used uninitialized.
-    epsilon : float, optional (default: ``1e-6``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Edge property map with the edge weights.
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Vertex property map where the values of the Katz centrality must be
+        stored. If provided, it will be used uninitialized.
+    epsilon : float (optional, default: ``1e-6``)
         Convergence condition. The iteration will stop if the total delta of all
-        vertices are below this value.
-    max_iter : int, optional (default: ``None``)
+        vertices is below this value.
+    max_iter : int (optional, default: ``None``)
         If supplied, this will limit the total number of iterations.
-    norm : bool, optional (default: ``True``)
+    norm : bool (optional, default: ``True``)
         Whether or not the centrality values should be normalized.
 
     Returns
@@ -735,7 +741,7 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
        :align: center
        :width: 80%
 
-       Katz centrality values of the a political blogs network of
+       Katz centrality values of a political blogs network of
        [adamic-polblogs]_, with random weights attributed to the edges.
 
     References
@@ -772,19 +778,19 @@ def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
         Graph to be used.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
-    xprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
+    xprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map where the authority centrality must be stored.
-    yprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
+    yprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map where the hub centrality must be stored.
-    epsilon : float, optional (default: ``1e-6``)
+    epsilon : float (optional, default: ``1e-6``)
         Convergence condition. The iteration will stop if the total delta of all
-        vertices are below this value.
-    max_iter : int, optional (default: ``None``)
+        vertices is below this value.
+    max_iter : int (optional, default: ``None``)
         If supplied, this will limit the total number of iterations.
 
     Returns
     -------
-    eig : `float`
+    eig : float
         The largest eigenvalue of the cocitation matrix.
     x : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the authority centrality values.
@@ -858,14 +864,14 @@ def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
        :align: center
        :width: 80%
 
-       HITS authority values of the a political blogs network of
+       HITS authority values of a political blogs network of
        [adamic-polblogs]_.
 
     .. figure:: polblogs_hits_hubs.png
        :align: center
        :width: 80%
 
-       HITS hub values of the a political blogs network of [adamic-polblogs]_.
+       HITS hub values of a political blogs network of [adamic-polblogs]_.
 
     References
     ----------
@@ -905,22 +911,24 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
     trust_map : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the values of trust associated with each
         edge. The values must lie in the range [0,1].
-    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map where the values of eigentrust must be stored.
-    norm : bool, optional (default:  ``False``)
-        Norm eigentrust values so that the total sum equals 1.
-    epsilon : float, optional (default: ``1e-6``)
+    norm : bool (optional, default: ``False``)
+        Normalize eigentrust values so that the total sum equals 1.
+    epsilon : float (optional, default: ``1e-6``)
         Convergence condition. The iteration will stop if the total delta of all
-        vertices are below this value.
-    max_iter : int, optional (default: ``None``)
-        If supplied, this will limit the total number of iterations.
-    ret_iter : bool, optional (default: ``False``)
+        vertices is below this value.
+    max_iter : int (optional, default: ``0``)
+        If non-zero, this will limit the total number of iterations.
+    ret_iter : bool (optional, default: ``False``)
         If true, the total number of iterations is also returned.
 
     Returns
     -------
     eigentrust : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the eigentrust values.
+    iterations : int
+        Total number of iterations. Only returned if ``ret_iter == True``.
 
     See Also
     --------
@@ -930,7 +938,7 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
 
     Notes
     -----
-    The eigentrust [kamvar-eigentrust-2003]_ values :math:`t_i` correspond the
+    The eigentrust [kamvar-eigentrust-2003]_ values :math:`t_i` correspond to the
     following limit
 
     .. math::
@@ -977,7 +985,7 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
        :align: center
        :width: 80%
 
-       Eigentrust values of the a political blogs network of
+       Eigentrust values of a political blogs network of
        [adamic-polblogs]_, with random weights attributed to the edges.
 
 
@@ -1018,13 +1026,13 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     trust_map : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the values of trust associated with each
         edge. The values must lie in the range [0,1].
-    source : :class:`~graph_tool.Vertex` (optional, default: None)
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Source vertex. All trust values are computed relative to this vertex.
         If left unspecified, the trust values for all sources are computed.
-    target : :class:`~graph_tool.Vertex` (optional, default: None)
+    target : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         The only target for which the trust value will be calculated. If left
         unspecified, the trust values for all targets are computed.
-    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the values of transitive trust must be
         stored.
 
@@ -1033,9 +1041,9 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     trust_transitivity : :class:`~graph_tool.VertexPropertyMap` or float
         A vertex vector property map containing, for each source vertex, a
         vector with the trust values for the other vertices. If only one of
-        `source` or `target` is specified, this will be a single-valued vertex
+        ``source`` or ``target`` is specified, this will be a single-valued vertex
         property map containing the trust vector from/to the source/target
-        vertex to/from the rest of the network. If both `source` and `target`
+        vertex to/from the rest of the network. If both ``source`` and ``target``
         are specified, the result is a single float, with the corresponding
         trust value for the target.
 
@@ -1104,7 +1112,7 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
        :align: center
        :width: 80%
 
-       Trust transitivity values from source vertex 42 of the a political blogs
+       Trust transitivity values from source vertex 42 of a political blogs
        network of [adamic-polblogs]_, with random weights attributed to the
        edges.
 
@@ -1112,7 +1120,7 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     ----------
     .. [richters-trust-2010] Oliver Richters and Tiago P. Peixoto, "Trust
        Transitivity in Social Networks," PLoS ONE 6, no. 4:
-       e1838 (2011), :doi:`10.1371/journal.pone.0018384`
+       e18384 (2011), :doi:`10.1371/journal.pone.0018384`
     .. [adamic-polblogs] L. A. Adamic and N. Glance, "The political blogosphere
        and the 2004 US Election", in Proceedings of the WWW-2005 Workshop on the
        Weblogging Ecosystem (2005). :DOI:`10.1145/1134271.1134277`

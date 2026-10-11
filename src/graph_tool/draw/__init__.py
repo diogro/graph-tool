@@ -110,7 +110,7 @@ def random_layout(g, shape=None, pos=None, dim=2):
     shape : tuple or list (optional, default: ``None``)
         Rectangular shape of the bounding area. The size of this parameter must
         match `dim`, and each element can be either a pair specifying a range,
-        or a single value specifying a range starting from zero. If None is
+        or a single value specifying a range starting from zero. If ``None`` is
         passed, a square of linear size :math:`\sqrt{N}` is used.
     pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector vertex property maps where the coordinates should be stored.
@@ -341,9 +341,9 @@ def arf_layout(g, weight=None, d=.5, a=10, dt=0.001, epsilon=1e-6,
         Graph to be used.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         An edge property map with the respective weights.
-    d : float (optional, default: ``1``)
+    d : float (optional, default: ``0.5``)
         Opposing force between vertices.
-    a : float (optional, default: ``1.1``)
+    a : float (optional, default: ``10``)
         Attracting force between adjacent vertices.
     dt : float (optional, default: ``0.001``)
         Iteration step size.
@@ -601,16 +601,16 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
         Number of connected components to subsample.
     groups : :class:`~graph_tool.VertexPropertyMap` or list of list of integers (optional, default: ``None``)
         A vertex property map with group assignments. Vertices belonging to the
-        same group will be put close together. Optionally, this can take an
+        same group will be put close together. Optionally, this can take a
         hierarchical partition, represented by a list of lists, where the list
-        above correspond to the partition of the list below.
+        above corresponds to the partition of the list below.
     gamma : float or list of floats (optional, default: ``.1``)
         Strength of the attractive force between nodes of the same group to
         their center of mass. In case of a hierarchical partition, this should
-        correspond to a list of floats, containing the strenghts for each
+        correspond to a list of floats, containing the strengths for each
         hierarchical level. This option has no effect if ``groups`` is ``None``.
     rmap : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Vertex rank to be used around to order them preferentially in the
+        Vertex rank used to order the vertices preferentially in the
         :math:`y` direction.
     R : float (optional, default: ``1.0``)
         Strength of the rank ordering in the :math:`y` direction.
@@ -632,7 +632,8 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
         activated based on the size of the graph.
     coarse_method : str (optional, default: ``"hybrid"``)
         Coarsening method used if ``multilevel == True``. Allowed methods are
-        ``"hybrid"``, ``"mivs"`` and ``"ec"``.
+        ``"hybrid"``, ``"mivs"``, ``"ec"``, ``"modularity"``, ``"sbm"`` and
+        ``"dcsbm"``.
     mivs_thres : float (optional, default: ``0.9``)
         If the relative size of the MIVS coarse graph is above this value, the
         coarsening stops.
@@ -680,8 +681,8 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
 
     References
     ----------
-    .. [hu-multilevel-2005] Yifan Hu, "Efficient and High Quality Force-Directed
-       Graph", Mathematica Journal, vol. 10, Issue 1, pp. 37-71, (2005)
+    .. [hu-multilevel-2005] Yifan Hu, "Efficient, High-Quality Force-Directed
+       Graph Drawing", Mathematica Journal, vol. 10, Issue 1, pp. 37-71, (2005)
        http://www.mathematica-journal.com/issue/v10i1/graph_draw.html
 
     """
@@ -795,7 +796,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, C=0.2, K=None, p=2.,
 
 def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
                        weighted=False, node_weight=None, r=1.):
-    r"""Computes a radial layout of the graph according to the minimum spanning
+    r"""Computes a radial layout of the graph according to the shortest-path
     tree centered at the ``root`` vertex.
 
     Parameters
@@ -807,13 +808,13 @@ def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
     rel_order : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Relative order of the nodes at each respective branch.
     rel_order_leaf : ``bool`` (optional, default: ``False``)
-        If ``True``, the relative order of the leafs will propagate to the
+        If ``True``, the relative order of the leaves will propagate to the
         root. Otherwise they will propagate in the opposite direction.
     weighted : ``bool`` (optional, default: ``False``)
         If true, the angle between the child branches will be computed according
-        to weight of the entire sub-branches.
+        to the weight of the entire sub-branches.
     node_weight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        If given, the relative spacing between leafs will correspond to the node
+        If given, the relative spacing between leaves will correspond to the node
         weights.
     r : ``float`` (optional, default: ``1.``)
         Layer spacing.
@@ -885,6 +886,24 @@ def prop_to_size(prop, mi=0, ma=5, log=False, power=0.5):
     If ``log=True``, :math:`x_i` is replaced with :math:`\ln(x_i)`.
 
     If :math:`\max(x) - \min(x)` is zero, :math:`y_i = mi`.
+
+    Parameters
+    ----------
+    prop : :class:`~graph_tool.PropertyMap`
+        Scalar property map with the values to be converted.
+    mi : float (optional, default: ``0``)
+        Minimum output value.
+    ma : float (optional, default: ``5``)
+        Maximum output value.
+    log : bool (optional, default: ``False``)
+        If ``True``, the logarithm of the values is used.
+    power : float (optional, default: ``0.5``)
+        Exponent applied to the normalized values.
+
+    Returns
+    -------
+    prop : :class:`~graph_tool.PropertyMap`
+        Property map of type ``double`` with the converted values.
 
     """
     prop = prop.copy(value_type="double")

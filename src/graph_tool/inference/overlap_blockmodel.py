@@ -39,7 +39,7 @@ class OverlapBlockState(BlockState):
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
     b : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
-        Initial block labels on the **half-edges**, i.e two values per edge.
+        Initial block labels on the **half-edges**, i.e. two values per edge.
     clabel : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Constraint labels on the half-edges. If supplied, vertices with different
         label values will not be clustered in the same group.
@@ -54,9 +54,9 @@ class OverlapBlockState(BlockState):
     vweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Half-edge multiplicities.
     gen_overlap : ``bool`` (optional, default: ``True``)
-         If ``True``, the generalized overlap partition prior will be used.
-         Otherwise, a simplified (but faster) prior will be used instead.
-    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+        If ``True``, the generalized overlap partition prior will be used.
+        Otherwise, a simplified (but faster) prior will be used instead.
+    **kwargs : ``(keyword parameters)`` (optional, default: ``(none)``)
         Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
     """
 
@@ -86,7 +86,7 @@ class OverlapBlockState(BlockState):
 
     @property
     def vweight(self):
-        r""":class:`~graph_tool.VertexPropertyMap` with node multiplicities"""
+        r""":class:`~graph_tool.EdgePropertyMap` with half-edge multiplicities"""
         if self._mk_override:
             return self.g
         return self._vweight
@@ -212,7 +212,7 @@ class WeightedOverlapBlockState(WeightedBlockState, OverlapBlockState):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+    **kwargs : ``(keyword parameters)`` (optional, default: ``(none)``)
         Parameters to be passed to :class:`~graph_tool.inference.WeightedBlockState` and :class:`~graph_tool.inference.OverlapBlockState`.
     """
 
@@ -236,7 +236,7 @@ class LayeredOverlapBlockState(OverlapBlockState, LayeredBlockState):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+    **kwargs : ``(keyword parameters)`` (optional, default: ``(none)``)
         Parameters to be passed to :class:`~graph_tool.inference.LayeredBlockState` and :class:`~graph_tool.inference.OverlapBlockState`.
     """
 
@@ -258,7 +258,7 @@ class LayeredOverlapBlockState(OverlapBlockState, LayeredBlockState):
 
     @property
     def vweight(self):
-        r""":class:`~graph_tool.VertexPropertyMap` with half-edge multiplicities on each layer"""
+        r""":class:`~graph_tool.EdgePropertyMap` with half-edge multiplicities on each layer"""
         if self._mk_override:
             return self.g
         vweight = self.g.new_ep("vector<int64_t>")
@@ -276,13 +276,13 @@ class LayeredOverlapBlockState(OverlapBlockState, LayeredBlockState):
 class LayeredWeightedOverlapBlockState(OverlapBlockState,
                                        LayeredWeightedBlockState):
 
-    r"""The layered weigthed overlapping stochastic block model state of a given graph.
+    r"""The layered weighted overlapping stochastic block model state of a given graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+    **kwargs : ``(keyword parameters)`` (optional, default: ``(none)``)
         Parameters to be passed to :class:`~graph_tool.inference.LayeredWeightedBlockState` and :class:`~graph_tool.inference.OverlapBlockState`.
     """
 
@@ -321,8 +321,9 @@ def get_block_edge_gradient(g, be, cmap=None):
     be : :class:`~graph_tool.EdgePropertyMap`
         Vector-valued edge property map with the block membership at each
         endpoint.
-    cmap : :class:`matplotlib.colors.Colormap` (optional, default: ``default_cm``)
-        Color map used to construct the gradient.
+    cmap : :class:`matplotlib.colors.Colormap` (optional, default: ``None``)
+        Color map used to construct the gradient. If not provided,
+        ``graph_tool.draw.default_cm`` will be used.
 
     Returns
     -------

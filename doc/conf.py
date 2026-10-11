@@ -72,6 +72,11 @@ myst_enable_extensions = [
 
 bibtex_bibfiles = ['refs.bib']
 
+# Each page has its own bibliography with numeric labels starting at 1, which
+# sphinxcontrib-bibtex reports as duplicate labels across pages. This is
+# harmless, since citations are resolved by key.
+suppress_warnings = ['bibtex.duplicate_label']
+
 mathjax_path = "node_modules/mathjax/es5/tex-chtml-full.js"
 
 # Add any paths that contain templates here, relative to this directory.

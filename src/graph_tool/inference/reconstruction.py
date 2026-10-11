@@ -75,10 +75,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
             If the type is :class:`~numpy.ndarray`, it should correspond to a
             ``(N,M)`` data matrix with ``M`` samples for all ``N`` nodes.
 
-            If the parameter ``g`` is provided, this can be optionally a list of
+            If the parameter ``g`` is provided, this can be optionally a list
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
             in this list must be a :class:`~graph_tool.VertexPropertyMap` with
-            type ``vector<int>`` or ``vector<double>``, depending on wether the
+            type ``vector<int>`` or ``vector<double>``, depending on whether the
             model has discrete or continuous state values. If a single property
             map is given, then a single time series is assumed.
 
@@ -87,7 +87,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             time given by that parameter.
         g : :class:`~graph_tool.Graph` (optional, default: ``None``)
             Initial graph state. If not provided, an empty graph will be assumed.
-        directed : ``boolean`` or ``None`` (optional, default: ``None``)
+        directed : ``boolean`` or ``None`` (optional, default: ``False``)
             If ``True``, the inferred graph will be directed, or if ``False`` it
             will be undirected. If this option is ``None``, the directionality
             will be the same as the parameter ``g``, if it is provided,
@@ -98,18 +98,18 @@ class DynamicsBlockStateBase(UncertainBaseState):
             where the state of each node changes. Each entry in this list
             must be a :class:`~graph_tool.VertexPropertyMap` with type
             ``vector<int>`` containing the points in time where the state of
-            each node change. The corresponding state of the nodes at these
+            each node changes. The corresponding state of the nodes at these
             times are given by parameter ``s``. If a single property map is
             given, then a single time series is assumed.
         active : :class:`~numpy.ndarray` of shape ``(N,M)`` or ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-            If provided, this should contain binary valies specifing wether
+            If provided, this should contain binary values specifying whether
             nodes are "active" or not at specific times/samples. An "active"
             node contributes normally to the likelihood, while an inactive one
             is removed from the likelihood computation, with its value being
             replaced by a standard "inactive" state (the value of ``s`` for that
             node/sample is ignored).
 
-            If the parameter ``g`` is provided, this can be optionally a list of
+            If the parameter ``g`` is provided, this can be optionally a list
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
             in this list must be a :class:`~graph_tool.VertexPropertyMap` with
             type ``vector<int>``, with values interpreted in the same way as
@@ -133,13 +133,13 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Minimal value for the edge weight precision parameter.
         tdelta : list of ``float`` (optional, default: ``[1e-8]``)
             Initial values for the node bias precision parameters.
-        tdelta_min : ``float`` (optional, default: ``[1e-8]``)
+        tdelta_min : list of ``float`` (optional, default: ``[1e-8]``)
             Minimal value for the node bias precision parameters.
         disable_xdist : ``boolean`` (optional, default: ``False``)
-            If ``True`` the, quantization of the edge weights will be turned off,
+            If ``True``, the quantization of the edge weights will be turned off,
             and :math:`L_1` regularization will be used instead.
         disable_tdist : ``boolean`` (optional, default: ``False``)
-            If ``True`` the, quantization of the node parameters will be turned off,
+            If ``True``, the quantization of the node parameters will be turned off,
             and :math:`L_1` regularization will be used instead.
         nested : ``boolean`` (optional, default: ``True``)
             If ``True``, a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
@@ -159,7 +159,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Maximum latent edge multiplicity allowed.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Override default arguments for
-            :meth:`~DynamicsBlockStateBase.entropy()` method and releated
+            :meth:`~DynamicsBlockStateBase.entropy()` method and related
             operations.
 
         """
@@ -358,8 +358,11 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Laplace hyperprior for the discrete categories if ``xdist == True``.
         tl1 : list of ``float`` (optional, default: ``1``)
             Specifies the :math:`\lambda` parameter for :math:`L_1`
-            regularization for the node paraemters if ``tdist == False``, or the
+            regularization for the node parameters if ``tdist == False``, or the
             Laplace hyperprior for the discrete categories if ``tdist == True``.
+        alpha : ``float`` (optional, default: ``1``)
+            Multiplicative factor applied to the data likelihood term
+            :math:`-\ln P(\boldsymbol{S}|\boldsymbol{X},\boldsymbol{\theta})`.
         normal : ``boolean`` (optional, default: ``False``)
             If ``True``, a normal distribution will be used for the weight
             priors.
@@ -394,7 +397,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         The term :math:`P(\boldsymbol{S}|\boldsymbol{X},\boldsymbol{\theta})` is
         given by the particular generative model being used and
         :math:`P(\boldsymbol{A},\boldsymbol{b})` by the SBM. The weight
-        ditribution is given by the quantized model
+        distribution is given by the quantized model
 
         .. math::
 
@@ -415,7 +418,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
 
         is the node parameter quantized distribution, with :math:`\boldsymbol u`
-        being the :math:`K_\theta` discrete node parameter catergories. For more
+        being the :math:`K_\theta` discrete node parameter categories. For more
         details see [peixoto-network-2025]_ and [peixoto-uncertainty-2025]_.
 
         References
@@ -494,7 +497,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :math:`\kappa` parameter to be passed to :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.
         elist_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.
         keep_elist : ``boolean`` (optional, default: ``False``)
             If ``True``, the candidate edge list from last call will be re-used
@@ -502,35 +505,35 @@ class DynamicsBlockStateBase(UncertainBaseState):
         edge : ``float`` (optional, default: ``1``)
             Probability with which :meth:`~.DynamicsBlockStateBase.edge_mcmc_sweep` will be called.
         edge_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.edge_mcmc_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.edge_mcmc_sweep`.
         edge_swap : ``float`` (optional, default: ``1.``)
             Probability with which :meth:`~.DynamicsBlockStateBase.swap_mcmc_sweep` will be called.
-        edge_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.swap_mcmc_sweep`.
+        edge_swap_mcmc_args : ``dict`` (optional, default: ``{}``)
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.swap_mcmc_sweep`.
         edge_multiflip : ``float`` (optional, default: ``1 if np.isinf(beta) else .1``)
             Probability with which :meth:`~.DynamicsBlockStateBase.edge_multiflip_mcmc_sweep` will be called.
         edge_multiflip_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.edge_multiflip_mcmc_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.edge_multiflip_mcmc_sweep`.
         theta : ``float`` (optional, default: ``1.``)
             Probability with which :meth:`~.DynamicsBlockStateBase.theta_mcmc_sweep` will be called.
         theta_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.theta_mcmc_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.theta_mcmc_sweep`.
         theta_multiflip : ``float`` (optional, default: ``1.``)
             Probability with which :meth:`~.DynamicsBlockStateBase.theta_multiflip_mcmc_sweep` will be called.
         theta_multiflip_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.theta_multiflip_mcmc_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.theta_multiflip_mcmc_sweep`.
         sbm : ``float`` (optional, default: ``1.``)
             Probability with which :meth:`~.DynamicsBlockStateBase.sbm_mcmc_sweep` will be called.
         sbm_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.sbm_mcmc_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.sbm_mcmc_sweep`.
         xvals : ``float`` (optional, default: ``1.``)
             Probability with which :meth:`~.DynamicsBlockStateBase.xvals_sweep` will be called.
         xvals_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.xvals_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.xvals_sweep`.
         tvals : ``float`` (optional, default: ``1.``)
             Probability with which :meth:`~.DynamicsBlockStateBase.tvals_sweep` will be called.
         tvals_mcmc_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.tvals_sweep`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.tvals_sweep`.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
         **kwargs : ``dict`` (optional, default: ``{}``)
@@ -541,6 +544,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of attempted moves.
         nmoves : ``int``
             Number of variables moved.
 
@@ -575,11 +580,11 @@ class DynamicsBlockStateBase(UncertainBaseState):
                         if verbose:
                             print("tvals_sweep:")
                         for l in range(self.q_t):
-                            eret = self.tvals_sweep(**dict(dict(l=l, beta=beta,
-                                                                niter=10 * niter,
-                                                                **kwargs),
-                                                           **tvals_mcmc_args))
-                            ret = (sum(x) for x in zip(ret, eret))
+                            dS, nmoves = self.tvals_sweep(**dict(dict(l=l, beta=beta,
+                                                                      niter=10 * niter,
+                                                                      **kwargs),
+                                                                 **tvals_mcmc_args))
+                            ret = (sum(x) for x in zip(ret, (dS, nmoves, nmoves)))
 
         if self.theta_first:
             theta_mcmc()
@@ -614,10 +619,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
             if np.random.random() < xvals:
                 if verbose:
                     print("xvals_sweep:")
-                eret = self.xvals_sweep(**dict(dict(beta=beta, niter=10 * niter,
-                                                    **kwargs),
-                                               **xvals_mcmc_args))
-                ret = (sum(x) for x in zip(ret, eret))
+                dS, nmoves = self.xvals_sweep(**dict(dict(beta=beta, niter=10 * niter,
+                                                          **kwargs),
+                                                     **xvals_mcmc_args))
+                ret = (sum(x) for x in zip(ret, (dS, nmoves, nmoves)))
 
         if not self.theta_first:
             theta_mcmc()
@@ -665,7 +670,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :math:`\kappa` parameter to be passed to :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.
         elist_args : ``dict`` (optional, default: ``{}``)
-            Paramters to pass to call :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
+            Parameters to pass to :meth:`~.DynamicsBlockStateBase.get_candidate_edges`.
             This parameter is ignored if ``beta`` is not ``np.inf``.
         keep_elist : ``boolean`` (optional, default: ``False``)
             If ``True``, the candidate edge list from last call will be re-used
@@ -675,7 +680,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             categories.
         pnew : ``float`` (optional, default: ``1``)
             Relative probability of proposing a new edge weight from a new
-            categories.
+            category.
         pxu : ``float`` (optional, default: ``.1``)
             Probability of choosing from an existing category uniformly at
             random (instead of doing a bisection search).
@@ -701,23 +706,23 @@ class DynamicsBlockStateBase(UncertainBaseState):
             currently stored list of candidate edges (obtained with
             :meth:`~.DynamicsBlockStateBase.collect_candidates`).
         bisect_args : ``dict`` (optional, default: ``{}``)
-            Parameter for the bisection search use to optimize/sample edge
-            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x`) for
+            Parameter for the bisection search used to optimize/sample edge
+            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x` for
             documentation.
         binary : ``boolean`` (optional, default: ``False``)
             If ``True``, the latent graph will be assumed to be a simple graph,
             otherwise a multigraph.
         deterministic : ``boolean`` (optional, default: ``False``)
-            If ``True``, the the order of edge updates will be determinisitc,
+            If ``True``, the order of edge updates will be deterministic,
             otherwise uniformly at random.
         sequential : ``boolean`` (optional, default: ``True``)
             If ``True``, a sweep will visit every edge candidate once, otherwise
-            individiual updates will be chosen at random.
+            individual updates will be chosen at random.
         parallel : ``boolean`` (optional, default: ``True``)
             If ``True``, the updates are performed in parallel, using locks on
-            edges candidate incident on the same node.
+            candidate edges incident on the same node.
         pseudo : ``boolean`` (optional, default: ``False``)
-            If ``True``, detailed balance will no longer be stricly perserved,
+            If ``True``, detailed balance will no longer be strictly preserved,
             in favor of higher parallelism.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
@@ -766,12 +771,12 @@ class DynamicsBlockStateBase(UncertainBaseState):
 
         Parameters
         ----------
-        beta : ``float`` (optional, default: ``np.inf``)
+        beta : ``float`` (optional, default: ``1``)
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps.
         preplace : ``float`` (optional, default: ``1``)
-            Relative probability of swaping the weights between an edge and
+            Relative probability of swapping the weights between an edge and
             another node pair incident on one of the same two endpoints.
         pswap : ``float`` (optional, default: ``1``)
             Relative probability of swapping the endpoints of two
@@ -795,7 +800,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :meth:`~.DynamicsBlockStateBase.collect_candidates`).
         parallel : ``boolean`` (optional, default: ``True``)
             If ``True``, the updates are performed in parallel, using locks on
-            edges candidate incident on the same node.
+            candidate edges incident on the same node.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
         entropy_args : ``dict`` (optional, default: ``{}``)
@@ -844,7 +849,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         psplit : ``float`` (optional, default: ``1``)
             Relative probability of splitting two discrete categories.
         pmergesplit : ``float`` (optional, default: ``1``)
-            Relative probability of simultaneoulsly merging and splitting two
+            Relative probability of simultaneously merging and splitting two
             discrete categories.
         gibbs_sweeps : ``int`` (optional, default: ``5``)
             Number of Gibbs sweeps performed to achieve a split proposal.
@@ -853,7 +858,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             merge, otherwise an adjacent one is chosen.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
         accept_stats : ``dict`` (optional, default: ``None``)
             If provided, the dictionary will be updated with acceptance statistics.
         verbose : ``boolean`` (optional, default: ``False``)
@@ -918,8 +923,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
         niter : ``int`` (optional, default: ``100``)
             Maximum number of categories to update.
         bisect_args : ``dict`` (optional, default: ``{}``)
-            Parameter for the bisection search use to optimize/sample edge
-            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x`) for
+            Parameter for the bisection search used to optimize/sample edge
+            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x` for
             documentation.
         min_size : ``int`` (optional, default: ``1``)
             Minimum size of edge categories that will be updated.
@@ -989,24 +994,24 @@ class DynamicsBlockStateBase(UncertainBaseState):
             categories.
         pnew : ``float`` (optional, default: ``1``)
             Relative probability of proposing a new node value from a new
-            categories.
+            category.
         ptu : ``float`` (optional, default: ``.1``)
             Probability of choosing from an existing category uniformly at
             random (instead of doing a bisection search).
         bisect_args : list of ``dict`` (optional, default: ``None``)
-            Parameters for the bisection search use to optimize/sample node
-            paramters. See :meth:`~.DynamicsBlockStateBase.bisect_t`) for
+            Parameters for the bisection search used to optimize/sample node
+            parameters. See :meth:`~.DynamicsBlockStateBase.bisect_t` for
             documentation.
         deterministic : ``boolean`` (optional, default: ``False``)
-            If ``True``, the the order of node updates will be determinisitc,
+            If ``True``, the order of node updates will be deterministic,
             otherwise uniformly at random.
         sequential : ``boolean`` (optional, default: ``True``)
             If ``True``, a sweep will visit every node once, otherwise
-            individiual updates will be chosen at random.
+            individual updates will be chosen at random.
         parallel : ``boolean`` (optional, default: ``True``)
             If ``True``, the updates are performed in parallel.
         pseudo : ``boolean`` (optional, default: ``False``)
-            If ``True``, detailed balance will no longer be stricly perserved,
+            If ``True``, detailed balance will no longer be strictly preserved,
             in favor of higher parallelism.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
@@ -1060,7 +1065,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         psplit : ``float`` (optional, default: ``1``)
             Relative probability of splitting two discrete categories.
         pmergesplit : ``float`` (optional, default: ``1``)
-            Relative probability of simultaneoulsly merging and splitting two
+            Relative probability of simultaneously merging and splitting two
             discrete categories.
         gibbs_sweeps : ``int`` (optional, default: ``5``)
             Number of Gibbs sweeps performed to achieve a split proposal.
@@ -1069,7 +1074,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             merge, otherwise an adjacent one is chosen.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
         accept_stats : ``dict`` (optional, default: ``None``)
             If provided, the dictionary will be updated with acceptance statistics.
         verbose : ``boolean`` (optional, default: ``False``)
@@ -1131,16 +1136,14 @@ class DynamicsBlockStateBase(UncertainBaseState):
         niter : ``int`` (optional, default: ``100``)
             Maximum number of categories to update.
         bisect_args : ``dict`` (optional, default: ``{}``)
-            Parameter for the bisection search use to optimize/sample node
-            biases. See :meth:`~.DynamicsBlockStateBase.bisect_x`) for
+            Parameter for the bisection search used to optimize/sample node
+            biases. See :meth:`~.DynamicsBlockStateBase.bisect_x` for
             documentation.
         min_size : ``int`` (optional, default: ``1``)
             Minimum size of node categories that will be updated.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`~.DynamicsBlockStateBase.entropy`.
-        verbose : ``boolean`` (optional, default: ``False``)
-            If ``verbose == True``, detailed information will be displayed.
 
         Returns
         -------
@@ -1229,10 +1232,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :math:`\kappa` parameter.
         r : ``float`` (optional, default: ``1``)
             Fraction of second neighbors to consider during the search.
-        max_rk : ``float`` (optional, default: ``"k"``)
+        max_rk : ``float``, ``"k"`` or ``None`` (optional, default: ``"k"``)
             Maximum number of second-neighbors to be considered per iteration. A
             string value ``"k"`` means that this will match the number of first
-            neighbors.
+            neighbors. If ``None``, no maximum is imposed.
         epsilon : ``float`` (optional, default: ``.01``)
             Convergence criterion.
         c_stop : ``boolean`` (optional, default: ``False``)
@@ -1244,8 +1247,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
             If ``True``, the KNN graph will be returned.
         gradient : ``boolean`` (optional, default: ``None``)
             Whether to use the gradient to rank edges. If ``None``, it defaults
-            to ``True`` if the number of edge categories is empty.
-        h : ``float`` (optional, default: ``1e-8``)
+            to ``True`` if there are no edge categories.
+        h : ``float`` (optional, default: ``2e-3``)
             Step length used to compute the gradient with central finite
             difference.
         allow_edges : ``boolean`` (optional, default: ``False``)
@@ -1269,15 +1272,17 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Entropy arguments, with the same meaning and defaults as in
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
-            Parameter for the bisection search use to optimize/sample edge
-            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x`) for
+            Parameter for the bisection search used to optimize/sample edge
+            weights. See :meth:`~.DynamicsBlockStateBase.bisect_x` for
             documentation.
+        verbose : ``boolean`` (optional, default: ``False``)
+            If ``verbose == True``, detailed information will be displayed.
 
         Returns
         -------
-        elist : :class:``~numpy.ndarray`` of shape ``(E, 2)``
+        elist : :class:`~numpy.ndarray` of shape ``(E, 2)``
             Best entries.
-        a : :class:``~numpy.ndarray``
+        a : :class:`~numpy.ndarray`
             Edge scores.
         """
 
@@ -1361,11 +1366,11 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return self._state.add_edge(int(u), int(v), dm, x)
 
     def update_edge(self, u, v, nx):
-        r"""update edge :math:`(u, v)` with weight ``nx``."""
+        r"""Update edge :math:`(u, v)` with weight ``nx``."""
         return self._state.update_edge(int(u), int(v), nx)
 
     def update_node(self, v, nt, l=0):
-        r"""update node :math:`(u, v)` with value ``nt`` for component ``l``."""
+        r"""Update node ``v`` with value ``nt`` for component ``l``."""
         return self._state.update_node(int(v), l, nt)
 
     def bisect_x(self, u, v, entropy_args={}, bisect_args={}, fb=False,
@@ -1383,7 +1388,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Entropy arguments, with the same meaning and defaults as in
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
-            Parameter for the bisection search use to optimize/sample edge
+            Parameter for the bisection search used to optimize/sample edge
             weights. The recognized parameters and their default values are as
             follows:
 
@@ -1438,7 +1443,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
         fb : ``boolean`` (optional, default: ``False``)
             Perform a Fibonacci (a.k.a. golden ratio) search among the current
             node categories, instead of a bisection search among all possible
@@ -1470,7 +1475,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Number of sweeps.
         step : ``float`` (optional, default: ``10``)
             Multiplicative move step size.
-        pold : ``float`` (optional, default: ``1``)
+        pold : ``float`` (optional, default: ``.5``)
             Relative probability of proposing a new edge weight from existing
             categories.
         pxu : ``float`` (optional, default: ``.1``)
@@ -1485,7 +1490,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
 
         Returns
         -------
@@ -1526,7 +1531,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Number of sweeps.
         step : ``float`` (optional, default: ``10``)
             Multiplicative move step size.
-        pold : ``float`` (optional, default: ``1``)
+        pold : ``float`` (optional, default: ``.5``)
             Relative probability of proposing a new edge weight from existing
             categories.
         ptu : ``float`` (optional, default: ``.1``)
@@ -1541,7 +1546,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
 
         Returns
         -------
@@ -1582,7 +1587,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
         fb : ``bool`` (optional, default: ``False``)
             If ``True``, the search will be confined to a Fibonacci search over
             the discrete values given by
@@ -1619,11 +1624,11 @@ class DynamicsBlockStateBase(UncertainBaseState):
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
         fb : ``bool`` (optional, default: ``False``)
             If ``True``, the search will be confined to a Fibonacci search over
             the discrete values given by
-            :meth:`~DynamicsBlockStateBase.get_xvals()`.
+            :meth:`~DynamicsBlockStateBase.get_tvals()`.
         ret_sampler : ``boolean`` (optional, default: ``False``)
             If ``True``, a ``BisectionSampler`` object will be returned as well
             (for debugging purposes).
@@ -1665,11 +1670,11 @@ class DynamicsBlockStateBase(UncertainBaseState):
             Fraction of the current range of edge weight values to increase when
             constructing the bins.
         expand_xbins : ``bool`` (optional, default: ``True``)
-            If ``True``, when a edge weight value is encountered below or above
+            If ``True``, when an edge weight value is encountered below or above
             the current range of the bins, the bins are expanded in the
             corresponding direction by duplicating their size, using the same
             spacing.
-        tbins : lsit of :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
+        tbins : list of :class:`numpy.ndarray` or ``int`` (optional, default: ``100``)
             Bins to be used to obtain the marginal node bias distribution. If
             an integer is given, it will correspond to the number of equally
             spaced bins spanning the range of current bias values, increased in
@@ -1876,7 +1881,7 @@ class BPBlockStateBase(DynamicsBlockStateBase, ABC):
 
 class EpidemicsBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, exposed=False, theta=-1, x_range=(-np.inf, 1e-8),
-                 theta_range=(-np.inf, 1e-8), **kwargs):
+                 theta_range=(-30, -1e-8), **kwargs):
         r"""Inference state for network reconstruction based on epidemic dynamics, using
         the stochastic block model as a prior.
 
@@ -1892,7 +1897,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
             values are allowed (e.g. for recovered), but their actual value is
             unimportant for reconstruction.
 
-            If the parameter ``g`` is provided, this can be optionally a list of
+            If the parameter ``g`` is provided, this can be optionally a list
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
             in this list must be a :class:`~graph_tool.VertexPropertyMap` with
             type ``vector<int>``. If a single property map is given, then a
@@ -1908,6 +1913,14 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
             etc. model, where a susceptible node (valued ``0``) first transits
             to an exposed state (valued ``-1``) upon transmission, before
             transiting to the infective state (valued ``1``).
+        theta : ``float`` (optional, default: ``-1``)
+            Initial value of the node parameters.
+        x_range : pair of ``float`` (optional, default: ``(-np.inf, 1e-8)``)
+            Determines the allowed range of edge weights.
+        theta_range : pair of ``float`` (optional, default: ``(-30, -1e-8)``)
+            Determines the allowed range of the node parameters. The bounds
+            should be finite and negative, since the node parameters are
+            log-probabilities.
         **kwargs : (optional)
             Remaining parameters to be passed to :class:`~graph_tool.inference.DynamicsBlockStateBase`
 
@@ -1926,10 +1939,14 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
            :arxiv:`2503.07736`
 
         """
+        if isinstance(theta, numbers.Number):
+            theta = [theta]
+        if isinstance(theta_range[0], numbers.Number):
+            theta_range = [theta_range]
         DynamicsBlockStateBase.__init__(self, s, g=g, exposed=exposed,
                                         theta=theta, x_range=x_range,
-                                        theta_range=[theta_range],
-                                        directed=directed, discrete=True,
+                                        theta_range=theta_range,
+                                        discrete=True,
                                         **dict(dict(directed=True),
                                                **dmask(kwargs, ["discrete"])))
 
@@ -1970,7 +1987,7 @@ class IsingBlockStateBase(ABC):
 
             The values must correspond to Ising states: ``-1`` or ``+1``
 
-            If the parameter ``g`` is provided, this can be optionally a list of
+            If the parameter ``g`` is provided, this can be optionally a list
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
             in this list must be a :class:`~graph_tool.VertexPropertyMap` with
             type ``vector<int>``. If a single property map is given, then a
@@ -2072,8 +2089,8 @@ class CIsingGlauberBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
 
            P(s_i(t+1)|\boldsymbol s(t), \boldsymbol A,
                       \boldsymbol x, \boldsymbol \theta) =
-           \frac{\exp(s_i(t+1)\sum_jA_{ij}w_{ij}s_j(t) + h_is_i(t+1))}
-           {Z(\sum_jA_{ij}w_{ij}s_j(t) + h_i)},
+           \frac{\exp(s_i(t+1)\sum_jA_{ij}x_{ij}s_j(t) + \theta_is_i(t+1))}
+           {Z(\sum_jA_{ij}x_{ij}s_j(t) + \theta_i)},
 
         with :math:`Z(x) = 2\sinh(x)/x`.
         """
@@ -2103,7 +2120,7 @@ class PseudoIsingBlockState(IsingBlockStateBase, BPBlockStateBase):
         Notes
         -----
 
-        This is a equilibrium model with where the states :math:`\boldsymbol s`
+        This is an equilibrium model where the states :math:`\boldsymbol s`
         are sampled with probability
 
         .. math::
@@ -2161,7 +2178,7 @@ class PseudoCIsingBlockState(DynamicsBlockStateBase, IsingBlockStateBase):
         Notes
         -----
 
-        This is a equilibrium model with where the states :math:`\boldsymbol s`
+        This is an equilibrium model where the states :math:`\boldsymbol s`
         are sampled with probability
 
         .. math::
@@ -2344,9 +2361,6 @@ class NormalGlauberBlockState(DynamicsBlockStateBase):
 
         ``fix_mean == True`` means that ``s`` will be changed to become zero-mean.
 
-        ``positive == True`` ensures that the result is positive-semidefinite,
-        according to slack given by ``pslack``.
-
         See documentation for :class:`DynamicsBlockStateBase` for more details.
         """
 
@@ -2365,9 +2379,9 @@ class NormalGlauberBlockState(DynamicsBlockStateBase):
         """Return an :class:`~graph_tool.dynamics.NormalState` instance
         corresponding to the inferred model, optionally with initial state given
         by ``s``."""
-        h = self.get_theta_shifted()
+        h = ungroup_vector_property(self.theta)[0]
         h.a = np.exp(h.a)
-        return NormalState(self.u, w=self.x, h=h, s=s)
+        return NormalState(self.u, w=self.x, sigma=h, s=s)
 
 class LinearNormalBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, self_loops=True, **kwargs):
@@ -2398,6 +2412,18 @@ class LinearNormalBlockState(DynamicsBlockStateBase):
 
 class LVBlockState(DynamicsBlockStateBase):
     def __init__(self, s, g=None, self_loops=True, sigma=1, **kwargs):
+        r"""State for network reconstruction based on the generalized
+        Lotka-Volterra dynamics, using the stochastic block model as a prior.
+
+        ``self_loops == True`` means self-loops will be allowed in the
+        reconstruction.
+
+        ``sigma`` is the stochastic noise magnitude (see
+        :class:`~graph_tool.dynamics.LVState`).
+
+        See documentation for :class:`DynamicsBlockStateBase` for more details.
+
+        """
         DynamicsBlockStateBase.__init__(self, s, g=g, self_loops=self_loops,
                                         sigma=sigma,
                                         **dict(dict(directed=True), **kwargs))
@@ -2425,8 +2451,8 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
 
         This class is not supposed to be instantiated directly.
 
-        Instead one of its specialized subclasses must be used, which have the
-        same signature: :class:`PottsGlauberBlockState`,
+        Instead one of its specialized subclasses must be used, which accept the
+        parameters below: :class:`PottsGlauberBlockState`,
         :class:`PseudoPottsBlockState`.
 
         Parameters
@@ -2440,7 +2466,7 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
             The values must correspond to states in the discrete range
             :math:`\{0,\dots,q-1\}`.
 
-            If the parameter ``g`` is provided, this can be optionally a list of
+            If the parameter ``g`` is provided, this can be optionally a list
             of :class:`~graph_tool.VertexPropertyMap` objects, where each entry
             in this list must be a :class:`~graph_tool.VertexPropertyMap` with
             type ``vector<int>``. If a single property map is given, then a
@@ -2460,7 +2486,7 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
 
         References
         ----------
-        .. [ising-model] https://en.wikipedia.org/wiki/Ising_model
+        .. [potts-model] https://en.wikipedia.org/wiki/Potts_model
         .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
            community detection from dynamics", Phys. Rev. Lett. 123 128301
            (2019), :doi:`10.1103/PhysRevLett.123.128301`, :arxiv:`1903.10833`
@@ -2476,7 +2502,7 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
         """
 
     def sample_f(self, r, s, beta=1, entropy_args={}, bisect_args={}, verbose=False):
-        r"""Sample the entry ``(r,s)`` of the iteraction matrix ``f``.
+        r"""Sample the entry ``(r,s)`` of the interaction matrix ``f``.
 
         Parameters
         ----------
@@ -2491,7 +2517,7 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
             :meth:`~.DynamicsBlockStateBase.entropy`.
         bisect_args : ``dict`` (optional, default: ``{}``)
             Parameter for the bisection search. See
-            :meth:`~.DynamicsBlockStateBase.bisect_x`) for documentation.
+            :meth:`~.DynamicsBlockStateBase.bisect_x` for documentation.
         verbose : ``bool`` (optional, default: ``False``)
             If ``True``, verbose information will be displayed.
 
@@ -2526,7 +2552,7 @@ class PottsBlockStateBase(DynamicsBlockStateBase):
             for r in range(q):
                 for s in range(r if self.params["f_sym"] else 0, q):
                     dS = self.sample_f(r, s, beta=beta, **f_mcmc_args)
-                    fret = (dS, 1)
+                    fret = (dS, 1, 1)
                     ret = (sum(x) for x in zip(ret, fret))
             ret = tuple(ret)
         return ret
@@ -2574,7 +2600,7 @@ class PottsGlauberBlockState(PottsBlockStateBase):
 
         See documentation for :class:`PottsBlockStateBase` for details.
 
-        If ``f_sym is False``, the iteraction matrix will be assumed to be
+        If ``f_sym is False``, the interaction matrix will be assumed to be
         asymmetric.
 
         Notes
@@ -2636,7 +2662,7 @@ class PseudoPottsBlockState(PottsBlockStateBase, BPBlockStateBase):
         Notes
         -----
 
-        This is a equilibrium model with where the states :math:`\boldsymbol s`
+        This is an equilibrium model where the states :math:`\boldsymbol s`
         are sampled with probability
 
         .. math::
@@ -2689,7 +2715,7 @@ class PseudoPottsBlockState(PottsBlockStateBase, BPBlockStateBase):
                                                    "f_sym"]))
 
     def get_bp_state(self, **kwargs):
-        """Return an :class:`~graph_tool.dynamics.IsingBPState` instance
+        """Return a :class:`~graph_tool.dynamics.GenPottsBPState` instance
         corresponding to the inferred model."""
         return GenPottsBPState(self.u, f=self.f, x=self.x,
                                theta=self.theta, **kwargs)

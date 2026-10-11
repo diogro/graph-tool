@@ -48,13 +48,13 @@ def openmp_set_num_threads(n):
 
 
 def openmp_get_schedule():
-    """Return the runtime OpenMP schedule and chunk size. The schedule can by
+    """Return the runtime OpenMP schedule and chunk size. The schedule can be
     any of: ``"static"``, ``"dynamic"``, ``"guided"``, ``"auto"``."""
     return libcore.openmp_get_schedule()
 
 
 def openmp_set_schedule(schedule, chunk=0):
-    """Set the runtime OpenMP schedule and chunk size. The schedule can by
+    """Set the runtime OpenMP schedule and chunk size. The schedule can be
     any of: ``"static"``, ``"dynamic"``, ``"guided"``, ``"auto"``."""
     return libcore.openmp_set_schedule(schedule, chunk)
 
@@ -65,13 +65,13 @@ def openmp_get_thresh():
 
 
 def openmp_set_thresh(n):
-    """Set the the minimum number of vertices necessary to enable parallelization."""
+    """Set the minimum number of vertices necessary to enable parallelization."""
     return libcore.openmp_set_thresh(n)
 
 
 @contextmanager
 def openmp_context(nthreads=None, schedule=None, chunk=0, thresh=None):
-    """Return a context manager that sets the tuntime OpenMP parameters, and
+    """Return a context manager that sets the runtime OpenMP parameters, and
     restores the original values when exited."""
     nthreads_ = openmp_get_num_threads()
     schedule_, chunk_ = openmp_get_schedule()

@@ -189,7 +189,7 @@ def vertex_average(g, deg):
     g : :class:`~graph_tool.Graph`
         Graph to be used.
     deg : string or :class:`~graph_tool.VertexPropertyMap`
-        Degree or property to be used for the histogram. It can be either "in",
+        Degree or property to be used for the average. It can be either "in",
         "out" or "total", for in-, out-, or total degree of the vertices. It can
         also be a vertex property map.
 
@@ -244,14 +244,14 @@ def vertex_average(g, deg):
 @_parallel
 def edge_average(g, eprop):
     """
-    Return the average of the given degree or vertex property.
+    Return the average of the given edge property.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
     eprop : :class:`~graph_tool.EdgePropertyMap`
-        Edge property to be used for the histogram.
+        Edge property to be used for the average.
 
     Returns
     -------
@@ -342,7 +342,7 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     vertex_hist : Vertex histograms.
     edge_hist : Edge histograms.
     vertex_average : Average of vertex degree, properties.
-    distance_histogram : Shortest-distance histogram.
+    edge_average : Average of edge properties.
 
     Notes
     -----

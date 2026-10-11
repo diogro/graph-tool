@@ -39,16 +39,22 @@ class PottsState(CLabelState, MCMCState, MultiflipMCMCState, MultilevelMCMCState
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
     f : :class:`~numpy.ndarray`
-        :math:`q\times q` spin iteraction strengths.
+        :math:`q\times q` spin interaction strengths.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights. If not supplied, it will be
-        assummed to be unity.
+        assumed to be unity.
     theta : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map of type ``vector<double>`` with the node fields.
-        If not supplied, it will be assummed to be zero.
+        If not supplied, it will be assumed to be zero.
     b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Initial spin labels. If not supplied, a random distribution will be
         used.
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Constraint labels on the vertices. If supplied, vertices with different
+        label values will not be clustered in the same group.
+    entropy_args : ``dict`` (optional, default: ``{}``)
+        Override default arguments for :meth:`~PottsState.entropy()`
+        method and related operations.
 
     """
 

@@ -101,9 +101,9 @@ def entropy_state_signature(cls):
     entropy.__signature__ = sig
     intro, br, rest = cls._entropy.__doc__.partition("\n\n")
     warn = f"""\
-    The default arguments of this function are overriden by
+    The default arguments of this function are overridden by
     those obtained from :meth:`~{cls.__name__}.get_entropy_args`.
-    To update the  defaults in a stateful way,
+    To update the defaults in a stateful way,
     :meth:`~{cls.__name__}.update_entropy_args` should be called."""
     warn = textwrap.dedent(warn)
     warn = " ".join(warn.splitlines())
@@ -293,7 +293,7 @@ class EntropyState(ABC):
         return Vector_size_t(init=vertices)
 
 class CLabelState(ABC):
-    r"""Base state that implements partition contraints."""
+    r"""Base state that implements partition constraints."""
     def __init__(self, g, b, clabel=None, pclabel=None, label_type="int64_t"):
 
         if hasattr(self, "pclabel"):
@@ -516,20 +516,20 @@ class MultiflipMCMCState(EntropyState):
         pmerge : ``float`` (optional, default: ``1``)
             Relative probability of proposing a group merge.
         pmergesplit : ``float`` (optional, default: ``1``)
-            Relative probability of proposing a marge-split move.
+            Relative probability of proposing a merge-split move.
         pmovelabel : ``float`` (optional, default: ``0``)
             Relative probability of proposing a group label move.
-        d : ``float`` (optional, default: ``1``)
+        d : ``float`` (optional, default: ``.01``)
             Probability of selecting a new (i.e. empty) group for a given
             single-node move.
         gibbs_sweeps : ``int`` (optional, default: ``10``)
             Number of sweeps of Gibbs sampling to be performed (i.e. each node
             is attempted once per sweep) to refine a split proposal.
-        vertices : iterable of ``int``` (optional, default: ``None``):
-            If provided, this specified the list of vertices to be considerd.
+        vertices : iterable of ``int`` (optional, default: ``None``)
+            If provided, this specifies the list of vertices to be considered.
             Otherwise, all vertices are considered.
         parallel_thres : ``int`` (optional, default: ``1000``)
-            If the number of nodes to be moved fall below this thershold, the
+            If the number of nodes to be moved falls below this threshold, the
             operation is performed serially. Otherwise, the moves are done in
             parallel.
         entropy_args : ``dict`` (optional, default: ``{}``)
@@ -620,7 +620,7 @@ class MultilevelMCMCState(EntropyState):
         r"""Perform ``niter`` sweeps of a multilevel agglomerative
         acceptance-rejection pseudo-MCMC (i.e. detailed balance is not
         preserved) to sample network partitions, that uses a bisection search on
-        the number of groups, together with group merges and singe-node moves.
+        the number of groups, together with group merges and single-node moves.
 
         Parameters
         ----------
@@ -636,7 +636,7 @@ class MultilevelMCMCState(EntropyState):
         random_bisection : ``bool`` (optional, default: ``True``)
             If ``True``, bisections are done at intervals chosen uniformly at
             random. Otherwise a Fibonacci sequence is used.
-        refine : ``bool`` (optional, default: ``True``)
+        refine : ``bool`` (optional, default: ``False``)
             If ``True``, a strictly agglomerative run will be appended to the
             end of the algorithm.
         c : ``float`` (optional, default: ``.5``)
@@ -651,20 +651,23 @@ class MultilevelMCMCState(EntropyState):
         r : ``float`` (optional, default: ``0.9``)
             Group shrink ratio. The number of groups is reduced by this fraction
             at each merge sweep.
+        dB_epsilon : ``float`` (optional, default: ``.01``)
+            If ``bisection == False``, merge sweeps are repeated until the
+            relative change in the number of groups falls below this value.
         merge_sweeps : ``int`` (optional, default: ``10``)
             Number of sweeps spent to find good merge proposals.
         mh_sweeps : ``int`` (optional, default: ``10``)
             Number of single-node Metropolis-Hastings sweeps between merge splits.
         init_r : ``double`` (optional, default: ``0.99``)
-            Stopping criterion for the intialization phase, after each node is
+            Stopping criterion for the initialization phase, after each node is
             put in their own group, to set the initial upper bound of the
             bisection search. A number of single-node Metropolis-Hastings sweeps
             is done until the number of groups is shrunk by a factor that is
             larger than this parameter.
         init_min_iter : ``int`` (optional, default: ``8``)
-            Minimum number of iterations at the intialization phase.
+            Minimum number of iterations at the initialization phase.
         init_min_iter_beta : ``int`` (optional, default: ``4``)
-            Minimum number of iterations at the intialization phase with beta
+            Minimum number of iterations at the initialization phase with beta
             given by ``init_beta``.
         init_beta : ``float`` (optional, default: ``1.``)
             Inverse temperature to be used for the first ``init_min_iter_beta``
@@ -682,7 +685,11 @@ class MultilevelMCMCState(EntropyState):
             If provided, this will be used for the partition corresponding to ``B_max``.
         M : ``int`` (optional, default: ``None``)
             Maximum number of groups to select for the multilevel move. If
-            ``None`` is provided, then all groups are always elected.
+            ``None`` is provided, then all groups are always selected.
+        sample_group_thres : ``int`` (optional, default: ``1000``)
+            If ``M`` is not ``None``, this is the maximum number of failed
+            attempts at sampling a neighboring group before a new group is
+            chosen uniformly at random.
         cache_states : ``bool`` (optional, default: ``True``)
             If ``True``, intermediary states will be cached during the bisection
             search.
@@ -693,11 +700,15 @@ class MultilevelMCMCState(EntropyState):
             If ``True``, the algorithm will run in parallel (if enabled during
             compilation).
         parallel_thres : ``int`` (optional, default: ``1000``)
-            If the number of nodes to be moved fall below this thershold, the
+            If the number of nodes to be moved falls below this threshold, the
             operation is performed serially. Otherwise, the moves are done in
             parallel.
-        vertices : iterable of ``int``` (optional, default: ``None``):
-            If provided, this specified the list of vertices to be considerd.
+        parallel_merge : ``bool`` (optional, default: ``True``)
+            If ``True``, the group merges selected at each merge step are
+            applied simultaneously (with node moves done in parallel, if
+            supported), rather than one at a time.
+        vertices : iterable of ``int`` (optional, default: ``None``)
+            If provided, this specifies the list of vertices to be considered.
             Otherwise, all vertices are considered.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
@@ -790,7 +801,7 @@ class MultilevelMCMCState(EntropyState):
 
 
 class GibbsMCMCState(EntropyState):
-    r"""Base state that implements single flip MCMC sweeps."""
+    r"""Base state that implements rejection-free Gibbs MCMC sweeps."""
 
     @mcmc_sweep_wrap
     def gibbs_sweep(self, beta=1., niter=1, entropy_args={},
@@ -870,10 +881,10 @@ class ExhaustiveSweepState(EntropyState):
             :meth:`graph_tool.inference.BlockState.entropy`.
         callback : callable object (optional, default: ``None``)
             Function to be called for each partition, with three arguments ``(S,
-            S_min, b_min)`` corresponding to the the current entropy value, the
+            S_min, b_min)`` corresponding to the current entropy value, the
             minimum entropy value so far, and the corresponding partition,
-            respectively. If not provided, and ``hist is None`` an iterator over
-            the same values will be returned instead.
+            respectively. If not provided, and ``density is None`` an iterator
+            over the same values will be returned instead.
         density : ``tuple`` (optional, default: ``None``)
             If provided, it should contain a tuple with values ``(S_min, S_max,
             n_bins)``, which will be used to obtain the density of states via a
@@ -891,17 +902,17 @@ class ExhaustiveSweepState(EntropyState):
         Returns
         -------
         states : iterator over (S, S_min, b_min)
-            If ``callback`` is ``None`` and ``hist`` is ``None``, the function
-            will return an iterator over ``(S, S_min, b_min)`` corresponding to
-            the the current entropy value, the minimum entropy value so far, and
-            the corresponding partition, respectively.
+            If ``callback`` is ``None`` and ``density`` is ``None``, the
+            function will return an iterator over ``(S, S_min, b_min)``
+            corresponding to the current entropy value, the minimum entropy
+            value so far, and the corresponding partition, respectively.
         Ss, counts : pair of :class:`numpy.ndarray`
-            If ``callback is None`` and ``hist is not None``, the function will
-            return the values of each bin (``Ss``) and the state count of each
-            bin (``counts``).
+            If ``callback is None`` and ``density is not None``, the function
+            will return the values of each bin (``Ss``) and the state count of
+            each bin (``counts``).
         b_min : :class:`~graph_tool.VertexPropertyMap`
-            If ``callback is not None`` or ``hist is not None``, the function
-            will also return partition with smallest entropy.
+            If ``callback is not None`` or ``density is not None``, the function
+            will also return the partition with the smallest entropy.
 
         Notes
         -----

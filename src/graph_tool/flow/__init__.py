@@ -103,7 +103,7 @@ def edmonds_karp_max_flow(g, source, target, capacity, residual=None):
         The target (or "sink") vertex.
     capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: none)
+    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map where the residuals should be stored.
 
     Returns
@@ -163,10 +163,10 @@ def edmonds_karp_max_flow(g, source, target, capacity, residual=None):
     ----------
     .. [boost-edmonds-karp] http://www.boost.org/libs/graph/doc/edmonds_karp_max_flow.html
     .. [edmonds-theoretical-1972] Jack Edmonds and Richard M. Karp, "Theoretical
-       improvements in the algorithmic efficiency for network flow problems.
-       Journal of the ACM", 19:248-264, 1972 :doi:`10.1145/321694.321699`
+       improvements in the algorithmic efficiency for network flow problems",
+       Journal of the ACM 19:248-264, 1972 :doi:`10.1145/321694.321699`
     .. [ravindra-network-1993] Ravindra K. Ahuja and Thomas L. Magnanti and
-       James B. Orlin,"Network Flows: Theory, Algorithms, and Applications".
+       James B. Orlin, "Network Flows: Theory, Algorithms, and Applications".
        Prentice Hall, 1993.
     """
 
@@ -200,7 +200,7 @@ def push_relabel_max_flow(g, source, target, capacity, residual=None):
         The target (or "sink") vertex.
     capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: none)
+    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map where the residuals should be stored.
 
     Returns
@@ -243,8 +243,8 @@ def push_relabel_max_flow(g, source, target, capacity, residual=None):
     References
     ----------
     .. [boost-push-relabel] http://www.boost.org/libs/graph/doc/push_relabel_max_flow.html
-    .. [goldberg-new-1985] A. V. Goldberg, "A New Max-Flow Algorithm",  MIT
-       Tehnical report MIT/LCS/TM-291, 1985.
+    .. [goldberg-new-1985] A. V. Goldberg, "A New Max-Flow Algorithm", MIT
+       Technical report MIT/LCS/TM-291, 1985.
     """
 
     _check_prop_scalar(capacity, "capacity")
@@ -277,7 +277,7 @@ def boykov_kolmogorov_max_flow(g, source, target, capacity, residual=None):
         The target (or "sink") vertex.
     capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: none)
+    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map where the residuals should be stored.
 
     Returns
@@ -365,9 +365,9 @@ def min_st_cut(g, source, capacity, residual):
 
     Returns
     -------
-    partition : :class:`~graph_tool.EdgePropertyMap`
+    partition : :class:`~graph_tool.VertexPropertyMap`
         Boolean-valued vertex property map with the cut partition. Vertices with
-        value `True` belong to the source side of the cut.
+        value ``True`` belong to the source side of the cut.
 
     Notes
     -----
@@ -406,7 +406,7 @@ def min_st_cut(g, source, capacity, residual):
        Edge flows obtained with the Boykov-Kolmogorov algorithm. The source and
        target are labeled ``0`` and ``7``, respectively. The edge capacities are
        represented by the edge width, and the maximum flow by the edge labels.
-       Vertices of the same color are on the same side the minimum cut.
+       Vertices of the same color are on the same side of the minimum cut.
 
     References
     ----------

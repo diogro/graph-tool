@@ -71,15 +71,20 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         Local field acting as a prior for the node partition. This should be a
         vector property map of type ``vector<double>``, and contain the
         log-probability for each node to be placed in each group.
+    Bfield : iterable of ``float`` (optional, default: ``None``)
+        Prior on the number of nonempty groups :math:`B`. If supplied, entry
+        ``Bfield[B]`` should contain the log-probability of having :math:`B`
+        nonempty groups (the last entry is used for values of :math:`B` beyond
+        the end of the list).
     deg_corr : ``bool`` (optional, default: ``True``)
-        If ``True``, the degree-corrected version of model will be assumed,
+        If ``True``, the degree-corrected version of the model will be assumed,
         otherwise the non-degree-corrected variant will be used.
     flat_map : ``bool`` (optional, default: ``False``)
         If ``True``, flat maps will be used instead of hash tables, which will
         be slower, but will use less memory.
-    entropy_args: ``keyword parameters`` (optional, default: ``empty``)
+    entropy_args : ``keyword parameters`` (optional, default: ``empty``)
         Override default arguments for :meth:`~BlockState.entropy()` method and
-        releated operations.
+        related operations.
 
     """
 
@@ -155,22 +160,22 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
     @property
     def mrs(self):
-        r""":class:`~graph_tool.EdgePropertyMap` with with edge counts between groups"""
+        r""":class:`~graph_tool.EdgePropertyMap` with edge counts between groups"""
         return self._mrs
 
     @property
     def wr(self):
-        r""":class:`~graph_tool.VertexPropertyMap` with with group sizes"""
+        r""":class:`~graph_tool.VertexPropertyMap` with group sizes"""
         return self._wr
 
     @property
     def mrp(self):
-        r""":class:`~graph_tool.VertexPropertyMap` with with sums of out-degrees per group"""
+        r""":class:`~graph_tool.VertexPropertyMap` with sums of out-degrees per group"""
         return self._mrp
 
     @property
     def mrm(self):
-        r""":class:`~graph_tool.VertexPropertyMap` with with sums of in-degrees per group"""
+        r""":class:`~graph_tool.VertexPropertyMap` with sums of in-degrees per group"""
         return self._mrm
 
     @property
@@ -347,14 +352,21 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
             If ``True``, the degree entropy term that is independent of the
             network partition will be included (for degree-corrected models).
         parallel_entropy : ``bool`` (optional, default: ``True``)
-            If ``True``, the entropy term relating to the multiplcities of
+            If ``True``, the entropy term relating to the multiplicities of
             parallel edges, which is independent of the network partition, will
-            be included (for muligraph models).
+            be included (for multigraph models).
         beta_dl : ``double`` (optional, default: ``1.``)
             Prior inverse temperature.
-        Bfield : ``bool`` (optional, default: ``False``)
-            If ``True``, the ``Bfield`` parameter passed to the construtor will be
-            taken into account.
+        Bfield : ``bool`` (optional, default: ``True``)
+            If ``True``, the ``Bfield`` parameter passed to the constructor will
+            be taken into account.
+        propagate : ``bool`` (optional, default: ``True``)
+            If ``True``, the description length of coupled upper-level states
+            (e.g. in a hierarchical model) will be included.
+        constants : ``bool`` (optional, default: ``True``)
+            If ``True``, the terms that are independent of the network
+            partition (controlled by ``deg_entropy`` and ``parallel_entropy``)
+            will be included.
 
         Notes
         -----
@@ -423,7 +435,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         If ``dl == True``, the description length :math:`\mathcal{L} = -\ln
         P(\boldsymbol{\theta})` of the model parameters will be returned as
         well. The terms :math:`P(\boldsymbol{e})` and :math:`P(\boldsymbol{b})`
-        are described in described as follows.
+        are described as follows.
 
         For an undirected graph, the number of distinct :math:`e_{rs}` matrices is
         given by,
@@ -462,9 +474,8 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
            -\ln P(\boldsymbol{e}, \boldsymbol{b}) = -\ln P(\boldsymbol{e}) - \ln P(\boldsymbol{b}).
 
-        If ``nr`` is ``None``, it is assumed :math:`n_r=N/B`. If ``nr`` is
-        ``False``, the partition term :math:`-\ln P(\boldsymbol{b})` is omitted
-        entirely.
+        If ``partition_dl == False``, the partition term :math:`-\ln
+        P(\boldsymbol{b})` is omitted entirely.
 
         For the degree-corrected model we need to specify the prior
         :math:`P(\boldsymbol{k})` for the degree sequence as well. Here there
@@ -681,7 +692,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         return self._state.modify_edge_dS(u, v, dm, ea)
 
     def modify_edge(self, u, v, dm):
-        """Changes the multiplicity of edge ;math:`(u, v)` by a integer
+        """Changes the multiplicity of edge :math:`(u, v)` by an integer
         difference ``dm``."""
         return self._state.modify_edge(u, v, dm)
 
@@ -690,7 +701,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
     def collect_edge_marginals(self, p=None, update=1):
         r"""Collect the edge marginal histogram, which counts the number of times
-        the endpoints of each node have been assigned to a given block pair.
+        the endpoints of each edge have been assigned to a given block pair.
 
         This should be called multiple times, e.g. after repeated runs of the
         :meth:`graph_tool.inference.BlockState.mcmc_sweep` function.
@@ -829,7 +840,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
         Returns
         -------
-        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        h : :class:`~graph_tool.inference.PartitionHist`
             Updated Partition histogram.
 
         Examples
@@ -870,9 +881,9 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
             model. Otherwise, it will be sampled from the microcanonical model.
         multigraph : ``bool`` (optional, default: ``True``)
             If ``True``, parallel edges will be allowed.
-        self-loops : ``bool`` (optional, default: ``True``)
+        self_loops : ``bool`` (optional, default: ``True``)
             If ``True``, self-loops will be allowed.
-        sample_params : ``bool`` (optional, default: ``True``)
+        sample_params : ``bool`` (optional, default: ``False``)
             If ``True``, and ``canonical == True`` and ``max_ent == False``,
             the count parameters (edges between groups and node degrees) will be
             sampled from their posterior distribution conditioned on the actual
@@ -998,31 +1009,37 @@ class WeightedBlockState(BlockState):
         ``"discrete-poisson"`` or ``"discrete-binomial"``.
     rec_params : list of ``dict`` (optional, default: ``[]``)
         Model hyperparameters for edge covariates. This should be a list of
-        ``dict`` instances, or the string `"microcanonical"` (the default if
-        nothing is specified). The keys depend on the type of edge covariate:
+        ``dict`` instances, or the string ``"microcanonical"`` (the default if
+        nothing is specified). If ``"microcanonical"`` is used, all
+        hyperparameters below are set to ``NaN`` (except ``N`` for
+        ``"discrete-binomial"``), which selects the microcanonical variant of
+        the model. If a ``dict`` is given, any keys omitted from it take the
+        default values listed below. The keys depend on the type of edge
+        covariate:
 
         ``"real-exponential"`` or ``"discrete-poisson"``
-            The parameter list is ``["r", "theta"]``, corresponding to the
+            The parameter list is ``["alpha", "beta"]``, corresponding to the
             parameters of the `Gamma
             <https://en.wikipedia.org/wiki/Gamma_distribution>`_ prior
-            distribution.  If unspecified, the default is the "empirical Bayes"
-            choice: ``r = 1.0`` and ``theta`` is the global average of the edge
-            covariate.
+            distribution. If unspecified, the default is the "empirical Bayes"
+            choice: ``alpha = 1`` and ``beta`` is the global average of the
+            edge covariate.
 
         ``"discrete-geometric"``
             The parameter list is ``["alpha", "beta"]``, corresponding to the
             parameters of the `Beta
             <https://en.wikipedia.org/wiki/Beta_distribution>`_ prior
             distribution. If unspecified, the default is the noninformative
-            choice: ``alpha = beta = 1.0``
+            choice: ``alpha = beta = 1``.
 
         ``"discrete-binomial"``
             The parameter list is ``["N", "alpha", "beta"]``, corresponding to
             the number of trials ``N`` and the parameters of the `Beta
             <https://en.wikipedia.org/wiki/Beta_distribution>`_ prior
             distribution. If unspecified, the default is the noninformative
-            choice, ``alpha = beta = 1.0``, and ``N`` is taken to be the maximum
-            edge covarite value.
+            choice, ``alpha = beta = 1``, and ``N`` is taken to be the maximum
+            edge covariate value. If only ``N`` is given, ``alpha`` and
+            ``beta`` are set to ``NaN``.
 
         ``"real-normal"``
             The parameter list is ``["m0", "k0", "v0", "nu0"]`` corresponding to
@@ -1032,7 +1049,7 @@ class WeightedBlockState(BlockState):
             prior. If unspecified, the defaults are: ``m0 = rec.fa.mean()``,
             ``k0 = 1``, ``v0 = rec.fa.std() ** 2``, and ``nu0 = 3``, where
             ``rec`` is the corresponding edge covariate property map.
-    **kwargs : ``(keywork parameters)`` (optional, default: ``(none)``)
+    **kwargs : ``(keyword parameters)`` (optional, default: ``(none)``)
         Parameters to be passed to :class:`~graph_tool.inference.BlockState`.
     """
 
@@ -1099,7 +1116,7 @@ class WeightedBlockState(BlockState):
 
     @property
     def mrs(self):
-        r""":class:`~graph_tool.EdgePropertyMap` with with edge counts between groups"""
+        r""":class:`~graph_tool.EdgePropertyMap` with edge counts between groups"""
         if self._mk_override:
             return (self._mrs, self.brec, self.bdrec, self.rec_types)
         return self._mrs
@@ -1297,7 +1314,7 @@ def bethe_entropy(g, p):
     Hmf : ``float``
         The "mean field" entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`__),
         as would be returned by the :func:`mf_entropy` function.
-    pv : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+    pv : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with vector-type values, storing the accumulated
         block membership counts. These are the node marginals, as would be
         returned by the
@@ -1378,7 +1395,7 @@ def microstate_entropy(h, unlabel=True):
 
     Parameters
     ----------
-    h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+    h : :class:`~graph_tool.inference.PartitionHist`
         Partition histogram.
     unlabel : bool (optional, default: ``True``)
         If ``True``, a canonical labelling of the groups will be used, so that
@@ -1400,8 +1417,8 @@ def microstate_entropy(h, unlabel=True):
 
         H = - \sum_{\boldsymbol b}p({\boldsymbol b})\ln p({\boldsymbol b}),
 
-    where :math:`p({\boldsymbol b})` is observed frequency of labelled partition
-    :math:`{\boldsymbol b}`.
+    where :math:`p({\boldsymbol b})` is the observed frequency of labelled
+    partition :math:`{\boldsymbol b}`.
 
     References
     ----------

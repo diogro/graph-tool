@@ -37,7 +37,7 @@ def latent_multigraph(g, epsilon=1e-8, max_niter=0, verbose=False):
         Convergence criterion.
     max_niter : ``int`` (optional, default: ``0``)
         Maximum number of iterations allowed (if ``0``, no maximum is assumed).
-    verbose : ``boolean`` (optional, default: ``False``)
+    verbose : ``bool`` (optional, default: ``False``)
         If ``True``, display verbose information.
 
     Returns

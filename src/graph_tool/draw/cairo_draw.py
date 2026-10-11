@@ -632,17 +632,15 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
     ecnorm : :class:`matplotlib.colors.Normalize` (optional, default: ``None``)
         An object which, when called, normalizes edge property values into the
         :math:`[0.0, 1.0]` interval, before passing to the ``ecmap`` colormap.
-    loop_angle : float or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``numpy.nan``)
+    loop_angle : float or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``numpy.nan``)
         Angle used to draw self-loops. If ``nan`` is given, they will be placed
         radially from the center of the layout.
     parallel_distance : float (optional, default: ``None``)
         Distance used between parallel edges. If not provided, it will be
         determined automatically.
-    bg_color : str or sequence (optional, default: ``None``)
-        Background color. The default is transparent.
-    res : float (optional, default: ``0.``):
+    res : float (optional, default: ``0.``)
         If shape sizes fall below this value, simplified drawing is used.
-    max_render_time : int (optional, default: ``-1``):
+    max_render_time : int (optional, default: ``-1``)
         If nonnegative, this function will return an iterator that will perform
         part of the drawing at each step, so that each iteration takes at most
         ``max_render_time`` milliseconds.
@@ -815,17 +813,19 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         to figure out the bounding box, before the actual drawing is
         made. Otherwise, only the vertex positions will be used for this
         purpose. If the value is ``None``, then it will be assumed ``True`` for
-        networks of size 10,000 nodes or less, otherwise it will be assumed
+        networks of size 1,000 nodes or less, otherwise it will be assumed
         ``False``.
     adjust_aspect : bool (optional, default: ``True``)
         If ``True``, and ``fit_view == True`` the output size will be decreased
         in the width or height to remove empty spaces.
     ink_scale : float (optional, default: ``1.``)
         Scale all sizes and widths by this factor.
-    inline : bool (optional, default: ``False``)
+    inline : bool (optional, default: ``has_draw_inline``)
         If ``True`` and an `IPython notebook <http://ipython.org/notebook>`_  is
-        being used, an inline version of the drawing will be returned.
-    inline_scale : float (optional, default: ``2.``):
+        being used, an inline version of the drawing will be returned. By
+        default, this is ``True`` only if an inline :mod:`matplotlib` backend
+        is active.
+    inline_scale : float (optional, default: ``2.``)
         Resolution scaling factor for inline images.
     mplfig : :mod:`matplotlib` container object (optional, default: ``None``)
         The ``mplfig`` object needs to have an ``add_artist()`` function. This
@@ -840,14 +840,14 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     output : string or file object (optional, default: ``None``)
         Output file name (or object). If not given, the graph will be displayed via
         :func:`interactive_window`.
-    fmt : string (default: ``"auto"``)
-        Output file format. Possible values are ``"auto"``, ``"ps"``, ``"pdf"``,
-        ``"svg"``, and ``"png"``. If the value is ``"auto"``, the format is
+    fmt : string (optional, default: ``"auto"``)
+        Output file format. Possible values are ``"auto"``, ``"ps"``,
+        ``"eps"``, ``"pdf"``, ``"svg"``, and ``"png"``. If the value is ``"auto"``, the format is
         guessed from the ``output`` parameter.
     bg_color : str or sequence (optional, default: ``None``)
         Background color. The default is transparent.
     antialias : :class:`cairo.Antialias` (optional, default: ``None``)
-        If supplied, this will set the antialising mode of the cairo context.
+        If supplied, this will set the antialiasing mode of the cairo context.
     vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``vertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
@@ -881,7 +881,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         +================+===================================================+========================+==================================+
         | shape          | The vertex shape. Can be one of the following     | ``str`` or ``int``     | ``"circle"``                     |
         |                | strings: "circle", "triangle", "square",          |                        |                                  |
-        |                | "pentagon", "hexagon", "heptagon", "octagon"      |                        |                                  |
+        |                | "pentagon", "hexagon", "heptagon", "octagon",     |                        |                                  |
         |                | "double_circle", "double_triangle",               |                        |                                  |
         |                | "double_square", "double_pentagon",               |                        |                                  |
         |                | "double_hexagon", "double_heptagon",              |                        |                                  |
@@ -889,10 +889,10 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         |                | Optionally, this might take a numeric value       |                        |                                  |
         |                | corresponding to position in the list above.      |                        |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
-        | color          | Color used to stroke the lines of the vertex.     | ``str`` or list of     | ``[0., 0., 0., 1]``              |
+        | color          | Color used to stroke the lines of the vertex.     | ``str`` or list of     | ``[0.6, 0.6, 0.6, 0.8]``         |
         |                |                                                   | ``floats``             |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
-        | fill_color     | Color used to fill the interior of the vertex.    | ``str`` or list of     | ``[0.640625, 0, 0, 0.9]``        |
+        | fill_color     | Color used to fill the interior of the vertex.    | ``str`` or list of     | ``[0.647, 0.059, 0.082, 0.8]``   |
         |                |                                                   | ``floats``             |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
         | size           | The size of the vertex, in the default units of   | ``float`` or ``int``   | ``5``                            |
@@ -946,7 +946,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         | text_out_color | Color used to draw the text outline.              | ``str`` or list of     | ``[0,0,0,0]``                    |
         |                |                                                   | ``floats``             |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
-        | text_out_width | Width of the text outline.                        | ``float``              | ``1.``                           |
+        | text_out_width | Width of the text outline.                        | ``float``              | ``0.1``                          |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
         | font_family    | Font family used to draw the text.                | ``str``                | ``"serif"``                      |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
@@ -963,8 +963,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         | pie_fractions  | Fractions of the pie sections for the vertices if | list of ``int`` or     | ``[0.75, 0.25]``                 |
         |                | ``shape=="pie"``.                                 | ``float``              |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
-        | pie_colors     | Colors used in the pie sections if                | list of strings or     | ``('b','g','r','c','m','y','k')``|
-        |                | ``shape=="pie"``.                                 | ``float``.             |                                  |
+        | pie_colors     | Colors used in the pie sections if                | list of strings or     | First 10 colors of               |
+        |                | ``shape=="pie"``.                                 | ``float``.             | ``default_cm``                   |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
 
 
@@ -1014,15 +1014,15 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         | text_color     | Color used to draw the text.                      | ``str`` or list of     | ``[0., 0., 0., 1.]``             |
         |                |                                                   | ``floats``             |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
-        | text_distance  | Distance from the edge and its text.              | ``float`` or ``int``   | ``4``                            |
+        | text_distance  | Distance from the edge and its text.              | ``float`` or ``int``   | ``5``                            |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
         | text_parallel  | If ``True`` the text will be drawn parallel to    | ``bool``               | ``True``                         |
         |                | the edges.                                        |                        |                                  |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
         | text_out_color | Color used to draw the text outline.              | ``str`` or list of     | ``[0,0,0,0]``                    |
         |                |                                                   | ``floats``             |                                  |
-        +--------------- +---------------------------------------------------+------------------------+----------------------------------+
-        | text_out_width | Width of the text outline.                        | ``float``              | ``1.``                           |
+        +----------------+---------------------------------------------------+------------------------+----------------------------------+
+        | text_out_width | Width of the text outline.                        | ``float``              | ``0.1``                          |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
         | font_family    | Font family used to draw the text.                | ``str``                | ``"serif"``                      |
         +----------------+---------------------------------------------------+------------------------+----------------------------------+
@@ -1428,17 +1428,17 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True,
         Graph to be drawn.
     t : :class:`~graph_tool.Graph`
         Directed graph containing the hierarchy of ``g``. It must be a directed
-        tree with a single root. The direction of the edges point from the root
+        tree with a single root. The direction of the edges points from the root
         to the leaves, and the vertices in ``t`` with index in the range
         :math:`[0, N-1]`, with :math:`N` being the number of vertices in ``g``,
         must correspond to the respective vertex in ``g``.
     tpos : :class:`~graph_tool.VertexPropertyMap`
         Vector-valued vertex property map containing the x and y coordinates of
         the vertices in graph ``t``.
-    beta : ``float`` (optional, default: ``0.8`` or :class:`~graph_tool.EdgePropertyMap`)
+    beta : ``float`` or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``0.8``)
         Edge bundling strength. For ``beta == 0`` the edges are straight lines,
         and for ``beta == 1`` they strictly follow the hierarchy. This can be
-        optionally an edge property map, which specified a different bundling
+        optionally an edge property map, which specifies a different bundling
         strength for each edge.
     cts : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map of type ``vector<double>`` where the control points
@@ -1591,13 +1591,16 @@ class GraphArtist(matplotlib.artist.Artist):
             Vector-valued vertex property map containing the x and y coordinates
             of the vertices.
         ax : :class:`matplotlib.axes.Axes`
-            A :class:`matplotlib.axes.Axes` instance where the graph will be drawn..
+            A :class:`matplotlib.axes.Axes` instance where the graph will be drawn.
         vprops : dict (optional, default: ``None``)
             Dictionary with the vertex properties.
         eprops : dict (optional, default: ``None``)
             Dictionary with the edge properties.
+        raster : bool (optional, default: ``False``)
+            If ``True``, the graph will be rasterized even if a cairo-based
+            backend is being used.
         **kwargs : dict (optional, default: ``None``)
-            Remaining options to pass to :class:`~graph_tool.draw.cairo_draw`.
+            Remaining options to pass to :func:`~graph_tool.draw.cairo_draw`.
         """
 
         matplotlib.artist.Artist.__init__(self)
@@ -1827,8 +1830,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         Edge bundling strength.
     node_weight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, this specifies a vertex property map with the relative angular
-        section that each vertex occupies. This value is ignored if
-        ``layout != "radial"``.
+        section that each vertex occupies. This value is ignored unless
+        ``layout`` is ``"radial"`` or ``"bipartite"``.
     vprops : dict (optional, default: ``None``)
         Dictionary with the vertex properties. Individual properties may also be
         given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
@@ -1853,13 +1856,13 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         If provided, only this number of random edges will be drawn. If the
         value is a list, it should include the edges that are to be drawn.
     rel_order : ``str`` or ``None`` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``"degree"``)
-        If ``degree``, the vertices will be ordered according to degree inside
+        If ``"degree"``, the vertices will be ordered according to degree inside
         each group, and the relative ordering of the hierarchy branches. If
         instead a :class:`~graph_tool.VertexPropertyMap` is provided, its value will
         be used for the relative ordering.
     deg_size : ``bool`` (optional, default: ``True``)
         If ``True``, the (total) node degrees will be used for the default
-        vertex sizes..
+        vertex sizes.
     vsize_scale : ``float`` (optional, default: ``1.``)
         Multiplicative factor for the default vertex sizes.
     hsize_scale : ``float`` (optional, default: ``1.``)
@@ -1867,8 +1870,9 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     hshortcuts : ``int`` (optional, default: ``0``)
         Include shortcuts to the number of upper layers in the hierarchy
         determined by this parameter.
-    hide : ``int`` (optional, default: ``0``)
-        Hide upper levels of the hierarchy.
+    hide : ``int`` or ``None`` (optional, default: ``0``)
+        Hide upper levels of the hierarchy. If ``None`` is given, the upper
+        levels with no groups are hidden.
     bip_aspect : ``float`` (optional, default: ``1.``)
         If ``layout == "bipartite"``, this will define the aspect ratio of layout.
     empty_branches : ``bool`` (optional, default: ``False``)
@@ -1902,7 +1906,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         This is a vertex property map with the positions of
         the vertices in the layout.
     t : :class:`~graph_tool.Graph`
-        This is a the hierarchy tree used in the layout.
+        This is the hierarchy tree used in the layout.
     tpos : :class:`~graph_tool.VertexPropertyMap`
         This is a vertex property map with the positions of
         the hierarchy tree in the layout.

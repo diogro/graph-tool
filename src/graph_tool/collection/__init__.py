@@ -37,7 +37,7 @@ Interface to the Netzschleuder online network repository
     "lazy" dictionary, i.e. it only downloads the graphs when the items are
     accessed for the first time. The description and summary information for
     each graph are given in the :data:`ns_info` dictionary, or alternatively in
-    the graph properties which accompanies each graph object.
+    the graph properties which accompany each graph object.
 
 
     Examples
@@ -260,7 +260,7 @@ Built-in collection of empirical network data
                                                                  online bookseller Amazon.com. Edges between
                                                                  books represent frequent copurchasing of books
                                                                  by the same buyers. The network was compiled by
-                                                                 V. Krebs and is unpublished, but can found on
+                                                                 V. Krebs and is unpublished, but can be found on
                                                                  Krebs' `web site <http://www.orgnet.com/>`_.
                                                                  Retrieved from `Mark Newman's website
                                                                  <http://www-personal.umich.edu/~mejn/netdata/>`_.
@@ -319,10 +319,10 @@ Small graph atlas
 
 .. data:: atlas
 
-    Lazy list of of all graphs with up to seven nodes named in the
+    Lazy list of all graphs with up to seven nodes named in the
     Graph Atlas [atlas]_.
 
-    The graphs are listed in increasing according to
+    The graphs are listed in increasing order according to
 
     1. number of nodes,
     2. number of edges,
@@ -340,7 +340,7 @@ Small graph atlas
 
     References
     ++++++++++
-    .. [atlas] Ronald C. Read and Robin J. Wilson, “An Atlas of Graphs". Oxford
+    .. [atlas] Ronald C. Read and Robin J. Wilson, “An Atlas of Graphs”. Oxford
        University Press, 1998.
 """
 

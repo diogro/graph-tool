@@ -23,7 +23,7 @@
 -----------------------
 
 This module contains several linear operators based on network structure, which
-useful for spectral analysis.
+are useful for spectral analysis.
 
 Sparse matrices
 +++++++++++++++
@@ -89,8 +89,10 @@ def _operator(f):
         object returned is used to perform matrix-vector or matrix-matrix
         multiplications.)
     """
+    if "@operator@" not in f.__doc__:
+        return f
     f.__doc__ = f.__doc__.replace("@operator@", text)
-    return f
+    return _parallel(f)
 
 @_operator
 def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
@@ -115,7 +117,7 @@ def adjacency(g, weight=None, vindex=None, operator=False, csr=True):
 
     Returns
     -------
-    A : :class:`~scipy.sparse.csr_matrix` or :class:`AdjacencyOperator`
+    A : :class:`~scipy.sparse.csr_matrix`, :class:`~scipy.sparse.coo_matrix` or :class:`AdjacencyOperator`
         The (sparse) adjacency matrix.
 
     Notes
@@ -284,9 +286,9 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : str (optional, default: "out")
+    deg : str (optional, default: ``"out"``)
         Degree to be used, in case of a directed graph.
-    norm : bool (optional, default: False)
+    norm : bool (optional, default: ``False``)
         Whether to compute the normalized Laplacian.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
@@ -307,7 +309,7 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
 
     Returns
     -------
-    L : :class:`~scipy.sparse.csr_matrix` or :class:`LaplacianOperator`
+    L : :class:`~scipy.sparse.csr_matrix`, :class:`~scipy.sparse.coo_matrix` or :class:`LaplacianOperator`
         The (sparse) Laplacian matrix.
 
     Notes
@@ -323,7 +325,7 @@ def laplacian(g, deg="out", norm=False, weight=None, r=1, vindex=None, operator=
         0           & \text{otherwise}.
         \end{cases}
 
-    Where :math:`\Gamma(v_i)=\sum_j A_{ij}w_{ij}` is sum of the weights of the
+    Where :math:`\Gamma(v_i)=\sum_j A_{ij}w_{ij}` is the sum of the weights of the
     edges incident on vertex :math:`v_i`.
 
     In case of :math:`r > 1`, the matrix returned is the Bethe Hessian
@@ -577,7 +579,7 @@ def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
 
     Returns
     -------
-    a : :class:`~scipy.sparse.csr_matrix` or :class:`IncidenceOperator`
+    a : :class:`~scipy.sparse.csr_matrix`, :class:`~scipy.sparse.coo_matrix` or :class:`IncidenceOperator`
         The (sparse) incidence matrix.
 
     Notes
@@ -588,7 +590,7 @@ def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
 
         b_{i,j} =
         \begin{cases}
-            1 & \text{if vertex } v_i \text{and edge } e_j \text{ are incident}, \\
+            1 & \text{if vertex } v_i \text{ and edge } e_j \text{ are incident}, \\
             0 & \text{otherwise}
         \end{cases}
 
@@ -630,9 +632,9 @@ def incidence(g, vindex=None, eindex=None, operator=False, csr=True):
     >>> ylabel(r"$\lambda_i$")
     Text(...)
     >>> tight_layout()
-    >>> savefig("polblogs-indidence-svd.svg")
+    >>> savefig("polblogs-incidence-svd.svg")
 
-    .. figure:: polblogs-indidence-svd.*
+    .. figure:: polblogs-incidence-svd.*
         :align: center
 
         Incidence singular values for the political blogs network.
@@ -769,7 +771,7 @@ def transition(g, weight=None, vindex=None, operator=False, csr=True):
 
     Returns
     -------
-    T : :class:`~scipy.sparse.csr_matrix` or :class:`TransitionOperator`
+    T : :class:`~scipy.sparse.csr_matrix`, :class:`~scipy.sparse.coo_matrix` or :class:`TransitionOperator`
         The (sparse) transition matrix.
 
     Notes
@@ -938,7 +940,7 @@ def modularity_matrix(g, weight=None, vindex=None):
         Graph to be used.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
-    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+    vindex : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map specifying the row/column indices. If not provided, the
         internal vertex index is used.
 
@@ -1040,7 +1042,7 @@ def hashimoto(g, index=None, compact=False, operator=False, csr=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+    index : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map specifying the row/column indices. If not provided, the
         internal edge index is used.
     compact : ``boolean`` (optional, default: ``False``)
@@ -1056,7 +1058,7 @@ def hashimoto(g, index=None, compact=False, operator=False, csr=True):
 
     Returns
     -------
-    H : :class:`~scipy.sparse.csr_matrix` or :class:`HashimotoOperator` or :class:`CompactHashimotoOperator`
+    H : :class:`~scipy.sparse.csr_matrix`, :class:`~scipy.sparse.coo_matrix`, :class:`HashimotoOperator` or :class:`CompactHashimotoOperator`
         The (sparse) Hashimoto matrix.
 
     Notes

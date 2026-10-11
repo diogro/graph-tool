@@ -123,8 +123,8 @@ Directionality
 
    edge_reciprocity
 
-Combinatorial optimizaton
-+++++++++++++++++++++++++
+Combinatorial optimization
+++++++++++++++++++++++++++
 
 .. autosummary::
    :nosignatures:
@@ -211,7 +211,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
     This function also allows for generalized similarities according to an
     :math:`L^p` norm, for arbitrary exponent :math:`p`.
 
-    More specifically, the (unormalized) adjacency similarity is defined as:
+    More specifically, the (unnormalized) adjacency similarity is defined as:
 
     .. math::
 
@@ -504,7 +504,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
        where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
     For directed graphs, only out-neighbors are considered in the above
-    algorthms (for "inv-log-weight", the in-degrees are used to compute the
+    algorithms (for "inv-log-weight", the in-degrees are used to compute the
     weights). To use the in-neighbors instead, a :class:`~graph_tool.GraphView`
     should be used to reverse the graph, e.g. ``vertex_similarity(GraphView(g,
     reversed=True))``.
@@ -553,8 +553,8 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
     References
     ----------
     .. [sorensen-dice] https://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient
-    .. [salton] G. Salton, M. J. McGill, "Introduction to Modern Informa-tion Retrieval",
-       (MuGraw-Hill, Auckland, 1983).
+    .. [salton] G. Salton, M. J. McGill, "Introduction to Modern Information
+       Retrieval", (McGraw-Hill, Auckland, 1983).
     .. [ravasz_hierarchical_2002] Ravasz, E., Somera, A. L., Mongru, D. A.,
        Oltvai, Z. N., & Barabási, A. L., "Hierarchical organization of
        modularity in metabolic networks", Science, 297(5586), 1551-1555,
@@ -666,11 +666,11 @@ def isomorphism(g1, g2, vertex_inv1=None, vertex_inv2=None, isomap=False):
         First graph.
     g2 : :class:`~graph_tool.Graph`
         Second graph.
-    vertex_inv1 : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
-        Vertex invariant of the first graph. Only vertices with with the same
+    vertex_inv1 : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Vertex invariant of the first graph. Only vertices with the same
         invariants are considered in the isomorphism.
-    vertex_inv2 : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
-        Vertex invariant of the second graph. Only vertices with with the same
+    vertex_inv2 : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Vertex invariant of the second graph. Only vertices with the same
         invariants are considered in the isomorphism.
     isomap : ``bool`` (optional, default: ``False``)
         If ``True``, a :class:`~graph_tool.VertexPropertyMap` with the
@@ -836,7 +836,7 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
        IEEE Trans. Pattern Anal. Mach. Intell., vol. 26, no. 10, pp. 1367-1372, 2004.
        :doi:`10.1109/TPAMI.2004.75`
     .. [boost-subgraph-iso] http://www.boost.org/libs/graph/doc/vf2_sub_graph_iso.html
-    .. [subgraph-isormophism-wikipedia] http://en.wikipedia.org/wiki/Subgraph_isomorphism_problem
+    .. [subgraph-isomorphism-wikipedia] http://en.wikipedia.org/wiki/Subgraph_isomorphism_problem
 
     """
     if sub.num_vertices() == 0:
@@ -871,15 +871,32 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
 
 def mark_subgraph(g, sub, vmap, vmask=None, emask=None):
     r"""
-    Mark a given subgraph `sub` on the graph `g`.
+    Mark a given subgraph ``sub`` on the graph ``g``.
 
-    The mapping must be provided by the `vmap` and `emap` parameters,
-    which map vertices/edges of `sub` to indices of the corresponding
-    vertices/edges in `g`.
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph in which the subgraph will be marked.
+    sub : :class:`~graph_tool.Graph`
+        Subgraph to be marked.
+    vmap : :class:`~graph_tool.VertexPropertyMap`
+        Vertex property map belonging to ``sub``, which maps its vertices to
+        the indices of the corresponding vertices in ``g``.
+    vmask : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        Boolean vertex property map of ``g`` where the result will be stored.
+        If not provided, a new one will be created.
+    emask : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Boolean edge property map of ``g`` where the result will be stored.
+        If not provided, a new one will be created.
 
-    This returns a vertex and an edge property map, with value type 'bool',
-    indicating whether or not a vertex/edge in `g` corresponds to the subgraph
-    `sub`.
+    Returns
+    -------
+    vmask : :class:`~graph_tool.VertexPropertyMap`
+        Boolean vertex property map indicating whether or not a vertex in
+        ``g`` belongs to the subgraph ``sub``.
+    emask : :class:`~graph_tool.EdgePropertyMap`
+        Boolean edge property map indicating whether or not an edge in ``g``
+        belongs to the subgraph ``sub``.
     """
     if vmask is None:
         vmask = g.new_vertex_property("bool")
@@ -916,7 +933,7 @@ def max_cliques(g):
     Notes
     -----
 
-    This implements the Bron-Kerbosh algorithm [bron_algorithm_1973]_
+    This implements the Bron-Kerbosch algorithm [bron_algorithm_1973]_
     [bron-kerbosh-wiki]_ with pivoting [tomita_worst-case_2006]_
     [cazals_note_2008]_.
 
@@ -961,19 +978,19 @@ def min_spanning_tree(g, weights=None, root=None, tree_map=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         The edge weights. If provided, the minimum spanning tree will minimize
         the edge weights.
-    root : :class:`~graph_tool.Vertex` (optional, default: `None`)
+    root : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Root of the minimum spanning tree. If this is provided, Prim's algorithm
         is used. Otherwise, Kruskal's algorithm is used.
-    tree_map : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
+    tree_map : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If provided, the edge tree map will be written in this property map.
 
     Returns
     -------
     tree_map : :class:`~graph_tool.EdgePropertyMap`
-        Edge property map with mark the tree edges: 1 for tree edge, 0
+        Edge property map which marks the tree edges: 1 for tree edge, 0
         otherwise.
 
     Notes
@@ -1052,18 +1069,18 @@ def random_spanning_tree(g, weights=None, root=None, tree_map=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         The edge weights. If provided, the probability of a particular spanning
         tree being selected is the product of its edge weights.
-    root : :class:`~graph_tool.Vertex` (optional, default: `None`)
+    root : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Root of the spanning tree. If not provided, it will be selected randomly.
-    tree_map : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
+    tree_map : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If provided, the edge tree map will be written in this property map.
 
     Returns
     -------
     tree_map : :class:`~graph_tool.EdgePropertyMap`
-        Edge property map with mark the tree edges: 1 for tree edge, 0
+        Edge property map which marks the tree edges: 1 for tree edge, 0
         otherwise.
 
     Notes
@@ -1148,7 +1165,8 @@ def random_spanning_tree(g, weights=None, root=None, tree_map=None):
 
 
 def dominator_tree(g, root, dom_map=None):
-    r"""Return a vertex property map the dominator vertices for each vertex.
+    r"""Return a vertex property map containing the dominator vertices for each
+    vertex.
 
     Parameters
     ----------
@@ -1214,6 +1232,16 @@ def topological_sort(g):
     Return the topological sort of the given graph. It is returned as an array
     of vertex indices, in the sort order.
 
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used. It must be a directed acyclic graph (DAG).
+
+    Returns
+    -------
+    sort : :class:`numpy.ndarray`
+        Array of vertex indices in topological order.
+
     Notes
     -----
     The topological sort algorithm creates a linear ordering of the vertices
@@ -1257,6 +1285,16 @@ def topological_sort(g):
 def transitive_closure(g):
     """Return the transitive closure graph of g.
 
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Directed graph to be used.
+
+    Returns
+    -------
+    tc : :class:`~graph_tool.Graph`
+        The transitive closure graph.
+
     Notes
     -----
     The transitive closure of a graph G = (V,E) is a graph G* = (V,E*) such that
@@ -1298,7 +1336,7 @@ def label_components(g, vprop=None, directed=None, attractors=False):
     Label the components to which each vertex in the graph belongs. If the
     graph is directed, it finds the strongly connected components.
 
-    A property map with the component labels is returned, together with an
+    A property map with the component labels is returned, together with a
     histogram of component labels.
 
     Parameters
@@ -1324,8 +1362,8 @@ def label_components(g, vprop=None, directed=None, attractors=False):
         Histogram of component labels.
     is_attractor : :class:`numpy.ndarray`
         A Boolean array specifying if the strongly connected components are
-        attractors or not. This returned only if ``attractors == True``, and the
-        graph is directed.
+        attractors or not. This is returned only if ``attractors == True``, and
+        the graph is directed.
 
     Notes
     -----
@@ -1548,8 +1586,8 @@ def label_biconnected_components(g, eprop=None, vprop=None):
     Label the edges of biconnected components, and the vertices which are
     articulation points.
 
-    An edge property map with the component labels is returned, together a
-    boolean vertex map marking the articulation points, and an histogram of
+    An edge property map with the component labels is returned, together with
+    a boolean vertex map marking the articulation points, and a histogram of
     component labels.
 
     Parameters
@@ -1572,8 +1610,8 @@ def label_biconnected_components(g, eprop=None, vprop=None):
     articulation : :class:`~graph_tool.VertexPropertyMap`
         Boolean vertex property map which has value 1 for each vertex which is
         an articulation point, and zero otherwise.
-    nc : int
-        Number of biconnected components.
+    hist : :class:`numpy.ndarray`
+        Histogram of biconnected component labels.
 
     Notes
     -----
@@ -1732,7 +1770,7 @@ def edge_percolation(g, edges, second=False):
         List of edges in reversed order of removal. If the type is
         :class:`numpy.ndarray`, it should have a shape ``(E, 2)``, where ``E``
         is the number of edges, such that ``edges[i,0]`` and ``edges[i,1]`` are
-        the both endpoints of edge ``i``.
+        both endpoints of edge ``i``.
     second : bool (optional, default: ``False``)
         If ``True``, the size of the second-largest component will be computed.
 
@@ -1880,7 +1918,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
                       negative_weights=False, max_dist=None, directed=None,
                       dense=False, dist_map=None, pred_map=False,
                       return_reached=False, dag=False):
-    r"""Calculate the distance from a source to a target vertex, or to of all
+    r"""Calculate the distance from a source to a target vertex, or to all
     vertices from a given source, or the all pairs shortest paths, if the source
     is not specified.
 
@@ -1898,13 +1936,13 @@ def shortest_distance(g, source=None, target=None, weights=None,
         The edge weights. If provided, the shortest path will correspond to the
         minimal sum of weights.
     negative_weights : ``bool`` (optional, default: ``False``)
-        If `True`, this will trigger the use of the Bellman-Ford algorithm.
+        If ``True``, this will trigger the use of the Bellman-Ford algorithm.
         Ignored if ``source`` is ``None``.
     max_dist : scalar value (optional, default: ``None``)
         If specified, this limits the maximum distance of the vertices
         searched. This parameter has no effect if source is ``None``, or if
-        `negative_weights=True`.
-    directed : ``bool`` (optional, default:``None``)
+        ``negative_weights=True``.
+    directed : ``bool`` (optional, default: ``None``)
         Treat graph as directed or not, independently of its actual
         directionality.
     dense : ``bool`` (optional, default: ``False``)
@@ -1931,8 +1969,8 @@ def shortest_distance(g, source=None, target=None, weights=None,
     pred_map : ``bool`` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``False``)
         If ``True``, a vertex property map with the predecessors is returned.
         If a :class:`~graph_tool.VertexPropertyMap` is passed, it must be of value
-        ``int64_t`` and it will be used to store the predecessors.  Ignored if
-        ``source`` is ``None``.
+        type ``int64_t`` and it will be used to store the predecessors. Ignored
+        if ``source`` is ``None``.
 
         .. warning::
 
@@ -1943,7 +1981,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     return_reached : ``bool`` (optional, default: ``False``)
         If ``True``, return an array of visited vertices.
-    dag : ``bool`` (optional, default:``False``)
+    dag : ``bool`` (optional, default: ``False``)
         If ``True``, assume that the graph is a Directed Acyclic Graph (DAG),
         which will be faster if ``weights`` are given, in which case they are
         also allowed to contain negative values (irrespective of the parameter
@@ -2159,7 +2197,7 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         Vertex property map with the predecessors in the search tree. If this is
         provided, the shortest paths are not computed, and are obtained directly
         from this map.
-    dag : ``bool`` (optional, default:``False``)
+    dag : ``bool`` (optional, default: ``False``)
         If ``True``, assume that the graph is a Directed Acyclic Graph (DAG),
         which will be faster if ``weights`` are given, in which case they are
         also allowed to contain negative values (irrespective of the parameter
@@ -2403,7 +2441,7 @@ def random_shortest_path(g, source, target, dist_map=None, pred_map=None,
         If ``True``, an iterator is returned.
     **kwargs : Keyword parameter list
         The remaining parameters will be passed to
-        :func:`~graph_tool.topology.shortest_path`.
+        :func:`~graph_tool.topology.shortest_distance`.
 
     Returns
     -------
@@ -2415,10 +2453,10 @@ def random_shortest_path(g, source, target, dist_map=None, pred_map=None,
     -----
 
     The paths are computed in the same manner as in
-    :func:`~graph_tool.topology.shortest_path`, which is used internally.
+    :func:`~graph_tool.topology.shortest_distance`, which is used internally.
 
     If both ``dist_map`` and ``pred_map`` are provided, the
-    :func:`~graph_tool.topology.shortest_path` is not called.
+    :func:`~graph_tool.topology.shortest_distance` is not called.
 
     Examples
     --------
@@ -2502,7 +2540,7 @@ def count_shortest_paths(g, source, target, dist_map=None, pred_map=None,
         in case floating-point weights are used.
     **kwargs : Keyword parameter list
         The remaining parameters will be passed to
-        :func:`~graph_tool.topology.shortest_path`.
+        :func:`~graph_tool.topology.shortest_distance`.
 
     Returns
     -------
@@ -2513,10 +2551,10 @@ def count_shortest_paths(g, source, target, dist_map=None, pred_map=None,
     -----
 
     The paths are computed in the same manner as in
-    :func:`~graph_tool.topology.shortest_path`, which is used internally.
+    :func:`~graph_tool.topology.shortest_distance`, which is used internally.
 
     If both ``dist_map`` and ``pred_map`` are provided, the
-    :func:`~graph_tool.topology.shortest_path` is not called.
+    :func:`~graph_tool.topology.shortest_distance` is not called.
 
     Examples
     --------
@@ -2617,9 +2655,9 @@ def all_circuits(g, unique=False, max_length=0):
         A directed graph to be used. (Undirected graphs are also accepted, in
         which case each undirected edge is assumed to be equivalent to two
         directed edges in both directions.)
-    unique : ``bool`` (optional, default: ``None``)
+    unique : ``bool`` (optional, default: ``False``)
         If ``True``, parallel edges and self-loops will be ignored.
-    max_length: ``int`` (optional, default: ``0``)
+    max_length : ``int`` (optional, default: ``0``)
         The maximum circuit length to consider. Beyond this it truncates the
         depth-first search, reducing the computation time by ignoring longer
         circuits. The default value of ``max_length = 0`` implies no maximum.
@@ -2673,15 +2711,15 @@ def pseudo_diameter(g, source=None, weights=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex` (optional, default: `None`)
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Source vertex of the search. If not supplied, the first vertex
         in the graph will be chosen.
-    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         The edge weights.
 
     Returns
     -------
-    pseudo_diameter : int
+    pseudo_diameter : float
         The pseudo-diameter of the graph.
     end_points : pair of :class:`~graph_tool.Vertex`
         The two vertices which correspond to the pseudo-diameter found.
@@ -2762,8 +2800,8 @@ def is_bipartite(g, partition=False, find_odd_cycle=False):
     is_bipartite : ``bool``
         Whether or not the graph is bipartite.
     partition : :class:`~graph_tool.VertexPropertyMap` (only if ``partition=True``)
-        A vertex property map with the graph partitioning (or ``None``) if the
-        graph is not bipartite.
+        A vertex property map with the graph partitioning. If the graph is not
+        bipartite, all its values are set to zero.
     odd_cycle : list of vertices (only if ``find_odd_cycle=True``)
         A list of vertices corresponding to an odd cycle, or ``None`` if none is
         found.
@@ -2839,10 +2877,10 @@ def is_planar(g, embedding=False, kuratowski=False):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    embedding : bool (optional, default: False)
+    embedding : bool (optional, default: ``False``)
         If true, return a mapping from vertices to the clockwise order of
         out-edges in the planar embedding.
-    kuratowski : bool (optional, default: False)
+    kuratowski : bool (optional, default: ``False``)
         If true, the minimal set of edges that form the obstructing Kuratowski
         subgraph will be returned as a property map, if the graph is not planar.
 
@@ -2852,7 +2890,7 @@ def is_planar(g, embedding=False, kuratowski=False):
         Whether or not the graph is planar.
     embedding : :class:`~graph_tool.VertexPropertyMap` (only if `embedding=True`)
         A vertex property map with the out-edges indices in clockwise order in
-        the planar embedding,
+        the planar embedding.
     kuratowski : :class:`~graph_tool.EdgePropertyMap` (only if `kuratowski=True`)
         An edge property map with the minimal set of edges that form the
         obstructing Kuratowski subgraph (if the value of kuratowski[e] is 1,
@@ -2991,7 +3029,12 @@ def make_maximal_planar(g):
 
 def is_DAG(g):
     """
-    Return `True` if the graph is a directed acyclic graph (DAG).
+    Return ``True`` if the graph is a directed acyclic graph (DAG).
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
 
     Notes
     -----
@@ -3045,7 +3088,7 @@ def max_cardinality_matching(g, weight=None, bipartite=False,
         Initial matching strategy. Can be one of: `"empty"`, `"greedy"`,
         `"extra_greedy"`. Ignored if ``weight`` is given, or
         ``heuristic == True``.
-    minimize : ``bool`` (optional, default: ``True``)
+    minimize : ``bool`` (optional, default: ``False``)
         If ``True``, the matching will minimize the weights, otherwise they will
         be maximized. This option has no effect if ``heuristic == False``.
     heuristic : ``bool`` (optional, default: ``False``)
@@ -3073,7 +3116,7 @@ def max_cardinality_matching(g, weight=None, bipartite=False,
     *and* maximum weight is returned.
 
     If ``heuristic == True`` the algorithm does not necessarily return the
-    maximum matching, instead the focus is to run on linear time
+    maximum matching, instead the focus is to run in linear time
     [matching-heuristic]_.
 
     This algorithm runs in time :math:`O(EV\times\alpha(E,V))`, where
@@ -3174,10 +3217,10 @@ def max_independent_vertex_set(g, high_deg=False, mivs=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    high_deg : bool (optional, default: `False`)
-        If `True`, vertices with high degree will be included first in the set,
-        otherwise they will be included last.
-    mivs : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
+    high_deg : bool (optional, default: ``False``)
+        If ``True``, vertices with high degree will be included first in the
+        set, otherwise they will be included last.
+    mivs : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map where the vertex set will be specified.
 
     Returns
@@ -3246,8 +3289,7 @@ def edge_reciprocity(g, weight=None, self_loops=False):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Graph to be used
-        edges.
+        Graph to be used.
     weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights.
     self_loops : ``bool`` (optional, default: ``False``)
@@ -3264,7 +3306,7 @@ def edge_reciprocity(g, weight=None, self_loops=False):
     The edge [reciprocity]_ is defined as :math:`E^\leftrightarrow/E`, where
     :math:`E^\leftrightarrow` and :math:`E` are the number of bidirectional and
     all edges in the graph, respectively. If ``self_loops is False``, self-loops
-    are not considered in these counds.
+    are not considered in these counts.
 
     If weights are provided, the number of edges is replaced by the sum of edge
     weights.

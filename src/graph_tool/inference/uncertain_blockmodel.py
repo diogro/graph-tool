@@ -189,7 +189,7 @@ class UncertainBaseState(EntropyState):
 
         Parameters
         ----------
-        beta : ``float`` (optional, default: ``np.inf``)
+        beta : ``float`` (optional, default: ``1``)
             Inverse temperature parameter.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps.
@@ -198,9 +198,9 @@ class UncertainBaseState(EntropyState):
         puniform : ``double`` (optional, default: ``.25``)
             Probability of choosing uniformly at random an edge to update.
         bisect : ``boolean`` (optional, default: ``False``)
-            If true, the edge multiplicity proposals will be sampled using
-            bisection approach. Otherwise, they will be sampled from a centered
-            geometric distribution.
+            If true, the edge multiplicity proposals will be sampled using a
+            bisection approach. Otherwise, they will be sampled from a
+            centered geometric distribution.
         verbose : ``boolean`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -208,6 +208,8 @@ class UncertainBaseState(EntropyState):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of move attempts.
         nmoves : ``int``
             Number of variables moved.
 
@@ -538,12 +540,12 @@ class MeasuredBlockState(UncertainBaseState):
     lp : ``float`` (optional, default: ``NaN``)
         Log-probability of missing edges (false negatives). If given as ``NaN``,
         it is assumed this is an unknown sampled from a Beta distribution, with
-        hyperparameters given by ``fn_params`.  Otherwise the  values of
+        hyperparameters given by ``fn_params``.  Otherwise the  values of
         ``fn_params`` are ignored.
     lq : ``float`` (optional, default: ``NaN``)
         Log-probability of spurious edges (false positives). If given as
         ``NaN``, it is assumed this is an unknown sampled from a Beta
-        distribution, with hyperparameters given by ``fp_params`. Otherwise the
+        distribution, with hyperparameters given by ``fp_params``. Otherwise the
         values of ``fp_params`` are ignored.
     fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=1)``)
         Beta distribution hyperparameters for the probability of missing
@@ -656,7 +658,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
         positive measurements for each edge.
     n_default : ``int`` (optional, default: ``1``)
         Total number of measurements for each non-edge.
-    x_default : ``int`` (optional, default: ``1``)
+    x_default : ``int`` (optional, default: ``0``)
         Total number of positive measurements for each non-edge.
     fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=10)``)
         Beta distribution hyperparameters for the probability of missing
@@ -794,9 +796,9 @@ class MixedMeasuredBlockState(UncertainBaseState):
     def mcmc_sweep(self, pedges=.5, ph=.1, hstep=1, multiflip=True, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection sampling MCMC to
         sample network partitions and latent edges. The parameter ``pedges``
-        controls the probability with which edge move will be attempted, instead
-        of partition moves. The parameter ``ph`` controls the relative
-        probability with which hyperparamters moves will be attempted, and
+        controls the probability with which edge moves will be attempted,
+        instead of partition moves. The parameter ``ph`` controls the relative
+        probability with which hyperparameter moves will be attempted, and
         ``hstep`` is the size of the step.
 
         The remaining keyword parameters will be passed to
@@ -832,7 +834,7 @@ class LatentMaskBlockState(UncertainBaseState):
     f : :class:`~graph_tool.EdgePropertyMap`
         Edge property map of type ``double``, containing the probability of
         preserving a latent edge count in the observed multigraph.
-    f_default : ``int`` (optional, default: ``0``)
+    f_default : ``float`` (optional, default: ``0.``)
         Default probability of preserving a latent edge for edges not present in
         ``g``.
     nested : ``boolean`` (optional, default: ``True``)

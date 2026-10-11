@@ -40,18 +40,18 @@ def modularity(g, b, gamma=1., weight=None):
         Vertex property map with the community partition.
     gamma : ``float`` (optional, default: ``1.``)
         Resolution parameter.
-    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the optional edge weights.
 
     Returns
     -------
-    Q : float
+    Q : ``float``
         Newman's modularity.
 
     Notes
     -----
 
-    Given a specific graph partition specified by `prop`, Newman's modularity
+    Given a specific graph partition specified by ``b``, Newman's modularity
     [newman-modularity-2006]_ is defined as:
 
     .. math::
@@ -125,9 +125,9 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
     clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
-    entropy_args: ``dict`` (optional, default: ``{}``)
+    entropy_args : ``dict`` (optional, default: ``{}``)
         Override default arguments for :meth:`~ModularityState.entropy()`
-        method and releated operations.
+        method and related operations.
 
     References
     ----------
@@ -167,7 +167,7 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
     def get_Be(self):
         r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with
         :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
-        the number of nodes in group r.
+        the number of nodes in group :math:`r`.
         """
         w = np.bincount(self.b.fa)
         w = np.array(w, dtype="double")
@@ -186,10 +186,11 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
 
         .. math::
 
-           -\sum_{ij}\left(A_{ij}-\gamma \frac{k_ik_j}{2E}\right)
+           -\sum_{ij}\left(A_{ij}-\gamma \frac{k_ik_j}{2E}\right)\delta_{b_i,b_j}
 
         Where :math:`A_{ij}` is the adjacency matrix, :math:`k_i` is the degree
-        of node :math:`i`, and :math:`E` is the total number of edges.
+        of node :math:`i`, :math:`b_i` is the group membership of node
+        :math:`i`, and :math:`E` is the total number of edges.
 
         """
 
@@ -205,10 +206,11 @@ class ModularityState(CLabelState, MCMCState, MultiflipMCMCState,
 
         .. math::
 
-           \frac{1}{2E}\sum_{ij}\left(A_{ij}-\gamma \frac{k_ik_j}{2E}\right)
+           \frac{1}{2E}\sum_{ij}\left(A_{ij}-\gamma \frac{k_ik_j}{2E}\right)\delta_{b_i,b_j}
 
         Where :math:`A_{ij}` is the adjacency matrix, :math:`k_i` is the degree
-        of node :math:`i`, and :math:`E` is the total number of edges.
+        of node :math:`i`, :math:`b_i` is the group membership of node
+        :math:`i`, and :math:`E` is the total number of edges.
 
         """
 

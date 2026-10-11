@@ -65,12 +65,12 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights. If omitted, a constant value of 1 will be used.
-    prop : :class:`~graph_tool.VertexPropertyMap` or string, optional
+    prop : :class:`~graph_tool.VertexPropertyMap` or string (optional, default: ``None``)
         Vertex property map where results will be stored. If specified, this
         parameter will also be the return value.
-    undirected : bool (default: ``True``)
+    undirected : bool (optional, default: ``True``)
         Calculate the *undirected* clustering coefficient, if graph is directed
         (this option has no effect if the graph is undirected).
 
@@ -99,7 +99,7 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
        N_i = \{j : (i,j) \in E\}
 
     is the set of out-neighbors of vertex :math:`i`. For undirected graphs the
-    value of :math:`c_i` further normalized as
+    value of :math:`c_i` is further normalized as
 
     .. math::
        c_i \leftarrow  2c_i.
@@ -115,7 +115,7 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     :math:`A_{ij} \in [0,1]`.
 
     The implemented algorithm runs in :math:`O(|V|\left<k^2\right>)` time,
-    where :math:`\left<k^2\right>` is second moment of the degree distribution.
+    where :math:`\left<k^2\right>` is the second moment of the degree distribution.
 
     @parallel@
 
@@ -154,15 +154,15 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights. If omitted, a constant value of 1 will be used.
     ret_counts : ``boolean`` (optional, default: ``False``)
         If ``True`` the number of triangles and connected triples are also
         returned.
-    sampled : bool (default: ``False``)
-        If ``True`` a much faster, assymptotically exact, sampling estimate is
-        performed. In this case the, ``weight`` option is ignored.
-    m : int (default: ``1000``)
+    sampled : bool (optional, default: ``False``)
+        If ``True`` a much faster, asymptotically exact, sampling estimate is
+        performed. In this case, the ``weight`` option is ignored.
+    m : int (optional, default: ``1000``)
         If ``sampled is True``, this will be the number of samples used for the
         estimation.
 
@@ -171,9 +171,9 @@ def global_clustering(g, weight=None, ret_counts=False, sampled=False, m=1000):
     c : tuple of floats or float
         Global clustering coefficient and standard deviation (jackknife method).
         If ``sampled is True`` only the clustering coefficient is returned.
-    triangles : `int` (if ``ret_counts is True``)
+    triangles : int (if ``ret_counts is True``)
         Number of triangles. Not returned if ``sampled is True``.
-    triples : `int` (if ``ret_counts is True``)
+    triples : int (if ``ret_counts is True``)
         Number of connected triples. Not returned if ``sampled is True``.
 
     See Also
@@ -332,15 +332,15 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
         Graph to be used.
     k : int
         number of vertices of the motifs
-    p : float or float list (optional, default: `1.0`)
+    p : float or float list (optional, default: ``1.0``)
         uniform fraction of the motifs to be sampled. If a float list is
         provided, it will be used as the fraction at each depth
         :math:`[1,\dots,k]` in the algorithm. See [wernicke-efficient-2006]_ for
         more details.
-    motif_list : list of :class:`~graph_tool.Graph` objects, optional
+    motif_list : list of :class:`~graph_tool.Graph` objects (optional, default: ``None``)
         If supplied, the algorithms will only search for the motifs in this list
         (or isomorphisms).
-    return_maps : bool (optional, default `False`)
+    return_maps : bool (optional, default: ``False``)
         If ``True``, a list will be returned, which provides for each motif graph a
         list of vertex property maps which map the motif to its location in the
         main graph.
@@ -356,7 +356,7 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
         The number of times the respective motif in the motifs list was counted
     vertex_maps : list of lists of :class:`~graph_tool.VertexPropertyMap` objects
         List for each motif graph containing the locations in the main
-        graph. This is only returned if `return_maps == True`.
+        graph. This is only returned if ``return_maps == True``.
 
     See Also
     --------
@@ -367,7 +367,7 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
 
     Notes
     -----
-    This functions implements the ESU and RAND-ESU algorithms described in
+    This function implements the ESU and RAND-ESU algorithms described in
     [wernicke-efficient-2006]_.
 
     @parallel@
@@ -485,29 +485,29 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
         Graph to be used.
     k : int
         Number of vertices of the motifs
-    n_shuffles : int (optional, default: 100)
+    n_shuffles : int (optional, default: ``100``)
         Number of shuffled networks to consider for the z-score
-    p : float or float list (optional, default: 1.0)
+    p : float or float list (optional, default: ``1.0``)
         Uniform fraction of the motifs to be sampled. If a float list is
         provided, it will be used as the fraction at each depth
         :math:`[1,\dots,k]` in the algorithm. See [wernicke-efficient-2006]_ for
         more details.
-    motif_list : list of :class:`~graph_tool.Graph` objects (optional, default: None)
+    motif_list : list of :class:`~graph_tool.Graph` objects (optional, default: ``None``)
         If supplied, the algorithms will only search for the motifs in this list
         (isomorphisms)
-    threshold : int (optional, default: 0)
+    threshold : int (optional, default: ``0``)
         If a given motif count is below this level, it is not considered.
-    self_loops : bool (optional, default: False)
+    self_loops : bool (optional, default: ``False``)
         Whether or not the shuffled graphs are allowed to contain self-loops
-    parallel_edges : bool (optional, default: False)
+    parallel_edges : bool (optional, default: ``False``)
         Whether or not the shuffled graphs are allowed to contain parallel
         edges.
-    full_output : bool (optional, default: False)
+    full_output : bool (optional, default: ``False``)
         If set to True, three additional lists are returned: the count
         of each motif, the average count of each motif in the shuffled networks,
         and the standard deviation of the average count of each motif in the
         shuffled networks.
-    shuffle_model : string (optional, default: "configuration")
+    shuffle_model : string (optional, default: ``"configuration"``)
         Shuffle model to use. See :func:`~graph_tool.generation.random_rewire`
         for details.
 
@@ -519,7 +519,7 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
         in this list. The list is sorted according to in-degree sequence,
         out-degree-sequence, and number of edges (in this order).
     z-scores : list of floats
-        The z-score of the respective motives. See below for the definition of
+        The z-score of the respective motifs. See below for the definition of
         the z-score.
 
     See Also
@@ -537,10 +537,11 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
          z_i = \frac{N_i - \left<N^s_i\right>}
          {\sqrt{\left<(N^s_i)^2\right> - \left<N^s_i\right>^2}},
 
-    where :math:`N_i` is the number of times motif i found, and :math:`N^s_i`
-    is the count of the same motif but on a shuffled network. It measures how
-    many standard deviations is each motif count, in respect to an ensemble of
-    randomly shuffled graphs with the same degree sequence.
+    where :math:`N_i` is the number of times motif i is found, and
+    :math:`N^s_i` is the count of the same motif but on a shuffled network. It
+    measures how many standard deviations each motif count deviates from the
+    mean, with respect to an ensemble of randomly shuffled graphs with the same
+    degree sequence.
 
     The z-score values are not normalized.
 

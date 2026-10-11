@@ -52,12 +52,16 @@ class LatentLayerBaseState(EntropyState):
 
         Parameters
         ----------
-        g : list of :class:`~graph_tool.Graph` (optional, default: ``None``)
+        gs : list of :class:`~graph_tool.Graph` (optional, default: ``None``)
             Previous marginal graphs.
+        total : ``bool`` (optional, default: ``False``)
+            If ``True``, an additional marginal graph is collected for the
+            state's full graph (``self.g``), and appended to the end of the
+            list.
 
         Returns
         -------
-        g : list :class:`~graph_tool.Graph`
+        g : list of :class:`~graph_tool.Graph`
             New list of marginal graphs, each with internal edge
             :class:`~graph_tool.EdgePropertyMap` ``"eprob"``, containing the
             marginal probabilities for each edge.
@@ -110,7 +114,7 @@ class LatentLayerBaseState(EntropyState):
 
         Parameters
         ----------
-        g : list of :class:`~graph_tool.Graph` (optional, default: ``None``)
+        gs : list of :class:`~graph_tool.Graph` (optional, default: ``None``)
             Previous marginal multigraphs.
 
         Returns
@@ -186,7 +190,7 @@ class LatentLayerBaseState(EntropyState):
     def mcmc_sweep(self, r=.5, multiflip=True, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection sampling MCMC to
         sample network partitions and latent edges. The parameter ``r`` controls
-        the probability with which edge move will be attempted, instead of
+        the probability with which edge moves will be attempted, instead of
         partition moves. The remaining keyword parameters will be passed to
         :meth:`~graph_tool.inference.BlockState.mcmc_sweep` or
         :meth:`~graph_tool.inference.BlockState.multiflip_mcmc_sweep`,
@@ -217,7 +221,7 @@ class LatentClosureBlockState(LatentLayerBaseState):
     L : ``int`` (optional, default: ``1``)
         Maximum number of triadic closure generations.
     b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Inital partition (or hierarchical partition ``nested=True``).
+        Initial partition (or hierarchical partition if ``nested=True``).
     aE : ``float`` (optional, default: ``NaN``)
         Expected total number of edges used in prior. If ``NaN``, a flat
         prior will be used instead.
@@ -238,9 +242,9 @@ class LatentClosureBlockState(LatentLayerBaseState):
         List of edge property maps of ``g``, each containing a list of integers
         with the ego graph memberships of every edge, for every triadic
         generation.
-    entropy_args: ``dict`` (optional, default: ``{}``)
+    entropy_args : ``dict`` (optional, default: ``{}``)
         Override default arguments for
-        :meth:`~LatentClosureBlockState.entropy()` method and releated
+        :meth:`~LatentClosureBlockState.entropy()` method and related
         operations.
 
     References
@@ -400,13 +404,13 @@ class LatentClosureBlockState(LatentLayerBaseState):
             posterior distribution conditioned on the actual state. Otherwise,
             their maximum-likelihood values will be used.
         canonical_closure : ``boolean`` (optional, default: ``True``)
-            If ``True``, the canonical version of triadic clousre will be used
+            If ``True``, the canonical version of triadic closure will be used
             (i.e. conditioned on a probability), otherwise the microcanonical
             version will be used (i.e. conditional on the count number).
 
         Returns
         -------
-        u : list :class:`~graph_tool.Graph`
+        u : :class:`~graph_tool.Graph`
             Sampled graph, with internal edge
             :class:`~graph_tool.EdgePropertyMap` ``"gen"``, containing the
             triadic generation of each edge.
@@ -486,13 +490,12 @@ class LatentClosureBlockState(LatentLayerBaseState):
 
         Parameters
         ----------
-        g : list of :class:`~graph_tool.Graph` (optional, default: ``None``)
+        gs : list of :class:`~graph_tool.Graph` (optional, default: ``None``)
             Previous marginal graphs.
 
         Returns
         -------
-        g : list :class:`~graph_tool.Graph`
-
+        g : list of :class:`~graph_tool.Graph`
             New list of marginal graphs, each with internal
             :class:`~graph_tool.EdgePropertyMap` ``"eprob"``, containing the
             marginal probabilities for each edge, as well as
@@ -568,7 +571,7 @@ class MeasuredClosureBlockState(LatentClosureBlockState, UncertainBaseState):
     L : ``int`` (optional, default: ``1``)
         Maximum number of triadic closure generations.
     b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Inital partition (or hierarchical partition ``nested=True``).
+        Initial partition (or hierarchical partition if ``nested=True``).
     fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=1)``)
         Beta distribution hyperparameters for the probability of missing
         edges (false negatives).

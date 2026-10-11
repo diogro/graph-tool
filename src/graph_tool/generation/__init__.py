@@ -214,7 +214,7 @@ def random_graph(N, deg_sampler, directed=True,
     Notes
     -----
     The algorithm makes sure the degree sequence is graphical (i.e. realizable)
-    and keeps re-sampling the degrees if is not. With a valid degree sequence,
+    and keeps re-sampling the degrees if it is not. With a valid degree sequence,
     the edges are placed deterministically, and later the graph is shuffled with
     the :func:`~graph_tool.generation.random_rewire` function, with all
     remaining parameters passed to it.
@@ -306,7 +306,7 @@ def random_graph(N, deg_sampler, directed=True,
 
         Combined degree histogram.
 
-    A correlated directed graph can be build as follows. Consider the following
+    A correlated directed graph can be built as follows. Consider the following
     degree correlation:
 
     .. math::
@@ -316,7 +316,8 @@ def random_graph(N, deg_sampler, directed=True,
 
     i.e., the in->out correlation is "disassortative", the out->in correlation
     is "assortative", and everything else is uncorrelated.
-    We will use a flat degree distribution in the range [1,20).
+    We will use the degree distribution :math:`P(k)\propto 1/k` in the range
+    [1,20).
 
     >>> p = scipy.stats.poisson
     >>> g = gt.random_graph(20000, lambda: (sample_k(19), sample_k(19)),
@@ -325,7 +326,7 @@ def random_graph(N, deg_sampler, directed=True,
     ...                                             p.pmf(a[1], 20 - b[0])),
     ...                     n_iter=100)
 
-    Lets plot the average degree correlations to check.
+    Let's plot the average degree correlations to check.
 
     >>> figure(figsize=(8,3))
     <...>
@@ -559,7 +560,7 @@ def random_rewire(g, model="configuration", n_iter=10, edge_sweep=True,
         swap attempt (which may repeat).
     edge_sweep : bool (optional, default: ``True``)
         If ``True``, each iteration will perform an entire "sweep" over the
-        edges, where each edge is visited once in random order, and a edge swap
+        edges, where each edge is visited once in random order, and an edge swap
         is attempted.
     parallel_edges : bool (optional, default: ``False``)
         If ``True``, parallel edges are allowed.
@@ -611,9 +612,9 @@ def random_rewire(g, model="configuration", n_iter=10, edge_sweep=True,
         If ``True``, the probabilities returned by the ``edge_probs`` parameter
         will be cached internally. This is crucial for good performance, since
         in this case the supplied python function is called only a few times,
-        and not at every attempted edge rewire move. However, in the case were
-        the different parameter combinations to the probability function is very
-        large, the memory and time requirements to keep the cache may not be
+        and not at every attempted edge rewire move. However, in the case where
+        the different parameter combinations to the probability function are
+        very large, the memory and time requirements to keep the cache may not be
         worthwhile.
     persist : bool (optional, default: ``False``)
         If ``True``, an edge swap which is rejected will be attempted again
@@ -622,9 +623,11 @@ def random_rewire(g, model="configuration", n_iter=10, edge_sweep=True,
         graphs, but otherwise it may result in many repeated attempts for
         certain corner-cases in which edges are difficult to swap.
     pin : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
-        Edge property map which, if provided, specifies which edges are allowed
-        to be rewired. Edges for which the property value is ``1`` (or ``True``)
-        will be left unmodified in the graph.
+        Edge property map which, if provided, specifies which edges are not
+        allowed to be rewired. Edges for which the property value is ``1`` (or
+        ``True``) will be left unmodified in the graph.
+    ret_fail : bool (optional, default: ``False``)
+        Currently unused.
     verbose : bool (optional, default: ``False``)
         If ``True``, verbose information is displayed.
 
@@ -643,12 +646,12 @@ def random_rewire(g, model="configuration", n_iter=10, edge_sweep=True,
     -----
     This algorithm iterates through all the edges in the network and tries to
     swap its target or source with the target or source of another edge. The
-    selected canditate swaps are chosen according to the ``model`` parameter.
+    selected candidate swaps are chosen according to the ``model`` parameter.
 
     .. note::
 
         If ``parallel_edges = False``, parallel edges are not placed during
-        rewiring. In this case, the returned graph will be a uncorrelated sample
+        rewiring. In this case, the returned graph will be an uncorrelated sample
         from the desired ensemble only if ``n_iter`` is sufficiently large. The
         algorithm implements an efficient Markov chain based on edge swaps, with
         a mixing time which depends on the degree distribution and correlations
@@ -914,18 +917,18 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     directed : ``bool`` (optional, default: ``False``)
         Whether the graph is directed.
     micro_ers : ``bool`` (optional, default: ``False``)
-        If ``True``, the `microcanonical` version of the model will be evoked, where
+        If ``True``, the `microcanonical` version of the model will be invoked, where
         the numbers of edges between groups will be given `exactly` by the
         parameter ``probs``, and this will not fluctuate between samples.
     micro_degs : ``bool`` (optional, default: ``False``)
         If ``True``, the `microcanonical` version of the degree-corrected model will
-        be evoked, where the degrees of vertices will be given `exactly` by the
+        be invoked, where the degrees of vertices will be given `exactly` by the
         parameters ``out_degs`` and ``in_degs``, and they will not fluctuate
         between samples. (If ``micro_degs == True`` it implies ``micro_ers ==
         True``.)
     condensed : ``bool`` (optional, default: ``False``)
         If ``True``, the graph returned will be a simple graph, with the edge
-        multiplicites returned as a property map.
+        multiplicities returned as a property map.
 
 
     Returns
@@ -993,7 +996,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     :math:`\theta^+_i=\theta^-_i=1/n_{b_i}` in the directed case), which is done
     automatically if ``out_degs`` and ``in_degs`` are not specified.
 
-    In case the parameter ``micro_degs == True`` is passed, a `microcanical
+    In case the parameter ``micro_degs == True`` is passed, a `microcanonical
     <https://en.wikipedia.org/wiki/Microcanonical_ensemble>`_ model is used
     instead, where both the number of edges between groups as well as the
     degrees of the vertices are preserved `exactly`, instead of only on expectation
@@ -1171,17 +1174,18 @@ def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
     self_loops : ``bool`` (optional, default: ``False``)
         Whether self-loops are allowed.
     epsilon : ``float`` (optional, default: ``1e-8``)
-        Whether self-loops are allowed.
+        Convergence threshold for the iterative solver. The iteration stops
+        when the maximum change in the fugacities falls below this value.
     iter_solve : ``bool`` (optional, default: ``True``)
         Solve the system by simple iteration, not gradient-based
         root-solving. Relevant only if ``multigraph == False``, otherwise
-        `iter_solve = True` is always assumed.
+        ``iter_solve = True`` is always assumed.
     max_iter : ``int`` (optional, default: ``0``)
         If non-zero, this will limit the maximum number of iterations.
-    min_args : ``{}`` (optional, default: ``{}``)
+    min_args : ``dict`` (optional, default: ``{}``)
         Options to be passed to :func:`scipy.optimize.minimize`. Only relevant
         if ``iter_solve=False``.
-    root_args : ``{}`` (optional, default: ``{}``)
+    root_args : ``dict`` (optional, default: ``{}``)
         Options to be passed to :func:`scipy.optimize.root`. Only relevant
         if ``iter_solve=False``.
     verbose : ``bool`` (optional, default: ``False``)
@@ -1374,7 +1378,7 @@ def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
         Whether self-loops are allowed.
     condensed : ``bool`` (optional, default: ``False``)
         If ``True``, and ``multigraph == True`` the graph returned will be a
-        simple graph, with the edge multiplicites returned as a property map.
+        simple graph, with the edge multiplicities returned as a property map.
 
     Returns
     -------
@@ -1512,16 +1516,16 @@ def add_random_edges(g, M, parallel=False, self_loops=False, weight=None):
     M : ``int``
         Number of edges to be added.
     parallel : ``bool`` (optional, default: ``False``)
-        Wheter to allow parallel edges to be added.
+        Whether to allow parallel edges to be added.
     self_loops : ``bool`` (optional, default: ``False``)
-        Wheter to allow self_loops to be added.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: ``None``)
+        Whether to allow self-loops to be added.
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Integer edge multiplicities. If supplied, this will be incremented for
         edges already in the graph, instead of new edges being added.
 
     See Also
     --------
-    remove_random_edges: remove random edges to the graph
+    remove_random_edges: remove random edges from the graph
 
     Notes
     -----
@@ -1558,10 +1562,10 @@ def remove_random_edges(g, M, weight=None, counts=True):
         Graph to be modified.
     M : ``int``
         Number of edges to be removed.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: ``None``)
-        Integer edge multipliciites or edge removal probabilities. If supplied,
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Integer edge multiplicities or edge removal probabilities. If supplied,
         and ``counts == True`` this will be decremented for edges removed.
-    counts : ``bool``, optional (default: ``True``)
+    counts : ``bool`` (optional, default: ``True``)
         If ``True``, the values given by ``weight`` are assumed to be integer
         edge multiplicities. Otherwise, they will be only considered to be
         proportional to the probability of an edge being removed.
@@ -1610,8 +1614,8 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     Parameters
     ----------
     points : iterable of lists (or :class:`numpy.ndarray`) of dimension :math:`N\times D` or ``int``
-        Points of dimension :math:`D` to be considered. If the parameter `dist`
-        is passed, this should be just an `int` containing the number of points.
+        Points of dimension :math:`D` to be considered. If the parameter ``dist``
+        is passed, this should be just an ``int`` containing the number of points.
     k : ``int``
         Number of nearest neighbors per vertex (or number of pairs if ``pairs is True``).
     dist : function (optional, default: ``None``)
@@ -1622,9 +1626,9 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
         L2-norm (Euclidean distance) is used.
     pairs : ``bool`` (optional, default: ``False``)
         If ``True``, the ``k`` closest pairs of vertices will be returned, otherwise
-        the ``k`` nearest neighbors for every edge is returned.
+        the ``k`` nearest neighbors for every vertex are returned.
     exact : ``bool`` (optional, default: ``False``)
-        If ``False``, an fast approximation will be used, otherwise an exact but
+        If ``False``, a fast approximation will be used, otherwise an exact but
         slow algorithm will be used.
     r : ``float`` (optional, default: ``.5``)
         If ``exact is False``, this specifies the fraction of randomly chosen
@@ -1640,7 +1644,7 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     c_stop : ``bool`` (optional, default: ``False``)
         If ``True``, an alternative stopping criterion will be used: The
         iteration ends when the global clustering coefficient of the undirected
-        KNN graph stopped increasing. In this case, the paramter ``epsilon`` is
+        KNN graph stops increasing. In this case, the parameter ``epsilon`` is
         ignored.
     max_iter : ``int`` (optional, default: ``0``)
         If ``exact is False``, this determines the maximum number of iterations
@@ -1648,6 +1652,8 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     directed : ``bool`` (optional, default: ``False``)
         If ``True`` a directed version of the graph will be returned, otherwise
         the graph is undirected.
+    verbose : ``bool`` (optional, default: ``False``)
+        If ``True``, verbose information will be displayed.
 
     Returns
     -------
@@ -1665,8 +1671,7 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
     version has a complexity of :math:`O(N^2)`.
 
     If ``pairs is True``, the :math:`k` closest pairs are found from the nearest
-    neighbors problem as described in [lenhof-k-closest]_, which has a
-    complexity upper bounded by
+    neighbors problem as described in [lenhof-k-closest]_.
 
     @parallel@
 
@@ -1676,7 +1681,7 @@ def generate_knn(points, k, dist=None, pairs=False, exact=False, r=.5,
        k-nearest neighbor graph construction for generic similarity measures",
        In Proceedings of the 20th international conference on World wide web
        (WWW '11). Association for Computing Machinery, New York, NY, USA,
-       577–586, (2011) :doi:`https://doi.org/10.1145/1963405.1963487`
+       577–586, (2011) :doi:`10.1145/1963405.1963487`
     .. [lenhof-k-closest] HP Lenhof, M Smid, "The k closest pairs problem",
        https://people.scs.carleton.ca/~michiel/k-closestnote.pdf
 
@@ -1747,7 +1752,7 @@ def generate_triadic_closure(g, t, probs=True, curr=None, ego=None):
         neighbors that will be closed.
     curr : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If given, this should be a boolean-valued edge property map, such that
-        triads will only be closed if they contain at least one edge marged with
+        triads will only be closed if they contain at least one edge marked with
         the value ``True``.
     ego : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If given, this should be an integer-valued edge property map, containing
@@ -1764,7 +1769,7 @@ def generate_triadic_closure(g, t, probs=True, curr=None, ego=None):
     Notes
     -----
 
-    This algorithm [peixoto-disentangling-2022]_ consist in, for each vertex
+    This algorithm [peixoto-disentangling-2022]_ consists in, for each vertex
     ``u``, connecting all its neighbors with probability given by ``t[u]``. In
     case ``probs == False``, then ``t[u]`` indicates the number of random pairs
     of neighbors of ``u`` that are connected. This algorithm may generate
@@ -1825,7 +1830,15 @@ def predecessor_tree(g, pred_map):
 
 
 def line_graph(g):
-    """Return the line graph of the given graph `g`.
+    """Return the line graph of the given graph ``g``.
+
+    Returns
+    -------
+    lg : :class:`~graph_tool.Graph`
+        The line graph.
+    vmap : :class:`~graph_tool.VertexPropertyMap`
+        Vertex property map of ``lg`` containing, for each of its vertices, the
+        index of the corresponding edge in ``g``.
 
     Notes
     -----
@@ -1896,7 +1909,7 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
     eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
        If provided, this will determine the weights of the edges of graph
        ``g2``. If not provided, each edge will be assumed to have unity weight.
-    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``"identity"``)
        Vertex property map owned by ``g2`` which maps each of its vertices to
        vertex indices belonging to ``g1``, in which case they are considered to
        be identical. Negative values mean no mapping exists, and thus both
@@ -1931,10 +1944,10 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
           The vector value from ``g2`` will be concatenated to the vector value
           from ``g1``.
 
-       The values of the dictionary must be lists, where each each element is a
+       The values of the dictionary must be lists, where each element is a
        pair of :class:`~graph_tool.PropertyMap` objects. The first element must
        be a property of ``g1``, and the second of ``g2``. If either value is
-       ``None``, an new map will be created, and set to appropriately empty
+       ``None``, a new map will be created, and set to appropriately empty
        values.
 
        The values of the property maps are propagated into the merged graph, and
@@ -1949,11 +1962,11 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
        respectively, and ``"name"`` is the name of the property map.
 
        An alternative value of ``"all"`` indicates that all property maps should
-       be considered. E.g. ``props = {"set": "all"}`` will set all the internal
+       be considered. E.g. ``internal_props = {"set": "all"}`` will set all the internal
        property maps to the merged graph.
 
        If an internal property map with the given name is not present in one of
-       the graphs, an new map will be created, and set appropriately to empty
+       the graphs, a new map will be created, and set appropriately to empty
        values.
     in_place : ``bool`` (optional, default: ``False``)
        If ``True``, graph ``g2`` is inserted in-place into ``g1``, which is then
@@ -1980,7 +1993,7 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
        :meth:`~graph_tool.Graph.set_fast_edge_lookup()`.
     fast_symmetric : ``bool`` (optional, default: ``True``)
        If ``True`` and ``symmetric is True or simple is False``, then fast edge
-       lookup in ``g1`` will be enabled via
+       lookup in ``g2`` will be enabled via
        :meth:`~graph_tool.Graph.set_fast_edge_lookup()`.
     simple : ``bool`` (optional, default: ``False``)
        If ``True``, it will be assumed that both ``g1`` and ``g2`` are simple
@@ -1991,18 +2004,18 @@ def graph_merge(g1, g2, eweight1=None, eweight2=None, vmap="identity", props={},
     ug : :class:`~graph_tool.Graph`
         The merged graph.
     w : :class:`~graph_tool.EdgePropertyMap`
-        The edge weights of the merged graph. This is only returned if
-        ``eweight1`` is not ``None``.
+        The edge weights of the merged graph. This is only returned if either
+        ``eweight1`` or ``eweight2`` is not ``None``.
     props : dictionary with lists of :class:`~graph_tool.PropertyMap` objects
-        List of properties in the merged graph, index by merge type. This is
-        only returned if `props` is not empty. Internal property maps are not
+        Lists of properties in the merged graph, indexed by merge type. This is
+        only returned if ``props`` is not empty. Internal property maps are not
         included in this list.
 
     See Also
     --------
     graph_union: Union of the edge (and vertex) sets between two graphs.
     graph_difference: Difference of the edge sets between two graphs.
-    graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
+    graph_sym_difference: Symmetric difference of the edge sets between two graphs.
     graph_intersection: Intersection of the edge sets between two graphs.
     condensation_graph: Obtain the condensation graph.
 
@@ -2271,12 +2284,12 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
        the edge sets. A special value of ``vmap == "identity"`` is a shortcut
        for ``vmap = g2.vertex_index``.
     props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
-       Property maps to be included in the union. Each element of th list must
+       Property maps to be included in the union. Each element of the list must
        be a pair of :class:`~graph_tool.PropertyMap` objects. The first
        element must be a property of ``g1``, and the second of ``g2``. If either
-       value is ``None``, an new map will be created, and set to appropriately
+       value is ``None``, a new map will be created, and set to appropriately
        empty values.
-    mt : ``str`` (otional, default: ``"set"``)
+    mt : ``str`` (optional, default: ``"set"``)
        Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
        ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
        :func:`~graph_tool.generation.graph_merge` for further documentation.
@@ -2300,17 +2313,18 @@ def graph_union(g1, g2, eweight1=None, eweight2=None, vmap="identity", props=[],
     ug : :class:`~graph_tool.Graph`
         The union graph.
     w : :class:`~graph_tool.EdgePropertyMap`
-        The edge weights of the union graph. This is only returned if
-        ``eweight1`` is not ``None``.
-    props : list of :class:`~graph_tool.PropertyMap` objects
-        List of properties in the merged graph. This is only returned if `props`
-        is not empty. Internal property maps are not included in this list.
+        The edge weights of the union graph. This is only returned if either
+        ``eweight1`` or ``eweight2`` is not ``None``.
+    props : dictionary with lists of :class:`~graph_tool.PropertyMap` objects
+        Dictionary with key ``"set"`` mapping to the list of properties in the
+        merged graph. This is only returned if ``props`` is not empty.
+        Internal property maps are not included in this list.
 
     See Also
     --------
     graph_merge: Merge the edge sets between two graphs.
     graph_difference: Difference of the edge sets between two graphs.
-    graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
+    graph_sym_difference: Symmetric difference of the edge sets between two graphs.
     graph_intersection: Intersection of the edge sets between two graphs.
     condensation_graph: Obtain the condensation graph.
 
@@ -2385,7 +2399,7 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
        If provided, this will determine the weights of the edges of graph
        ``g2``. If not provided, each edge will be assumed to have unity weight.
-    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``"identity"``)
        Vertex property map owned by ``g2`` which maps each of its vertices to
        vertex indices belonging to ``g1``, in which case they are considered to
        be identical. Negative values mean no mapping exists, and thus both
@@ -2396,12 +2410,12 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        correspond only to the edge sets. A special value of ``vmap ==
        "identity"`` is a shortcut for ``vmap = g2.vertex_index``.
     props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
-       Property maps to be included in the difference. Each element of th list must
+       Property maps to be included in the difference. Each element of the list must
        be a pair of :class:`~graph_tool.PropertyMap` objects. The first
        element must be a property of ``g1``, and the second of ``g2``. If either
-       value is ``None``, an new map will be created, and set to appropriately
+       value is ``None``, a new map will be created, and set to appropriately
        empty values.
-    mt : ``str`` (otional, default: ``"set"``)
+    mt : ``str`` (optional, default: ``"set"``)
        Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
        ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
        :func:`~graph_tool.generation.graph_merge` for further documentation.
@@ -2422,10 +2436,11 @@ def graph_sym_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
         The symmetric difference graph.
     w : :class:`~graph_tool.EdgePropertyMap`
         The edge weights of the difference graph. This is only returned if
-        ``eweight1`` is not ``None``.
-    props : list of :class:`~graph_tool.PropertyMap` objects
-        List of properties in the difference graph. This is only returned if `props`
-        is not empty. Internal property maps are not included in this list.
+        either ``eweight1`` or ``eweight2`` is not ``None``.
+    props : dictionary with lists of :class:`~graph_tool.PropertyMap` objects
+        Dictionary with key ``"set"`` mapping to the list of properties in the
+        difference graph. This is only returned if ``props`` is not empty.
+        Internal property maps are not included in this list.
 
     See Also
     --------
@@ -2502,7 +2517,7 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
        If provided, this will determine the weights of the edges of graph
        ``g2``. If not provided, each edge will be assumed to have unity weight.
-    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``"identity"``)
        Vertex property map owned by ``g2`` which maps each of its vertices to
        vertex indices belonging to ``g1``, in which case they are considered to
        be identical. Negative values mean no mapping exists, and thus both
@@ -2513,11 +2528,15 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        correspond only to the edge sets. A special value of ``vmap ==
        "identity"`` is a shortcut for ``vmap = g2.vertex_index``.
     props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
-       Property maps to be included in the difference. Each element of th list must
+       Property maps to be included in the difference. Each element of the list must
        be a pair of :class:`~graph_tool.PropertyMap` objects. The first
        element must be a property of ``g1``, and the second of ``g2``. If either
-       value is ``None``, an new map will be created, and set to appropriately
+       value is ``None``, a new map will be created, and set to appropriately
        empty values.
+    mt : ``str`` (optional, default: ``"set"``)
+       Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
+       ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
+       :func:`~graph_tool.generation.graph_merge` for further documentation.
     internal_props : ``bool`` (optional, default: ``False``)
        If ``True`` all internal property maps of ``g1`` and ``g2`` will be
        included in the difference.
@@ -2532,13 +2551,14 @@ def graph_difference(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     Returns
     -------
     ug : :class:`~graph_tool.Graph`
-        The symmetric difference graph.
+        The difference graph.
     w : :class:`~graph_tool.EdgePropertyMap`
         The edge weights of the difference graph. This is only returned if
-        ``eweight1`` is not ``None``.
-    props : list of :class:`~graph_tool.PropertyMap` objects
-        List of properties in the difference graph. This is only returned if `props`
-        is not empty. Internal property maps are not included in this list.
+        either ``eweight1`` or ``eweight2`` is not ``None``.
+    props : dictionary with lists of :class:`~graph_tool.PropertyMap` objects
+        Dictionary with key ``"set"`` mapping to the list of properties in the
+        difference graph. This is only returned if ``props`` is not empty.
+        Internal property maps are not included in this list.
 
     See Also
     --------
@@ -2608,7 +2628,7 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     Parameters
     ----------
     g1 : :class:`~graph_tool.Graph`
-       Graph to be subtracted from.
+       Graph to be intersected.
     g2 : :class:`~graph_tool.Graph`
        Graph to be compared to.
     eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
@@ -2617,7 +2637,7 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
        If provided, this will determine the weights of the edges of graph
        ``g2``. If not provided, each edge will be assumed to have unity weight.
-    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``None``)
+    vmap : :class:`~graph_tool.VertexPropertyMap`, ``"identity"``, or ``None`` (optional, default: ``"identity"``)
        Vertex property map owned by ``g2`` which maps each of its vertices to
        vertex indices belonging to ``g1``, in which case they are considered to
        be identical. Negative values mean no mapping exists, and thus both
@@ -2628,12 +2648,12 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
        the edge sets. A special value of ``vmap == "identity"`` is a shortcut
        for ``vmap = g2.vertex_index``.
     props : list of tuples of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
-       Property maps to be included in the intersection. Each element of th list must
+       Property maps to be included in the intersection. Each element of the list must
        be a pair of :class:`~graph_tool.PropertyMap` objects. The first
        element must be a property of ``g1``, and the second of ``g2``. If either
-       value is ``None``, an new map will be created, and set to appropriately
+       value is ``None``, a new map will be created, and set to appropriately
        empty values.
-    mt : ``str`` (otional, default: ``"set"``)
+    mt : ``str`` (optional, default: ``"set"``)
        Merge rule for property values. Should be one of ``"set"``, ``"sum"``,
        ``"diff"``, ``"idx_inc"``, ``"append"``, ``"concat"``. See
        :func:`~graph_tool.generation.graph_merge` for further documentation.
@@ -2655,16 +2675,17 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
     w : :class:`~graph_tool.EdgePropertyMap`
         The edge weights of the intersection graph. This is only returned if
         ``eweight1`` is not ``None``.
-    props : list of :class:`~graph_tool.PropertyMap` objects
-        List of properties in the merged graph. This is only returned if `props`
-        is not empty. Internal property maps are not included in this list.
+    props : dictionary with lists of :class:`~graph_tool.PropertyMap` objects
+        Dictionary with key ``"set"`` mapping to the list of properties in the
+        intersection graph. This is only returned if ``props`` is not empty.
+        Internal property maps are not included in this list.
 
     See Also
     --------
     graph_merge: Merge the edge sets between two graphs.
     graph_union: Union of the edge (and vertex) sets between two graphs.
     graph_difference: Difference of the edge sets between two graphs.
-    graph_sym_difference: Symmetrcic difference of the edge sets between two graphs.
+    graph_sym_difference: Symmetric difference of the edge sets between two graphs.
 
     Notes
     -----
@@ -2731,7 +2752,7 @@ def graph_intersection(g1, g2, eweight1=None, eweight2=None, vmap="identity",
 
 
 def graph_projection(g, p, proj_props=[], props=[]):
-    r"""Return the projection of selected vertices on the remaning vertices.
+    r"""Return the projection of selected vertices on the remaining vertices.
 
     Parameters
     ----------
@@ -2744,7 +2765,7 @@ def graph_projection(g, p, proj_props=[], props=[]):
     proj_props : list of :class:`~graph_tool.VertexPropertyMap` objects (optional, default: ``[]``)
        Vertex property maps to be included as edge property maps in the projection.
     props : list of :class:`~graph_tool.PropertyMap` (optional, default: ``[]``)
-       Property maps to be included the projection, for nodes and edges not
+       Property maps to be included in the projection, for nodes and edges not
        participating in the projection.
 
     Returns
@@ -2753,11 +2774,11 @@ def graph_projection(g, p, proj_props=[], props=[]):
         The projected graph.
     nproj_props : list of :class:`~graph_tool.EdgePropertyMap` objects
         List of edge properties in the projected graph. This is only returned if
-        `proj_props` is not empty.
+        ``proj_props`` is not empty.
     nprops : list of :class:`~graph_tool.PropertyMap` objects
         List of properties in the projected graph, for nodes and edges not
         participating in the projection. This is only returned if
-        `props` is not empty.
+        ``props`` is not empty.
 
     Notes
     -----
@@ -2869,12 +2890,12 @@ def triangulation(points, type="simple", periodic=False):
     Parameters
     ----------
     points : :class:`numpy.ndarray`
-        Point set for the triangulation. It may be either a N x d array, where N
+        Point set for the triangulation. It must be an N x d array, where N
         is the number of points, and d is the space dimension (either 2 or 3).
     type : string (optional, default: ``'simple'``)
         Type of triangulation. May be either 'simple' or 'delaunay'.
     periodic : bool (optional, default: ``False``)
-        If ``True``, periodic boundary conditions will be used. This is
+        If ``True``, periodic boundary conditions will be used. This
         parameter is valid only for type="delaunay", and is otherwise ignored.
 
     Returns
@@ -2894,14 +2915,14 @@ def triangulation(points, type="simple", periodic=False):
     A triangulation [cgal-triang]_ is a division of the convex hull of a point
     set into triangles, using only that set as triangle vertices.
 
-    In simple triangulations (`type="simple"`), the insertion of a point is done
+    In simple triangulations (``type="simple"``), the insertion of a point is done
     by locating a face that contains the point, and splitting this face into
     three new faces (the order of insertion is therefore important). If the
     point falls outside the convex hull, the triangulation is restored by
     flips. Apart from the location, insertion takes a time O(1). This bound is
     only an amortized bound for points located outside the convex hull.
 
-    Delaunay triangulations (`type="delaunay"`) have the specific empty sphere
+    Delaunay triangulations (``type="delaunay"``) have the specific empty sphere
     property, that is, the circumscribing sphere of each cell of such a
     triangulation does not contain any other vertex of the triangulation in its
     interior. These triangulations are uniquely defined except in degenerate
@@ -2982,7 +3003,7 @@ def triangulation(points, type="simple", periodic=False):
 
 def lattice(shape, periodic=False):
     r"""
-    Generate a N-dimensional square lattice.
+    Generate an N-dimensional square lattice.
 
     Parameters
     ----------
@@ -3051,7 +3072,7 @@ def lattice(shape, periodic=False):
 
 def complete_graph(N, self_loops=False, directed=False):
     r"""
-    Generate complete graph.
+    Generate a complete graph.
 
     Parameters
     ----------
@@ -3103,7 +3124,7 @@ def circular_graph(N, k=1, self_loops=False, directed=False):
     ----------
     N : ``int``
         Number of vertices.
-    k : ``int`` (optional, default: ``True``)
+    k : ``int`` (optional, default: ``1``)
         Number of nearest neighbors to be connected.
     self_loops : bool (optional, default: ``False``)
         If ``True``, self-loops are included.
@@ -3141,21 +3162,21 @@ def circular_graph(N, k=1, self_loops=False, directed=False):
 
 def geometric_graph(points, radius, ranges=None):
     r"""
-    Generate a geometric network form a set of N-dimensional points.
+    Generate a geometric network from a set of N-dimensional points.
 
     Parameters
     ----------
     points : list or :class:`numpy.ndarray`
         List of points. This must be a two-dimensional array, where the rows are
-        coordinates in a N-dimensional space.
+        coordinates in an N-dimensional space.
     radius : float
         Pairs of points with an euclidean distance lower than this parameter
         will be connected.
     ranges : list or :class:`numpy.ndarray` (optional, default: ``None``)
         If provided, periodic boundary conditions will be assumed, and the
-        values of this parameter it will be used as the ranges in all
+        values of this parameter will be used as the ranges in all
         dimensions. It must be a two-dimensional array, where each row will
-        cointain the lower and upper bound of each dimension.
+        contain the lower and upper bound of each dimension.
 
     Returns
     -------
@@ -3164,17 +3185,17 @@ def geometric_graph(points, radius, ranges=None):
     pos : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the position of each vertex.
 
-    Notes
-    -----
-    A geometric graph [geometric-graph]_ is generated by connecting points
-    embedded in a N-dimensional euclidean space which are at a distance equal to
-    or smaller than a given radius.
-
     See Also
     --------
     triangulation: 2D or 3D triangulation
     random_graph: random graph generation
     lattice : N-dimensional square lattice
+
+    Notes
+    -----
+    A geometric graph [geometric-graph]_ is generated by connecting points
+    embedded in an N-dimensional euclidean space which are at a distance equal to
+    or smaller than a given radius.
 
     Examples
     --------
@@ -3205,7 +3226,7 @@ def geometric_graph(points, radius, ranges=None):
        :width: 40%
 
     *Left:* Geometric network with random points. *Right:* Same network, but
-     with periodic boundary conditions.
+    with periodic boundary conditions.
 
     References
     ----------
@@ -3263,6 +3284,13 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
     price_graph : :class:`~graph_tool.Graph`
         The generated graph.
 
+    See Also
+    --------
+    triangulation: 2D or 3D triangulation
+    random_graph: random graph generation
+    lattice : N-dimensional square lattice
+    geometric_graph : N-dimensional geometric network
+
     Notes
     -----
 
@@ -3298,21 +3326,14 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
     However, if :math:`\gamma \ne 1`, the in-degree distribution is not
     scale-free (see [dorogovtsev-evolution]_ for details).
 
-    Note that if `seed_graph` is not given, the algorithm will *always* start
+    Note that if ``seed_graph`` is not given, the algorithm will *always* start
     with one vertex if :math:`c > 0`, or with two vertices with an edge between them
-    otherwise. If :math:`m > 1`, the degree of the newly added vertices will be
+    otherwise. If :math:`m > 1`, the degree of the newly added vertices will
     vary dynamically as :math:`m'(t) = \min(m, V(t))`, where :math:`V(t)` is the
     number of vertices added so far. If this behaviour is undesired, a proper
     seed graph with :math:`V \ge m` vertices must be provided.
 
     This algorithm runs in :math:`O(V\log V)` time.
-
-    See Also
-    --------
-    triangulation: 2D or 3D triangulation
-    random_graph: random graph generation
-    lattice : N-dimensional square lattice
-    geometric_graph : N-dimensional geometric network
 
     Examples
     --------
@@ -3409,17 +3430,20 @@ def condensation_graph(g, prop, vweight=None, eweight=None, aprops=None,
     prop : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the community partition (needs to be
         integer-valued).
-    vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
+    vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map with the optional vertex weights.
-    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the optional edge weights.
-    aprops : list of :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
+    aprops : list of :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, the sum of each property map in this list for
         each vertex or edge in the condensed graph will be computed and returned.
     parallel_edges : ``bool`` (optional, default: ``False``)
         If ``True``, parallel edges will be included in the condensation graph,
         such that the total number of edges will be the same as in the original
         graph.
+    **kwargs : ``dict`` (optional, default: ``{}``)
+        Remaining keyword parameters will be forwarded to
+        :func:`~graph_tool.generation.graph_merge`.
 
     Returns
     -------
@@ -3431,7 +3455,8 @@ def condensation_graph(g, prop, vweight=None, eweight=None, aprops=None,
         An edge property map with the inter-community edge count for each edge.
     props : list of :class:`~graph_tool.PropertyMap`
         A list of property maps with summed values of the properties
-        passed via the ``aprops`` parameter.
+        passed via the ``aprops`` parameter. This is only returned if
+        ``aprops`` is not ``None``.
 
     See Also
     --------
@@ -3541,7 +3566,7 @@ def contract_parallel_edges(g, weight=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modified.
-    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: ``None``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge multiplicities.
 
     Returns
@@ -3587,7 +3612,7 @@ def remove_parallel_edges(g):
 
 @_parallel
 def remove_self_loops(g):
-    """Remove all self-loops edges from the graph."""
+    """Remove all self-loop edges from the graph."""
     eprop = label_self_loops(g)
     remove_labeled_edges(g, eprop)
 
@@ -3639,10 +3664,10 @@ def remove_labeled_edges(g, label):
 
 @_parallel
 def label_parallel_edges(g, mark_only=False, eprop=None):
-    r"""Label edges which are parallel, i.e, have the same source and target
+    r"""Label edges which are parallel, i.e., have the same source and target
     vertices. For each parallel edge set :math:`PE`, the labelling starts from 0
-    to :math:`|PE|-1`. If `mark_only==True`, all parallel edges are simply
-    marked with the value 1. If the `eprop` parameter is given (a
+    to :math:`|PE|-1`. If ``mark_only == True``, all parallel edges are simply
+    marked with the value 1. If the ``eprop`` parameter is given (a
     :class:`~graph_tool.EdgePropertyMap`), the labelling is stored there."""
     if eprop is None:
         if mark_only:
@@ -3657,10 +3682,10 @@ def label_parallel_edges(g, mark_only=False, eprop=None):
 
 @_parallel
 def label_self_loops(g, mark_only=False, eprop=None):
-    """Label edges which are self-loops, i.e, the source and target vertices are
+    """Label edges which are self-loops, i.e., the source and target vertices are
     the same. For each self-loop edge set :math:`SL`, the labelling starts from 0
-    to :math:`|SL|-1`. If `mark_only == True`, self-loops are labeled with 1
-    and others with 0. If the `eprop` parameter is given
+    to :math:`|SL|-1`. If ``mark_only == True``, self-loops are labeled with 1
+    and others with 0. If the ``eprop`` parameter is given
     (a :class:`~graph_tool.EdgePropertyMap`), the labelling is stored there."""
 
     if eprop is None:

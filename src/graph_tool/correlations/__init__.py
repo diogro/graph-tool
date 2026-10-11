@@ -70,7 +70,7 @@ def assortativity(g, deg, eweight=None):
     Returns
     -------
     assortativity coefficient : tuple of two floats
-        The assortativity coefficient, and its variance.
+        The assortativity coefficient, and its standard deviation.
 
     See Also
     --------
@@ -95,7 +95,7 @@ def assortativity(g, deg, eweight=None):
     i to a vertex of type j.
 
 
-    The variance is obtained with the `jackknife method`_.
+    The standard deviation is obtained with the `jackknife method`_.
 
     @parallel@
 
@@ -140,7 +140,7 @@ def scalar_assortativity(g, deg, eweight=None):
     Returns
     -------
     scalar assortativity coefficient : tuple of two floats
-        The scalar assortativity coefficient, and its variance.
+        The scalar assortativity coefficient, and its standard deviation.
 
     See Also
     --------
@@ -164,7 +164,7 @@ def scalar_assortativity(g, deg, eweight=None):
     :math:`e_{xy}` is the fraction of edges from a vertex of type
     x to a vertex of type y.
 
-    The variance is obtained with the `jackknife method`_.
+    The standard deviation is obtained with the `jackknife method`_.
 
     @parallel@
 
@@ -215,9 +215,9 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
     weight : edge property map (optional, default: None)
         Weight (multiplicative factor) to be used on each edge.
     float_count : bool (optional, default: True)
-        If True, the bin counts are converted float variables, which is useful
-        for normalization, and other processing. It False, the bin counts will
-        be unsigned integers.
+        If True, the bin counts are converted to float variables, which is
+        useful for normalization, and other processing. If False, the bin counts
+        will be unsigned integers.
 
     Returns
     -------
@@ -241,8 +241,8 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
     Notes
     -----
     The correlation histogram counts, for every vertex with degree (or scalar
-    property) 'source_deg', the number of out-neighbors with degree (or scalar
-    property) 'target_deg'.
+    property) ``deg_source``, the number of out-neighbors with degree (or scalar
+    property) ``deg_target``.
 
     @parallel@
 
@@ -315,9 +315,9 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
         range starting from the first value, and with constant bin width given
         by the second value.
     float_count : bool (optional, default: True)
-        If True, the bin counts are converted float variables, which is useful
-        for normalization, and other processing. It False, the bin counts will
-        be unsigned integers.
+        If True, the bin counts are converted to float variables, which is
+        useful for normalization, and other processing. If False, the bin counts
+        will be unsigned integers.
 
     Returns
     -------
@@ -328,10 +328,6 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
     second_bins : :class:`numpy.ndarray`
         Second degree bins
 
-    Notes
-    -----
-    @parallel@
-
     See Also
     --------
     assortativity: assortativity coefficient
@@ -340,6 +336,10 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
     combined_corr_hist: combined single-vertex correlation histogram
     avg_neighbor_corr: average nearest-neighbor correlation
     avg_combined_corr: average combined single-vertex correlation
+
+    Notes
+    -----
+    @parallel@
 
     Examples
     --------
@@ -414,12 +414,12 @@ def avg_neighbor_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
     Returns
     -------
     bin_avg : :class:`numpy.ndarray`
-        Array with the deg_target average for the get_source bins.
+        Array with the ``deg_target`` average for the ``deg_source`` bins.
     bin_dev : :class:`numpy.ndarray`
-        Array with the standard deviation of the deg_target average for the
-        get_source bins.
+        Array with the standard deviation of the ``deg_target`` average for the
+        ``deg_source`` bins.
     bins : :class:`numpy.ndarray`
-        Source degree bins,
+        Source degree bins.
 
 
     See Also
@@ -434,8 +434,8 @@ def avg_neighbor_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
     Notes
     -----
     The average correlation is the average, for every vertex with degree (or
-    scalar property) 'source_deg', the of the 'target_deg' degree (or
-    scalar property) of its neighbors.
+    scalar property) ``deg_source``, of the ``deg_target`` degree (or scalar
+    property) of its neighbors.
 
     @parallel@
 
@@ -489,7 +489,7 @@ avg_neighbour_corr = avg_neighbor_corr
 @_parallel
 def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
     r"""
-    Obtain the single-vertex combined correlation histogram for the given graph.
+    Obtain the single-vertex average combined correlation for the given graph.
 
     Parameters
     ----------
@@ -513,10 +513,6 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
     bins : :class:`numpy.ndarray`
         The deg1 bins.
 
-    Notes
-    -----
-    @parallel@
-
     See Also
     --------
     assortativity: assortativity coefficient
@@ -525,6 +521,10 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
     combined_corr_hist: combined single-vertex correlation histogram
     avg_neighbor_corr: average nearest-neighbor correlation
     avg_combined_corr: average combined single-vertex correlation
+
+    Notes
+    -----
+    @parallel@
 
     Examples
     --------
