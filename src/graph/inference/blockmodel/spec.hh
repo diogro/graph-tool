@@ -299,22 +299,6 @@ struct BlockStateSpec
     };
 };
 
-template <class T1, class T2>
-struct thresh_diff_imp
-{
-    auto operator()(T1 before, T2 after, int t = 0)
-    {
-        return (quiet_less_equal(before, t) && quiet_greater(after, t)) ? 1 : 0;
-    }
-};
-
-template <class T1, class T2>
-auto thresh_diff(T1&& before, T2&& after, int t = 0)
-{
-    return thresh_diff_imp<T1, T2>()(std::forward<T1>(before),
-                                     std::forward<T2>(after), t);
-}
-
 template <>
 struct extract_param<eprop_map_t<int64_t>>
 {
@@ -336,6 +320,7 @@ struct extract_param<eprop_map_t<int64_t>>
 
 }
 
+#include "types.hh"
 #include "entropy.hh"
 #include "partition.hh"
 #include "entries.hh"

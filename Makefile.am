@@ -576,6 +576,7 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 	src/graph/inference/blockmodel/entropy.hh \
 	src/graph/inference/blockmodel/exhaustive.hh \
 	src/graph/inference/blockmodel/gibbs.hh \
+	src/graph/inference/blockmodel/types.hh \
 	src/graph/inference/blockmodel/layered/deg_stats.hh \
 	src/graph/inference/blockmodel/layered/entropy.hh \
 	src/graph/inference/blockmodel/layered/spec.hh \

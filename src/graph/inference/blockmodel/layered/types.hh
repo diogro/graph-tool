@@ -31,6 +31,7 @@
 
 #include "../../../parallel_util.hh"
 
+#include "../types.hh"
 #include "../entropy.hh"
 #include "vec_ref.hh"
 
