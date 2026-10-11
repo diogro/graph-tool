@@ -595,7 +595,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
                nodesfirst=False, vcmap=None, vcnorm=None, ecmap=None,
                ecnorm=None, loop_angle=numpy.nan, parallel_distance=None, res=0,
                max_render_time=-1, **kwargs):
-    r"""Draw a graph to a :mod:`cairo` context.
+    r"""Draw a graph to a :class:`cairo.Context`.
 
     Parameters
     ----------
@@ -776,7 +776,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                inline=has_draw_inline, inline_scale=2, mplfig=None,
                yflip=True, output=None, fmt="auto", bg_color=None,
                antialias=None, **kwargs):
-    r"""Draw a graph to screen or to a file using :mod:`cairo`.
+    r"""Draw a graph to screen or to a file using :doc:`cairo <cairo:index>`.
 
     Parameters
     ----------

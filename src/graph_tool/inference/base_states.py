@@ -627,7 +627,7 @@ class MultilevelMCMCState(EntropyState):
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
             made for each node, on average.
-        beta : ``float`` (optional, default: :const:`numpy.inf`)
+        beta : ``float`` (optional, default: :data:`numpy.inf`)
             Inverse temperature.
         bisection : ``bool`` (optional, default: ``True``)
             If ``True``, the algorithm will perform a bisection search over the

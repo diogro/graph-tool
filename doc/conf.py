@@ -21,6 +21,7 @@
 import sys
 import os
 import datetime
+import inspect
 
 # For OMP performance
 os.environ["OMP_WAIT_POLICY"] = "passive"
@@ -124,7 +125,10 @@ release = gt_version.split()[0]
 # for source files.
 exclude_trees = ['.build']
 
-exclude_patterns = ['**/_*.rst', '**/_*.md', 'build/html/_static/*/*.md']
+# Build output directories (including those of the parallel doctest runs) and
+# third-party files are not sources.
+exclude_patterns = ['**/_*.rst', '**/_*.md', 'build', 'builds', 'envs',
+                    '_static/node_modules']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -298,7 +302,8 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'ipython': ('https://ipython.readthedocs.io/en/stable/', None),
                        'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
                        'basemap': ('https://matplotlib.org/basemap/stable/', None),
-                       'myst': ('https://myst-parser.readthedocs.io/en/latest/', None)
+                       'myst': ('https://myst-parser.readthedocs.io/en/latest/', None),
+                       'gtk': ('https://lazka.github.io/pgi-docs/Gtk-3.0/', None)
                        }
 
 extlinks_fancy = {'issue': (['https://git.skewed.de/count0/graph-tool/issues/{0}'],
@@ -342,13 +347,47 @@ def linkcode_resolve(domain, info):
 
 nitpicky = True
 
+def is_external_member(obj):
+    # Methods and properties inherited from third-party classes (e.g. matplotlib,
+    # scipy or Gtk), whose docstrings contain references that cannot be resolved
+    # here.
+    if inspect.isclass(obj) or not (callable(obj) or isinstance(obj, property)):
+        return False
+    for o in (obj, getattr(obj, "fget", None), getattr(obj, "__func__", None),
+              getattr(obj, "__objclass__", None)):
+        mod = getattr(o, "__module__", None)
+        if isinstance(mod, str):
+            return not mod.startswith(("graph_tool", "Boost.Python", "builtins"))
+    return False
+
 def skip(app, what, name, obj, would_skip, options):
     if name.startswith("_"):
         return True
+    if is_external_member(obj):
+        return True
     return would_skip
+
+def process_bases(app, name, obj, options, bases):
+    # Boost.Python.instance is an implementation detail of the C++ classes,
+    # and has no documentation to link to.
+    bases[:] = [object if b.__module__ == "Boost.Python" else b for b in bases]
+
+def resolve_gtk(app, env, node, contnode):
+    # Autodoc refers to Gtk classes by their full module path (e.g.
+    # gi.repository.Gtk.DrawingArea), but the Gtk inventory lists them as
+    # Gtk.DrawingArea.
+    from sphinx.ext.intersphinx import missing_reference
+    target = node.get("reftarget", "")
+    for prefix in ("gi.repository.", "gi.overrides."):
+        if target.startswith(prefix + "Gtk."):
+            node["reftarget"] = target[len(prefix):]
+            return missing_reference(app, env, node, contnode)
+    return None
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
+    app.connect("autodoc-process-bases", process_bases)
+    app.connect("missing-reference", resolve_gtk)
 
 import pybtex.plugin
 from pybtex.style.formatting.unsrt import Style as UnsrtStyle

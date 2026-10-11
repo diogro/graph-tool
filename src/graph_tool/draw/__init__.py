@@ -64,7 +64,6 @@ Low-level graph drawing
 .. autosummary::
    :nosignatures:
    :toctree: autosummary
-   :template: class-no-inherit.rst
 
    GraphWidget
    GraphWindow

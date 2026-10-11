@@ -144,7 +144,6 @@ Auxiliary classes
 .. autosummary::
    :nosignatures:
    :toctree: autosummary
-   :template: class-no-inherit.rst
 
    PartitionHist
    BlockPairHist
