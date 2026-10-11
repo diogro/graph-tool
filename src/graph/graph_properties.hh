@@ -193,7 +193,7 @@ inline constexpr auto scalar_vector_vertex_properties =
 inline constexpr auto integer_vector_vertex_properties =
     get_vprop_types(integer_vector_types);
 
-inline constexpr auto floating_vector_vector_properties =
+inline constexpr auto floating_vector_vertex_properties =
     get_vprop_types(floating_vector_types);
 
 inline constexpr auto edge_properties =

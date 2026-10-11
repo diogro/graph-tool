@@ -184,7 +184,7 @@ void fruchterman_reingold_layout(GraphInterface& gi, std::any apos,
                      (g, pos, weight, make_pair(a, r), scale,
                       grid, make_pair(ti, tf), max_iter);
              },
-             floating_vector_vector_properties, edge_props_t)(apos, aweight);
+             floating_vector_vertex_properties, edge_props_t)(apos, aweight);
     else
         run_action<{.tr=graph_tool::type<decltype(graph_tool::never_directed)>}>()
             (gi,
@@ -194,7 +194,7 @@ void fruchterman_reingold_layout(GraphInterface& gi, std::any apos,
                      (g, pos, weight, make_pair(a, r), scale,
                       grid, make_pair(ti, tf), max_iter);
              },
-             floating_vector_vector_properties, edge_props_t)(apos, aweight);
+             floating_vector_vertex_properties, edge_props_t)(apos, aweight);
 }
 
 #include <boost/python.hpp>

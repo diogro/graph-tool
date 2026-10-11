@@ -86,7 +86,7 @@ void sfdp_layout(GraphInterface& g, std::any apos, std::any avweight,
                                     step_schedule, max_level, epsilon, max_iter,
                                     adaptive, verbose, rng);
          },
-         floating_vector_vector_properties, vertex_props_t,
+         floating_vector_vertex_properties, vertex_props_t,
          edge_props_t)(apos, avweight, aeweight);
 }
 
@@ -142,7 +142,7 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, std::any vmap,
                      std::forward<decltype(a4)>(a4), cpos, delta, rng);
             },
             all_graph_views, all_graph_views, vmaps_t,
-            floating_vector_vector_properties)(
+            floating_vector_vertex_properties)(
             gi.get_graph_view(), cgi.get_graph_view(), vmap, pos);
 }
 
@@ -207,7 +207,7 @@ void propagate_pos_mivs(GraphInterface& gi, std::any mivs, std::any pos,
                   std::forward<decltype(a3)>(a3), delta, rng);
          },
          scalar_vertex_properties,
-         floating_vector_vector_properties)(mivs, pos);
+         floating_vector_vertex_properties)(mivs, pos);
 }
 
 

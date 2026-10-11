@@ -44,7 +44,7 @@ void arf_layout(GraphInterface& gi, std::any apos, std::any aweight, double d,
              return get_arf_layout()(g, pos, weight, a, d, dt, epsilon,
                                      max_iter, dim);
          },
-         floating_vector_vector_properties, edge_props_t)(apos, aweight);
+         floating_vector_vertex_properties, edge_props_t)(apos, aweight);
 }
 
 #include <boost/python.hpp>

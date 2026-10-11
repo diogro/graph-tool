@@ -45,7 +45,7 @@ void get_dice_similarity(GraphInterface& gi, std::any as, std::any weight)
                                       return dice(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -64,7 +64,7 @@ void get_salton_similarity(GraphInterface& gi, std::any as, std::any weight)
                                       return salton(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -83,7 +83,7 @@ void get_hub_promoted_similarity(GraphInterface& gi, std::any as, std::any weigh
                                       return hub_promoted(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -102,7 +102,7 @@ void get_hub_suppressed_similarity(GraphInterface& gi, std::any as, std::any wei
                                       return hub_suppressed(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -209,7 +209,7 @@ void get_jaccard_similarity(GraphInterface& gi, std::any as, std::any weight)
                                       return jaccard(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -251,7 +251,7 @@ void get_inv_log_weight_similarity(GraphInterface& gi, std::any as,
                                       return inv_log_weighted(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -295,7 +295,7 @@ void get_r_allocation_similarity(GraphInterface& gi, std::any as,
                                       return r_allocation(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
@@ -339,7 +339,7 @@ void get_leicht_holme_newman_similarity(GraphInterface& gi, std::any as,
                                       return leicht_holme_newman(u, v, mask, ew, g);
                                   }, w);
          },
-         all_graph_views, floating_vector_vector_properties,
+         all_graph_views, floating_vector_vertex_properties,
          weight_props_t)
         (gi.get_graph_view(), as, weight);
 }
