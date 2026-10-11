@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PYTHON_INTERFACE_HH
-#define PYTHON_INTERFACE_HH
+#ifndef GRAPH_PYTHON_INTERFACE_HH
+#define GRAPH_PYTHON_INTERFACE_HH
 
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>

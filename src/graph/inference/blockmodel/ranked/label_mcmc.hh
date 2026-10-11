@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_MCMC_HH
-#define GRAPH_BLOCKMODEL_MCMC_HH
+#ifndef LABEL_MCMC_HH
+#define LABEL_MCMC_HH
 
 #include "config.h"
 
@@ -153,4 +153,4 @@ GEN_DISPATCH(mcmc_loop_state, MCMC<State>::template MCMCLoopState,
 
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCKMODEL_MCMC_HH
+#endif //LABEL_MCMC_HH

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_EMAT_HH
-#define GRAPH_BLOCKMODEL_EMAT_HH
+#ifndef EMAT_HH
+#define EMAT_HH
 
 #include "hash_map_wrap.hh"
 
@@ -278,4 +278,4 @@ const typename EUHash<BGraph>::edge_t EUHash<BGraph>::_null_edge;
 
 } // namespace graph_tool
 
-#endif // GRAPH_BLOCKMODEL_EMAT_HH
+#endif // EMAT_HH

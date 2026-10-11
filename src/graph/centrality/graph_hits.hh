@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_EIGENVECTOR_HH
-#define GRAPH_EIGENVECTOR_HH
+#ifndef GRAPH_HITS_HH
+#define GRAPH_HITS_HH
 
 #include "graph.hh"
 #include "graph_filtering.hh"

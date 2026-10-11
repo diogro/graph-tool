@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_TRUST_HH
-#define GRAPH_TRUST_HH
+#ifndef GRAPH_EIGENTRUST_HH
+#define GRAPH_EIGENTRUST_HH
 
 #include "graph.hh"
 #include "graph_filtering.hh"

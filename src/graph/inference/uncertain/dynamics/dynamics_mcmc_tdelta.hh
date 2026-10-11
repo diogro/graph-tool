@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_MCMC_HH
-#define DYNAMICS_MCMC_HH
+#ifndef DYNAMICS_MCMC_TDELTA_HH
+#define DYNAMICS_MCMC_TDELTA_HH
 
 #include "config.h"
 
@@ -378,4 +378,4 @@ struct MCMCTDelta
 
 } // graph_tool namespace
 
-#endif //DYNAMICS_MCMC_HH
+#endif //DYNAMICS_MCMC_TDELTA_HH

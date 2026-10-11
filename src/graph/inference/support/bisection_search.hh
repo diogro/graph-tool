@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef FIBONACCI_SEARCH_HH
-#define FIBONACCI_SEARCH_HH
+#ifndef BISECTION_SEARCH_HH
+#define BISECTION_SEARCH_HH
 
 #include <algorithm>
 #include <array>
@@ -210,4 +210,4 @@ private:
 };
 
 }
-#endif // FIBONACCI_SEARCH_HH
+#endif // BISECTION_SEARCH_HH

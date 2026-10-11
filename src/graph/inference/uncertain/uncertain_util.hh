@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_UNCERTAIN_UTIL_HH
-#define GRAPH_BLOCKMODEL_UNCERTAIN_UTIL_HH
+#ifndef UNCERTAIN_UTIL_HH
+#define UNCERTAIN_UTIL_HH
 
 #include "config.h"
 
@@ -181,4 +181,4 @@ void set_state(State& state, Graph& g, EProp w)
 
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCKMODEL_UNCERTAIN_UTIL_HH
+#endif //UNCERTAIN_UTIL_HH

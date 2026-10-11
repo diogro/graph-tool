@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_OVERLAP_BLOCKMODEL_PARTITION_SIMPLE_HH
-#define GRAPH_OVERLAP_BLOCKMODEL_PARTITION_SIMPLE_HH
+#ifndef PARTITION_SIMPLE_HH
+#define PARTITION_SIMPLE_HH
 
 #include "types.hh"
 
@@ -543,4 +543,4 @@ struct DummyPartitionStats
 
 } //namespace graph_tool
 
-#endif // GRAPH_OVERLAP_BLOCKMODEL_PARTITION_SIMPLE_HH
+#endif // PARTITION_SIMPLE_HH

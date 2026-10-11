@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_ELIST_STATE
-#define DYNAMICS_ELIST_STATE
+#ifndef DYNAMICS_ELIST_STATE_HH
+#define DYNAMICS_ELIST_STATE_HH
 
 #include <queue>
 
@@ -269,4 +269,4 @@ private:
 
 } // graph_tool namespace
 
-#endif //DYNAMICS_ELIST_STATE
+#endif //DYNAMICS_ELIST_STATE_HH

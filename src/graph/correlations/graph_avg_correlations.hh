@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_AVG_CORR_HH
-#define GRAPH_AVG_CORR_HH
+#ifndef GRAPH_AVG_CORRELATIONS_HH
+#define GRAPH_AVG_CORRELATIONS_HH
 
 #include "graph_correlations.hh"
 

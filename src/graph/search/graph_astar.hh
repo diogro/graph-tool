@@ -15,6 +15,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#ifndef GRAPH_ASTAR_HH
+#define GRAPH_ASTAR_HH
+
 #include "graph_filtering.hh"
 #include "graph_python_interface.hh"
 
@@ -143,3 +146,5 @@ private:
 };
 
 } // namespace graph_tool
+
+#endif // GRAPH_ASTAR_HH

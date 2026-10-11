@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_UNCERTAIN_HH
-#define GRAPH_BLOCKMODEL_UNCERTAIN_HH
+#ifndef UNCERTAIN_HH
+#define UNCERTAIN_HH
 
 #include "config.h"
 
@@ -228,4 +228,4 @@ struct Uncertain
 
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCKMODEL_UNCERTAIN_HH
+#endif //UNCERTAIN_HH

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_TEST_HH
-#define DYNAMICS_TEST_HH
+#ifndef TEST_HH
+#define TEST_HH
 
 #include <algorithm>
 #include <iostream>
@@ -260,4 +260,4 @@ public:
 
 }// graph_tool namespace
 
-#endif //DYNAMICS_TEST_HH
+#endif //TEST_HH

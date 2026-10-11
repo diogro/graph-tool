@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_DYNAMICS_BASE_IMP_HH
-#define GRAPH_DYNAMICS_BASE_IMP_HH
+#ifndef DYNAMICS_BASE_IMP_HH
+#define DYNAMICS_BASE_IMP_HH
 
 #include "dynamics_base.hh"
 
@@ -204,4 +204,4 @@ template double DState::base_t::get_node_dS_uncompressed(size_t v, size_t l, dou
 
 }// graph_tool namespace
 
-#endif //GRAPH_DYNAMICS_BASE_IMP_HH
+#endif //DYNAMICS_BASE_IMP_HH

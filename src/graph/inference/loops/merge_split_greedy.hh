@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTILEVEL_HH
-#define MULTILEVEL_HH
+#ifndef MERGE_SPLIT_GREEDY_HH
+#define MERGE_SPLIT_GREEDY_HH
 
 #include <queue>
 #include <cmath>

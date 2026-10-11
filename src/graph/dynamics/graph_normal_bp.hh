@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BP_HH
-#define GRAPH_BP_HH
+#ifndef GRAPH_NORMAL_BP_HH
+#define GRAPH_NORMAL_BP_HH
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -389,4 +389,4 @@ private:
 
 } // namespace graph_tool
 
-#endif // GRAPH_BP_HH
+#endif // GRAPH_NORMAL_BP_HH

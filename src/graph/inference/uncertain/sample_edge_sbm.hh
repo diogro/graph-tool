@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_SBM_SAMPLE_EDGE_HH
-#define GRAPH_SBM_SAMPLE_EDGE_HH
+#ifndef SAMPLE_EDGE_SBM_HH
+#define SAMPLE_EDGE_SBM_HH
 
 #include <tuple>
 
@@ -664,4 +664,4 @@ public:
 
 } // graph_tool namespace
 
-#endif // GRAPH_SBM_SAMPLE_EDGE_HH
+#endif // SAMPLE_EDGE_SBM_HH

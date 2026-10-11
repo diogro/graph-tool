@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SPEC_GRAPH_BASE_HH
-#define SPEC_GRAPH_BASE_HH
+#ifndef GRAPH_SPEC_BASE_HH
+#define GRAPH_SPEC_BASE_HH
 
 #define SPEC_BASE_params                                                       \
     ((g, STATE_SPEC::g_tr, 1))                                                 \
@@ -145,4 +145,4 @@ struct extract_param<eprop_map_t<int64_t>>
 
 } // graph_tool namespace
 
-#endif //SPEC_GRAPH_BASE_HH
+#endif //GRAPH_SPEC_BASE_HH

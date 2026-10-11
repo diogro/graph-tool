@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SAMPLER_HH
-#define SAMPLER_HH
+#ifndef SAMPLERS_HH
+#define SAMPLERS_HH
 
 #include "random.hh"
 
@@ -198,4 +198,4 @@ random_neighbor(typename boost::graph_traits<Graph>::vertex_descriptor v,
 
 } // namespace graph_tool
 
-#endif // SAMPLER_HH
+#endif // SAMPLERS_HH

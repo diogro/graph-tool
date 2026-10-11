@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_EXHAUSTIVE_HH
-#define GRAPH_BLOCKMODEL_EXHAUSTIVE_HH
+#ifndef EXHAUSTIVE_HH
+#define EXHAUSTIVE_HH
 
 #include "config.h"
 
@@ -99,4 +99,4 @@ struct Exhaustive
 
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCKMODEL_EXHAUSTIVE_HH
+#endif //EXHAUSTIVE_HH

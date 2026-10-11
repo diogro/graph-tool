@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_EM_HH
-#define GRAPH_BLOCKMODEL_EM_HH
+#ifndef EM_HH
+#define EM_HH
 
 #include "config.h"
 
@@ -351,4 +351,4 @@ public:
 
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCKMODEL_EM_HH
+#endif //EM_HH
