@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef RANDOM_HH
-#define RANDOM_HH
+#pragma once
 
 #include "pcg_random.hpp"
 
@@ -31,5 +30,3 @@ size_t get_rng_stream();
 void seed_rng(size_t seed);
 
 #pragma GCC visibility pop
-
-#endif

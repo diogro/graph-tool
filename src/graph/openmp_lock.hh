@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef OPENMP_LOCK_HH
-#define OPENMP_LOCK_HH
+#pragma once
 #include "config.h"
 
 #ifdef _OPENMP
@@ -66,5 +65,3 @@ private:
  };
 
 #pragma GCC visibility pop
-
-#endif // OPENMP_LOCK_HH

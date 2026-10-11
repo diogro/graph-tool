@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SCOPED_HASH_MAP_HH
-#define SCOPED_HASH_MAP_HH
+#pragma once
 
 #include "config.h"
 
@@ -231,5 +230,3 @@ auto make_scoped_map(const Map& m)
 {
     return scoped_hash_map<Map>(m);
 }
-
-#endif // SCOPED_HASH_MAP_HH

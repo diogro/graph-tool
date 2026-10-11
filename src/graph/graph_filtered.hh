@@ -24,8 +24,7 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 //=======================================================================
 
-#ifndef GRAPH_FILTERED_HH
-#define GRAPH_FILTERED_HH
+#pragma once
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/properties.hpp>
@@ -670,6 +669,3 @@ void put(Property p, const filt_graph<G, EP, VP>& g, const Key& k,
 }
 
 } // namespace boost
-
-
-#endif // GRAPH_FILTERED_HH

@@ -17,8 +17,7 @@
 
 // based on code written by Alexandre Hannud Abdo <abdo@member.fsf.org>
 
-#ifndef EXTENDED_CLUSTERING_HH
-#define EXTENDED_CLUSTERING_HH
+#pragma once
 
 #include "hash_map_wrap.hh"
 
@@ -194,5 +193,3 @@ struct get_extended_clustering
 };
 
 } // graph_tool namespace
-
-#endif // EXTENDED_CLUSTERING_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ENTRIES_HH
-#define ENTRIES_HH
+#pragma once
 
 #include "graph_tool.hh"
 #include "parallel_util.hh"
@@ -492,5 +491,3 @@ void apply_delta(auto& state, auto& m_entries, bool propagate=true)
 
 
 } // namespace graph_tool
-
-#endif // ENTRIES_HH

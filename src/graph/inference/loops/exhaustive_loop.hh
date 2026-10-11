@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef EXHAUSTIVE_LOOP_HH
-#define EXHAUSTIVE_LOOP_HH
+#pragma once
 
 #include "config.h"
 #include "python_interface.hh"
@@ -70,5 +69,3 @@ void exhaustive_sweep(ExhaustiveState& state, Callback&& callback)
 }
 
 } // graph_tool namespace
-
-#endif //EXHAUSTIVE_LOOP_HH

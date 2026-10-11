@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_FILTERING_HH
-#define GRAPH_FILTERING_HH
+#pragma once
 
 #pragma GCC visibility push(default)
 
@@ -256,5 +255,3 @@ bool is_valid_vertex(Vertex v, const Graph& g)
 } // namespace boost
 
 #pragma GCC visibility pop
-
-#endif // GRAPH_FILTERING_HH

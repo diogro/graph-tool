@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_BLOCKMODEL_BASE_HH
-#define GRAPH_LAYERED_BLOCKMODEL_BASE_HH
+#pragma once
 
 #include "config.h"
 
@@ -578,5 +577,3 @@ struct extract_param<vprop_map_t<LayerCount<int64_t, false, true>>>
 };
 
 } //namespace graph_tool
-
-#endif // GRAPH_LAYERED_BLOCKMODEL_BASE_HH

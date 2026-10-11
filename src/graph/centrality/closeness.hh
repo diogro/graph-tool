@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CLOSENESS_HH
-#define CLOSENESS_HH
+#pragma once
 
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
@@ -185,5 +184,3 @@ struct get_closeness
 };
 
 } // boost namespace
-
-#endif // CLOSENESS_HH

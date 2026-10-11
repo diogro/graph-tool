@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PREDECESSOR_HH
-#define PREDECESSOR_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -56,5 +55,3 @@ struct get_predecessor_graph
 };
 
 } // graph_tool namespace
-
-#endif // PREDECESSOR_HH

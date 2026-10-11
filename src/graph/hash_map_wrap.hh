@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef HASH_MAP_WRAP_HH
-#define HASH_MAP_WRAP_HH
+#pragma once
 
 #include "config.h"
 
@@ -35,5 +34,3 @@ template<class Key,
          class Pred = std::equal_to<Key>,
          class Allocator = std::allocator<std::pair<const Key, T>>>
 using gt_hash_map = boost::unordered_flat_map<Key, T, Hash, Pred, Allocator>;
-
-#endif // HASH_MAP_WRAP_HH

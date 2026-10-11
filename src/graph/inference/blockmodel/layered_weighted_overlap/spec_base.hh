@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_WEIGHTED_OVERLAP_BLOCK_MODEL_BASE_HH
-#define GRAPH_LAYERED_WEIGHTED_OVERLAP_BLOCK_MODEL_BASE_HH
+#pragma once
 
 #ifndef COUPLED_BLOCK_MODEL
 #define COUPLED_BLOCK_MODEL layered_weighted_block_model::BlockState
@@ -56,5 +55,3 @@ struct LayeredWeightedOverlapBlockStateSpec
 };
 
 } // namespace boost
-
-#endif // GRAPH_LAYERED_WEIGHTED_OVERLAP_BLOCK_MODEL_BASE_HH

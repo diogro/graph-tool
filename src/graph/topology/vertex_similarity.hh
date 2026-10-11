@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef VERTEX_SIMILARITY_HH
-#define VERTEX_SIMILARITY_HH
+#pragma once
 
 #include "graph_util.hh"
 
@@ -197,5 +196,3 @@ void some_pairs_similarity(Graph& g, Vlist& vlist, Slist& slist, Sim&& f,
 }
 
 } // graph_tool namespace
-
-#endif // VERTEX_SIMILARITY_HH

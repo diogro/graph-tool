@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef AUGMENT_HH
-#define AUGMENT_HH
+#pragma once
 
 namespace graph_tool
 {
@@ -107,5 +106,3 @@ void residual_graph(Graph& g, CapacityMap capacity, ResidualMap res,
 }
 
 } // graph_tool namespace
-
-#endif // AUGMENT_HH

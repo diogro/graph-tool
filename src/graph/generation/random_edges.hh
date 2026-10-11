@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef RANDOM_EDGES_HH
-#define RANDOM_EDGES_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_util.hh"
@@ -142,5 +141,3 @@ void remove_random_edges(Graph& g, size_t E, EWeight eweight, bool counts,
 }
 
 } // graph_tool namespace
-
-#endif // RANDOM_EDGES_HH

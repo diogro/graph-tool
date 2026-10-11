@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_CLIQUE_DECOMPOSITION_HH
-#define GRAPH_CLIQUE_DECOMPOSITION_HH
+#pragma once
 
 #include "hash_map_wrap.hh"
 
@@ -177,5 +176,3 @@ iter_mh(Graph& g, Vxprop x, Cprop c, Vprop is_fac, Vprop is_max, Vec& Ed, int N,
 
     return std::make_tuple(-dL, nflips);
 }
-
-#endif //GRAPH_CLIQUE_DECOMPOSITION_HH

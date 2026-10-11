@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARTITION_MODE_HH
-#define PARTITION_MODE_HH
+#pragma once
 
 #include "config.h"
 
@@ -1205,5 +1204,3 @@ struct extract_param<PartitionModeState::bv_t>
 };
 
 } // graph_tool namespace
-
-#endif //PARTITION_MODE_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_SWAP_MCMC_HH
-#define DYNAMICS_SWAP_MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -657,6 +656,3 @@ struct formatter<move_t>
     }
 };
 }
-
-
-#endif //DYNAMICS_SWAP_MCMC_HH

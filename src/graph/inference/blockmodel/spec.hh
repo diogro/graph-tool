@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_SPEC_HH
-#define GRAPH_BLOCKMODEL_SPEC_HH
+#pragma once
 
 #include "config.h"
 
@@ -326,5 +325,3 @@ struct extract_param<eprop_map_t<int64_t>>
 #include "entries.hh"
 #include "emat.hh"
 #include "elist.hh"
-
-#endif //GRAPH_BLOCKMODEL_SPEC_HH

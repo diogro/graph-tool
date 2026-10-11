@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_WEIGHTED_BLOCK_MODEL_HH
-#define GRAPH_WEIGHTED_BLOCK_MODEL_HH
+#pragma once
 
 #include "spec_base.hh"
 
@@ -24,5 +23,3 @@
 #define STATE_NAME weighted_block_model
 #define STATE_SPEC WeightedBlockStateSpec<>
 #define BLOCK_STATE_SPEC_params WEIGHTED_SPEC_params
-
-#endif // GRAPH_WEIGHTED_BLOCK_MODEL_HH

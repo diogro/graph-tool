@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef LATTICE_HH
-#define LATTICE_HH
+#pragma once
 
 #include "graph_util.hh"
 
@@ -95,5 +94,3 @@ struct get_lattice
 };
 
 } // namespace graph_tool
-
-#endif // LATTICE_HH

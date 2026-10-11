@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef TEST_HH
-#define TEST_HH
+#pragma once
 
 #include <algorithm>
 #include <iostream>
@@ -259,5 +258,3 @@ public:
 };
 
 }// graph_tool namespace
-
-#endif //TEST_HH

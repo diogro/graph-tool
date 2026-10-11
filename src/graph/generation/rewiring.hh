@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef REWIRING_HH
-#define REWIRING_HH
+#pragma once
 
 #include <tuple>
 #include <iostream>
@@ -1071,5 +1070,3 @@ using MicroTradBlockRewireStrategy =
     TradBlockRewireStrategy<Graph, EdgeIndexMap, CorrProb, BlockDeg, true>;
 
 } // graph_tool namespace
-
-#endif // REWIRING_HH

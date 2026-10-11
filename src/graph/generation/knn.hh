@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef KNN_HH
-#define KNN_HH
+#pragma once
 
 #include <tuple>
 #include <random>
@@ -651,5 +650,3 @@ gen_k_nearest(Graph& g, Dist&& d, size_t m, double r, size_t max_rk,
 }
 
 } // graph_tool namespace
-
-#endif // KNN_HH

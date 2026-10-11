@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_HISTOGRAM_HH
-#define GRAPH_HISTOGRAM_HH
+#pragma once
 
 #include "config.h"
 
@@ -1154,5 +1153,3 @@ public:
     };
 };
 } // graph_tool namespace
-
-#endif //GRAPH_HISTOGRAM_HH

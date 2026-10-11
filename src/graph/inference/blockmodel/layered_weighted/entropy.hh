@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_ENTROPY_HH
-#define GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_ENTROPY_HH
+#pragma once
 
 #include "../layered/types.hh"
 #include "../layered/entropy.hh"
@@ -100,5 +99,3 @@ double lbinom(T&& n, X&& x)
 
 
 } // namespace graph_tool
-
-#endif // GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_ENTROPY_HH

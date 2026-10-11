@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef LOCK_FREE_STACK_HH
-#define LOCK_FREE_STACK_HH
+#pragma once
 
 #include <atomic>
 #include <deque>
@@ -125,5 +124,3 @@ class lock_free_stack
     std::atomic<node_t*> _head = nullptr;
     std::atomic<size_t> _size = 0;
 };
-
-#endif // LOCK_FREE_STACK_HH

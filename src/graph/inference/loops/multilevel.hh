@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTILEVEL_HH
-#define MULTILEVEL_HH
+#pragma once
 
 #include <queue>
 #include <cmath>
@@ -1614,5 +1613,3 @@ struct Multilevel:
 };
 
 } // graph_tool namespace
-
-#endif // MULTILEVEL_HH

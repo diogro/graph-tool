@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_BASE_HH
-#define DYNAMICS_BASE_HH
+#pragma once
 
 #include <algorithm>
 #include <iostream>
@@ -1231,5 +1230,3 @@ public:
 };
 
 }// graph_tool namespace
-
-#endif //DYNAMICS_BASE_HH

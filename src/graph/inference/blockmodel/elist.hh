@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ELIST_HH
-#define ELIST_HH
+#pragma once
 
 #include "samplers.hh"
 #include "dynamic_sampler.hh"
@@ -144,5 +143,3 @@ private:
 };
 
 } // namespace graph_tool
-
-#endif //ELIST_HH

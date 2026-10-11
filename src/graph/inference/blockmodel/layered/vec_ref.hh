@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef VEC_REF_HH
-#define VEC_REF_HH
+#pragma once
 
 #include <type_traits>
 #include <vector>
@@ -121,5 +120,3 @@ auto vec_ref(Vec& v)
 
 
 }// namespace graph_tool
-
-#endif // VEC_REF_HH

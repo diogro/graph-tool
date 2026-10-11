@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BUNDLED_VACATE_LOOP_HH
-#define BUNDLED_VACATE_LOOP_HH
+#pragma once
 
 #include "config.h"
 
@@ -251,5 +250,3 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
 }
 
 } // graph_tool namespace
-
-#endif //BUNDLED_VACATE_LOOP_HH

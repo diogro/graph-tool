@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SPEC_HH
-#define SPEC_HH
+#pragma once
 
 #define STATE_NAME modularity
 
@@ -247,5 +246,3 @@ struct StateSpec
 } // STATE_NAME
 
 } // graph_tool namespace
-
-#endif //SPEC_HH

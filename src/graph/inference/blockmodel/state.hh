@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCK_MODEL_HH
-#define GRAPH_BLOCK_MODEL_HH
+#ifndef BLOCKMODEL_HH
+#define BLOCKMODEL_HH
 
 #include "config.h"
 
@@ -2549,4 +2549,4 @@ GEN_DISPATCH(STATE_NAME, BlockState, BLOCK_MODEL_params)
 } // STATE_NAME_SPACE
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCK_MODEL_HH
+#endif //BLOCKMODEL_HH

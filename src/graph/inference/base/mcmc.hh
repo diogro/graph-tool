@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MCMC_HH
-#define MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -165,5 +164,3 @@ GEN_DISPATCH(mcmc_loop_state, MCMC<State>::template MCMCLoopState,
 } // STATE_NAME
 
 } // graph_tool namespace
-
-#endif //MCMC_HH

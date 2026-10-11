@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_HH
-#define GRAPH_HH
+#pragma once
 #include "config.h"
 
 #pragma GCC visibility push(default)
@@ -192,5 +191,3 @@ private:
 #pragma GCC visibility pop
 
 } //namespace graph_tool
-
-#endif

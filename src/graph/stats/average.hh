@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef AVERAGE_HH
-#define AVERAGE_HH
+#pragma once
 
 #include <algorithm>
 
@@ -183,5 +182,3 @@ struct get_average
 };
 
 } // graph_tool namespace
-
-#endif // AVERAGE_HH

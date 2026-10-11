@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GML_HH
-#define GML_HH
+#pragma once
 
 #define BOOST_SPIRIT_UNICODE
 
@@ -502,5 +501,3 @@ void write_gml(std::ostream& out, const Graph& g, const dynamic_properties& dp)
 }
 
 } // namespace graph_tool
-
-#endif // GML_HH

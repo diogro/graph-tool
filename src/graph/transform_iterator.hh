@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef TRANSFORM_ITERATOR_HH
-#define TRANSFORM_ITERATOR_HH
+#pragma once
 
 #include <iterator>
 #include <boost/iterator/transform_iterator.hpp>
@@ -73,5 +72,3 @@ struct iterator_traits<transform_random_access_iterator<Predicate, Iterator> >
     typedef typename iterator_traits<typename titer_t::iter_t>::iterator_category iterator_category;
 };
 }
-
-#endif // TRANSFORM_ITERATOR_HH

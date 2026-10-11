@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BASE64_HH
-#define BASE64_HH
+#pragma once
 
 #include <string>
 
@@ -26,5 +25,3 @@ std::string base64_encode(const std::string& s);
 std::string base64_decode(const std::string& s);
 
 #pragma GCC visibility pop
-
-#endif

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MODULE_REGISTRY_HH
-#define MODULE_REGISTRY_HH
+#pragma once
 
 #include <functional>
 #include <vector>
@@ -167,5 +166,3 @@ public:
 };
 
 } // namespace __MOD__
-
-#endif // MODULE_REGISTRY_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARALLEL_HH
-#define PARALLEL_HH
+#pragma once
 
 #include "hash_map_wrap.hh"
 #include "graph_util.hh"
@@ -156,5 +155,3 @@ void remove_labeled_edges(Graph& g, LabelMap label)
 }
 
 } // graph_tool namespace
-
-#endif //PARALLEL_HH

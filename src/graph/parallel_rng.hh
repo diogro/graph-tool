@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARALLEL_RNG_HH
-#define PARALLEL_RNG_HH
+#pragma once
 
 #include "config.h"
 #include "random.hh"
@@ -73,6 +72,3 @@ private:
     static inline std::unordered_map<RNG*, std::vector<RNG>> _trngs;
     static inline std::mutex _init_mutex;
 };
-
-
-#endif // PARALLEL_RNG_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef TRIADIC_CLOSURE_HH
-#define TRIADIC_CLOSURE_HH
+#pragma once
 
 #include <tuple>
 
@@ -104,5 +103,3 @@ void gen_triadic_closure(Graph& g, EMap curr, ETMap ego, EV& Es, bool probs,
 
 
 } // graph_tool namespace
-
-#endif // TRIADIC_CLOSURE_HH

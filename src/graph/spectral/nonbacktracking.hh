@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef NONBACKTRACKING_HH
-#define NONBACKTRACKING_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -282,5 +281,3 @@ void cnbt_matmat(Graph& g, VIndex vindex, V& x, V& ret)
 
 
 } // namespace graph_tool
-
-#endif // NONBACKTRACKING_HH

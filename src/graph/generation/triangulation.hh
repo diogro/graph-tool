@@ -20,8 +20,7 @@
 // follow the requirements of the GNU GPL in regard to all of the
 // software in the executable aside from CGAL.
 
-#ifndef TRIANGULATION_HH
-#define TRIANGULATION_HH
+#pragma once
 
 #include "graph_util.hh"
 #include "hash_map_wrap.hh"
@@ -134,5 +133,3 @@ struct get_triangulation
 };
 
 } // namespace graph_tool
-
-#endif // TRIANGULATION_HH

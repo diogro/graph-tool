@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MAXENT_SBM_HH
-#define MAXENT_SBM_HH
+#pragma once
 
 #include <tuple>
 
@@ -627,5 +626,3 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
 
 
 } // graph_tool namespace
-
-#endif // MAXENT_SBM_HH

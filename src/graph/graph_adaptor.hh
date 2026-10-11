@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_ADAPTOR_HH
-#define GRAPH_ADAPTOR_HH
+#pragma once
 
 #include <boost/config.hpp>
 #include <boost/graph/graph_traits.hpp>
@@ -650,6 +649,3 @@ get_property(const undirected_adaptor<Graph>& g, GraphPropertyTag tag)
 }
 
 } // namespace boost
-
-
-#endif // GRAPH_ADAPTOR_HH

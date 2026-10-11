@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DEG_STATS_HH
-#define DEG_STATS_HH
+#pragma once
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 
@@ -247,5 +246,3 @@ private:
 };
 
 } //namespace graph_tool
-
-#endif // DEG_STATS_HH

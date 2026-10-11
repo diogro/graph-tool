@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_ENTROPY_HH
-#define GRAPH_BLOCKMODEL_ENTROPY_HH
+#pragma once
 
 #include "../support/util.hh"
 
@@ -297,5 +296,3 @@ double get_edges_dl(int64_t B, int64_t E, Graph& g)
 }
 
 } // namespace graph_tool
-
-#endif // GRAPH_BLOCKMODEL_ENTROPY_HH

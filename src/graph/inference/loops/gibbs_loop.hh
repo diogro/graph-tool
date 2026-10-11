@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GIBBS_LOOP_HH
-#define GIBBS_LOOP_HH
+#pragma once
 
 #include "config.h"
 
@@ -120,5 +119,3 @@ auto gibbs_sweep(GibbsState& state, RNG& rng)
 }
 
 } // graph_tool namespace
-
-#endif //GIBBS_LOOP_HH

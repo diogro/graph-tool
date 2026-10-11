@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_OVERLAP_TYPES_HH
-#define GRAPH_BLOCKMODEL_OVERLAP_TYPES_HH
+#pragma once
 
 #include "config.h"
 
@@ -255,6 +254,3 @@ struct formatter<ovweight_t>
 };
 
 }
-
-
-#endif // GRAPH_BLOCKMODEL_OVERLAP_TYPES_HH

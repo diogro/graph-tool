@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef UNCERTAIN_HH
-#define UNCERTAIN_HH
+#pragma once
 
 #include "config.h"
 
@@ -227,5 +226,3 @@ struct Uncertain
 };
 
 } // graph_tool namespace
-
-#endif //UNCERTAIN_HH

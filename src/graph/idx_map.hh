@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef IDX_MAP_HH
-#define IDX_MAP_HH
+#pragma once
 
 #include <vector>
 #include <utility>
@@ -358,6 +357,3 @@ private:
     std::conditional_t<args.shared_pos, pos_t*, pos_t> _pos;
     inline static constexpr size_t _null = std::numeric_limits<size_t>::max();
 };
-
-
-#endif // IDX_MAP_HH

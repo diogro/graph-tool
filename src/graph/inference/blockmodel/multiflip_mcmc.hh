@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_MULTIFLIP_MCMC_HH
-#define GRAPH_BLOCKMODEL_MULTIFLIP_MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -309,5 +308,3 @@ GEN_DISPATCH(mcmc_loop_state, MCMC<State>::template MCMCLoopState,
              MCMC_LOOP_STATE_params(State))
 
 } // graph_tool namespace
-
-#endif //GRAPH_BLOCKMODEL_MULTIFLIP_MCMC_HH

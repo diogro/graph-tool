@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DISPATCH_HH
-#define DISPATCH_HH
+#pragma once
 
 #include "numpy_bind.hh"
 
@@ -509,5 +508,3 @@ struct extract_param<std::integral_constant<T, v>>
 };
 
 } //graph_tool namespace
-
-#endif // DISPATCH

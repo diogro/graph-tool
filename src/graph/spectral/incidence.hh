@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef INCIDENCE_HH
-#define INCIDENCE_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -162,5 +161,3 @@ void inc_matmat(Graph& g, Vindex vindex, Eindex eindex, M& x, M& ret, bool trans
 
 
 } // namespace graph_tool
-
-#endif // INCIDENCE_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SHARED_MAP_HH
-#define SHARED_MAP_HH
+#pragma once
 
 // This class will encapsulate a map, and atomically sum it to a given resulting
 // map (which is shared among all copies) after it is destructed, or when the
@@ -80,6 +79,3 @@ public:
 private:
     Container* _sum;
 };
-
-
-#endif //SHARED_MAP_HH

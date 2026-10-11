@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARTITION_SIMPLE_HH
-#define PARTITION_SIMPLE_HH
+#pragma once
 
 #include "types.hh"
 
@@ -542,5 +541,3 @@ struct DummyPartitionStats
 
 
 } //namespace graph_tool
-
-#endif // PARTITION_SIMPLE_HH

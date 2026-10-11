@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MEASURED_HH
-#define MEASURED_HH
+#pragma once
 
 #include "config.h"
 
@@ -334,5 +333,3 @@ struct Measured
 };
 
 } // graph_tool namespace
-
-#endif //MEASURED_HH

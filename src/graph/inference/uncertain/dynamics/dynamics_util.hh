@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_UTIL_HH
-#define DYNAMICS_UTIL_HH
+#pragma once
 
 #include <cmath>
 
@@ -71,6 +70,3 @@ inline double exponential_lpdf(T x, T lambda)
 {
     return -lambda * x + log(lambda);
 }
-
-
-#endif // DYNAMICS_UTIL_HH

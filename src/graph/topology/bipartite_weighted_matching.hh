@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BIPARTITE_WEIGHTED_MATCHING_HH
-#define BIPARTITE_WEIGHTED_MATCHING_HH
+#pragma once
 
 #include <stack>
 #include <boost/graph/breadth_first_search.hpp>
@@ -438,5 +437,3 @@ void maximum_bipartite_weighted_matching(Graph& g,
 }
 
 }
-
-#endif //BIPARTITE_WEIGHTED_MATCHING_HH

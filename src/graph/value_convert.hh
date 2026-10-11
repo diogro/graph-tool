@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef VALUE_CONVERT_HH
-#define VALUE_CONVERT_HH
+#pragma once
 
 #include <string>
 #include <vector>
@@ -227,5 +226,3 @@ template <class To, class From>
 constexpr bool is_convertible_v = is_convertible<To, From>::value;
 
 } // namespace graph_tool
-
-#endif // VALUE_CONVERT_HH

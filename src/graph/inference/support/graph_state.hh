@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_STATE_HH
-#define GRAPH_STATE_HH
+#pragma once
 
 #include <boost/python.hpp>
 #include <boost/preprocessor/comparison/equal.hpp>
@@ -461,5 +460,3 @@ struct StateWrap
 
 
 } // namespace graph_tool
-
-#endif // GRAPH_STATE_HH

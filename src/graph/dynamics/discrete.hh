@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DISCRETE_HH
-#define DISCRETE_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -1226,5 +1225,3 @@ size_t discrete_iter_async(Graph& g, State state, size_t niter, RNG& rng)
 
 
 } // namespace graph_tool
-
-#endif // DISCRETE_HH

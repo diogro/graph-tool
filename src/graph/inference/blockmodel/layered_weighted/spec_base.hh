@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_BASE_HH
-#define GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_BASE_HH
+#pragma once
 
 
 // layered spec
@@ -323,5 +322,3 @@ struct extract_param<eprop_map_t<std::vector<WeightCount<double, int64_t, LWVEC_
 };
 
 } // namespace boost
-
-#endif // GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_BASE_HH

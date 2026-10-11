@@ -29,8 +29,7 @@
 // disables bound checking for better performance.
 //
 
-#ifndef FAST_VECTOR_PROPERTY_MAP_HH
-#define FAST_VECTOR_PROPERTY_MAP_HH
+#pragma once
 
 #include <boost/property_map/property_map.hpp>
 #include <memory>
@@ -348,5 +347,3 @@ decltype(auto) get_checked(PMap&& prop)
 }
 
 }
-
-#endif

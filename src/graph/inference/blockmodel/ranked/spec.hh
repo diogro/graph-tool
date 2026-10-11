@@ -15,15 +15,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SPEC_HH
-#define SPEC_HH
+#pragma once
 
 #include "../state.hh"
 #undef STATE_NAME
 #undef STATE_NAME
 #undef STATE_SPEC
 #undef MODULE_PRIO
-#undef GRAPH_BLOCK_MODEL_HH
+#undef BLOCKMODEL_HH
 #undef BLOCK_STATE_SPEC_params 
 
 #include "spec_base.hh"
@@ -32,5 +31,3 @@
 #define STATE_NAME ranked_block_model
 #define STATE_SPEC RankedBlockStateSpec<>
 #define BLOCK_STATE_SPEC_params RANKED_SPEC_params
-
-#endif // SPEC_HH

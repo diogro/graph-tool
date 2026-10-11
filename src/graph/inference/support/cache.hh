@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CACHE_HH
-#define CACHE_HH
+#pragma once
 
 #include "config.h"
 #include "../../openmp.hh"
@@ -147,5 +146,3 @@ void init_lgamma_fast(T x)
 }
 
 } // graph_tool namespace
-
-#endif //CACHE_HH

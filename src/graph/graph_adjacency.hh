@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_ADJACENCY_HH
-#define GRAPH_ADJACENCY_HH
+#pragma once
 
 #include <vector>
 #include <deque>
@@ -1677,5 +1676,3 @@ struct hash<boost::detail::adj_edge_descriptor<Vertex>>
     }
 };
 }  // namespace std
-
-#endif //GRAPH_ADJACENCY_HH

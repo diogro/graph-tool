@@ -15,15 +15,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_OVERLAP_BLOCK_MODEL_HH
-#define GRAPH_OVERLAP_BLOCK_MODEL_HH
+#pragma once
 
 #include "../state.hh"
 #undef STATE_NAME
 #undef STATE_NAME
 #undef STATE_SPEC
 #undef MODULE_PRIO
-#undef GRAPH_BLOCK_MODEL_HH
+#undef BLOCKMODEL_HH
 
 #include "spec_base.hh"
 
@@ -33,5 +32,3 @@
 
 #undef BLOCK_STATE_SPEC_params
 #define BLOCK_STATE_SPEC_params OVERLAP_SPEC_params
-
-#endif // GRAPH_OVERLAP_BLOCK_MODEL_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_OVERLAP_BLOCK_MODEL_HH
-#define GRAPH_LAYERED_OVERLAP_BLOCK_MODEL_HH
+#pragma once
 
 #include "../layered/spec.hh"
 #include "../state.hh"
@@ -24,7 +23,7 @@
 #undef STATE_NAME
 #undef STATE_SPEC
 #undef MODULE_PRIO
-#undef GRAPH_BLOCK_MODEL_HH
+#undef BLOCKMODEL_HH
 
 #include "spec_base.hh"
 
@@ -34,5 +33,3 @@
 
 #undef BLOCK_STATE_SPEC_params
 #define BLOCK_STATE_SPEC_params LAYERED_OVERLAP_SPEC_params
-
-#endif // GRAPH_LAYERED_OVERLAP_BLOCK_MODEL_HH

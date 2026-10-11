@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QUAD_TREE_HH
-#define QUAD_TREE_HH
+#pragma once
 
 #include <array>
 #include <vector>
@@ -409,5 +408,3 @@ private:
 };
 
 } // namespace graph_tool
-
-#endif // QUAD_TREE_HH

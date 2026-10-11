@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef NUMPY_BIND_HH
-#define NUMPY_BIND_HH
+#pragma once
 
 #include <vector>
 #include <boost/python.hpp>
@@ -261,5 +260,3 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
     //     store = boost::fortran_storage_order();
 
 }
-
-#endif // NUMPY_BIND_HH

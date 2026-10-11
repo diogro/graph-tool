@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MINMAX_HH
-#define MINMAX_HH
+#pragma once
 
 #include <vector>
 #include <boost/mpl/bool.hpp>
@@ -209,6 +208,3 @@ private:
     std::vector<Value> _queue;
     Compare _cmp;
 };
-
-
-#endif // MINMAX_HH

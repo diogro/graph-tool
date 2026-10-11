@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_OVERLAP_BLOCK_MODEL_BASE_HH
-#define GRAPH_LAYERED_OVERLAP_BLOCK_MODEL_BASE_HH
+#pragma once
 
 // layered spec
 #include "../layered/spec_base.hh"
@@ -152,5 +151,3 @@ struct extract_param<vprop_map_t<VLayerCount<ovweight_t>>>
 };
 
 } // namespace boost
-
-#endif // GRAPH_LAYERED_OVERLAP_BLOCK_MODEL_BASE_HH

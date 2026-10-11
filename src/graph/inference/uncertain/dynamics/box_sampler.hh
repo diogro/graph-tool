@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BOX_SAMPLER_HH
-#define BOX_SAMPLER_HH
+#pragma once
 
 #include "samplers.hh"
 
@@ -73,4 +72,3 @@ private:
 };
 
 }
-#endif // BOX_SAMPLER_HH

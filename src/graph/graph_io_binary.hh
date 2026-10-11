@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_IO_BINARY_HH
-#define GRAPH_IO_BINARY_HH
+#pragma once
 
 #include <iostream>
 #include "graph.hh"
@@ -542,5 +541,3 @@ bool read_graph(std::istream& s, Graph& g,
 }
 
 } // namespace graph_tool
-
-#endif // GRAPH_IO_BINARY_HH

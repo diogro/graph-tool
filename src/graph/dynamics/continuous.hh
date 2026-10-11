@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CONTINUOUS_HH
-#define CONTINUOUS_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -190,5 +189,3 @@ void get_diff_sync(Graph& g, State state, double t, double dt, RNG& rng_)
 
 
 } // namespace graph_tool
-
-#endif // CONTINUOUS_HH

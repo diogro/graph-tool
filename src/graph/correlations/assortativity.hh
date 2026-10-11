@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ASSORTATIVITY_HH
-#define ASSORTATIVITY_HH
+#pragma once
 
 #include "shared_map.hh"
 #include "graph_util.hh"
@@ -239,5 +238,3 @@ struct get_scalar_assortativity_coefficient
 };
 
 } // graph_tool namespace
-
-#endif //ASSORTATIVITY_HH

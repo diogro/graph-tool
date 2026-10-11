@@ -15,13 +15,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ENTROPY_HH
-#define ENTROPY_HH
+#pragma once
 
 #include "types.hh"
 
 namespace graph_tool
 {
 } // namespace graph_tool
-
-#endif // ENTROPY_HH

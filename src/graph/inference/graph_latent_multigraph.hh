@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LATENT_MULTIGRAPH_HH
-#define GRAPH_LATENT_MULTIGRAPH_HH
+#pragma once
 
 #include <iostream>
 
@@ -103,5 +102,3 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
 };
 
 } // graph_tool namespace
-
-#endif //GRAPH_LATENT_MULTIGRAPH_HH

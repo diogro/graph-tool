@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef OPENMP_HH
-#define OPENMP_HH
+#pragma once
 #include "config.h"
 
 #include <cstddef>
@@ -55,5 +54,3 @@ size_t get_openmp_min_thresh();
 void set_openmp_min_thresh(size_t);
 
 #pragma GCC visibility pop
-
-#endif // OPENMP_HH

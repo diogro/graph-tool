@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PERCOLATION_HH
-#define PERCOLATION_HH
+#pragma once
 
 namespace graph_tool
 {
@@ -155,5 +154,3 @@ void vertex_percolate(Graph& g, TreeMap tree, SizeMap size, VisitedMap visited,
 }
 
 } // graph_tool namespace
-
-#endif // PERCOLATION_HH

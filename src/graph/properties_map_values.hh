@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PROPERTIES_MAP_VALUES_HH
-#define PROPERTIES_MAP_VALUES_HH
+#pragma once
 
 #include <unordered_map>
 #include <boost/python/extract.hpp>
@@ -80,5 +79,3 @@ struct do_map_values
 };
 
 } // namespace graph_tool
-
-#endif // PROPERTIES_MAP_VALUES_HH

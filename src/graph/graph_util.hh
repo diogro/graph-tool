@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_UTIL_HH
-#define GRAPH_UTIL_HH
+#pragma once
 
 // allow boost::python to bind to std::functions
 #include <boost/mpl/vector.hpp>
@@ -799,5 +798,3 @@ struct hash<std::complex<Value>>
 };
 
 }
-
-#endif // GRAPH_UTIL_HH

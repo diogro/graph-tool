@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_BLOCKMODEL_TYPES_HH
-#define GRAPH_LAYERED_BLOCKMODEL_TYPES_HH
+#pragma once
 
 #include "config.h"
 
@@ -1051,5 +1050,3 @@ C pow(const C& x, auto n)
 }
 
 }
-
-#endif // GRAPH_LAYERED_BLOCKMODEL_TYPES_HH

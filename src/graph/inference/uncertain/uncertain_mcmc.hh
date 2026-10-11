@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef UNCERTAIN_MCMC_HH
-#define UNCERTAIN_MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -215,5 +214,3 @@ struct MCMC
 
 
 } // graph_tool namespace
-
-#endif //UNCERTAIN_MCMC_HH

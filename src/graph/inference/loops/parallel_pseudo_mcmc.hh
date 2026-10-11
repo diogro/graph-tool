@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARALLEL_PSEUDO_MCMC_HH
-#define PARALLEL_PSEUDO_MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -94,5 +93,3 @@ auto pseudo_mcmc_sweep(MCMCState& state, RNG& rng_)
 }
 
 } // graph_tool namespace
-
-#endif //PARALLEL_PSEUDO_MCMC_HH

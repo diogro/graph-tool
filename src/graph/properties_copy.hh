@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PROPERTIES_COPY_HH
-#define PROPERTIES_COPY_HH
+#pragma once
 
 #include "properties.hh"
 #include "graph_util.hh"
@@ -86,5 +85,3 @@ void copy_external_edge_property_dispatch(const GraphSrc& src, const GraphTgt& t
 
 
 } // namespace graph_tool
-
-#endif // PROPERTIES_COPY_HH

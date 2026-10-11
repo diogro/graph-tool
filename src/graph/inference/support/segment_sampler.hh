@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SEGMENT_SAMPLER_HH
-#define SEGMENT_SAMPLER_HH
+#pragma once
 
 #include "samplers.hh"
 #include "util.hh"
@@ -150,4 +149,3 @@ private:
 };
 
 }
-#endif // SEGMENT_SAMPLER_HH

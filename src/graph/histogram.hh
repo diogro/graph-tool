@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef HISTOGRAM_HH
-#define HISTOGRAM_HH
+#pragma once
 
 #include <vector>
 #include <utility>
@@ -255,5 +254,3 @@ double get_map_deviation(const Map &m, double avg)
     }
     return (total > 1)?sqrt(dev/(total-1)):0.0;
 }
-
-#endif //HISTOGRAM_HH

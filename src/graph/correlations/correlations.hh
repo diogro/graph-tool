@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CORRELATIONS_HH
-#define CORRELATIONS_HH
+#pragma once
 
 #include <algorithm>
 #include <boost/numeric/conversion/bounds.hpp>
@@ -172,5 +171,3 @@ void clean_bins(const vector<long double>& obins, vector<Value>& rbins)
 }
 
 } // graph_tool namespace
-
-#endif

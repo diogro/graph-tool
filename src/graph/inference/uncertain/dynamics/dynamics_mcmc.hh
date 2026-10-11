@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_MCMC_HH
-#define DYNAMICS_MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -803,6 +802,3 @@ struct formatter<std::tuple<T1, T2>>
     }
 };
 }
-
-
-#endif //DYNAMICS_MCMC_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DEG_PARTITION_HH
-#define DEG_PARTITION_HH
+#pragma once
 
 #include "../support/util.hh"
 #include "../support/int_part.hh"
@@ -417,5 +416,3 @@ private:
 };
 
 } //namespace graph_tool
-
-#endif // DEG_PARTITION_HH

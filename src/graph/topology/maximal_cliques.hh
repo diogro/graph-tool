@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MAXIMAL_CLIQUES_HH
-#define MAXIMAL_CLIQUES_HH
+#pragma once
 
 #include <array>
 #include <deque>
@@ -139,5 +138,3 @@ void max_cliques(Graph& g, Visitor&& vis)
 }
 
 } // graph_tool namespace
-
-#endif // MAXIMAL_CLIQUES_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SFDP_HH
-#define SFDP_HH
+#pragma once
 
 #include <limits>
 #include <iostream>
@@ -402,6 +401,3 @@ void get_sfdp_layout(Graph& g, PosMap pos, VertexWeightMap vweight,
 }
 
 } // namespace graph_tool
-
-
-#endif // SFDP_HH

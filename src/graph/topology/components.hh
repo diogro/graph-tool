@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef COMPONENTS_HH
-#define COMPONENTS_HH
+#pragma once
 
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/strong_components.hpp>
@@ -216,5 +215,3 @@ struct label_attractors
 };
 
 } // graph_tool namespace
-
-#endif // COMPONENTS_HH

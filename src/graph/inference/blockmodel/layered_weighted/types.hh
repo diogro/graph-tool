@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_TYPES_HH
-#define GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_TYPES_HH
+#pragma once
 
 #include "../layered/types.hh"
 #include "../weighted/types.hh"
@@ -136,5 +135,3 @@ void set_dev(X&& x, size_t i, const Y& y)
 
 
 } // graph_tool namespace
-
-#endif // GRAPH_LAYERED_WEIGHTED_BLOCKMODEL_TYPES_HH

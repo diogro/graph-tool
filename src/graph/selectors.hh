@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SELECTORS_HH
-#define SELECTORS_HH
+#pragma once
 
 #pragma GCC visibility push(default)
 
@@ -719,5 +718,3 @@ decltype(auto) self_loop_filter_single(Range&& range, const Graph& g)
 } //namespace graph_tool
 
 #pragma GCC visibility pop
-
-#endif

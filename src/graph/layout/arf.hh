@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ARF_HH
-#define ARF_HH
+#pragma once
 
 namespace graph_tool
 {
@@ -104,6 +103,3 @@ struct get_arf_layout
 };
 
 } // namespace graph_tool
-
-
-#endif // ARF_HH

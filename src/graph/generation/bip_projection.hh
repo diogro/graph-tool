@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef BIP_PROJECTION_HH
-#define BIP_PROJECTION_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -85,5 +84,3 @@ void bipartite_projection(PGraph& ug, Graph& g, PMap pmap, VertexMap vmap,
 }
 
 } // graph_tool namespace
-
-#endif // BIP_PROJECTION_HH

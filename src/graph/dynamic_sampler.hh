@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMIC_SAMPLER_HH
-#define DYNAMIC_SAMPLER_HH
+#pragma once
 
 #include "random.hh"
 
@@ -297,5 +296,3 @@ private:
 
 
 } // namespace graph_tool
-
-#endif // DYNAMIC_SAMPLER_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_POTTS_HH
-#define GRAPH_POTTS_HH
+#pragma once
 
 #define STATE_NAME potts
 
@@ -157,5 +156,3 @@ struct StateSpec
 } // STATE_NAME
 
 } // graph_tool namespace
-
-#endif //GRAPH_POTTS_HH

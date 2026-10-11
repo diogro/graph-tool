@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CONTINGENCY_HH
-#define CONTINGENCY_HH
+#pragma once
 
 #include "config.h"
 
@@ -133,5 +132,3 @@ void get_contingency_graph(Graph& g, PMap&& partition, VMap&& label, EMap&& mrs,
     }
 }
 }
-
-#endif // CONTINGENCY_HH

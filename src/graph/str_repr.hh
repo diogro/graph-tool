@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef STR_REPR_HH
-#define STR_REPR_HH
+#pragma once
 
 #include <clocale>
 #include <sstream>
@@ -209,5 +208,3 @@ istream& operator>>(istream& in, std::vector<std::string>& vec)
 } // std namespace
 
 #pragma GCC visibility pop
-
-#endif // STR_REPR_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARALLEL_UTIL_HH
-#define PARALLEL_UTIL_HH
+#pragma once
 
 #include <mutex>
 #include <shared_mutex>
@@ -497,5 +496,3 @@ auto parallel_loop_rng(Range&& vals, F&& f, RNG& rng, size_t thresh = get_openmp
 }
 
 } // namespace graph_tool
-
-#endif // PARALLEL_UTIL_HH

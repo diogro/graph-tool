@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef TYPES_HH
-#define TYPES_HH
+#pragma once
 
 #include "config.h"
 
@@ -42,5 +41,3 @@ auto thresh_diff(T1&& before, T2&& after, int t = 0)
 }
 
 } // namespace graph_tool
-
-#endif // TYPES_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef LATENT_MASK_HH
-#define LATENT_MASK_HH
+#pragma once
 
 #include "config.h"
 
@@ -321,5 +320,3 @@ struct LatentMask
 };
 
 } // graph_tool namespace
-
-#endif //LATENT_MASK_HH

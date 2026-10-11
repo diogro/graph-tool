@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PROPERTIES_HH
-#define PROPERTIES_HH
+#pragma once
 
 #pragma GCC visibility push(default)
 
@@ -839,5 +838,3 @@ using promote_value_t = promote_value<T>::type;
 } // graph_tool namespace
 
 #pragma GCC visibility pop
-
-#endif

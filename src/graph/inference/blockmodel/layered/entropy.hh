@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_LAYERED_BLOCKMODEL_ENTROPY_HH
-#define GRAPH_LAYERED_BLOCKMODEL_ENTROPY_HH
+#pragma once
 
 #include "types.hh"
 
@@ -260,5 +259,3 @@ double get_edges_dl(size_t B, const C& E, Graph& g)
 }
 
 } //namespace graph_tool
-
-#endif // GRAPH_LAYERED_BLOCKMODEL_ENTROPY_HH

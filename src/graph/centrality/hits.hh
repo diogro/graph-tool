@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef HITS_HH
-#define HITS_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -133,5 +132,3 @@ struct get_hits
 };
 
 }
-
-#endif

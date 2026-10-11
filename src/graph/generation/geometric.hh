@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GEOMETRIC_HH
-#define GEOMETRIC_HH
+#pragma once
 
 #include <iostream>
 #include <unordered_map>
@@ -170,5 +169,3 @@ struct get_geometric
 };
 
 } // namespace graph_tool
-
-#endif // GEOMETRIC_HH

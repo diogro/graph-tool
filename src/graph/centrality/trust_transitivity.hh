@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef TRUST_TRANSITIVITY_HH
-#define TRUST_TRANSITIVITY_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -223,5 +222,3 @@ struct get_trust_transitivity
 };
 
 }
-
-#endif

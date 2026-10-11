@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SEARCH_HH
-#define SEARCH_HH
+#pragma once
 
 #include "python_interface.hh"
 #include "graph_util.hh"
@@ -149,5 +148,3 @@ struct find_edges
 
 
 } // graph_tool namespace
-
-#endif // SEARCH_HH

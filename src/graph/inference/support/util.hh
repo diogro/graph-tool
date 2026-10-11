@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef UTIL_HH
-#define UTIL_HH
+#pragma once
 
 #include "config.h"
 
@@ -111,5 +110,3 @@ auto log_sum_exp(const V& v)
 }
 
 } // namespace graph_tool
-
-#endif // UTIL_HH

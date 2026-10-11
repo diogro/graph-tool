@@ -15,12 +15,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_TOOL_HH
-#define GRAPH_TOOL_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "properties.hh"
 #include "selectors.hh"
-
-#endif //GRAPH_TOOL_HH

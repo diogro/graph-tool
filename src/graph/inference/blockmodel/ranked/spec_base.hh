@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SPEC_BASE_HH
-#define SPEC_BASE_HH
+#pragma once
 
 #include "config.h"
 
@@ -1069,5 +1068,3 @@ struct RankedBlockStateSpec
 };
 
 } //namespace graph_tool
-
-#endif // SPEC_BASE_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef URN_SAMPLER_HH
-#define URN_SAMPLER_HH
+#pragma once
 
 #include "random.hh"
 
@@ -82,5 +81,3 @@ private:
 };
 
 } // namespace graph_tool
-
-#endif // URN_SAMPLER_HH

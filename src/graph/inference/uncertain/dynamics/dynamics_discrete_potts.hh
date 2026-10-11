@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_DISCRETE_POTTS_HH
-#define DYNAMICS_DISCRETE_POTTS_HH
+#pragma once
 
 #define GCC_VERSION (__GNUC__ * 10000 \
                      + __GNUC_MINOR__ * 100 \
@@ -313,5 +312,3 @@ public:
 
 
 } // graph_tool namespace
-
-#endif //DYNAMICS_DISCRETE_POTTS_HH

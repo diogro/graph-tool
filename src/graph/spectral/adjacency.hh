@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef ADJACENCY_HH
-#define ADJACENCY_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -106,5 +105,3 @@ void adj_matmat(Graph& g, Vindex index, Weight w, M& x, M& ret)
 }
 
 } // namespace graph_tool
-
-#endif // ADJACENCY_HH

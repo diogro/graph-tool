@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_WEIGHTED_BLOCKMODEL_BASE_HH
-#define GRAPH_WEIGHTED_BLOCKMODEL_BASE_HH
+#pragma once
 
 #include "config.h"
 
@@ -984,5 +983,3 @@ struct uncheck<std::vector<boost::checked_vector_property_map<Type,Index>>>
     }
 };
 } // namespace boost
-
-#endif // GRAPH_WEIGHTED_BLOCKMODEL_BASE_HH

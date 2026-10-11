@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef KCORE_HH
-#define KCORE_HH
+#pragma once
 
 namespace graph_tool
 {
@@ -81,5 +80,3 @@ void kcore_decomposition(Graph& g, CoreMap core_map)
 }
 
 } // graph_tool namespace
-
-#endif // KCORE_HH

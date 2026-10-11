@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PARTITION_HH
-#define PARTITION_HH
+#pragma once
 
 #include "../../graph_util.hh"
 #include "../support/util.hh"
@@ -299,5 +298,3 @@ private:
 
 
 } //namespace graph_tool
-
-#endif // PARTITION_HH

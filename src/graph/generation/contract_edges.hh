@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CONTRACT_EDGES_HH
-#define CONTRACT_EDGES_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_util.hh"
@@ -167,5 +166,3 @@ void expand_parallel_edges(Graph& g, EWeight eweight)
 }
 
 } // graph_tool namespace
-
-#endif // CONTRACT_EDGES_HH

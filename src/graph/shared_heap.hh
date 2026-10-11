@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SHARED_HEAP_HH
-#define SHARED_HEAP_HH
+#pragma once
 
 #include <vector>
 #include <algorithm>
@@ -96,6 +95,3 @@ SharedHeap<T, CMP> make_shared_heap(std::vector<T>& heap, size_t max_size,
 {
     return SharedHeap<T, CMP>(heap, max_size, cmp);
 }
-
-
-#endif // SHARED_HEAP_HH

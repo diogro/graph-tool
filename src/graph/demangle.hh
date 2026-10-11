@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DEMANGLE_HH
-#define DEMANGLE_HH
+#pragma once
 
 #include <typeinfo>
 #include <string>
@@ -32,5 +31,3 @@ std::string get_type_name()
 }
 
 #pragma GCC visibility pop
-
-#endif // DEMANGLE_HH

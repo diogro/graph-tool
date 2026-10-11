@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GENERATION_HH
-#define GENERATION_HH
+#pragma once
 
 #include <map>
 #include <set>
@@ -638,5 +637,3 @@ struct gen_graph
 };
 
 } // graph_tool namespace
-
-#endif // GENERATION_HH

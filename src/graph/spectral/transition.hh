@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef TRANSITION_HH
-#define TRANSITION_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -157,5 +156,3 @@ void trans_matmat(Graph& g, Vindex vindex, Weight w, Deg id, Mat& x, Mat& ret)
 }
 
 } // namespace graph_tool
-
-#endif // TRANSITION_HH

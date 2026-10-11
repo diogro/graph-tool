@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DYNAMICS_MULTIFLIP_MCMC_THETA_HH
-#define DYNAMICS_MULTIFLIP_MCMC_THETA_HH
+#pragma once
 
 #include "config.h"
 
@@ -395,5 +394,3 @@ struct MCMCTheta
 };
 
 } // graph_tool namespace
-
-#endif //DYNAMICS_MULTIFLIP_MCMC_THETA_HH

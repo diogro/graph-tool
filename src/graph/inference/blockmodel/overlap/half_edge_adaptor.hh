@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef HALF_EDGE_ADAPTOR_HH
-#define HALF_EDGE_ADAPTOR_HH
+#pragma once
 
 namespace graph_tool
 {
@@ -886,6 +885,3 @@ struct formatter<half_edge>
     }
 };
 }
-
-
-#endif // HALF_EDGE_ADAPTOR_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SIMILARITY_HH
-#define SIMILARITY_HH
+#pragma once
 
 #include <unordered_set>
 #include "hash_map_wrap.hh"
@@ -232,5 +231,3 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
 }
 
 } // graph_tool namespace
-
-#endif // SIMILARITY_HH

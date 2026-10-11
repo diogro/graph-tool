@@ -20,8 +20,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef GRAPH_REVERSE_HH
-#define GRAPH_REVERSE_HH
+#pragma once
 
 #include <boost/property_map/property_map.hpp>
 #include <boost/graph/properties.hpp>
@@ -372,5 +371,3 @@ get(Tag t, const reversed_graph<Graph>& g)
 }
 
 } // namespace boost
-
-#endif // GRAPH_REVERSE_HH

@@ -15,8 +15,7 @@
 // you should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CLUSTERING_HH
-#define CLUSTERING_HH
+#pragma once
 
 #include "config.h"
 
@@ -195,5 +194,3 @@ auto get_global_clustering_sampled(const Graph& g, size_t m, RNG& rng)
 
 
 } //graph-tool namespace
-
-#endif // CLUSTERING_HH

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_HISTOGRAM_MCMC_HH
-#define GRAPH_HISTOGRAM_MCMC_HH
+#pragma once
 
 #include "config.h"
 
@@ -440,5 +439,3 @@ struct formatter<hmove_t>
     }
 };
 }
-
-#endif //GRAPH_HISTOGRAM_MCMC_HH

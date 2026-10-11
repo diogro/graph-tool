@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SBM_HH
-#define SBM_HH
+#pragma once
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -129,5 +128,3 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
 
 
 } // graph_tool namespace
-
-#endif // SBM_HH

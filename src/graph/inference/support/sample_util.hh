@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SAMPLE_UTIL_HH
-#define SAMPLE_UTIL_HH
+#pragma once
 
 #include "config.h"
 #include "util.hh"
@@ -54,5 +53,3 @@ double neg_binomial_lprob(V1 m, size_t r, V2 p)
 }
 
 } // namespace graph_tool
-
-#endif // SAMPLE_UTIL_HH

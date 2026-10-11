@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef CORR_HIST_HH
-#define CORR_HIST_HH
+#pragma once
 
 #include "correlations.hh"
 
@@ -85,5 +84,3 @@ struct get_correlation_histogram
 };
 
 } // graph_tool namespace
-
-#endif

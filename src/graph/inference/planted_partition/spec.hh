@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SPEC_HH
-#define SPEC_HH
+#pragma once
 
 #include "../blockmodel/partition.hh"
 #include "../blockmodel/deg_partition.hh"
@@ -680,5 +679,3 @@ struct StateSpec
 } // STATE_NAME
 
 } // graph_tool namespace
-
-#endif //SPEC_HH

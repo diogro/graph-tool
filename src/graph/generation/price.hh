@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PRICE_HH
-#define PRICE_HH
+#pragma once
 
 #include <boost/functional/hash.hpp>
 #include "graph_util.hh"
@@ -84,5 +83,3 @@ void get_price(Graph& g, size_t N, double gamma, double c, size_t m,
 }
 
 } // namespace graph_tool
-
-#endif // PRICE_HH

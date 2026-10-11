@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_MODULARITY_HH
-#define GRAPH_MODULARITY_HH
+#pragma once
 
 #include "graph_tool.hh"
 #include "hash_map_wrap.hh"
@@ -66,5 +65,3 @@ double get_modularity(const Graph& g, double gamma, WeightMap weights,
 };
 
 } // graph_tool namespace
-
-#endif //GRAPH_MODULARITY_HH
