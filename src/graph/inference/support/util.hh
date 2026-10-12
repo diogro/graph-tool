@@ -79,13 +79,12 @@ auto log_sum_exp(T a, T b)
 {
     if constexpr (handle_inf)
     {
-        if (a == b)  [[unlikely]] // handles infinity
-            return a + std::log(T(2));
+        if (a == b) [[unlikely]]  // handles infinity
+            return a + std::numbers::ln2_v<T>;
     }
-    if (a > b)
-        return a + std::log1p(std::exp(b-a));
-    else
-        return b + std::log1p(std::exp(a-b));
+    const T hi = std::max(a, b);
+    const T lo = std::min(a, b);
+    return hi + std::log1p(std::exp(lo - hi));
 }
 
 template <Scalar T, Scalar... Ts>
@@ -108,5 +107,8 @@ auto log_sum_exp(const V& v)
         ret = log_sum_exp<val_t, handle_inf>(ret, x);
     return ret;
 }
+
+#pragma omp declare reduction(log_sum_exp : double : omp_out = log_sum_exp(omp_out, omp_in)) \
+    initializer(omp_priv = -std::numeric_limits<double>::infinity())
 
 } // namespace graph_tool
