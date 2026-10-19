@@ -166,15 +166,57 @@ def kw_pop(kwargs, key, default):
     return kwargs.pop(key, default)
 
 
-class EntropyState(ABC):
+class PickleState(ABC):
+    r"""Base state that implements pickling and copying.
+
+    The state is reconstructed from the parameters of the constructors of all
+    classes in its hierarchy, whose values are taken from the attributes of
+    the same name. Parameters listed in ``_ignore_state_args`` are skipped.
+    """
+
+    def __init__(self):
+        if not hasattr(self, "_ignore_state_args"):
+            self._ignore_state_args = []
+
+    def _get_init_args(self, ignore=[]):
+        init_args = {}
+        ignore_args = set(getattr(self, "_ignore_state_args", []) +
+                          ["self", "args", "kwargs"] + ignore)
+        for c in inspect.getmro(type(self)):
+            sig = inspect.signature(c.__init__)
+            for k, v in sig.parameters.items():
+                if k in ignore_args:
+                    continue
+                init_args[k] = getattr(self, k)
+        return init_args
+
+    def __getstate__(self):
+        return self._get_init_args()
+
+    def __setstate__(self, state):
+        self.__init__(**state)
+
+    def __copy__(self):
+        return self.copy()
+
+    def copy(self, **kwargs):
+        r"""Copies the state. The parameters override the state properties, and
+        have the same meaning as in the constructor.
+        """
+        init_args = {k: v.copy() if isinstance(v, PropertyMap) else v
+                     for k, v in self.__getstate__().items()}
+        init_args.update(kwargs)
+        return self.__class__(**init_args)
+
+
+class EntropyState(PickleState):
     r"""Base state that implements entropy arguments."""
 
     def __init__(self, entropy_args={}):
+        PickleState.__init__(self)
         self._entropy_args = {}
         self.reset_entropy_args()
         self._entropy_args.update(entropy_args)
-        if not hasattr(self, "_ignore_state_args"):
-            self._ignore_state_args = []
 
     def get_entropy_args(self):
         """Return the current default values for the parameters of the function
@@ -206,36 +248,13 @@ class EntropyState(ABC):
             self._entropy_args[k] = v.default
 
     def __getstate__(self):
-        init_args = {}
-        ignore_args = set(self._ignore_state_args +
-                          ["self", "args", "kwargs", "entropy_args"])
-        for c in inspect.getmro(type(self)):
-            sig = inspect.signature(c.__init__)
-            for k, v in sig.parameters.items():
-                if k in ignore_args:
-                    continue
-                init_args[k] = getattr(self, k)
+        init_args = self._get_init_args(ignore=["entropy_args"])
         eargs = self.get_entropy_args()
         sig = inspect.signature(self.entropy)
         for k, v in sig.parameters.items():
             if k in eargs and eargs[k] == v:
                 eargs.pop(k)
         return dict(entropy_args=eargs, **init_args)
-
-    def __setstate__(self, state):
-        self.__init__(**state)
-
-    def __copy__(self):
-        return self.copy()
-
-    def copy(self, **kwargs):
-        r"""Copies the block state. The parameters override the state
-         properties, and have the same meaning as in the constructor.
-        """
-        init_args = {k: v.copy() if isinstance(v, PropertyMap) else v
-                     for k, v in self.__getstate__().items()}
-        init_args.update(kwargs)
-        return self.__class__(**init_args)
 
     @abstractmethod
     def _entropy(self, **kwargs):

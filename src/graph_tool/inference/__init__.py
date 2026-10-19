@@ -70,6 +70,7 @@ Abstract base classes
    :toctree: autosummary
    :template: class.rst
 
+   PickleState
    EntropyState
    CLabelState
    MCMCState
@@ -291,6 +292,7 @@ __all__ = ["minimize_blockmodel_dl",
            "HistState",
            "CliqueState",
            "CLabelState",
+           "PickleState",
            "EntropyState",
            "MCMCState",
            "MultiflipMCMCState",
