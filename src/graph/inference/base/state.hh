@@ -86,6 +86,7 @@ public:
             _groups[r].insert(v);
             N++;
             _max_r = std::max(size_t(r+1), _max_r);
+            _max_v = std::max(size_t(v+1), _max_v);
         }
         _N = N;
         _max_r = std::max(N, _max_r);
@@ -105,6 +106,7 @@ public:
 
     size_t _N;
     size_t _max_r = 0;
+    size_t _max_v = 0;
 
     STATE_SPEC::Imp<State> _spec;
 
@@ -191,7 +193,7 @@ public:
         static_assert(std::ranges::random_access_range<NRs>);
 
         _rset.clear();
-        _nb.reserve(_max_r, null_group);
+        _nb.reserve(_max_v, null_group);   // indexed by vertex
 
         for (auto&& [v, nr] : std::views::zip(vs, nrs))
         {
