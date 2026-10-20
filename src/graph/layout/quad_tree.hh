@@ -165,17 +165,20 @@ public:
                   uint32_t max_depth = 32,
                   bool square = true)
     {
+        bool parallel = std::ranges::size(pos_range) > get_openmp_min_thresh();
+
         _tree.clear();
-        parallel_loop(_leaves, [](auto, auto& vs) { vs.clear(); });
+        parallel_loop(_leaves, [](auto, auto& vs) { vs.clear(); },
+                      parallel ? 0 : std::numeric_limits<size_t>::max());
 
         Val xmin = std::numeric_limits<Val>::max();
-        Val xmax = std::numeric_limits<Val>::min();
+        Val xmax = std::numeric_limits<Val>::lowest();
         Val ymin = std::numeric_limits<Val>::max();
-        Val ymax = std::numeric_limits<Val>::min();
+        Val ymax = std::numeric_limits<Val>::lowest();
         size_t N = 0;
 
-        #pragma omp parallel reduction(min: xmin, ymin) \
-            reduction(max: xmax, ymax) reduction(+:N)
+        #pragma omp parallel if (parallel) \
+            reduction(min: xmin, ymin) reduction(max: xmax, ymax) reduction(+:N)
         parallel_loop_no_spawn
             (pos_range,
              [&](auto, auto&& xw)
@@ -223,7 +226,7 @@ public:
         std::fill(_pos.begin(), _pos.end(), 0);
 
         uint32_t max_count = 0;
-        #pragma omp parallel reduction(max: max_count)
+        #pragma omp parallel if (parallel) reduction(max: max_count)
         parallel_loop_no_spawn
             (_leaves,
              [&](auto idx, auto& v)
