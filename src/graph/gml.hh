@@ -424,9 +424,10 @@ void write_gml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
     typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_descriptor;
 
-    typedef mpl::vector<bool, uint8_t, int8_t, uint32_t, int32_t,
+    typedef mpl::vector<bool, uint8_t, int8_t, int16_t, uint32_t, int32_t,
                         uint64_t, int64_t, float, double, long double,
-                        std::vector<uint8_t>, std::vector<int32_t>,
+                        std::vector<uint8_t>, std::vector<int16_t>,
+                        std::vector<int32_t>,
                         std::vector<int64_t>, std::vector<double>,
                         std::vector<long double>, std::vector<std::string>,
                         std::string, python::object> val_types;
