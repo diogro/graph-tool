@@ -54,3 +54,21 @@ size_t get_openmp_min_thresh();
 void set_openmp_min_thresh(size_t);
 
 #pragma GCC visibility pop
+
+#ifdef CGAL_LINKED_WITH_TBB
+#include <tbb/global_control.h>
+
+// Limits the parallelism of TBB (used e.g. by the parallel algorithms of CGAL)
+// to the number of OpenMP threads, while in scope, so that both follow the
+// same configuration (e.g. openmp_set_num_threads()).
+class tbb_num_threads
+{
+public:
+    tbb_num_threads()
+        : _gc(tbb::global_control::max_allowed_parallelism, get_num_threads())
+    {}
+
+private:
+    tbb::global_control _gc;
+};
+#endif

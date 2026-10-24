@@ -23,113 +23,160 @@
 #pragma once
 
 #include "graph_util.hh"
-#include "hash_map_wrap.hh"
+
+#include <ranges>
+#include <boost/iterator/function_output_iterator.hpp>
 
 namespace graph_tool
 {
 using namespace std;
 using namespace boost;
 
-struct hash_point
-{
-    template <class Vertex>
-    std::size_t operator()(const Vertex& v) const
-    {
-        size_t seed = 42;
-        _hash_combine(seed, v.point().x());
-        _hash_combine(seed, v.point().y());
-        _hash_combine(seed, v.point().z());
-        return seed;
-    }
-};
-
+// The vertices of the triangulation store the index of the corresponding
+// graph vertex as their info, and the points are inserted as a single range,
+// which is spatially sorted for the Delaunay triangulations, and done in
+// parallel if the triangulation data structure is concurrent (which requires
+// TBB). The periodic triangulation does not support the insertion of a range
+// with info, and its points are inserted one at a time.
 template <class Triang, class IsPeriodic>
 struct get_triangulation
 {
-    // this will insert edges in the graph
-    template <class Graph, class VertexMap>
-    class edge_inserter
-    {
-    public:
-        typedef output_iterator_tag iterator_category;
-        typedef typename graph_traits<Graph>::vertex_descriptor value_type;
-        typedef size_t difference_type;
-        typedef typename graph_traits<Graph>::vertex_descriptor* pointer;
-        typedef typename graph_traits<Graph>::vertex_descriptor& reference;
-
-        edge_inserter(Graph& g, const typename VertexMap::key_type& v,
-                      VertexMap& vertex_map)
-            : _g(g), _vertex_map(vertex_map), _source(vertex_map[v]) {}
-
-        edge_inserter& operator++() { return *this; }
-        edge_inserter& operator++(int) { return *this; }
-        edge_inserter& operator*() { return *this; }
-
-        template <class Vertex>
-        edge_inserter& operator=(const Vertex& v)
-        {
-            auto iter = _vertex_map.find(*v);
-            if (iter != _vertex_map.end())
-            {
-                auto target = iter->second;
-                if (!is_adjacent(_source, target, _g) && _source != target)
-                    add_edge(_source, target, _g);
-            }
-            return *this;
-        }
-
-    private:
-        Graph& _g;
-        VertexMap& _vertex_map;
-        typename graph_traits<Graph>::vertex_descriptor _source;
-    };
-
-
-    template <class T, class VIter, class Vis>
-    void incident_vertices(T& t, VIter& v_iter, Vis& vis, std::true_type) const
-    {
-        t.incident_vertices(v_iter, vis);
-    }
-
-    template <class T, class VIter, class Vis>
-    void incident_vertices(T& t, VIter& v_iter, Vis& vis, std::false_type) const
-    {
-        t.finite_incident_vertices(v_iter, vis);
-    }
-
     template <class Graph, class Points, class PosMap>
     void operator()(Graph& g, Points& points, PosMap pos) const
     {
-        typedef std::unordered_map <typename Triang::Vertex,
-                                    typename graph_traits<Graph>::vertex_descriptor,
-                                    hash_point> vertex_map_t;
-        vertex_map_t vertex_map;
-
-        Triang T;
+        typedef typename Triang::Point point_t;
+        std::vector<std::pair<point_t, size_t>> vpoints;
+        vpoints.reserve(points.shape()[0]);
         for (size_t i = 0; i < points.shape()[0]; ++i)
         {
-            typename Triang::Point p(points[i][0], points[i][1], points[i][2]);
             auto v = add_vertex(g);
-            vertex_map[*T.insert(p)] = v;
             pos[v].resize(3);
             for (size_t j = 0; j < 3; ++j)
                 pos[v][j] = points[i][j];
+            vpoints.emplace_back(point_t(points[i][0], points[i][1],
+                                         points[i][2]), v);
         }
 
-        auto v_iter = T.finite_vertices_begin();
-        auto v_end = T.finite_vertices_end();
-        while (v_iter != v_end)
+        if constexpr (IsPeriodic::value)
         {
-            auto v = *v_iter;
-            if (vertex_map.find(v) != vertex_map.end())
+            Triang T;
+            for (auto& [p, v] : vpoints)
+                T.insert(p)->info() = v;
+            add_edges(g, T);
+        }
+#ifdef CGAL_LINKED_WITH_TBB
+        else if constexpr (std::is_same_v<typename Triang::Concurrency_tag,
+                                          CGAL::Parallel_tag>)
+        {
+            // the lock grid needs a bounding box of non-zero volume
+            std::array<double, 3> lo, hi;
+            lo.fill(std::numeric_limits<double>::infinity());
+            hi.fill(-std::numeric_limits<double>::infinity());
+            for (size_t i = 0; i < points.shape()[0]; ++i)
             {
-                edge_inserter<Graph, vertex_map_t> insert(g, v, vertex_map);
-                incident_vertices(T, v_iter, insert, IsPeriodic());
+                for (size_t j = 0; j < 3; ++j)
+                {
+                    lo[j] = std::min(lo[j], double(points[i][j]));
+                    hi[j] = std::max(hi[j], double(points[i][j]));
+                }
             }
-            ++v_iter;
+            double w = 0;
+            for (size_t j = 0; j < 3; ++j)
+                w = std::max(w, hi[j] - lo[j]);
+            w = (w > 0) ? w * 1e-3 : 1;
+            typename Triang::Lock_data_structure
+                lock(CGAL::Bbox_3(lo[0] - w, lo[1] - w, lo[2] - w,
+                                  hi[0] + w, hi[1] + w, hi[2] + w), 50);
+            Triang T(typename Triang::Geom_traits(), &lock);
+            {
+                tbb_num_threads tbb_threads;
+                T.insert(vpoints.begin(), vpoints.end());
+            }
+            add_edges(g, T);
+        }
+#endif
+        else
+        {
+            Triang T;
+            T.insert(vpoints.begin(), vpoints.end());
+            add_edges(g, T);
         }
     }
 
+    template <class Graph, class T>
+    void add_edges(Graph& g, T& t) const
+    {
+        // The periodic triangulation maps the neighbors in the covering space
+        // back to the original vertices, which is not thread safe, and the
+        // thread-safe traversal of the other triangulations is slower than
+        // the default one (which marks the visited cells), so it is only
+        // worth it with more than one thread.
+        if (IsPeriodic::value || get_num_threads() == 1 ||
+            t.number_of_vertices() <= get_openmp_min_thresh())
+        {
+            std::vector<typename T::Vertex_handle> ws;
+            for (auto v = t.finite_vertices_begin();
+                 v != t.finite_vertices_end(); ++v)
+            {
+                ws.clear();
+                if constexpr (IsPeriodic::value)
+                    t.incident_vertices(v, std::back_inserter(ws));
+                else
+                    t.finite_incident_vertices(v, std::back_inserter(ws));
+
+                // every edge is seen from both endpoints, and the periodic
+                // triangulation may list the same neighbor more than once,
+                // if the point set is small
+                size_t s = v->info();
+                for (auto w : ws)
+                {
+                    size_t u = w->info();
+                    if (s >= u)
+                        continue;
+                    if (IsPeriodic::value && is_adjacent(s, u, g))
+                        continue;
+                    add_edge(s, u, g);
+                }
+            }
+            return;
+        }
+
+        if constexpr (!IsPeriodic::value)
+        {
+            std::vector<typename T::Vertex_handle> vs;
+            vs.reserve(t.number_of_vertices());
+            for (auto v = t.finite_vertices_begin();
+                 v != t.finite_vertices_end(); ++v)
+                vs.push_back(v);
+
+            // the neighbors of every vertex with a larger index, so that
+            // every edge is listed once
+            std::vector<std::vector<size_t>> ns(vs.size());
+            parallel_loop
+                (std::views::iota(size_t(0), vs.size()),
+                 [&](auto, size_t i)
+                 {
+                     size_t s = vs[i]->info();
+                     auto& n = ns[i];
+                     auto push = [&](auto w)
+                     {
+                         size_t u = w->info();
+                         if (s < u)
+                             n.push_back(u);
+                     };
+                     t.tds().adjacent_vertices_threadsafe
+                         (vs[i], boost::make_function_output_iterator(push),
+                          [&](auto w) { return t.is_infinite(w); });
+                 });
+
+            for (auto [i, v] : std::views::enumerate(vs))
+            {
+                size_t s = v->info();
+                for (auto u : ns[i])
+                    add_edge(s, u, g);
+            }
+        }
+    }
 };
 
 } // namespace graph_tool

@@ -193,6 +193,22 @@ AC_ARG_ENABLE([valgrind], [AS_HELP_STRING([--enable-valgrind],[enable valgrind d
               [AC_MSG_RESULT(no)])
 AC_SUBST(CGAL_FLAGS)
 
+dnl TBB (optional), which enables the parallel algorithms of CGAL
+AC_ARG_ENABLE([tbb], [AS_HELP_STRING([--disable-tbb],[disable the parallel algorithms of CGAL with TBB [default=enabled if found] ])],
+              [enable_tbb=$enableval], [enable_tbb=auto])
+[USING_TBB=no]
+if test "$enable_tbb" != "no"; then
+   PKG_CHECK_MODULES([TBB], [tbb], [USING_TBB=yes],
+                     [if test "$enable_tbb" = "yes"; then
+                         AC_MSG_ERROR([TBB not found, see https://github.com/uxlfoundation/oneTBB])
+                      fi])
+fi
+if test "$USING_TBB" = "yes"; then
+   [TBB_CPPFLAGS="${TBB_CFLAGS} -DCGAL_LINKED_WITH_TBB"]
+fi
+AC_SUBST(TBB_CPPFLAGS)
+AC_SUBST(TBB_LIBS)
+
 dnl Checks for header files.
 
 dnl numpy
@@ -408,6 +424,8 @@ echo -e "$(color 3)Expat CPP flags:        $(color 4)${EXPAT_CFLAGS}$(reset)"
 echo -e "$(color 3)Expat LD flags:         $(color 4)${EXPAT_LDFLAGS} ${EXPAT_LIBS}$(reset)"
 echo -e "$(color 3)Cairomm CPP flags:      $(color 4)${CAIROMM_CFLAGS}$(reset)"
 echo -e "$(color 3)Cairomm LD flags:       $(color 4)${CAIROMM_LIBS}$(reset)"
+echo -e "$(color 3)TBB CPP flags:          $(color 4)${TBB_CPPFLAGS}$(reset)"
+echo -e "$(color 3)TBB LD flags:           $(color 4)${TBB_LIBS}$(reset)"
 echo -e "$(color 3)OpenMP compiler flags:  $(color 4)${OPENMP_CXXFLAGS}$(reset)"
 echo -e "$(color 3)OpenMP LD flags:        $(color 4)${OPENMP_LDFLAGS}$(reset)"
 echo -e "$(color 3)MOD_CPPFLAGS:           $(color 4)${MOD_CPPFLAGS}$(reset)"
@@ -424,6 +442,12 @@ else
 fi
 echo -n -e "$(color 3)Using cairo:            "
 if test ${USING_CAIRO} = yes; then
+   echo "$(color 5)yes$(reset)"
+else
+   echo "$(color 1)no$(reset)"
+fi
+echo -n -e "$(color 3)Using TBB:              "
+if test ${USING_TBB} = yes; then
    echo "$(color 5)yes$(reset)"
 else
    echo "$(color 1)no$(reset)"

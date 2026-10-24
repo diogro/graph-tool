@@ -32,49 +32,43 @@
 
 #include <CGAL/version.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Triangulation_vertex_base_with_info_3.h>
+#include <CGAL/Delaunay_triangulation_cell_base_3.h>
 #include <CGAL/Triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_3.h>
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-typedef CGAL::Triangulation_3<Kernel> SimpleTriangulation;
-typedef CGAL::Delaunay_triangulation_3<Kernel> DelaunayTriangulation;
 
-namespace CGAL
-{
-bool operator==(const SimpleTriangulation::Vertex& a,
-                const SimpleTriangulation::Vertex& b)
-{
-    return a.point() == b.point();
-}
-}
+// the vertices store the index of the graph vertex
+typedef CGAL::Triangulation_vertex_base_with_info_3<size_t, Kernel> Vb;
+typedef CGAL::Triangulation_3<Kernel, CGAL::Triangulation_data_structure_3<Vb>>
+    SimpleTriangulation;
+
+// with TBB, the points of the Delaunay triangulation are inserted in parallel
+#ifdef CGAL_LINKED_WITH_TBB
+typedef CGAL::Parallel_tag dt_concurrency_t;
+#else
+typedef CGAL::Sequential_tag dt_concurrency_t;
+#endif
+typedef CGAL::Triangulation_data_structure_3
+    <Vb, CGAL::Delaunay_triangulation_cell_base_3<Kernel>, dt_concurrency_t>
+    DelaunayTds;
+typedef CGAL::Delaunay_triangulation_3<Kernel, DelaunayTds>
+    DelaunayTriangulation;
 
 // periodic triangulation is only available in more recent versions of CGAL
 #if (CGAL_VERSION_NR >= 1040700000)
 #include <CGAL/Periodic_3_Delaunay_triangulation_traits_3.h>
 #include <CGAL/Periodic_3_Delaunay_triangulation_3.h>
 typedef CGAL::Periodic_3_Delaunay_triangulation_traits_3<Kernel> GT;
-typedef CGAL::Periodic_3_Delaunay_triangulation_3<GT>
+typedef CGAL::Triangulation_vertex_base_with_info_3
+    <size_t, GT,
+     CGAL::Triangulation_vertex_base_3
+         <GT, CGAL::Periodic_3_triangulation_ds_vertex_base_3<>>> PVb;
+typedef CGAL::Triangulation_cell_base_3
+    <GT, CGAL::Periodic_3_triangulation_ds_cell_base_3<>> PCb;
+typedef CGAL::Periodic_3_Delaunay_triangulation_3
+    <GT, CGAL::Triangulation_data_structure_3<PVb, PCb>>
     PeriodicDelaunayTriangulation;
-
-namespace CGAL
-{
-bool operator==(const PeriodicDelaunayTriangulation::Vertex& a,
-                const PeriodicDelaunayTriangulation::Vertex& b)
-{
-    return a.point() == b.point();
-}
-}
-#endif
-
-// comparison missing in 4.13
-#if (CGAL_VERSION_NR >= 1041301000)
-namespace CGAL
-{
-bool operator==(const DelaunayTriangulation::Vertex& a,
-                const DelaunayTriangulation::Vertex& b)
-{
-    return a.point() == b.point();
-}
-}
 #endif
 
 #include "triangulation.hh"

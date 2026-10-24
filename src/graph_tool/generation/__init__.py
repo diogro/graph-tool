@@ -2882,6 +2882,7 @@ def graph_projection(g, p, proj_props=[], props=[]):
         return ret[0]
 
 
+@_parallel
 @_limit_args({"type": ["simple", "delaunay"]})
 def triangulation(points, type="simple", periodic=False):
     r"""
@@ -2895,8 +2896,10 @@ def triangulation(points, type="simple", periodic=False):
     type : string (optional, default: ``'simple'``)
         Type of triangulation. May be either 'simple' or 'delaunay'.
     periodic : bool (optional, default: ``False``)
-        If ``True``, periodic boundary conditions will be used. This
-        parameter is valid only for type="delaunay", and is otherwise ignored.
+        If ``True``, periodic boundary conditions will be used, with the unit
+        cube :math:`[0,1)^d` as the domain, so that every point must lie inside
+        it. This parameter is valid only for type="delaunay", and is otherwise
+        ignored.
 
     Returns
     -------
@@ -2927,7 +2930,16 @@ def triangulation(points, type="simple", periodic=False):
     triangulation does not contain any other vertex of the triangulation in its
     interior. These triangulations are uniquely defined except in degenerate
     cases where five points are co-spherical. Note however that the CGAL
-    implementation computes a unique triangulation even in these cases.
+    implementation computes a unique triangulation even in these cases. Since
+    the result does not depend on the order of insertion, the points are
+    spatially sorted before they are inserted, and the triangulation is
+    obtained in time :math:`O(N\log N)` for :math:`N` randomly distributed
+    points. If graph-tool was compiled with `TBB
+    <https://github.com/uxlfoundation/oneTBB>`_, the points are inserted in
+    parallel (except with ``periodic=True``), with as many threads as
+    configured for OpenMP.
+
+    @parallel@
 
     Examples
     --------
@@ -2981,7 +2993,7 @@ def triangulation(points, type="simple", periodic=False):
 
     References
     ----------
-    .. [cgal-triang] http://www.cgal.org/Manual/last/doc_html/cgal_manual/Triangulation_3/Chapter_main.html
+    .. [cgal-triang] https://doc.cgal.org/latest/Triangulation_3/index.html
 
     """
 
