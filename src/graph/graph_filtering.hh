@@ -43,24 +43,25 @@ class MaskFilter
 {
 public:
     typedef typename boost::property_traits<DescriptorProperty>::value_type value_t;
-    MaskFilter(DescriptorProperty filtered_property)
-        : _filtered_property(filtered_property) {}
+    MaskFilter(DescriptorProperty& filtered_property)
+        : _filtered_property(&filtered_property) {}
+    MaskFilter(DescriptorProperty&&) = delete;
     MaskFilter() {}
 
     template <class Descriptor>
     bool operator() (Descriptor&& d) const
     {
-        return boost::get(_filtered_property, d);
+        return boost::get(*_filtered_property, d);
     }
 
     template <class Descriptor>
     void set_val(Descriptor&& d, bool existing)
     {
-        boost::put(get_checked(_filtered_property), d, existing);
+        boost::put(get_checked(*_filtered_property), d, existing);
     }
 
 private:
-    DescriptorProperty _filtered_property;
+    DescriptorProperty* _filtered_property = nullptr;
 };
 
 template <bool directed, bool reversed, bool filtered>

@@ -47,8 +47,12 @@ std::any GraphInterface::get_graph_view() const
                                    MaskFilter<edge_filter_t>,
                                    MaskFilter<vertex_filter_t>> fg_t;
 
-                MaskFilter<edge_filter_t> e_filter(_edge_filter_map);
-                MaskFilter<vertex_filter_t> v_filter(_vertex_filter_map);
+                // the filters refer to the filter maps, which the views
+                // modify when vertices or edges are added
+                MaskFilter<edge_filter_t>
+                    e_filter(const_cast<edge_filter_t&>(_edge_filter_map));
+                MaskFilter<vertex_filter_t>
+                    v_filter(const_cast<vertex_filter_t&>(_vertex_filter_map));
 
                 auto& gviews = const_cast<decltype(_gviews)&>(_gviews);
                 if (pos >= gviews.size())
