@@ -3005,6 +3005,10 @@ def triangulation(points, type="simple", periodic=False):
         npoints = numpy.zeros((points.shape[0], 3))
         npoints[:,:2] = points
         points = npoints
+    if (type == "delaunay" and periodic and
+        not numpy.all((points >= 0) & (points < 1))):
+        raise ValueError("with periodic=True, all points must lie inside the " +
+                         "unit cube [0, 1)^d.")
     g = Graph(directed=False)
     pos = g.new_vertex_property("vector<double>")
     libgraph_tool_generation.triangulation(g._Graph__graph, points,
