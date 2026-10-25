@@ -26,6 +26,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/overloading.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/xpressive/xpressive_static.hpp>
 
 #ifdef BOOST_HAS_DECLSPEC
@@ -517,6 +518,23 @@ namespace boost {
   // extern void read_graphviz(const std::string& file, GraphvizGraph& g);
   // extern void read_graphviz(FILE* file, GraphvizGraph& g);
 
+  // graph-tool: the scalar values are converted with lexical_cast<>, which is
+  // specialized to print floating point values with enough precision to be
+  // exactly recovered, and uint8_t (bool) values as numbers instead of
+  // characters (see str_repr.hh)
+  template <typename Descriptor>
+  std::string dot_value_string(dynamic_property_map& pmap, Descriptor key)
+  {
+    boost::any val = pmap.get(key);
+    if (auto v = boost::any_cast<uint8_t>(&val))
+      return lexical_cast<std::string>(*v);
+    if (auto v = boost::any_cast<double>(&val))
+      return lexical_cast<std::string>(*v);
+    if (auto v = boost::any_cast<long double>(&val))
+      return lexical_cast<std::string>(*v);
+    return pmap.get_string(key);
+  }
+
   class dynamic_properties_writer
   {
   public:
@@ -533,7 +551,8 @@ namespace boost {
           else out << ", ";
           first = false;
 
-          out << i->first << "=" << escape_dot_string(i->second->get_string(key));
+          out << i->first << "="
+              << escape_dot_string(dot_value_string(*i->second, key));
         }
       }
 
@@ -563,7 +582,8 @@ namespace boost {
           else out << ", ";
           first = false;
 
-          out << i->first << "=" << escape_dot_string(i->second->get_string(key));
+          out << i->first << "="
+              << escape_dot_string(dot_value_string(*i->second, key));
         }
       }
 
