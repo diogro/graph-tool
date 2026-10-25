@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <cctype>
 #include <clocale>
 #include <sstream>
 #include <boost/lexical_cast.hpp>
@@ -67,29 +68,41 @@ std::string print_float(Val val)
     return s.str();
 }
 
-static int scan_float_dispatch(const char* str, float& val)
+static int scan_float_dispatch(const char* str, float& val, int& n)
 {
-    return sscanf(str, "%a", &val);
+    return sscanf(str, "%a%n", &val, &n);
 }
 
-static int scan_float_dispatch(const char* str, double& val)
+static int scan_float_dispatch(const char* str, double& val, int& n)
 {
-    return sscanf(str, "%la", &val);
+    return sscanf(str, "%la%n", &val, &n);
 }
 
-static int scan_float_dispatch(const char* str, long double& val)
+static int scan_float_dispatch(const char* str, long double& val, int& n)
 {
-    return sscanf(str, "%La", &val);
+    return sscanf(str, "%La%n", &val, &n);
 }
 
+// The whole string must be a number, apart from surrounding whitespace,
+// otherwise sscanf() would silently drop whatever follows a numeric prefix
+// (e.g. "0_i" would be read as 0). Hexadecimal values are accepted, since
+// floating point numbers were stored in this form by previous versions.
 template <class Val>
-static int scan_float(const char* str, Val& val)
+static bool scan_float(const std::string& str, Val& val)
 {
     char* locale = setlocale(LC_NUMERIC, NULL);
     setlocale(LC_NUMERIC, "C");
-    int retval = scan_float_dispatch(str, val);
+    int n = 0;
+    int retval = scan_float_dispatch(str.c_str(), val, n);
     setlocale(LC_NUMERIC, locale);
-    return retval;
+    if (retval != 1)
+        return false;
+    for (size_t i = n; i < str.size(); ++i)
+    {
+        if (!std::isspace(static_cast<unsigned char>(str[i])))
+            return false;
+    }
+    return true;
 }
 
 
@@ -105,8 +118,7 @@ __attribute__ ((visibility ("default")))
 float lexical_cast<float,std::string>(const std::string& val)
 {
     float ret;
-    int nc = scan_float(val.c_str(), ret);
-    if (nc != 1)
+    if (!scan_float(val, ret))
         throw bad_lexical_cast();
     return ret;
 }
@@ -123,8 +135,7 @@ __attribute__ ((visibility ("default")))
 double lexical_cast<double,std::string>(const std::string& val)
 {
     double ret;
-    int nc = scan_float(val.c_str(), ret);
-    if (nc != 1)
+    if (!scan_float(val, ret))
         throw bad_lexical_cast();
     return ret;
 }
@@ -141,8 +152,7 @@ __attribute__ ((visibility ("default")))
 long double lexical_cast<long double,std::string>(const std::string& val)
 {
     long double ret;
-    int nc = scan_float(val.c_str(), ret);
-    if (nc != 1)
+    if (!scan_float(val, ret))
         throw bad_lexical_cast();
     return ret;
 }
