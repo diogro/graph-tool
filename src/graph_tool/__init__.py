@@ -441,15 +441,44 @@ class PropertyMap(object):
                  "long double", "vector<bool>", "vector<int16_t>",
                  "vector<int32_t>", "vector<int64_t>", "vector<double>",
                  "vector<long double>", "string", "vector<string>"]
+
+        def same(x, y):
+            # graph property maps have no value comparison
+            if self.key_type() != "g":
+                return x == y
+            g = x.get_graph()
+            x, y = x[g], y[g]
+            if "vector" not in self.value_type():
+                x, y = [x], [y]
+            if len(x) != len(y):
+                return False
+            for a, b in zip(x, y):
+                if a != b and not (a != a and b != b):
+                    return False
+            return True
+
         p = None
         for t in types:
             try:
                 p = self.copy(value_type=t, full=full)
+                # bool values are stored as uint8_t, which keeps integer values
+                # larger than one exactly, so they need to be excluded
+                # explicitly
                 if t == "bool":
                     a = p.a if full else p.fa
-                    if p.a.max() > 1:
+                    if len(a) > 0 and a.max() > 1:
                         continue
-                if p.copy(value_type=self.value_type(), full=full) == self:
+                elif t == "vector<bool>":
+                    u = p.get_graph()
+                    if full:
+                        u = GraphView(u, skip_vfilt=True, skip_efilt=True)
+                    q = u.own_property(p)
+                    r = u.new_property(p.key_type(), "bool")
+                    map_property_values(q, r, lambda x: len(x) > 0 and
+                                        max(x) > 1)
+                    if r.a.any():
+                        continue
+                if same(p.copy(value_type=self.value_type(), full=full), self):
                     break
             except (TypeError, ValueError, OverflowError, AttributeError):
                 pass
@@ -1105,7 +1134,8 @@ class GraphPropertyMap(PropertyMap):
         return [self.get_graph()]
 
     def __iter__(self):
-        return _get_iter()
+        for g in self._get_iter():
+            yield self[g]
 
     def __len__(self):
         return 1
@@ -1114,7 +1144,7 @@ class GraphPropertyMap(PropertyMap):
         g = self.get_graph()
         if g is None:
             raise ValueError("Cannot get array for an orphaned property map")
-        a = self.__map.get_array(1)
+        a = self._PropertyMap__map.get_array(1)
         if a is None:
             return None
         return PropertyArray(a, self)

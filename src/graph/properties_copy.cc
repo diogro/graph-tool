@@ -25,6 +25,21 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
+// NaN values are considered equal, so that a property map always compares
+// equal to a copy of itself
+template <class T>
+bool prop_value_equal(const T& a, const T& b)
+{
+    if constexpr (std::is_floating_point_v<T>)
+        return a == b || (std::isnan(a) && std::isnan(b));
+    else if constexpr (is_vector_v<T>)
+        return std::ranges::equal(a, b,
+                                  [](const auto& x, const auto& y)
+                                  { return prop_value_equal(x, y); });
+    else
+        return static_cast<bool>(a == b);
+}
+
 void GraphInterface::copy_vertex_property(const GraphInterface& g_src,
                                           std::any prop_src,
                                           std::any prop_tgt)
@@ -118,7 +133,7 @@ bool compare_vertex_properties(const GraphInterface& g_src,
                  (g,
                   [&](auto v)
                   {
-                      if (get(tgt, v) != get(src, v))
+                      if (!prop_value_equal(get(tgt, v), get(src, v)))
                           ret_ = false;
                   });
              if (eptr)
@@ -159,7 +174,7 @@ bool compare_edge_properties(const GraphInterface& g_src,
                  (g,
                   [&](auto e)
                   {
-                      if (get(tgt, e) != get(src, e))
+                      if (!prop_value_equal(get(tgt, e), get(src, e)))
                           ret_ = false;
                   });
              if (eptr)
