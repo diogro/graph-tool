@@ -3124,7 +3124,8 @@ class Graph(object):
     def new_vertex_property(self, value_type, vals=None, val=None):
         """Create a new vertex property map of type ``value_type``, and return it. If
         provided, the values will be initialized by ``vals``, which should be a
-        sequence or by ``val`` which should be a single value.
+        sequence in vertex index order (the same as :attr:`~PropertyMap.fa`), or
+        by ``val`` which should be a single value.
         """
         prop = VertexPropertyMap(new_vertex_property(_type_alias(value_type),
                                                      self.__graph.get_vertex_index(),
@@ -3145,7 +3146,8 @@ class Graph(object):
     def new_edge_property(self, value_type, vals=None, val=None):
         """Create a new edge property map of type ``value_type``, and return it. If
         provided, the values will be initialized by ``vals``, which should be a
-        sequence or by ``val`` which should be a single value.
+        sequence in edge index order (the same as :attr:`~PropertyMap.fa`), or
+        by ``val`` which should be a single value.
         """
         prop = EdgePropertyMap(new_edge_property(_type_alias(value_type),
                                                  self.__graph.get_edge_index(),
@@ -3154,7 +3156,11 @@ class Graph(object):
             try:
                 prop.fa = vals
             except (IndexError, ValueError, TypeError):
-                for e, x in zip(self.edges(), vals):
+                # the values are given in edge index order, as with prop.fa,
+                # which differs from the order of iteration
+                eidx = self.edge_index
+                for e, x in zip(sorted(self.edges(), key=lambda e: eidx[e]),
+                                vals):
                     prop[e] = x
         elif val is not None:
             prop.set_value(val)
