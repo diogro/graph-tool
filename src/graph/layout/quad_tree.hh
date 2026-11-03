@@ -24,6 +24,7 @@
 #include <bit>
 #include <cstdint>
 #include <ranges>
+#include <span>
 
 #include "parallel_util.hh"
 
@@ -168,9 +169,6 @@ public:
     {
         bool parallel = std::ranges::size(pos_range) > get_openmp_min_thresh();
 
-        parallel_loop(_leaves, [](auto, auto& vs) { vs.clear(); },
-                      parallel ? 0 : std::numeric_limits<size_t>::max());
-
         Val xmin = std::numeric_limits<Val>::max();
         Val xmax = std::numeric_limits<Val>::lowest();
         Val ymin = std::numeric_limits<Val>::max();
@@ -210,11 +208,6 @@ public:
         // since otherwise all points would contend for the top cells.
         size_t thresh = parallel ? get_openmp_min_thresh() :
             std::numeric_limits<size_t>::max();
-        auto level = [&](uint32_t l)
-        {
-            return std::views::iota(level_offset(l), level_offset(l + 1));
-        };
-
         parallel_loop(level(_depth),
                       [&](auto, auto idx) { _tree[idx] = tree_node{}; },
                       thresh);
@@ -249,42 +242,60 @@ public:
                  }, thresh);
         }
 
-        _leaves.resize(_tree.size());
-        _pos.resize(_leaves.size());
-        parallel_loop(level(_depth), [&](auto, auto idx) { _pos[idx] = 0; },
-                      thresh);
+        // the points of every cell are contiguous in _points, from its
+        // offset on, in the order of the cells
+        _tree[0].offset = 0;
+        for (uint32_t l = 0; l < _depth; ++l)
+        {
+            parallel_loop
+                (level(l),
+                 [&](auto, auto idx)
+                 {
+                     uint32_t offset = _tree[idx].offset;
+                     for (uint64_t k = 1; k <= 4; ++k)
+                     {
+                         auto& c = _tree[4 * idx + k];
+                         c.offset = offset;
+                         offset += c.count;
+                     }
+                 }, thresh);
+        }
 
         uint32_t max_count = 0;
         #pragma omp parallel if (parallel) reduction(max: max_count)
         parallel_loop_no_spawn
-            (_leaves,
-             [&](auto idx, auto& v)
+            (_tree,
+             [&](auto idx, auto& t)
              {
-                 auto& t = _tree[idx];
                  if (t.w != Weight{})
                      t.cm /= t.w;
-                 uint32_t l = (std::bit_width(3 * idx + 1) - 1) >> 1;
-                 if (l == _depth)
-                 {
-                     v.resize(t.count);
+                 if (idx >= level_offset(_depth))
                      max_count = std::max(t.count, max_count);
-                 }
              });
 
+        auto leaves = level(_depth);
+        _fill.resize(leaves.size());
+        parallel_loop(leaves,
+                      [&](auto i, auto) { _fill[i] = 0; },
+                      thresh);
+
+        _points.resize(N);
+        _order.resize(N);
         parallel_loop
             (pos_range,
-             [&](auto, auto&& xw)
+             [&](auto i, auto&& xw)
              {
                  auto&& [x, w] = xw;
                  auto idx = index_of(x, _depth);
-                 auto& pos_idx = _pos[idx];
-                 size_t p;
+                 uint32_t p;
                  #pragma omp atomic capture
-                 p = pos_idx++;
-                 auto& [lx, lw] = _leaves[idx][p];
+                 p = _fill[idx - leaves.front()]++;
+                 auto k = _tree[idx].offset + p;
+                 auto& [lx, lw] = _points[k];
                  lx[0] = x[0];
                  lx[1] = x[1];
                  lw = w;
+                 _order[k] = i;
              });
 
         return max_count;
@@ -323,7 +334,7 @@ public:
                 }
                 else if (l == _depth)
                 {
-                    for (auto&& [cm, w] : _leaves[p])
+                    for (auto&& [cm, w] : leaf_points(t))
                         visit(cm, w, p, l);
                 }
                 else                     // open subtree
@@ -347,6 +358,13 @@ public:
 
             ++p;                             // next sibling
         }
+    }
+
+    // indices of the points (in the range given to init()) in the order of
+    // the cells, so that consecutive points are close
+    const std::vector<size_t>& order()
+    {
+        return _order;
     }
 
     // idx = (4^l - 1) / 3 + morton(i, j);
@@ -399,12 +417,24 @@ private:
         pos_t cm{};
         Weight w{};
         uint32_t count{};
+        uint32_t offset{};
     };
 
     std::vector<tree_node> _tree;
-    std::vector<std::vector<std::tuple<pos_t,Weight>>> _leaves;
-    std::vector<size_t> _pos;
+    std::vector<std::tuple<pos_t, Weight>> _points;
+    std::vector<size_t> _order;
+    std::vector<uint32_t> _fill;
     std::array<double, 32> _s2;
+
+    std::span<std::tuple<pos_t, Weight>> leaf_points(const tree_node& t)
+    {
+        return {_points.data() + t.offset, t.count};
+    }
+
+    auto level(uint32_t l)
+    {
+        return std::views::iota(level_offset(l), level_offset(l + 1));
+    }
 
     uint64_t interleave_bits(uint64_t x, uint64_t y)
     {
