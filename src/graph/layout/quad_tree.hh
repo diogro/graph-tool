@@ -198,8 +198,9 @@ public:
 
         _inv_L = {1./_L[0], 1./_L[1]};
 
-        _depth = std::min((depth == 0) ? uint32_t(std::ceil(std::ceil(std::log2(N))/2)) : depth,
-                          max_depth);
+        if (depth == 0)
+            depth = uint32_t(std::ceil(std::ceil(std::log2(N)) / 2));
+        _depth = std::min(depth, max_depth);
 
         _tree.resize(level_offset(_depth + 1));
 
@@ -296,7 +297,7 @@ public:
                  lx[1] = x[1];
                  lw = w;
                  _order[k] = i;
-             });
+             }, thresh);
 
         return max_count;
     }
@@ -372,8 +373,10 @@ public:
     uint64_t index_of(auto&& x, uint32_t l)
     {
         int64_t n = 1LL << l;
-        uint64_t i = std::min(n - 1, int64_t((x[0] - _pmin[0]) * (n * _inv_L[0])));
-        uint64_t j = std::min(n - 1, int64_t((x[1] - _pmin[1]) * (n * _inv_L[1])));
+        uint64_t i = std::min(n - 1,
+                              int64_t((x[0] - _pmin[0]) * (n * _inv_L[0])));
+        uint64_t j = std::min(n - 1,
+                              int64_t((x[1] - _pmin[1]) * (n * _inv_L[1])));
         return level_offset(l) + interleave_bits(i, j);
     }
 
