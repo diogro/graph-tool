@@ -41,11 +41,14 @@ state = gt.NestedBlockState(g, base_state=gt.RankedBlockState, base_state_args=d
 for i in range(100):
     state.multiflip_mcmc_sweep(beta=np.inf, niter=10)
 
-# We can use sfdp_layout() to obtain a ranked visualization.
+# We can use hfd_layout() with the nested partition to obtain a ranked
+# visualization, where the centers of mass of the groups are ordered
+# vertically according to their ranks (which are negated so that the lowest
+# ranks appear at the top), and kept apart horizontally.
 
-pos = gt.sfdp_layout(g, cooling_step=0.99, multilevel=False, R=20,
-                     rmap=state.levels[0].get_vertex_order(),
-                     groups=state.levels[0].b, gamma=1)
+rank = state.levels[0].get_vertex_order().t(lambda x: -x, value_type="double")
+pos = gt.hfd_layout(g, b=state.get_bs(), rank=rank, rmu=0, rcm_dist=.4,
+                    rcm_xdist=.4)
 
 state.levels[0].draw(pos=pos, edge_pen_width=gt.prop_to_size(ew, 1, 5),
                      output="hiring.svg")

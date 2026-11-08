@@ -305,8 +305,9 @@ while delta > 20:
 We can now visualize the reconstructed network:
 
 ```{testcode} rec-empirical
-bstate = state.get_block_state().levels[0]
-pos = gt.sfdp_layout(state.get_graph(), groups=bstate.get_blocks(), gamma=.02)
+nstate = state.get_block_state()
+pos = gt.hfd_layout(state.get_graph(), b=nstate.get_bs())
+bstate = nstate.levels[0]
 bstate.draw(pos=pos, vertex_color="white", edge_gradient=[],
             edge_pen_width=gt.prop_to_size(state.get_x().t(abs), .1, 3, power=1),
             output="SP500.svg")

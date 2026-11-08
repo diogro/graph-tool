@@ -24,9 +24,9 @@ g = random_graph(150, lambda: 1 + poisson(5), directed=False)
 # Parameters for the layout update
 
 step = 0.005       # move step
-K = 0.5            # preferred edge length
+K = 0.5            # strength of the repulsion
 
-pos = sfdp_layout(g, K=K)  # initial layout positions
+pos = hfd_layout(g, K=K)  # initial layout positions
 
 # If True, the frames will be dumped to disk as images.
 offscreen = sys.argv[1] == "offscreen" if len(sys.argv) > 1 else False
@@ -53,8 +53,10 @@ count = 0
 def update_state():
     global count
 
-    # Perform one iteration of the layout step, starting from the previous positions
-    sfdp_layout(g, pos=pos, K=K, init_step=step, max_iter=1)
+    # Perform one step of the layout, starting from the previous positions (the
+    # state is created anew, since the edges change at every frame)
+    state = HFDState(g, pos=pos, K=K)
+    state.gradient_sweep(niter=1, step=step, mu=0)
 
     for i in range(100):
         # get a chosen edge, and swap one of its end points for a random vertex,
