@@ -691,8 +691,8 @@ nobase_libgraph_tool_inference_la_HEADERS = \
 libgraph_tool_layoutdir = $(MOD_DIR)/draw
 libgraph_tool_layout_LTLIBRARIES = libgraph_tool_layout.la
 libgraph_tool_layout_la_includedir = $(MOD_DIR)/include
-libgraph_tool_layout_la_CPPFLAGS = $(AM_CPPFLAGS) $(TBB_CPPFLAGS)
-libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD) $(TBB_LIBS)
+libgraph_tool_layout_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS) $(TBB_CPPFLAGS)
+libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS) $(TBB_LIBS)
 libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_layout_la_SOURCES = \
 	src/graph/layout/arf.cc \
