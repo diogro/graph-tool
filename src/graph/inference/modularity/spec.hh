@@ -206,7 +206,11 @@ struct StateSpec
             double Qb = 0;
             double Qa = 0;
 
+            // without any edge weight, the null model vanishes (it would be
+            // 0/0 otherwise)
             double M = 2 * _E;
+            if (M == 0)
+                return -double(dErr);
 
             Qb -= ea.gamma * _er[r] * (_er[r] / M);
             Qb -= ea.gamma * _er[nr] * (_er[nr] / M);
@@ -236,6 +240,8 @@ struct StateSpec
         {
             double M = 2 * _E;
             double Q = _Err;
+            if (M == 0)
+                return -Q;
             for (auto r : _state._occupied_groups)
                 Q -= ea.gamma * _er[r] * (_er[r] / M);
             return -Q;
