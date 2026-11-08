@@ -196,11 +196,13 @@ public:
             _L = {std::max(_L[0], _L[1]),
                   std::max(_L[0], _L[1])};
 
-        _inv_L = {1./_L[0], 1./_L[1]};
+        // a zero extent (e.g. a single point) maps every point to cell 0
+        _inv_L = {_L[0] > 0 ? 1. / _L[0] : 0., _L[1] > 0 ? 1. / _L[1] : 0.};
 
-        if (depth == 0)
+        if (depth == 0 && N > 1)
             depth = uint32_t(std::ceil(std::ceil(std::log2(N)) / 2));
-        _depth = std::min(depth, max_depth);
+        // the cells of deeper levels would overflow the 64-bit indices
+        _depth = std::min({depth, max_depth, uint32_t(30)});
 
         _tree.resize(level_offset(_depth + 1));
 
