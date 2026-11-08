@@ -23,6 +23,7 @@
 #include <cmath>
 #include <bit>
 #include <cstdint>
+#include <ranges>
 
 #include "parallel_util.hh"
 
@@ -167,7 +168,6 @@ public:
     {
         bool parallel = std::ranges::size(pos_range) > get_openmp_min_thresh();
 
-        _tree.clear();
         parallel_loop(_leaves, [](auto, auto& vs) { vs.clear(); },
                       parallel ? 0 : std::numeric_limits<size_t>::max());
 
@@ -203,27 +203,56 @@ public:
         _depth = std::min((depth == 0) ? uint32_t(std::ceil(std::ceil(std::log2(N))/2)) : depth,
                           max_depth);
 
-        _tree.resize(((1ULL << (2*(_depth + 1))) - 1) / 3);
+        _tree.resize(level_offset(_depth + 1));
+
+        // Only the cells of the bottom level are accumulated atomically, and
+        // those of the levels above are obtained by summing their children,
+        // since otherwise all points would contend for the top cells.
+        size_t thresh = parallel ? get_openmp_min_thresh() :
+            std::numeric_limits<size_t>::max();
+        auto level = [&](uint32_t l)
+        {
+            return std::views::iota(level_offset(l), level_offset(l + 1));
+        };
+
+        parallel_loop(level(_depth),
+                      [&](auto, auto idx) { _tree[idx] = tree_node{}; },
+                      thresh);
 
         parallel_loop
             (pos_range,
              [&](auto, auto&& xw)
              {
                  auto&& [x, w] = xw;
-                 for (uint32_t l = 0; l <= _depth; ++l)
+                 auto& t = _tree[index_of(x, _depth)];
+                 atomic_inc(t.cm, x * w);
+                 atomic_inc(t.w, w);
+                 #pragma omp atomic
+                 t.count++;
+             }, thresh);
+
+        for (int l = int(_depth) - 1; l >= 0; --l)
+        {
+            parallel_loop
+                (level(l),
+                 [&](auto, auto idx)
                  {
-                     auto idx = index_of(x, l);
-                     auto& t = _tree[idx];
-                     atomic_inc(t.cm, x * w);
-                     atomic_inc(t.w, w);
-                     #pragma omp atomic
-                     t.count++;
-                 }
-             });
+                     tree_node t{};
+                     for (uint64_t k = 1; k <= 4; ++k)
+                     {
+                         auto& c = _tree[4 * idx + k];
+                         t.cm += c.cm;
+                         t.w += c.w;
+                         t.count += c.count;
+                     }
+                     _tree[idx] = t;
+                 }, thresh);
+        }
 
         _leaves.resize(_tree.size());
         _pos.resize(_leaves.size());
-        std::fill(_pos.begin(), _pos.end(), 0);
+        parallel_loop(level(_depth), [&](auto, auto idx) { _pos[idx] = 0; },
+                      thresh);
 
         uint32_t max_count = 0;
         #pragma omp parallel if (parallel) reduction(max: max_count)
@@ -285,7 +314,10 @@ public:
                 double dy = t.cm[1] - x[1];
                 double d2 = dx*dx + dy*dy;
 
-                if (_s2[l] < d2)          // s/d < theta, squared
+                // s/d < theta, squared; a cell of zero extent is always
+                // opened, since otherwise a point would interact with its own
+                // (rounded) center of mass when all points coincide
+                if (_s2[l] > 0 && _s2[l] < d2)
                 {
                     visit(t.cm, t.w, p, l);
                 }
