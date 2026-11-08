@@ -321,4 +321,5 @@ def refine_loop(state, mcmc_args, epsilon):
     while delta > epsilon:
         delta = state.multilevel_mcmc_sweep(**dict(mcmc_args, refine=True,
                                                    force_accept=False))[0]
-        delta = abs(delta / state.entropy(**eargs))
+        S = state.entropy(**eargs)
+        delta = abs(delta / S if S != 0 else delta)
