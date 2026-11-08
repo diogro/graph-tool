@@ -694,16 +694,19 @@ libgraph_tool_layout_la_includedir = $(MOD_DIR)/include
 libgraph_tool_layout_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS) $(TBB_CPPFLAGS)
 libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS) $(TBB_LIBS)
 libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
+libgraph_tool_layout_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -fno-finite-math-only -fno-lto
 libgraph_tool_layout_la_SOURCES = \
 	src/graph/layout/arf.cc \
 	src/graph/layout/planar_layout.cc \
 	src/graph/layout/fruchterman_reingold.cc \
 	src/graph/layout/sfdp.cc \
 	src/graph/layout/radial.cc \
+	src/graph/layout/hfd.cc \
 	src/graph/layout/bind_layout.cc
 nobase_libgraph_tool_layout_la_include_HEADERS = \
 	src/graph/layout/arf.hh \
 	src/graph/layout/sfdp.hh \
+	src/graph/layout/hfd.hh \
 	src/graph/layout/quad_tree.hh
 
 #####################

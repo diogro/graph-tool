@@ -25,6 +25,7 @@ import inspect
 import functools
 import types
 import re
+import textwrap
 
 ################################################################################
 # Decorators
@@ -131,3 +132,45 @@ def _parallel(f):
         else:
             f.__doc__ += line + "\n"
     return f
+
+
+def _doc_params(doc):
+    """Return the entries of the "Parameters" section of a numpydoc docstring,
+    as a dictionary mapping parameter names to their full text, without
+    leading indentation."""
+    params = {}
+    if doc is None:
+        return params
+    # docstrings may or may not be dedented already, depending on the Python
+    # version (dedenting is done by the compiler since 3.13)
+    lines = inspect.cleandoc(doc).splitlines()
+    if "Parameters" not in lines:
+        return params
+    name = None
+    for line in lines[lines.index("Parameters") + 2:]:
+        if line.strip() == "":
+            break
+        m = re.match(r"(\w+) :", line)
+        if m is not None:
+            name = m.group(1)
+            params[name] = []
+        if name is not None:
+            params[name].append(line)
+    return {k: "\n".join(v) for k, v in params.items()}
+
+def _copy_params_doc(source):
+    """Decorator which replaces the line containing "@params@" in the
+    docstring of the decorated function by the "Parameters" entries in the
+    docstring of ``source`` that match the function's signature, in the order
+    of the signature, so that shared parameters are documented only once."""
+    def decorate(f):
+        if f.__doc__ is None or source.__doc__ is None:
+            return f
+        params = _doc_params(source.__doc__)
+        doc = "\n".join(params[k] for k in inspect.signature(f).parameters
+                        if k in params)
+        f.__doc__ = re.sub(r"^( *)@params@ *$",
+                           lambda m: textwrap.indent(doc, m.group(1)),
+                           f.__doc__, flags=re.M)
+        return f
+    return decorate
