@@ -95,7 +95,8 @@ public:
     }
 
     template <class Rs, class Kins, class Kouts>
-    double get_dl_uniform(Rs&& rs, Kins&& kins, Kouts&& kouts, bool parallel=false)
+    double get_dl_uniform(Rs&& rs, Kins&& kins, Kouts&& kouts,
+                          [[maybe_unused]] bool parallel=false)
     {
         int64_t dp = 0;
         int64_t dm = 0;
@@ -137,7 +138,8 @@ public:
     }
 
     template <class Rs, class Kins, class Kouts>
-    double get_dl_dist(Rs&& rs, Kins&& kins, Kouts&& kouts, bool parallel=false)
+    double get_dl_dist(Rs&& rs, Kins&& kins, Kouts&& kouts,
+                       [[maybe_unused]] bool parallel=false)
     {
         double S = 0;
         #pragma omp parallel for schedule(runtime) reduction(+:S) if (parallel)

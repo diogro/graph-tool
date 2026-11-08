@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include <cmath>
+#include <numbers>
 
 #include "cache.hh"
 

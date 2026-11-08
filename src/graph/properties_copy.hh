@@ -54,7 +54,7 @@ void copy_external_edge_property_dispatch(const GraphSrc& src, const GraphTgt& t
              }
          });
 
-    bool parallel =
+    [[maybe_unused]] bool parallel =
         (num_vertices(src) > get_openmp_min_thresh() && !is_python);
 
     std::exception_ptr eptr{};

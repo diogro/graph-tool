@@ -53,7 +53,7 @@ void GraphInterface::copy_vertex_property(const GraphInterface& g_src,
 
              GILRelease gil(!is_python);
 
-             bool parallel =
+             [[maybe_unused]] bool parallel =
                  (num_vertices(g) > get_openmp_min_thresh() && !is_python);
 
              std::exception_ptr eptr{};
@@ -87,7 +87,7 @@ void GraphInterface::copy_edge_property(const GraphInterface& g_src,
 
              GILRelease gil(!is_python);
 
-             bool parallel =
+             [[maybe_unused]] bool parallel =
                  (num_vertices(g) > get_openmp_min_thresh() && !is_python);
 
              std::exception_ptr eptr{};
@@ -122,7 +122,7 @@ bool compare_vertex_properties(const GraphInterface& g_src,
 
              GILRelease gil(!is_python);
 
-             bool parallel =
+             [[maybe_unused]] bool parallel =
                  (num_vertices(g) > get_openmp_min_thresh() && !is_python);
 
              bool ret_ = true; // clang workaround
@@ -163,7 +163,7 @@ bool compare_edge_properties(const GraphInterface& g_src,
 
              GILRelease gil(!is_python);
 
-             bool parallel =
+             [[maybe_unused]] bool parallel =
                  (num_vertices(g) > get_openmp_min_thresh() && !is_python);
 
              bool ret_ = true; // clang workaround

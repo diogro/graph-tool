@@ -44,7 +44,7 @@ struct do_edge_endpoint
         eprop_t eprop = std::any_cast<eprop_t>(aeprop);
         eprop.reserve(edge_index_range);
 
-        bool is_object = std::is_same_v<val_t,python::object>;
+        [[maybe_unused]] bool is_object = std::is_same_v<val_t,python::object>;
 
         #pragma omp parallel if (num_vertices(g) > get_openmp_min_thresh() && !is_object)
         parallel_vertex_loop_no_spawn

@@ -137,7 +137,7 @@ decltype(auto) do_ulock_d(auto&& f, bool enable, auto&... mutex)
 
 struct upgrade_lock_args
 {
-    lock_args la;
+    lock_args la = {};
     bool relock = true;
 };
 
@@ -188,7 +188,7 @@ decltype(auto) upgrade_lock_d(auto&& f, bool enable, auto&... locks)
 
 struct upgrade_canary_lock_args
 {
-    upgrade_lock_args ula;
+    upgrade_lock_args ula = {};
     bool any = true;
 };
 
@@ -435,7 +435,7 @@ auto parallel_loop_no_spawn(Range&& vals, F&& f)
 }
 
 template <bool except=false, class Loop>
-auto parallel_loop_spawn(Loop&& loop, bool enable)
+auto parallel_loop_spawn(Loop&& loop, [[maybe_unused]] bool enable)
 {
     std::exception_ptr eptr{};
     #pragma omp parallel if (enable)
