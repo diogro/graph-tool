@@ -19,6 +19,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy
+import warnings
 
 import copy
 
@@ -26,8 +27,8 @@ from .. import GraphView, PropertyMap, ungroup_vector_property, \
     group_vector_property, infect_vertex_property, edge_endpoint_property, _prop
 from .cairo_draw import *
 from .cairo_draw import _edefaults
-from .. draw import sfdp_layout, random_layout, _avg_edge_distance, \
-    coarse_graphs
+from .. draw import hfd_layout, random_layout, _avg_edge_distance, \
+    _hfd_args, _hfd_layout_iter
 
 
 def point_in_poly(p, poly):
@@ -131,8 +132,9 @@ def apply_transforms(g, pos, m):
 class GraphWidget(Gtk.DrawingArea):
     def __init__(self, g, pos, vprops=None, eprops=None, vorder=None,
                  eorder=None, nodesfirst=False, update_layout=False,
-                 layout_K=1., layout_init_step=.1, multilevel=False,
-                 coarse_method="hybrid", sfdp_args={}, display_props=None,
+                 multilevel=False, layout_args={}, layout_K=None,
+                 layout_init_step=None, coarse_method=None, sfdp_args=None,
+                 display_props=None,
                  display_props_size=11, fit_view=True, fit_view_ink=None,
                  bg_color=None, max_render_time=300, layout_callback=None,
                  key_press_callback=None, highlight_color=None, **kwargs):
@@ -160,17 +162,25 @@ class GraphWidget(Gtk.DrawingArea):
         nodesfirst : ``bool`` (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
         update_layout : ``bool`` (optional, default: ``False``)
-            If ``True``, the layout will be updated dynamically.
-        layout_K : float (optional, default: ``1.0``)
-            Parameter ``K`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        layout_init_step : float (optional, default: ``0.1``)
-            Initial speed of the layout algorithm.
+            If ``True``, the layout will be updated dynamically, with
+            :func:`~graph_tool.draw.hfd_layout`.
         multilevel : ``bool`` (optional, default: ``False``)
-            Parameter ``multilevel`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        coarse_method : ``str`` (optional, default: ``"hybrid"``)
-            Parameter ``coarse_method`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        sfdp_args : ``dict`` (optional, default: ``{}``)
-            Additional parameters to be passed to :func:`~graph_tool.draw.sfdp_layout`.
+            If ``True``, the layout is obtained hierarchically (parameter
+            ``hierarchical`` of :func:`~graph_tool.draw.hfd_layout`), and the
+            coarse graph of every level of the hierarchy is shown while it is
+            laid out. Otherwise, the given positions are refined directly.
+        layout_args : ``dict`` (optional, default: ``{}``)
+            Additional parameters to be passed to
+            :func:`~graph_tool.draw.hfd_layout` (e.g. ``b`` or ``rank``).
+        layout_K : ``None`` (optional, default: ``None``)
+            Deprecated and ignored (the scale is set by
+            :func:`~graph_tool.draw.hfd_layout`).
+        layout_init_step : ``None`` (optional, default: ``None``)
+            Deprecated and ignored.
+        coarse_method : ``None`` (optional, default: ``None``)
+            Deprecated and ignored.
+        sfdp_args : ``None`` (optional, default: ``None``)
+            Deprecated and ignored (use ``layout_args``).
         display_props : ``list`` of :class:`~graph_tool.VertexPropertyMap` instances (optional, default: ``None``)
             List of properties to be displayed when the mouse passes over a vertex.
         display_props_size : float (optional, default: ``11.``)
@@ -318,37 +328,31 @@ class GraphWidget(Gtk.DrawingArea):
         self.max_render_time = max_render_time
         self.lazy_regenerate = False
 
+        for name, val in [("layout_K", layout_K),
+                          ("layout_init_step", layout_init_step),
+                          ("coarse_method", coarse_method),
+                          ("sfdp_args", sfdp_args)]:
+            if val is not None:
+                warnings.warn(f"the parameter {name} is deprecated and " +
+                              "ignored, since the layout is obtained with " +
+                              "hfd_layout() (see layout_args)",
+                              DeprecationWarning)
+
+        # the layout is advanced by one sweep of hfd_layout() at a time (see
+        # layout_callback()); in the hierarchical layout, the coarse graph
+        # being laid out is shown instead of the graph (ag, apos)
         self.layout_callback_id = None
-        self.layout_K = layout_K
-        self.layout_init_step = layout_init_step
-        self.epsilon = 0.01 * self.layout_K
+        self.layout_iter = None
         self.multilevel_layout = multilevel
-        self.sfdp_args = sfdp_args.copy()
-        self.vweight = None
-        self.eweight = None
-        self.groups = self.sfdp_args.pop("groups", None)
-        self.gamma = self.sfdp_args.pop("gamma", 0)
+        self.layout_args = dict(layout_args)
+        self.ag = self.g
+        self.apos = self.pos
 
         self.layout_user_callback = layout_callback
         self.key_press_user_callback = key_press_callback
 
-        if multilevel:
-            self.cgs = coarse_graphs(g, method=coarse_method,
-                                     groups=self.groups, gamma=self.gamma)
-            u = next(self.cgs)
-            (self.cg, self.cpos, self.layout_K, self.cvcount, self.cecount,
-             self.groups, self.gamma) = u
-            self.ag = self.g
-            self.apos = self.pos
-            self.g = self.cg
-            self.pos = self.cpos
-            self.layout_step = self.layout_K
-            self._own_props()
-        else:
-            self.cg = None
-
         if update_layout:
-            self.reset_layout()
+            self.reset_layout(hierarchical=multilevel)
 
         # Event signals
         self.connect("motion-notify-event", self.motion_notify_event)
@@ -443,13 +447,36 @@ class GraphWidget(Gtk.DrawingArea):
 
     # Layout update
 
-    def reset_layout(self):
-        """Reset the layout algorithm."""
+    def reset_layout(self, hierarchical=False):
+        """Reset the layout algorithm, which refines the current positions, or
+        lays out the graph from scratch if ``hierarchical == True``."""
         if self.layout_callback_id is not None:
             gobject.source_remove(self.layout_callback_id)
             self.layout_callback_id = None
-        self.layout_step = _avg_edge_distance(self.g, self.pos) * self.layout_init_step
+        self._show_graph(self.ag, self.apos)
+        # the hierarchical layout of hfd_layout() is only obtained from scratch
+        # (given positions only initialize the original graph), and is copied
+        # to the positions at the end
+        args = _hfd_args(**dict(self.layout_args, g=self.g,
+                                pos=None if hierarchical else self.pos,
+                                hierarchical=hierarchical))
+        self.layout_iter = _hfd_layout_iter(args)
         self.layout_callback_id = gobject.idle_add(self.layout_callback)
+
+    def _show_graph(self, g, pos):
+        """Show the graph g, with positions pos."""
+        if g is self.g and pos is self.pos:
+            return
+        self.g = g
+        self.pos = pos
+        self._own_props()
+        if self.vertex_matrix is not None:
+            self.vertex_matrix = VertexMatrix(self.g, self.pos)
+        geometry = [self.get_allocated_width(), self.get_allocated_height()]
+        adjust_default_sizes(self.g, geometry, self.vprops, self.eprops,
+                             force=True)
+        self.fit_to_window(ink=False)
+        self.regenerate_surface(reset=True, complete=True)
 
     def _own_props(self):
         self.selected = self.g.own_property(self.selected)
@@ -466,74 +493,41 @@ class GraphWidget(Gtk.DrawingArea):
         """Perform one step of the layout algorithm."""
         if self.layout_callback_id is None or self.g.num_vertices() == 0:
             return False
-        pos_temp = ungroup_vector_property(self.pos, [0, 1])
-        sfdp_layout(self.g,
-                    **dict(dict(vweight=self.vweight,
-                                eweight=self.eweight,
-                                K=self.layout_K,
-                                max_iter=1, pos=self.pos,
-                                pin=self.selected,
-                                init_step=self.layout_step,
-                                adaptive_cooling=True,
-                                multilevel=False,
-                                groups=self.groups,
-                                gamma=self.gamma,
-                                epsilon=0),
-                           **self.sfdp_args))
-        self.layout_step *= 0.97
+        # the selected vertices of the graph (not of a coarse graph) keep their
+        # positions
+        x = None
+        if self.g is self.ag:
+            sel = self.selected.fa.astype(bool)
+            if sel.any():
+                x = self.pos.get_2d_array([0, 1])[:, sel]
+        try:
+            state = next(self.layout_iter)
+        except StopIteration as e:
+            # the final positions are copied before the view is fitted to them
+            pos = e.value
+            if pos is not self.apos:
+                self.apos.set_2d_array(self.ag.own_property(pos)
+                                       .get_2d_array([0, 1]))
+            self._show_graph(self.ag, self.apos)
+            self.layout_iter = None
+            self.layout_callback_id = None
+            self.regenerate_surface(reset=True, complete=True)
+            self.queue_draw()
+            return False
+        self._show_graph(state.g, state.pos)
+        if x is not None and state.g is self.ag:
+            X = self.pos.get_2d_array([0, 1])
+            X[:, sel] = x
+            self.pos.set_2d_array(X)
         if self.vertex_matrix is not None:
             self.vertex_matrix.update()
         self.regenerate_surface(reset=True, complete=True)
         self.queue_draw()
-        ps = ungroup_vector_property(self.pos, [0, 1])
-        delta = np.sqrt((pos_temp[0].fa - ps[0].fa) ** 2 +
-                        (pos_temp[1].fa - ps[1].fa) ** 2).mean()
 
         if self.layout_user_callback is not None:
             self.layout_user_callback(self, self.g, self.picked, self.pos,
                                       self.vprops, self.eprops)
-
-        if delta > self.epsilon:
-            return True
-        else:
-            if self.multilevel_layout:
-                try:
-                    u = next(self.cgs)
-                    (self.cg, self.cpos, K, self.cvcount, self.cecount,
-                     self.groups, self.gamma) = u
-                    self.layout_K *= 0.75
-                    self.g = self.cg
-                    self.pos = self.cpos
-                    self.vweight = self.cvcount
-                    self.eweight = self.cecount
-                    self._own_props()
-                    self.layout_step = max(self.layout_K,
-                                           _avg_edge_distance(self.g, self.pos))
-                    if self.vertex_matrix is not None:
-                        self.vertex_matrix = VertexMatrix(self.g, self.pos)
-                    self.epsilon = 0.05 * self.layout_K * self.g.num_edges()
-                    geometry = [self.get_allocated_width(),
-                                self.get_allocated_height()]
-                    adjust_default_sizes(self.g, geometry, self.vprops,
-                                         self.eprops, force=True)
-                    self.fit_to_window(ink=False)
-                    self.regenerate_surface(reset=True, complete=True)
-                except StopIteration:
-                    self.g = self.ag
-                    self.pos = self.apos
-                    self._own_props()
-                    self.g.copy_property(self.cpos, self.pos)
-                    if self.vertex_matrix is not None:
-                        self.vertex_matrix = VertexMatrix(self.g, self.pos)
-                    self.multilevel_layout = False
-                    self.layout_init_step = max(self.layout_K,
-                                                _avg_edge_distance(self.g,
-                                                                   self.pos) / 10)
-                    self.epsilon = 0.01 * self.layout_K
-
-                return True
-            self.layout_callback_id = None
-            return False
+        return True
 
     # Actual drawing
 
@@ -1278,7 +1272,7 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
         Graph to be drawn.
     pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector-valued vertex property map containing the x and y coordinates of
-        the vertices. If not given, it will be computed using :func:`sfdp_layout`.
+        the vertices. If not given, it will be computed using :func:`hfd_layout`.
     vprops : ``dict`` (optional, default: ``None``)
         Dictionary with the vertex properties. Individual properties may also be
         given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
@@ -1331,7 +1325,7 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
             if update_layout:
                 pos = random_layout(g, [1, 1])
             else:
-                pos = sfdp_layout(g)
+                pos = hfd_layout(g)
         win = GraphWindow(g, pos, geometry, vprops, eprops, vorder, eorder,
                           nodesfirst, update_layout, **kwargs)
         win.show_all()

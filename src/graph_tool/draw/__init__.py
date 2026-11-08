@@ -1895,9 +1895,46 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
 
     """
 
-    args = locals()
-    if hierarchical:
-        return _hfd_hierarchical(args)
+    return _hfd_run(_hfd_layout_iter(locals()))
+
+
+def _hfd_run(it):
+    """Run the generator it to the end, and return its value."""
+    while True:
+        try:
+            next(it)
+        except StopIteration as e:
+            return e.value
+
+
+def _hfd_args(**kwargs):
+    """The arguments of hfd_layout(), with their defaults overridden by
+    kwargs."""
+    params = inspect.signature(hfd_layout).parameters
+    for k in kwargs:
+        if k not in params:
+            raise TypeError(f"invalid parameter for hfd_layout(): {k}")
+    return {k: kwargs.get(k, p.default) for k, p in params.items()}
+
+
+def _hfd_layout_iter(args):
+    """Generator version of hfd_layout() with the arguments args (as given by
+    _hfd_args()), which yields the HFDState being minimized after every sweep
+    (of the coarse graphs of every level first, in the hierarchical layout),
+    and returns the value of hfd_layout()."""
+    if args["hierarchical"]:
+        return (yield from _hfd_hierarchical(args))
+
+    (g, method, max_iter, epsilon, adaptive_cooling, init_multipliers,
+     momentum_restart, backtrack, sweep_args, cooling_step, group_spring,
+     group_conf_R, group_spring_static, patience, tol, update_interval,
+     verbose, return_state) = \
+        (args[k] for k in ["g", "method", "max_iter", "epsilon",
+                           "adaptive_cooling", "init_multipliers",
+                           "momentum_restart", "backtrack", "sweep_args",
+                           "cooling_step", "group_spring", "group_conf_R",
+                           "group_spring_static", "patience", "tol",
+                           "update_interval", "verbose", "return_state"])
 
     state_params = inspect.signature(HFDState.__init__).parameters
     state = HFDState(**{k: v for k, v in args.items() if k in state_params})
@@ -2057,6 +2094,7 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
             # the energy has changed with the multipliers or springs
             E_new = state.energy()
         E = E_new
+        yield state
 
     if return_state:
         return state.pos, state
@@ -2117,7 +2155,7 @@ def _hfd_hierarchical(args):
                          "states; an upper state can only be given with " +
                          "hierarchical=False")
     if g.num_vertices() == 0:
-        return hfd_layout(**dict(args, hierarchical=False))
+        return (yield from _hfd_layout_iter(dict(args, hierarchical=False)))
     bs = _hfd_bs(args["b"])
     generated = len(bs) == 0
     if generated:
@@ -2238,7 +2276,7 @@ def _hfd_hierarchical(args):
             kwargs["sweep_args"] = dict(dict(step=.01, cap_grad=.1),
                                         **kwargs["sweep_args"])
         t = time.perf_counter()
-        ret = hfd_layout(**dict(kwargs, draw_levels=False))
+        ret = yield from _hfd_layout_iter(dict(kwargs, draw_levels=False))
         log(f"level {l} done in {time.perf_counter() - t:.2f}s")
         if draw:
             graph_draw(G, pos=ret[0] if isinstance(ret, tuple) else ret,
@@ -2397,7 +2435,7 @@ def _hfd_hierarchical(args):
             # that their states are only needed as the upper states of the
             # levels below
             kw["max_iter"] = 0
-        pos_c, state = layout(l, **kw)
+        pos_c, state = yield from layout(l, **kw)
         if args["grav_c"] is not None and args["grav_L"] == "measured":
             L_grav = layout_radius(c, pos_c)
 
@@ -2418,7 +2456,7 @@ def _hfd_hierarchical(args):
     kw["upper"] = state if grouped else None
     if L > 0:
         kw.update(spring_args(0))
-    return layout(0, **kw)
+    return (yield from layout(0, **kw))
 
 
 def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,

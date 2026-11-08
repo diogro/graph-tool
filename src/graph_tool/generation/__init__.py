@@ -2803,7 +2803,7 @@ def graph_projection(g, p, proj_props=[], props=[]):
 
     >>> g = gt.Graph({0: (1,2,3), 4: (5,6,7,8)}, directed=False)
     >>> p = g.new_vp("bool", vals=[v in [0, 4] for v in g.vertices()])
-    >>> pos = gt.sfdp_layout(g)
+    >>> pos = gt.hfd_layout(g)
     >>> pg, props = gt.graph_projection(g, p, props=[g.vertex_index, pos])
     >>> gt.graph_draw(g, pos=pos, vertex_text=g.vertex_index, output="bipartite_orig.pdf")
     <...>
@@ -3046,17 +3046,17 @@ def lattice(shape, periodic=False):
        gt.seed_rng(42)
 
     >>> g = gt.lattice([10,10])
-    >>> pos = gt.sfdp_layout(g)
+    >>> pos = gt.hfd_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="lattice.pdf")
     <...>
 
     >>> g = gt.lattice([10,20], periodic=True)
-    >>> pos = gt.sfdp_layout(g)
+    >>> pos = gt.hfd_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="lattice_periodic.pdf")
     <...>
 
     >>> g = gt.lattice([10,10,10])
-    >>> pos = gt.sfdp_layout(g)
+    >>> pos = gt.hfd_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="lattice_3d.pdf")
     <...>
 
@@ -3109,7 +3109,7 @@ def complete_graph(N, self_loops=False, directed=False):
     .. doctest:: complete
 
        >>> g = gt.complete_graph(30)
-       >>> pos = gt.sfdp_layout(g, cooling_step=0.95, epsilon=1e-2)
+       >>> pos = gt.hfd_layout(g)
        >>> gt.graph_draw(g, pos=pos, output="complete.pdf")
        <...>
 
@@ -3156,7 +3156,7 @@ def circular_graph(N, k=1, self_loops=False, directed=False):
     --------
 
     >>> g = gt.circular_graph(30, 2)
-    >>> pos = gt.sfdp_layout(g, cooling_step=0.95)
+    >>> pos = gt.hfd_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="circular.pdf")
     <...>
 
@@ -3359,13 +3359,13 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
        gt.seed_rng(42)
 
     >>> g = gt.price_network(20000)
-    >>> gt.graph_draw(g, pos=gt.sfdp_layout(g, cooling_step=0.99),
+    >>> gt.graph_draw(g, pos=gt.hfd_layout(g),
     ...               vertex_fill_color=g.vertex_index, vertex_size=2,
     ...               vcmap=matplotlib.cm.plasma,
     ...               edge_pen_width=1, output="price-network.pdf")
     <...>
     >>> g = gt.price_network(20000, c=0.1)
-    >>> gt.graph_draw(g, pos=gt.sfdp_layout(g, cooling_step=0.99),
+    >>> gt.graph_draw(g, pos=gt.hfd_layout(g),
     ...               vertex_fill_color=g.vertex_index, vertex_size=2,
     ...               vcmap=matplotlib.cm.plasma,
     ...               edge_pen_width=1, output="price-network-broader.pdf")

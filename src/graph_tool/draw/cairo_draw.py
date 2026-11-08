@@ -82,8 +82,8 @@ except ImportError:
         "Was graph-tool compiled with cairomm support?"
     warnings.warn(msg, RuntimeWarning)
 
-from .. draw import sfdp_layout, random_layout, _avg_edge_distance, \
-    radial_tree_layout, prop_to_size
+from .. draw import sfdp_layout, hfd_layout, random_layout, \
+    _avg_edge_distance, radial_tree_layout, prop_to_size
 
 from .. generation import graph_merge
 from .. topology import shortest_path
@@ -784,7 +784,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         Graph to be drawn.
     pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector-valued vertex property map containing the x and y coordinates of
-        the vertices. If not given, it will be computed using :func:`sfdp_layout`.
+        the vertices. If not given, it will be computed using :func:`hfd_layout`.
     vprops : dict (optional, default: ``None``)
         Dictionary with the vertex properties. Individual properties may also be
         given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
@@ -1049,7 +1049,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     >>> ebet.a /= ebet.a.max() / 10.
     >>> eorder = ebet.copy()
     >>> eorder.a *= -1
-    >>> pos = gt.sfdp_layout(g)
+    >>> pos = gt.hfd_layout(g)
     >>> control = g.new_edge_property("vector<double>")
     >>> for e in g.edges():
     ...     d = sqrt(sum((pos[e.source()].a - pos[e.target()].a) ** 2)) / 5
@@ -1090,21 +1090,18 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         if (g.num_vertices() > 2 and output is None and
             not inline and kwargs.get("update_layout", True) and
             mplfig is None):
+            # the layout is obtained interactively, with the coarse graphs of
+            # the hierarchical layout shown while they are laid out
             L = np.sqrt(g.num_vertices())
             pos = random_layout(g, [L, L])
-            if g.num_vertices() > 1000:
-                if "multilevel" not in kwargs:
-                    kwargs["multilevel"] = True
-            if "layout_K" not in kwargs:
-                kwargs["layout_K"] = _avg_edge_distance(g, pos) / 10
+            if "multilevel" not in kwargs:
+                kwargs["multilevel"] = True
         else:
-            pos = sfdp_layout(g)
+            pos = hfd_layout(g)
     else:
         pos = g.own_property(pos)
         _check_prop_vector(pos, name="pos", floating=True)
         if output is None and not inline and mplfig is None:
-            if "layout_K" not in kwargs:
-                kwargs["layout_K"] = _avg_edge_distance(g, pos)
             if "update_layout" not in kwargs:
                 kwargs["update_layout"] = False
 

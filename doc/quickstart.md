@@ -819,7 +819,7 @@ functions, e.g.
 
 ```{doctest} facebook
 erand = g.new_ep("double", vals=random(g.num_edges()) - .5)
-pos = sfdp_layout(g, eweight=erand.t(abs))
+pos = hfd_layout(g, eweight=erand.t(abs))
 ```
 :::
 
