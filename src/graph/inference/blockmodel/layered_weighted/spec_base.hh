@@ -120,6 +120,11 @@ struct LayeredWeightedBlockStateSpec
                        }
                    }
 
+                   // the block state's weights must not refer to a context
+                   // owned by this state, or by the block state itself
+                   // (which is constructed after its weights are read)
+                   const auto& iwc = intern_weight_context(wc);
+
                    parallel_edge_loop
                      (state._bg,
                       [&](auto e)
@@ -127,7 +132,10 @@ struct LayeredWeightedBlockStateSpec
                           auto&& w = mrs[e];
                           for (auto&& [l, c_] : w._h)
                           {
-                              c_.resize(wc);
+                              // resize() keeps the old context if the sizes
+                              // match
+                              c_.resize(iwc);
+                              c_._wc = &iwc;
                               for (size_t i = 0; i < c_.get_types().size(); ++ i)
                               {
                                   switch (c_.get_types()[i])
@@ -169,20 +177,11 @@ struct LayeredWeightedBlockStateSpec
         GET_PARAMS_SPEC_TYPEDEF(WEIGHTED_SPEC_params)
         GET_PARAMS_SPEC_DEFINE(WEIGHTED_SPEC_params)
 
-        auto& setup_eweight(auto& state)
-        {
-            parallel_edge_loop
-                (state._g,
-                 [&](auto e)
-                 {
-                     for (auto&& [l, c] : state._eweight[e]._h)
-                         c._wc = &state._spec._wc;
-                 });
-            return state;
-        }
-
+        // The edge weights refer to interned contexts (see
+        // intern_weight_context()), since they are read during the
+        // construction of the base specs, before _wc is constructed.
         Imp(State& state)
-            : ibase_t(setup_eweight(state)),
+            : ibase_t(state),
               GET_PARAMS_SPEC_INIT(WEIGHTED_SPEC_params)
               _state(state)
         {
@@ -283,6 +282,9 @@ struct extract_param<eprop_map_t<std::vector<WeightCount<double, int64_t, LWVEC_
 
         ecx_t ecx;
 
+        // x is local, so the weights cannot refer to its context
+        const auto& wc = intern_weight_context(x._wc);
+
         gt_dispatch<{.gil_release=false}>()
             ([&](auto& g)
              {
@@ -297,7 +299,7 @@ struct extract_param<eprop_map_t<std::vector<WeightCount<double, int64_t, LWVEC_
                           for ([[maybe_unused]] auto&& [l, c] : std::views::zip(ec[e], w[e]))
                           {
                               we.emplace_back();
-                              we.back().resize(x._wc);
+                              we.back().resize(wc);
                               we.back()._count = get_count(xe)[idx];
                               for (size_t i = 0; i < xe.get_types().size(); ++i)
                               {

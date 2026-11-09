@@ -25,6 +25,8 @@
 #include <limits>
 #include <vector>
 #include <iterator>
+#include <deque>
+#include <mutex>
 #include <boost/container/small_vector.hpp>
 
 namespace graph_tool
@@ -69,7 +71,23 @@ struct WeightContext
     std::vector<size_t> _normals;
 };
 
-static const WeightContext __global_wc;
+// a single instance across translation units, since its address is compared
+inline const WeightContext __global_wc;
+
+// Returns a context with the same types as `wc`, but process lifetime, for
+// weights that are created before being bound to a state.
+inline const WeightContext& intern_weight_context(const WeightContext& wc)
+{
+    static std::mutex mutex;
+    static std::deque<WeightContext> contexts; // stable addresses
+    std::lock_guard lock(mutex);
+    for (const auto& c : contexts)
+    {
+        if (c._types == wc._types)
+            return c;
+    }
+    return contexts.emplace_back(wc);
+}
 
 template <class Key, class Prop>
 struct WeightCountRef
