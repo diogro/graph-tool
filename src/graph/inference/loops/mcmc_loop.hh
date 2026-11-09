@@ -33,6 +33,17 @@
 namespace graph_tool
 {
 
+// Type of vertex-list parameters: for scalar vertices this refers to a vector
+// passed from Python, otherwise (e.g. half-edges) it is constructed from a
+// Python list
+template <class State>
+struct vertex_list_t
+{
+    typedef std::conditional_t<std::is_scalar_v<typename State::vertex_t>,
+                               std::vector<typename State::vertex_t>&,
+                               std::vector<typename State::vertex_t>> type;
+};
+
 struct MetropolisStateBase
 {
     // required

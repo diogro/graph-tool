@@ -32,17 +32,9 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-template <class State>
-struct vlist_t
-{
-    typedef std::conditional_t<std::is_scalar_v<typename State::vertex_t>,
-                               std::vector<typename State::vertex_t>&,
-                               std::vector<typename State::vertex_t>> type;
-};
-
 #define MCMC_params(State)                                                     \
     ((state, State&, 0))                                                       \
-    ((vertices, typename vlist_t<State>::type, 0))                             \
+    ((vertices, typename vertex_list_t<State>::type, 0))                       \
     ((beta, double, 0))                                                        \
     ((c, double, 0))                                                           \
     ((d, double, 0))                                                           \

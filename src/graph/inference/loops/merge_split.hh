@@ -21,14 +21,6 @@
 
 #include "../support/util.hh"
 
-template <class State>
-struct vlist_t
-{
-    typedef std::conditional_t<std::is_scalar_v<typename State::vertex_t>,
-                               std::vector<typename State::vertex_t>&,
-                               std::vector<typename State::vertex_t>> type;
-};
-
 #define MERGE_SPLIT_params(State)                                              \
     ((state, State&, 0))                                                       \
     ((beta, double, 0))                                                        \
@@ -42,7 +34,7 @@ struct vlist_t
     ((nacceptance, vector<size_t>&, 0))                                        \
     ((gibbs_sweeps, size_t, 0))                                                \
     ((parallel_thres, size_t, 0))                                              \
-    ((vertices, typename vlist_t<State>::type, 0))                             \
+    ((vertices, typename vertex_list_t<State>::type, 0))                       \
     ((entropy_args, typename State::entropy_args_t, 0))                        \
     ((verbose, int, 0))                                                        \
     ((force_move, bool, 0))                                                    \

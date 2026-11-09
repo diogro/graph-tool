@@ -23,6 +23,7 @@
 
 #include "graph_tool.hh"
 #include "../support/graph_state.hh"
+#include "../loops/mcmc_loop.hh"
 #include <boost/mpl/vector.hpp>
 
 namespace graph_tool
@@ -32,7 +33,7 @@ using namespace std;
 
 #define MCMC_LOOP_STATE_params(State)                                         \
     ((state, State&, 0))                                                      \
-    ((vlist, std::vector<typename State::vertex_t>&, 0))                      \
+    ((vlist, typename vertex_list_t<State>::type, 0))                         \
     ((beta, double, 0))                                                       \
     ((entropy_args, typename State::entropy_args_t, 0))                       \
     ((allow_new_group, bool, 0))                                              \

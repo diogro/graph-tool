@@ -32,14 +32,6 @@
 namespace graph_tool
 {
 
-template <class State>
-struct vlist_t
-{
-    typedef std::conditional_t<std::is_scalar_v<typename State::vertex_t>,
-                               std::vector<typename State::vertex_t>&,
-                               std::vector<typename State::vertex_t>> type;
-};
-
 #define MULTILEVEL_STATE_params(State)                                         \
     ((state, State&, 0))                                                       \
     ((beta, double, 0))                                                        \
@@ -69,7 +61,7 @@ struct vlist_t
     ((B_max, size_t, 0))                                                       \
     ((b_min, typename State::bmap_t, 0))                                       \
     ((b_max, typename State::bmap_t, 0))                                       \
-    ((vertices, typename vlist_t<State>::type, 0))                             \
+    ((vertices, typename vertex_list_t<State>::type, 0))                       \
     ((force_accept, bool, 0))                                                  \
     ((entropy_args, typename State::entropy_args_t, 0))                        \
     ((verbose, int, 0))                                                        \
