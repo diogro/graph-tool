@@ -20,7 +20,7 @@
 
 from .. import _prop, Graph, libcore, _get_rng, PropertyMap, \
     EdgePropertyMap, VertexPropertyMap, Vector_size_t, Vector_double, \
-    group_vector_property, perfect_prop_hash
+    group_vector_property, ungroup_vector_property, perfect_prop_hash
 from .. generation import condensation_graph, random_rewire, generate_sbm, \
     solve_sbm_fugacities, generate_maxent_sbm, remove_parallel_edges, \
     remove_self_loops
@@ -1151,21 +1151,23 @@ class WeightedBlockState(BlockState):
 
         for i, rt in enumerate(self.rec_types):
             ps = Vector_double()
+            # data-dependent defaults are callables, evaluated only if needed
+            x = lambda i=i: self._get_rec_values(i)
             if rt == libinference.rec_type.count:
                 defaults = {}
             elif rt in [libinference.rec_type.real_exponential,
                         libinference.rec_type.discrete_poisson]:
                 if rec_params[i] != "microcanonical":
                     defaults = {"alpha": 1,
-                                "beta": self.rec[i].fa.mean()}
+                                "beta": lambda: x().mean()}
                 else:
                     defaults = {"alpha": np.nan,
                                 "beta": np.nan}
             elif rt == libinference.rec_type.real_normal:
                 if rec_params[i] != "microcanonical":
-                    defaults = {"m0": self.rec[i].fa.mean(),
+                    defaults = {"m0": lambda: x().mean(),
                                 "k0": 1,
-                                "v0": self.rec[i].fa.std() ** 2,
+                                "v0": lambda: x().std() ** 2,
                                 "nu0": 3}
                 else:
                     defaults = {"m0": np.nan,
@@ -1186,17 +1188,19 @@ class WeightedBlockState(BlockState):
                                     "alpha": np.nan,
                                     "beta": np.nan}
                     else:
-                        defaults = {"N": self.rec[i].fa.max(),
+                        defaults = {"N": lambda: x().max(),
                                     "alpha": 1,
                                     "beta": 1}
                 else:
-                    defaults = {"N": self.rec[i].fa.max(),
+                    defaults = {"N": lambda: x().max(),
                                 "alpha": np.nan,
                                 "beta": np.nan}
 
             ks = list(defaults.keys())
             if rec_params[i] != "microcanonical":
                 defaults.update(rec_params[i])
+            defaults = {k: v() if callable(v) else v
+                        for k, v in defaults.items()}
             rec_params[i] = defaults.copy()
             for k in ks:
                 ps.append(defaults.pop(k))
@@ -1204,6 +1208,12 @@ class WeightedBlockState(BlockState):
                 raise ValueError("unknown parameters for weight type: " +
                                  str(list(defaults.keys())))
             self.wparams.append(ps)
+
+    def _get_rec_values(self, i):
+        x = self.rec[i]
+        if x.fa is None:  # vector-valued (layered) covariates
+            x = ungroup_vector_property(x, [0])[0]
+        return x.fa
 
     def get_rec_params(self):
         """Get model hyperparameters for edge covariates."""
