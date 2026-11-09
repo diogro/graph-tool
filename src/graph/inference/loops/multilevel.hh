@@ -1548,8 +1548,8 @@ struct Multilevel:
             println("multilevel proposal: {} -> {} ({}), dS: {:10.1f}", nr, nnr,
                     _vs.size(), _dS);
 
-        if (_force_accept)
-            _dS = -std::numeric_limits<double>::infinity();
+        // (forced acceptance is handled by the MCMC loop, which needs the
+        // actual _dS to report the entropy difference)
 
         return {0, _nmoves};
     }
