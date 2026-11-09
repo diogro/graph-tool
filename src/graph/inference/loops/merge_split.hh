@@ -113,6 +113,11 @@ struct MergeSplitStateBase
     template <class Node, class Group, class Except = std::array<Group,0>>
     double sample_new_group_lprob(const Node&, Group&, Except&& = Except()) { return 0; }
 
+    // log-probability with which sample_new_group() gives the (occupied)
+    // group r its current place, e.g. in a hierarchy
+    template <class Group>
+    double new_group_place_lprob(const Group&) { return 0; }
+
     constexpr size_t get_max_B() { return std::numeric_limits<size_t>::max(); }
 
     template <class Group>
@@ -912,14 +917,24 @@ struct MergeSplit:
                     assert(!std::isnan(lp));
                 }
             }
+
+            // the place of a new group is sampled by sample_new_group(); with
+            // can_swap(), both groups have the same place
+            if (s == _null_group)
+                lp += State::new_group_place_lprob(rt[1]);
         }
 
         return {rt[0], rt[1], dS, lp, lf_lb};
     }
 
     template <class RNG>
-    double split_prob(const Group& r, const Group& s, RNG& rng)
+    double split_prob(const Group& r, const Group& s, RNG& rng,
+                      bool new_group=true)
     {
+        // a split that creates s as a new group samples its place (see
+        // split()), otherwise s keeps its place
+        double lplace = new_group ? State::new_group_place_lprob(s) : 0.;
+
         std::vector<Node> vs;
         get_group_vs<false>(r, vs);
         get_group_vs<false>(s, vs);
@@ -983,7 +998,7 @@ struct MergeSplit:
                  move_node(v, _btemp[v]);
              });
 
-        return lp + lf;
+        return lp + lf + lplace;
     }
 
     double split_prob_gibbs(const Group& r, const Group& s,
@@ -1158,7 +1173,9 @@ struct MergeSplit:
         if (!std::isinf(_beta))
         {
             pf = merge_prob(r, s);
-            pb = split_prob(s, r, rng);
+            // the split that follows in a merge-split move keeps the place
+            // of r
+            pb = split_prob(s, r, rng, false);
         }
 
         if (_verbose)

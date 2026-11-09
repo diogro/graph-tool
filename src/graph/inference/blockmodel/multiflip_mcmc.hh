@@ -241,6 +241,11 @@ struct MCMC
             _state._spec.relabel_group(r, u);
         }
 
+        double new_group_place_lprob(group_t r)
+        {
+            return _state.get_coupled_branch_log_prob(r, true);
+        }
+
         bool can_swap(group_t r, group_t s)
         {
             if (!_state.has_coupled())
