@@ -28,8 +28,18 @@
   distribution. A long chain is run for each algorithm (cached in
   ``OUTPUT/cache``), and the distributions of the entropy and of the effective
   number of groups are compared, via KS statistics over time, and histogram and
-  KDE residues, in figures written to ``OUTPUT``. Chains whose final KS
-  statistic exceeds the critical value are reported.
+  KDE residues, in figures written to ``OUTPUT``. Each chain is also compared
+  with all others by a chi-squared test of the means and decile probabilities,
+  with batch-means errors (which, unlike the KS critical value, account for
+  the autocorrelation of the chains). Chains whose final KS statistic exceeds
+  the critical value, or whose chi-squared p-value is below 1e-3, are
+  reported.
+- exact: the MCMC algorithms sample from the exact posterior of a tiny graph,
+  obtained by enumerating all partitions (flat SBM) or all hierarchies with a
+  fixed number of levels (nested SBM), weighted by ``exp(-entropy())``. The
+  marginal distribution of the numbers of groups at each level and the mean
+  entropy are compared with the chain (chi-squared test, with batch-means
+  errors).
 
 Jobs run in parallel; the comparisons are made by separate jobs, after the
 chains are done. The seed of each job is derived from its name.
@@ -40,6 +50,7 @@ Usage: python test_inference_mcmc.py [-j JOBS] [-o OUTPUT] [TESTS ...]
 import os
 import sys
 import zlib
+import pickle
 import argparse
 import dataclasses
 
@@ -344,6 +355,41 @@ def ks_critical(n, m, alpha_coeff=1.63):
     return alpha_coeff * np.sqrt((n + m) / (n * m))
 
 
+def batch_means(xs, nbatch=50):
+    """Means and their errors, from batch means, of the rows of the
+    observations ``xs`` (one column per sample), which accounts for the
+    autocorrelation of the chain."""
+    ms = np.array([b.mean(axis=1) for b in np.array_split(xs, nbatch, axis=1)])
+    return ms.mean(0), ms.std(0, ddof=1) / np.sqrt(nbatch)
+
+
+def chi2_compare(vals, nbins=10, burnin=.1, pmin=1e-3):
+    """Chi-squared comparison of each chain with all others: the mean and the
+    probabilities of the deciles (of all samples) are compared, with
+    batch-means errors. Returns ``{chain: (chi2, dof, p-value)}``."""
+    vals = {a: x[int(burnin * len(x)):] for a, x in vals.items()}
+    allv = np.concatenate(list(vals.values()))
+    edges = np.unique(np.quantile(allv, np.linspace(0, 1, nbins + 1)))
+    stats = {}
+    for a, x in vals.items():
+        idx = np.clip(np.searchsorted(edges, x, side="right") - 1, 0,
+                      len(edges) - 2)
+        # the last bin is redundant
+        obs = [x] + [idx == i for i in range(len(edges) - 2)]
+        stats[a] = batch_means(np.array(obs, dtype="float"))
+    ret = {}
+    for a, (m, e) in stats.items():
+        others = [stats[b] for b in stats if b != a]
+        mo = np.mean([s[0] for s in others], axis=0)
+        eo = np.sqrt(np.sum([s[1] ** 2 for s in others], axis=0)) / len(others)
+        err = np.sqrt(e ** 2 + eo ** 2)
+        ok = err > 0
+        chi2 = (((m - mo)[ok] / err[ok]) ** 2).sum()
+        dof = int(ok.sum())
+        ret[a] = (chi2, dof, scipy.stats.chi2.sf(chi2, dof) if dof else 1.)
+    return ret
+
+
 def compare(comp, algos, output, replot):
     hists = {}
     for chain in comp.chains(algos):
@@ -371,7 +417,8 @@ def compare(comp, algos, output, replot):
             plt.loglog(ts, Ds, label=a)
             print(f"{var} {a}: final KS D={Ds[-1]:g}, D_c={Dc[-1]:g}")
             if Ds[-1] > Dc[-1]:
-                deviating.append((var, a, Ds[-1], Dc[-1]))
+                deviating.append((var, a, f"KS D={Ds[-1]:.3g} "
+                                  f"D_c={Dc[-1]:.3g}"))
         plt.plot(ts, Dc, "--", label="D_c")
         plt.legend(loc="best")
         plt.xlabel("Time")
@@ -380,6 +427,15 @@ def compare(comp, algos, output, replot):
             savefig(fig, base + "-KS.pdf")
         else:
             plt.close(fig)
+
+        # chi-squared test with batch-means errors, which unlike the KS
+        # critical value accounts for the autocorrelation of the chains
+        for a, (chi2, dof, p) in chi2_compare(vals).items():
+            print(f"{var} {a}: chi2={chi2:.1f} ({dof} quantities), "
+                  f"p-value: {p:g}")
+            if p < 1e-3:
+                deviating.append((var, a, f"chi2={chi2:.1f} ({dof} "
+                                  f"quantities), p-value {p:.3g}"))
         progress()
 
         # histogram residues
@@ -428,7 +484,158 @@ def plot_residues(path, replot, x, ys, xlabel, plot):
     savefig(fig, path)
 
 
-tests = ["reverse", "moveprob", "edges", "hists"]
+# Test 5: exact posterior of a tiny graph
+
+def tiny_graph(directed):
+    """Two triangles with triple edges, joined by a single edge."""
+    g = gt.Graph(directed=directed)
+    g.add_edge_list([(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)] * 3 +
+                    [(2, 3)])
+    return g
+
+
+def set_partitions(n):
+    """All partitions of n items, as restricted growth strings."""
+    def rec(prefix, m):
+        if len(prefix) == n:
+            yield tuple(prefix)
+            return
+        for x in range(m + 2):
+            yield from rec(prefix + [x], max(m, x))
+    if n > 0:
+        yield from rec([0], 0)
+
+
+def hierarchies(n, L):
+    """All hierarchies of L levels over n items: a partition of the items,
+    then of the groups of each level."""
+    if L == 0:
+        yield ()
+        return
+    for b in set_partitions(n):
+        for rest in hierarchies(max(b) + 1, L - 1):
+            yield (b,) + rest
+
+
+def canonical(bs):
+    """Canonical (label-independent) form of a hierarchy, given the partition
+    of each level; the upper levels are indexed by the labels of the level
+    below, of which only the occupied ones matter."""
+    key = []
+    idx = None
+    for b in bs:
+        b = np.asarray(b, dtype="int")
+        if idx is not None:
+            b = b[idx]
+        labels = {}
+        key.append(tuple(labels.setdefault(x, len(labels)) for x in b))
+        idx = np.array(list(labels), dtype="int")
+    return tuple(key)
+
+
+def exact_model_state(model, g, bs):
+    if model == "nsbm":
+        return gt.NestedBlockState(g, bs=[np.asarray(b) for b in bs])
+    return gt.BlockState(g, b=np.asarray(bs[0]))
+
+
+def exact_entropies(model, directed, L, output):
+    """Entropy of every hierarchy (every partition, for the flat model);
+    cached in ``OUTPUT/cache``."""
+    path = f"{output}/cache/exact_{model}_directed{directed}_L{L}.pickle"
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return pickle.load(f)
+    g = tiny_graph(directed)
+    hs = list(hierarchies(g.num_vertices(), L if model == "nsbm" else 1))
+    set_total(len(hs))
+    Ss = {}
+    for h in hs:
+        Ss[h] = exact_model_state(model, g, h).entropy()
+        progress()
+    tmp = f"{path}.{os.getpid()}.tmp"   # jobs may compute it concurrently
+    with open(tmp, "wb") as f:
+        pickle.dump(Ss, f)
+    os.replace(tmp, path)
+    return Ss
+
+
+def exact(model, directed, algo, seed, output, sweeps, L=3, nbatch=50,
+          pmin=1e-3, min_prob=0.005):
+    Ss = exact_entropies(model, directed, L, output)
+    keys = list(Ss)
+    S = np.array([Ss[k] for k in keys])
+    P = np.exp(-(S - S.min()))
+    P /= P.sum()
+    Bk = [tuple(max(b) + 1 for b in k) for k in keys]
+    PB = {}
+    for B, p in zip(Bk, P):
+        PB[B] = PB.get(B, 0) + p
+    S_exact = (P * S).sum()
+
+    seed_job(seed)
+    g = tiny_graph(directed)
+    N = g.num_vertices()
+    bs = [np.zeros(N, dtype="int")] + [np.zeros(1, dtype="int")] * (L - 1)
+    state = exact_model_state(model, g, bs if model == "nsbm" else bs[:1])
+    get_bs = state.get_bs if model == "nsbm" else lambda: [state.b.a]
+    method, args = algorithms[algo]
+    sweep = getattr(state, method)
+    burnin = 1000
+    set_total(burnin + sweeps)
+    for i in range(burnin):
+        sweep(beta=1, niter=1, **args)
+    progress(burnin)
+    Bs, Sc = [], np.zeros(sweeps)
+    for t in range(sweeps):
+        sweep(beta=1, niter=1, **args)
+        k = canonical(get_bs())
+        if k not in Ss:
+            raise AssertionError(f"unknown hierarchy: {k}")
+        Bs.append(tuple(max(b) + 1 for b in k))
+        Sc[t] = Ss[k]
+        if (t + 1) % 1000 == 0:
+            progress(1000)
+
+    # batch means of the compared quantities: the probabilities of the most
+    # likely numbers of groups, and the mean entropy
+    tops = sorted([B for B in PB if PB[B] >= min_prob], key=PB.get,
+                  reverse=True)
+    names = [str(B) for B in tops] + ["<S>"]
+    exp = np.array([PB[B] for B in tops] + [S_exact])
+    batches = np.array_split(np.arange(sweeps), nbatch)
+    index = {B: i for i, B in enumerate(tops)}
+    Bs = np.array([index.get(B, -1) for B in Bs])
+    xs = np.array([[(Bs[idx] == i).mean() for i in range(len(tops))] +
+                   [Sc[idx].mean()] for idx in batches])
+    m = xs.mean(0)
+    e = xs.std(0, ddof=1) / np.sqrt(nbatch)
+    z = (m - exp) / e
+    chi2 = (z ** 2).sum()
+    p = scipy.stats.chi2.sf(chi2, len(z))
+    print(f"{'quantity':12} {'exact':>10} {'chain':>10} {'error':>8} {'z':>7}")
+    for n, x, y, er, zz in zip(names, exp, m, e, z):
+        print(f"{n:12} {x:10.4f} {y:10.4f} {er:8.4f} {zz:+7.1f}")
+    print(f"chi2: {chi2:.1f} ({len(z)} quantities), p-value: {p:g}")
+
+    fig = plt.figure(figsize=(10 * 4/3, 10))
+    x = np.arange(len(tops))
+    plt.bar(x - .2, exp[:-1], width=.4, label="exact")
+    plt.bar(x + .2, m[:-1], width=.4, yerr=e[:-1], label=algo)
+    plt.xticks(x, names[:-1], rotation=90)
+    plt.ylabel("Probability")
+    plt.legend(loc="best")
+    plt.tight_layout()
+    savefig(fig, f"{output}/test_mcmc_exact_{model}_directed{directed}"
+            f"_{algo}.pdf")
+    if p < pmin:
+        raise AssertionError(f"chain deviates from the exact posterior: "
+                             f"chi2 = {chi2:.1f} for {len(z)} quantities "
+                             f"(p-value {p:g})")
+    return chi2, p
+
+
+tests = ["reverse", "moveprob", "edges", "hists", "exact"]
 
 
 def job_seed(seed, name):
@@ -467,6 +674,12 @@ def main():
     parser.add_argument("--edge-samples", type=int, default=10000000,
                         help="number of samples for the 'edges' test "
                         "(default: %(default)s)")
+    parser.add_argument("--exact-sweeps", type=int, default=200000,
+                        help="chain length for the 'exact' test "
+                        "(default: %(default)s)")
+    parser.add_argument("--exact-levels", type=int, default=3,
+                        help="number of levels of the nested model in the "
+                        "'exact' test (default: %(default)s)")
     parser.add_argument("--rerun", action="store_true",
                         help="rerun cached chains of the 'hists' test")
     parser.add_argument("--replot", action="store_true",
@@ -515,6 +728,16 @@ def main():
                             lambda s: (directed, deg_corr, s, output,
                                        args.edge_samples))
 
+    if "exact" in args.tests:
+        for model in ["sbm", "nsbm"]:
+            for directed in [False, True]:
+                for algo in args.algorithms:
+                    jobs += job(f"exact: model={model} directed={directed} "
+                                f"{algo}", exact,
+                                lambda s: (model, directed, algo, s, output,
+                                           args.exact_sweeps,
+                                           args.exact_levels))
+
     comps = []
     if "hists" in args.tests:
         if not os.path.exists(f"{output}/g_small.gt"):
@@ -553,10 +776,10 @@ def main():
                                        log_dir=f"{log_dir}/compare",
                                        **run_args)
         print("\nchains whose distribution deviates from the others "
-              "(final KS statistic D > D_c):")
+              "(final KS statistic D > D_c, or chi-squared p-value < 1e-3):")
         deviating = [(j.name[9:], *d) for j in cjobs for d in j.result or []]
-        for name, var, a, D, Dc in deviating:
-            print(f"  {name} {var} {a}: D={D:.3g} D_c={Dc:.3g}")
+        for name, var, a, what in deviating:
+            print(f"  {name} {var} {a}: {what}")
         if not deviating:
             print("  (none)")
 
