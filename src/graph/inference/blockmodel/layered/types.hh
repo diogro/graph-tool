@@ -547,6 +547,17 @@ struct VLayerCount:
         return *this;
     }
 
+    // the generic (component-wise) operator does not scale the total, which
+    // is needed e.g. for negation
+    template <class C>
+        requires std::is_scalar_v<C>
+    VLayerCount& operator*=(C c)
+    {
+        static_cast<base_t&>(*this) *= c;
+        _total *= c;
+        return *this;
+    }
+
     template <class CV>
     bool operator==(const VLayerCount<CV>& c) const
     {

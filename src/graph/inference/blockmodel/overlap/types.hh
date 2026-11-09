@@ -56,6 +56,19 @@ struct dcount_t
     {
         return get<0>(*this) == x && get<1>(*this) == x;
     }
+
+    // component-wise p and n >= 0, such that *this == p - n
+    dcount_t positive_part() const
+    {
+        return {std::max(get<0>(*this), int64_t(0)),
+                std::max(get<1>(*this), int64_t(0))};
+    }
+
+    dcount_t negative_part() const
+    {
+        return {std::max(-get<0>(*this), int64_t(0)),
+                std::max(-get<1>(*this), int64_t(0))};
+    }
 };
 
 struct ovweight_t

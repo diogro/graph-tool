@@ -480,8 +480,21 @@ struct OverlapPartitionStats
 
     void move_item(group_t r, group_t nr, const ovweight_t& w)
     {
+        // w can be an aggregated delta with mixed signs (e.g. from parallel
+        // moves), whose negative parts are moved in the opposite direction
+        // (and first, so that no degree becomes negative)
         for (const auto& [v, deg] : w)
-            move_vitem(r, nr, v, deg);
+        {
+            auto dn = deg.negative_part();
+            if (!(dn == 0))
+                move_vitem(nr, r, v, dn);
+        }
+        for (const auto& [v, deg] : w)
+        {
+            auto dp = deg.positive_part();
+            if (!(dp == 0))
+                move_vitem(r, nr, v, dp);
+        }
         if (r != _null_group)
             _wr[r] -= w;
         if (nr != _null_group)
