@@ -1540,7 +1540,9 @@ public:
         auto r = _b[u];
         auto& occupied_groups = _occupied_groups[_bclabel[r]];
         std::bernoulli_distribution new_r(1./(occupied_groups.size()+1));
-        if (occupied_groups.size() < _N[_bclabel[r]] && new_r(rng))
+        // v is a new group, which is not yet counted in _N
+        size_t N = _N[_bclabel[r]] + size_t(_vweight[v] == 0);
+        if (occupied_groups.size() < N && new_r(rng))
         {
             s = get_empty_group(u, rng);
             visit_coupled_if
@@ -1554,6 +1556,55 @@ public:
             s = uniform_sample(occupied_groups, rng);
         }
         _b[v] = s;
+    }
+
+    // Log-probability with which sample_branch() places v under its current
+    // chain of ancestors. If `inside`, v is counted in its group, and the
+    // probability refers to the state without it; if u is also given (not
+    // counted in its group), it refers to the state where u, with its chain
+    // of ancestors, is counted instead (the reverse of moving the sole
+    // member of a group to a new one).
+    double get_branch_log_prob(vertex_t v, bool inside,
+                               vertex_t u = vertex_t(_null_group))
+    {
+        auto t = _b[v];
+        bool add_u = (u != vertex_t(_null_group));
+        auto tu = add_u ? _b[u] : t;
+        bool tu_new = add_u && bool(_wr[tu] == 0);
+        bool single = inside ?
+            bool(_wr[t] == _vweight[v]) && !(add_u && tu == t) :
+            bool(_wr[t] == 0);
+        size_t B = _occupied_groups[_bclabel[t]].size();
+        if (inside && single)
+            B--;
+        if (tu_new && _bclabel[tu] == _bclabel[t])
+            B++;
+        // maximum number of groups, as in sample_branch(), when v is placed
+        size_t N = _N[_bclabel[t]] + size_t(add_u);
+        if (!inside)
+            N += size_t(_vweight[v] == 0);
+        if (B >= N)
+            return -safelog_fast(B);
+        double L = -safelog_fast(B + 1);
+        if (single)
+            L += get_coupled_branch_log_prob(t, inside,
+                                             tu_new ? tu : _null_group);
+        return L;
+    }
+
+    double get_coupled_branch_log_prob(group_t r, bool inside,
+                                       group_t u = _null_group)
+    {
+        double L = 0;
+        visit_coupled_if
+            ([&](auto&& cs, auto&)
+             {
+                 typedef typename std::decay_t<decltype(cs)>::vertex_t cv_t;
+                 L = cs.get_branch_log_prob(r, inside,
+                                            (u == _null_group) ?
+                                            cv_t(cs._null_group) : cv_t(u));
+             });
+        return L;
     }
 
     // Sample node placement
@@ -1572,6 +1623,11 @@ public:
             auto s = get_empty_group(v, rng);
             if constexpr (spec_t::has_relabel)
                 _spec.relabel_group(s, _spec.sample_group_label(s, rng));
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     cs.sample_branch(s, r, rng);
+                 });
             return s;
         }
 
@@ -1637,10 +1693,18 @@ public:
         if (r == s)
             reverse = false;
 
+        // a new group is placed in the hierarchy by sample_branch()
         if (reverse)
         {
             if (_wr[s] == _vweight[v])
-                return log(d);
+            {
+                // sample_group() only proposes new groups below the maximum,
+                // here counted after the move
+                if (B - 1 + size_t(_wr[r] == 0) >= _N[_bclabel[r]])
+                    return -std::numeric_limits<double>::infinity();
+                auto u = (_wr[r] == 0) ? r : _null_group;
+                return log(d) + get_coupled_branch_log_prob(s, true, u);
+            }
 
             if (_wr[r] == 0)
                 B++;
@@ -1648,7 +1712,7 @@ public:
         else
         {
             if (_wr[s] == 0)
-                return log(d);
+                return log(d) + get_coupled_branch_log_prob(s, false);
         }
 
         if (B == _N[_bclabel[r]])
