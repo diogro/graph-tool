@@ -195,14 +195,12 @@ struct MCMC
 
         void resize_m_entries()
         {
-            auto parallel = _parallel; // NOTE: alias needed to avoid ICE with GCC 15
+            // one entry set per thread, also for serial sweeps, since
+            // candidate merges are always evaluated in parallel
             auto resize =
                 [&](this auto&& self, auto& state) -> void
                 {
-                    if (parallel)
-                        state._m_entries_pool.resize(get_num_threads());
-                    else
-                        state._m_entries_pool.resize(1);
+                    state._m_entries_pool.resize(get_num_threads());
                     state.visit_coupled_if
                         ([&](auto& cs, auto&)
                          {
@@ -221,10 +219,7 @@ struct MCMC
 
         auto& get_m_entries(int tnum)
         {
-            if (_parallel)
-                return _state._m_entries_pool[tnum];
-            else
-                return _state._m_entries_pool[0];
+            return _state._m_entries_pool[tnum];
         }
 
         void move_node(vertex_t v, group_t r, bool cache)
