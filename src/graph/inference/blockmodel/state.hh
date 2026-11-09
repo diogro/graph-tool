@@ -599,7 +599,8 @@ public:
         for (auto r : _rset)
         {
             const auto& d = _group_delta[r];
-            if (_groups[r].empty())
+            bool occupied = _groups[r].empty();
+            if (occupied)
                 occupy_group(r, d);
             for (auto v : _groups_out[r])
                 _groups[r].erase(v);
@@ -609,7 +610,9 @@ public:
                 _ps.add_item(r, _bpclabel[r], d);
             else
                 _ps.remove_item(r, _bpclabel[r], -d);
-            if (!_groups[r].empty())
+            // a group can also be emptied and refilled in the same batch
+            bool vacated = _groups[r].empty() && _groups_in[r].empty();
+            if (!occupied && !vacated)
                 _spec.update_group_weight(r, d);
             _wr[r] += d;
         }
