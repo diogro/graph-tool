@@ -79,15 +79,15 @@ struct MCMC
                 _has_b_max = rs_max.size() == _B_max;
 
                 // the labels of b_min and b_max are used as groups, so those
-                // that do not exist yet are created; they take the labels
-                // and the place in the hierarchy of the group of a vertex
-                // that is moved to them
+                // that do not exist yet are created; these, and those that
+                // are empty, take the labels and the place in the hierarchy
+                // of the group of a vertex that is moved to them
                 size_t B = num_vertices(_state._bg);
                 size_t nB = B;
                 gt_hash_map<group_t, vertex_t> new_rs;
                 auto add = [&](group_t r, vertex_t v)
                 {
-                    if (size_t(r) < B)
+                    if (size_t(r) < B && _state._wr[r] != 0)
                         return;
                     new_rs.try_emplace(r, v);
                     nB = std::max(nB, size_t(r) + 1);

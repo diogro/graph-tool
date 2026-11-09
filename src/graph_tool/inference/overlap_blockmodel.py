@@ -120,14 +120,14 @@ class OverlapBlockState(BlockState):
         return vertices
 
     def _get_b_min(self):
+        zs = self.g.new_ep("int64_t")
+        return group_vector_property([zs, zs])
+
+    def _get_b_max(self):
         sidx = self.g.edge_index.copy("int64_t")
         tidx = sidx.copy()
         tidx.fa += sidx.fa.max() + 1
         return group_vector_property([sidx, tidx])
-
-    def _get_b_max(self):
-        zs = self.g.new_ep("int64_t")
-        return group_vector_property([zs, zs])
 
     def _check_clabel(self, b=None, clabel=None):
         return True      # FIXME: add implementation

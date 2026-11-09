@@ -811,13 +811,13 @@ class MultilevelMCMCState(EntropyState):
     def get_N(self):
         return self._state.get_N()
 
-    def _get_b_max(self):
+    def _get_b_min(self):
         if hasattr(self, "g"):
             return self.g.new_vp("int64_t")
         else:
             return numpy.zeros(self.get_N(), dtype="int64")
 
-    def _get_b_min(self):
+    def _get_b_max(self):
         if hasattr(self, "g"):
             return self.g.vertex_index.copy("int64_t")
         else:
