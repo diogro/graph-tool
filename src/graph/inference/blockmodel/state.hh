@@ -1724,8 +1724,10 @@ public:
         double p = 0;
         size_t w = 0;
 
-        size_t kin, kout;
-        std::tie(kin, kout) = _degs[v];
+        // from the edge weights, since the cached degrees of a coupled
+        // (upper) level are not updated when the level below changes
+        size_t kin = in_degree(v, _g, _eweight);
+        size_t kout = out_degree(v, _g, _eweight);
 
         m_entries.get_mes(_emat);
 
