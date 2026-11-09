@@ -574,10 +574,18 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
         return adjacency(self.bg, weight=self.mrs)
 
+    def _check_group(self, s):
+        if s < 0 or s >= self.bg.num_vertices():
+            raise ValueError(f"invalid group {s}: only groups 0 to "
+                             f"{self.bg.num_vertices() - 1} are allocated "
+                             "(a new group can be obtained with "
+                             "sample_vertex_move())")
+
     def virtual_vertex_move(self, v, s, **kwargs):
         r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
         remaining parameters are the same as in
         :meth:`graph_tool.inference.BlockState.entropy`."""
+        self._check_group(s)
         return self._state.virtual_move(int(v), s,
                                         self._get_entropy_args(dict(self._entropy_args,
                                                                     **kwargs)))
@@ -590,6 +598,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         are done in parallel.
         """
         if not isinstance(v, collections.abc.Iterable):
+            self._check_group(s)
             self._state.move_vertex(int(v), s)
         else:
             self._state.move_vertices(np.asarray(v, dtype="uint64"),
@@ -616,6 +625,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         are done in parallel.
         """
         if not isinstance(v, collections.abc.Iterable):
+            self._check_group(s)
             self._state.move_vertex(int(v), s)
         else:
             self._state.move_vertices(np.asarray(v, dtype="uint64"),
@@ -677,6 +687,7 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         == True``, the reverse probability of moving the node back from block
         ``s`` to its current one is obtained.
         """
+        self._check_group(s)
         if not reverse:
             return self._state.get_move_prob(int(v), self.b[v], s, c, d, False)
         else:

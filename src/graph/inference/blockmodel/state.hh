@@ -335,6 +335,11 @@ public:
             else
                 move_vertices(vs, rs);
         }
+        else
+        {
+            throw ValueException("moving lists of vertices is not supported "
+                                 "for this state");
+        }
     }
 
     enum class lock_t { unique, shared };
