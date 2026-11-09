@@ -298,6 +298,9 @@ class NestedBlockState(object):
 
             if l > 0:
                 args.pop("vertices", None)
+                # as in level_entropy(), the upper levels use their own
+                # entropy arguments, and are scaled by beta_dl as a whole
+                args.pop("entropy_args", None)
                 if "beta_dl" in eargs:
                     args = dict(args, beta=args.get("beta", 1.) * eargs["beta_dl"])
 
