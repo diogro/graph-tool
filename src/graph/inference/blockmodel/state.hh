@@ -1018,6 +1018,15 @@ public:
             base_graph(_bg).set_concurrent(true);
             base_graph(_bg).reserve_epos(2 * M + 10 * get_num_threads());
             _mrs.reserve(2 * M + 10 * get_num_threads());
+
+            // the edge weights of the coupled level are indexed like _mrs,
+            // and are updated concurrently, so they cannot grow on demand
+            visit_coupled_if
+                ([&](auto& s, auto&)
+                 {
+                     if constexpr (requires { s._eweight.reserve(M); })
+                         s._eweight.reserve(2 * M + 10 * get_num_threads());
+                 });
         }
         else
         {
