@@ -272,6 +272,15 @@ struct WeightedBlockStateSpec
             }
         }
 
+        // Whether the prior for the covariates of all levels of a hierarchy
+        // (_Lrecdx) is used. This is not read from the value of _Lrecdx[0],
+        // which for layered states is a count that becomes empty when it is
+        // zero.
+        bool use_hyperprior() const
+        {
+            return !_is_base || _state.has_coupled();
+        }
+
         template <class T>
         static T unity(T x)
         {
@@ -458,7 +467,7 @@ struct WeightedBlockStateSpec
                                                wp[3], _epsilon[i]);
                     }
 
-                    if (_Lrecdx[0] >= 0)
+                    if (use_hyperprior())
                     {
                         S_dl += -safelog_fast(_B_E_D);
                         // the prior over all levels is counted once, at the
@@ -696,7 +705,7 @@ struct WeightedBlockStateSpec
                                 dL += ddL;
                             }
 
-                            if (_Lrecdx[0] >= 0)
+                            if (use_hyperprior())
                             {
                                 auto N_B_E_D = _B_E_D + dB_E_D;
 
@@ -765,7 +774,7 @@ struct WeightedBlockStateSpec
 
                      if (!_wc._normals.empty())
                      {
-                         if (_Lrecdx[0] >= 0)
+                         if (use_hyperprior())
                          {
                              for (auto i : _wc._normals)
                                  _Lrecdx[i+1] -= _recdx[i] * _B_E_D;
@@ -773,7 +782,7 @@ struct WeightedBlockStateSpec
 
                          auto dB_E_D = thresh_diff(mrs, n_mrs, 1) - thresh_diff(n_mrs, mrs, 1);
 
-                         if (_Lrecdx[0] >= 0)
+                         if (use_hyperprior())
                              _Lrecdx[0] += (thresh_diff(_B_E_D, _B_E_D + dB_E_D) -
                                             thresh_diff(_B_E_D + dB_E_D, _B_E_D));
 
@@ -817,7 +826,7 @@ struct WeightedBlockStateSpec
                                   }
                               });
 
-                         if (_Lrecdx[0] >= 0)
+                         if (use_hyperprior())
                          {
                              for (auto i : _wc._normals)
                                  _Lrecdx[i+1] += _recdx[i] * _B_E_D;
