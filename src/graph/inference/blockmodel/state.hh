@@ -1513,24 +1513,29 @@ public:
             s = uniform_sample(_empty_groups, rng);
 
         if (inherit)
-        {
-            auto r = _b[v];
-            _bclabel[s] = _bclabel[r];
-            _bpclabel[s] = _bpclabel[r];
-            assert(_clabel[v] == _bclabel[r]);
-
-            visit_coupled_if
-                ([&](auto&& cs, auto&)
-                 {
-                     auto& hb = cs._b;
-                     auto& hpclabel = cs._pclabel;
-                     auto& hclabel = cs._clabel;
-                     hb[s] = hb[r];
-                     hpclabel[s] = hclabel[s] = _pclabel[v];
-                 });
-        }
+            inherit_group(s, v);
 
         return s;
+    }
+
+    // Gives the (empty) group s the labels and the place in the hierarchy of
+    // the group of v.
+    void inherit_group(group_t s, vertex_t v)
+    {
+        auto r = _b[v];
+        _bclabel[s] = _bclabel[r];
+        _bpclabel[s] = _bpclabel[r];
+        assert(_clabel[v] == _bclabel[r]);
+
+        visit_coupled_if
+            ([&](auto&& cs, auto&)
+             {
+                 auto& hb = cs._b;
+                 auto& hpclabel = cs._pclabel;
+                 auto& hclabel = cs._clabel;
+                 hb[s] = hb[r];
+                 hpclabel[s] = hclabel[s] = _pclabel[v];
+             });
     }
 
     template <class RNG>
