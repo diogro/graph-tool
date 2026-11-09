@@ -1121,6 +1121,17 @@ class WeightedBlockState(BlockState):
             return (self._mrs, self.brec, self.bdrec, self.rec_types)
         return self._mrs
 
+    def __getstate__(self):
+        state = super().__getstate__()
+        # internal parameters, which are not part of the signature: the
+        # deviations of block states (is_base == False) are not determined by
+        # their covariates, and their precision parameters are those of the
+        # base state (base states recompute them)
+        state.update(drec=self.drec, is_base=self.is_base)
+        if not self.is_base:
+            state.update(Lrecdx=self.Lrecdx, epsilon=self.epsilon)
+        return state
+
     def _init_rec(self, rec, rec_types, rec_params):
         if len(rec_types) != len(rec):
             raise ValueError("The size of 'rec_types' (%d) must be the same of 'rec' (%d)" %

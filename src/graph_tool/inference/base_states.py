@@ -203,8 +203,13 @@ class PickleState(ABC):
         r"""Copies the state. The parameters override the state properties, and
         have the same meaning as in the constructor.
         """
-        init_args = {k: v.copy() if isinstance(v, PropertyMap) else v
-                     for k, v in self.__getstate__().items()}
+        def copy_prop(v):
+            if isinstance(v, PropertyMap):
+                return v.copy()
+            if isinstance(v, list) and any(isinstance(x, PropertyMap) for x in v):
+                return [copy_prop(x) for x in v]
+            return v
+        init_args = {k: copy_prop(v) for k, v in self.__getstate__().items()}
         init_args.update(kwargs)
         return self.__class__(**init_args)
 
