@@ -25,6 +25,8 @@
 #include <limits>
 #include <vector>
 #include <print>
+#include <memory>
+#include <mutex>
 
 #include "../spec.hh"
 
@@ -774,8 +776,13 @@ struct WeightedBlockStateSpec
 
                      if (!_wc._normals.empty())
                      {
+                         // the hyperprior terms depend on the statistics of
+                         // the whole level, so concurrent updates (parallel
+                         // moves) are serialized
+                         std::unique_lock<std::mutex> hlock;
                          if (use_hyperprior())
                          {
+                             hlock = std::unique_lock(*_hyper_mutex);
                              for (auto i : _wc._normals)
                                  _Lrecdx[i+1] -= _recdx[i] * _B_E_D;
                          }
@@ -930,6 +937,8 @@ struct WeightedBlockStateSpec
         drcount_t _B_E;
         drcount_t _B_E_D;
         WeightContext _wc;
+        std::shared_ptr<std::mutex> _hyper_mutex =
+            std::make_shared<std::mutex>();
     };
 };
 
