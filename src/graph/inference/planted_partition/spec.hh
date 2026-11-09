@@ -288,10 +288,15 @@ struct StateSpec
             static_assert(std::ranges::random_access_range<Vs>);
             static_assert(std::ranges::random_access_range<NRs>);
 
+            // indexed by group label
+            group_t B = 0;
+            for (const auto& [v, nr] : std::views::zip(vs, nrs))
+                B = std::max({B, group_t(_b[v]) + 1, group_t(nr) + 1});
+
             _groups_in.clear();
             _groups_out.clear();
-            _groups_in.resize(_state._groups.size());
-            _groups_out.resize(_state._groups.size());
+            _groups_in.resize(B);
+            _groups_out.resize(B);
 
             for (const auto& [v, nr] : std::views::zip(vs, nrs))
             {
@@ -301,6 +306,11 @@ struct StateSpec
                 _groups_out[r].push_back(v);
                 _groups_in[nr].push_back(v);
             }
+
+            // the degree statistics grow on demand, which cannot happen
+            // concurrently below
+            if (_deg_corr && B > 0)
+                _deg_stats.get_r(B - 1);
 
             parallel_loop(std::views::zip(vs, nrs),
                           [&](auto, auto&& vnr)
@@ -316,29 +326,33 @@ struct StateSpec
                               apply_delta<true>(r, nr, delta);
                           }, 0);
 
-            parallel_loop
-                (_groups_in,
-                 [&](auto nr, auto& vs_)
-                 {
-                     for (auto v : vs_)
-                     {
-                         _ps.template add_item<false>(nr, _pclabel[v]);
-                         if (_deg_corr)
-                             _deg_stats.add_vertex(_degs[v], nr);
-                     }
-                 }, 0);
+            // the partition statistics are updated serially, since they map
+            // the groups of each label on demand
+            for (size_t nr = 0; nr < _groups_in.size(); ++nr)
+                for (auto v : _groups_in[nr])
+                    _ps.add_item(nr, _pclabel[v]);
+            for (size_t r = 0; r < _groups_out.size(); ++r)
+                for (auto v : _groups_out[r])
+                    _ps.remove_item(r, _pclabel[v]);
 
-            parallel_loop
-                (_groups_out,
-                 [&](auto r, auto& vs_)
-                 {
-                     for (auto v : vs_)
+            if (_deg_corr)
+            {
+                parallel_loop
+                    (_groups_in,
+                     [&](auto nr, auto& vs_)
                      {
-                         _ps.template remove_item<false>(r, _pclabel[v]);
-                         if (_deg_corr)
+                         for (auto v : vs_)
+                             _deg_stats.add_vertex(_degs[v], nr);
+                     }, 0);
+
+                parallel_loop
+                    (_groups_out,
+                     [&](auto r, auto& vs_)
+                     {
+                         for (auto v : vs_)
                              _deg_stats.remove_vertex(_degs[v], r);
-                     }
-                 }, 0);
+                     }, 0);
+            }
         }
 
         auto get_merge_delta(group_t s, group_t t)
