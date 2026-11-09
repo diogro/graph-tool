@@ -461,7 +461,10 @@ struct WeightedBlockStateSpec
                     if (_Lrecdx[0] >= 0)
                     {
                         S_dl += -safelog_fast(_B_E_D);
-                        if (_is_base)
+                        // the prior over all levels is counted once, at the
+                        // top of the hierarchy, so that it is included in the
+                        // (propagated) entropy of every level
+                        if (!_state.has_coupled())
                         {
                             S_dl += -positive_w_log_P(_Lrecdx[0],
                                                       _Lrecdx[i+1],

@@ -180,9 +180,13 @@ struct MCMC
                     state.visit_coupled_if
                         ([&](auto& cs, auto&)
                          {
-                             self(cs);
+                             cs._m_entries_pool.resize(state._m_entries_pool.size());
+                             // set_next() also shares the accumulators that
+                             // some entry sets keep across levels, so the
+                             // levels are linked top-down
                              for (auto&& [i, mes] : enumerate(state._m_entries_pool))
-                                 mes._next = &cs._m_entries_pool[i];
+                                 mes.set_next(cs._m_entries_pool[i]);
+                             self(cs);
                          });
                 };
 
