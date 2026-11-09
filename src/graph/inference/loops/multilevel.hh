@@ -1504,6 +1504,7 @@ struct Multilevel:
         }
         else if (_bisection)
         {
+            _rs_prev = _rs;  // to update _rlist, if the move is accepted
             push_b(_vs);
             _dS = stage_multilevel(_rs, _vs, rng);
             nnr = _rs.size();
@@ -1563,7 +1564,13 @@ struct Multilevel:
     void perform_move(const Node&, size_t)
     {
         if (!_refine && _bisection)
+        {
             pop_b();
+            for (auto r : _rs_prev)
+                _rlist.erase(r);
+            for (auto r : _rs)
+                _rlist.insert(r);
+        }
     }
 
     void step(const Node&, size_t)
