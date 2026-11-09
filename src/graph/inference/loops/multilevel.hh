@@ -1337,7 +1337,7 @@ struct Multilevel:
             State::relax_update(false);
             get_cache(rs.size(), rs);
         }
-        else if (B_max != B_min)
+        else if (!has_cache(B_max)) // B_max may also be B_min
         {
             double S = S_init;
 
