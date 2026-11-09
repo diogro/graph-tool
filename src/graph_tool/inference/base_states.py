@@ -372,6 +372,14 @@ class CLabelState(ABC):
             joint = group_vector_property([jx, jy])
         return joint
 
+    def _weighted_vertices(self):
+        """Mask of the vertices with nonzero weight (all of them, for states
+        without vertex weights)."""
+        vweight = getattr(self, "vweight", None)
+        if vweight is None:
+            return numpy.ones(len(self.b.fa), dtype="bool")
+        return vweight.fa > 0
+
     def _check_clabel(self, clabel=None, b=None):
         if b is None:
             b = self.b
@@ -380,7 +388,7 @@ class CLabelState(ABC):
         if "vector" not in b.value_type():
             joint = group_vector_property([b, clabel], value_type="int64_t")
             joint = perfect_prop_hash([joint], htype="int64_t")[0]
-            idx = self.vweight.fa > 0
+            idx = self._weighted_vertices()
             joint = joint.fa[idx]
             b = b.copy()
             b = b.fa[idx]
@@ -410,7 +418,7 @@ class CLabelState(ABC):
         labels for the block graph."""
 
         bclabel = self.bg.new_vertex_property("int64_t")
-        idx = self.vweight.fa > 0
+        idx = self._weighted_vertices()
         reverse_map(self.b.fa[idx], bclabel)
         if clabel is None:
             clabel = self.clabel
