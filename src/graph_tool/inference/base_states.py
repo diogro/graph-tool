@@ -875,7 +875,7 @@ class GibbsMCMCState(EntropyState):
         gibbs_state = DictState(locals())
         gibbs_state.entropy_args = self._get_entropy_args(entropy_args)
         gibbs_state.vlist = self._get_vertices(vals=vertices)
-        mcmc_state.state = self._state
+        gibbs_state.state = self._state
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
