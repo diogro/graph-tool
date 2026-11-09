@@ -79,13 +79,56 @@ struct MCMC
 
         std::vector<group_t> _occupied_groups;
 
+        // Places of a new group in the hierarchy (see get_branch_places()),
+        // which are all part of the heat-bath, as the moves _null_group - i;
+        // without a hierarchy, there is a single new group, _null_group.
+        std::vector<std::tuple<size_t, size_t>> _places;
+
         auto& get_moves(vertex_t v)
         {
             _occupied_groups.clear();
             const auto& c = _state.get_occupied_groups(v);
             _occupied_groups.insert(_occupied_groups.end(), c.begin(), c.end());
-            _occupied_groups.push_back(_null_group);
+
+            _places.clear();
+            if (_allow_new_group)
+            {
+                auto r = _state._b[v];
+                bool vacate = _state.virtual_remove_size(v) == 0;
+                bool coupled = false;
+                _state.visit_coupled_if
+                    ([&](auto& cs, auto&)
+                     {
+                         coupled = true;
+                         cs.get_branch_places(r, vacate, _places);
+                     });
+                // a new group for the sole member of a group would not
+                // change the state
+                if (!coupled && !vacate)
+                    _places.emplace_back(0, _null_group);
+            }
+            for (size_t i = 0; i < _places.size(); ++i)
+                _occupied_groups.push_back(_null_group - group_t(i));
             return _occupied_groups;
+        }
+
+        bool is_new_group(group_t nr)
+        {
+            return nr > _null_group - group_t(_places.size());
+        }
+
+        template <class RNG>
+        group_t place_new_group(vertex_t v, group_t nr, RNG& rng)
+        {
+            auto r = _state._b[v];
+            auto s = _state.get_empty_group(v, rng);
+            auto& [k, t] = _places[size_t(_null_group - nr)];
+            _state.visit_coupled_if
+                ([&](auto& cs, auto&)
+                 {
+                     cs.set_branch(s, r, k, t, rng);
+                 });
+            return s;
         }
 
         group_t node_state(vertex_t v)
@@ -98,32 +141,22 @@ struct MCMC
             return _state.node_weight(v);
         }
 
-        group_t _nr;
+        rng_t* _rng = nullptr;
         double virtual_move(vertex_t v, group_t nr, rng_t& rng)
         {
             group_t r = _state._b[v];
             if (!_allow_new_group && nr != r && _state.virtual_remove_size(v) == 0)
                 return numeric_limits<double>::infinity();
-            if (nr == _null_group)
-            {
-                if (!_allow_new_group ||
-                    _state._occupied_groups.size() == num_vertices(_state._g) ||
-                    _state.virtual_remove_size(v) == 0)
-                    return numeric_limits<double>::infinity();
-                _nr = nr = _state.get_empty_group(v, rng);
-                _state.visit_coupled_if
-                    ([&](auto& cs, auto&)
-                     {
-                         cs.sample_branch(nr, r, rng);
-                     });
-            }
+            _rng = &rng;
+            if (is_new_group(nr))
+                nr = place_new_group(v, nr, rng);
             return _state.virtual_move(v, nr, _entropy_args);
         }
 
         void perform_move(vertex_t v, group_t nr)
         {
-            if (nr == _null_group)
-                nr = _nr;
+            if (is_new_group(nr))
+                nr = place_new_group(v, nr, *_rng);
             _state.move_vertex(v, nr);
         }
     };

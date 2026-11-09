@@ -1558,6 +1558,54 @@ public:
         _b[v] = s;
     }
 
+    // Appends to `ps` all places that sample_branch(·, u) can give a new node
+    // of this level (a new group of the level below, created from u), as
+    // (k, t): new groups for k levels from this one up, and then the existing
+    // group t (k = 0: t is in this level), or new groups up to the top (t is
+    // then ignored). If `vacate`, u is about to be emptied, and the places are
+    // those in the hierarchy without it, except for its current one (which
+    // would leave the hierarchy unchanged).
+    template <class Places>
+    void get_branch_places(vertex_t u, bool vacate, Places& ps, size_t k = 0)
+    {
+        auto t = _b[u];
+        bool t_vacated = vacate && bool(_wr[t] == _vweight[u]);
+        for (auto s : _occupied_groups[_bclabel[t]])
+        {
+            if (vacate && s == t)
+                continue;
+            ps.emplace_back(k, s);
+        }
+        bool top = true;
+        visit_coupled_if
+            ([&](auto&& cs, auto&)
+             {
+                 top = false;
+                 cs.get_branch_places(t, t_vacated, ps, k + 1);
+             });
+        if (top && !t_vacated)
+            ps.emplace_back(k + 1, _null_group);
+    }
+
+    // Puts v (a new node of this level) in the place (k, t) given by
+    // get_branch_places(), creating the new groups as sample_branch() does.
+    template <class RNG>
+    void set_branch(vertex_t v, vertex_t u, size_t k, group_t t, RNG& rng)
+    {
+        group_t s = t;
+        if (k > 0)
+        {
+            auto r = _b[u];
+            s = get_empty_group(u, rng);
+            visit_coupled_if
+                ([&](auto&& cs, auto&)
+                 {
+                     cs.set_branch(s, r, k - 1, t, rng);
+                 });
+        }
+        _b[v] = s;
+    }
+
     // Log-probability with which sample_branch() places v under its current
     // chain of ancestors. If `inside`, v is counted in its group, and the
     // probability refers to the state without it; if u is also given (not
