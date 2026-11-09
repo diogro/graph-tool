@@ -523,10 +523,12 @@ struct VLayerCount:
         return *this;
     }
 
+    // like _total, the layer counts are updated atomically (with locks) if
+    // they are set as concurrent
     template <class C>
     VLayerCount& operator+=(const C& c)
     {
-        static_cast<base_t&>(*this) += c;
+        atomic_inc(static_cast<base_t&>(*this), c);
         if constexpr (is_specialization_of_v<C, VLayerCount>)
             atomic_inc(_total, c._total);
         else
@@ -538,7 +540,7 @@ struct VLayerCount:
     template <class C>
     VLayerCount& operator-=(const C& c)
     {
-        static_cast<base_t&>(*this) -= c;
+        atomic_dec(static_cast<base_t&>(*this), c);
         if constexpr (is_specialization_of_v<C, VLayerCount>)
             atomic_dec(_total, c._total);
         else
