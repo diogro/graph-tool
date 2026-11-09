@@ -109,8 +109,20 @@ public:
         double S = 0;
         S += lbinom_fast(_N - 1, _actual_B - 1);
         S += lgamma_fast(_N + 1);
-        for (auto nr : _count)
-            S -= lgamma_fast(nr + 1);
+
+        // the loop is memory-bound, and only benefits from parallelism for a
+        // large number of groups
+        double S_nr = 0;
+        size_t thresh = std::max(get_openmp_min_thresh(), size_t(10000));
+        #pragma omp parallel reduction(+:S_nr) if (_count.size() > thresh)
+        parallel_loop_no_spawn
+            (_count,
+             [&](auto, auto nr)
+             {
+                 S_nr += lgamma_fast(nr + 1);
+             });
+        S -= S_nr;
+
         S += safelog_fast(_N);
         return S;
     }
