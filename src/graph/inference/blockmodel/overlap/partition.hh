@@ -335,7 +335,7 @@ struct OverlapPartitionStats
         if (nr != _null_group)
         {
             is_same_bv &= add_bv_deg(nr, deg, n_bv, n_deg);
-            _B = std::max(_B, size_t(r) + 1);
+            _B = std::max(_B, size_t(nr) + 1);
         }
 
         size_t n_d = n_bv.size();
@@ -836,8 +836,8 @@ struct OverlapDegStats
                     }
                     else
                     {
-                        const auto& bmh = _embhist.find(bv)->second;
-                        const auto& bph = _epbhist.find(bv)->second;
+                        const auto& bmh = _embhist.find(bv_)->second;
+                        const auto& bph = _epbhist.find(bv_)->second;
                         for (size_t i = 0; i < bv_.size(); ++i)
                         {
                             S += lbinom_fast(bv_count_ + delta + bmh[i] + get<0>(deg_[i]) * deg_delta - 1, bmh[i] + get<0>(deg_[i]) * deg_delta);
