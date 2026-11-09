@@ -1068,7 +1068,12 @@ struct OverlapDegStats
 
     double get_merge_dl(deg_dl_kind kind, group_t r, group_t nr)
     {
-        return get_delta_dl(std::monostate(), r, nr, kind, _wr[r]);
+        // this may be called concurrently, so r must not be inserted (it
+        // may be absent, e.g. in a layer without its vertices)
+        auto iter = _wr.find(r);
+        if (iter == _wr.end())
+            return 0;
+        return get_delta_dl(std::monostate(), r, nr, kind, iter->second);
     }
 
 private:
