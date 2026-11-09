@@ -84,6 +84,10 @@ struct MCMC
         // without a hierarchy, there is a single new group, _null_group.
         std::vector<std::tuple<size_t, size_t>> _places;
 
+        // the (empty) groups evaluated for the places, which are reused for
+        // the move, since their labels may matter (e.g. ranked models)
+        std::vector<group_t> _new_groups;
+
         auto& get_moves(vertex_t v)
         {
             _occupied_groups.clear();
@@ -109,6 +113,7 @@ struct MCMC
             }
             for (size_t i = 0; i < _places.size(); ++i)
                 _occupied_groups.push_back(_null_group - group_t(i));
+            _new_groups.resize(_places.size());
             return _occupied_groups;
         }
 
@@ -118,11 +123,14 @@ struct MCMC
         }
 
         template <class RNG>
-        group_t place_new_group(vertex_t v, group_t nr, RNG& rng)
+        group_t place_new_group(vertex_t v, group_t nr, RNG& rng, bool reuse)
         {
             auto r = _state._b[v];
-            auto s = _state.get_empty_group(v, rng);
-            auto& [k, t] = _places[size_t(_null_group - nr)];
+            size_t i = size_t(_null_group - nr);
+            auto& s = _new_groups[i];
+            if (!reuse)
+                s = _state.get_empty_group(v, rng);
+            auto& [k, t] = _places[i];
             _state.visit_coupled_if
                 ([&](auto& cs, auto&)
                  {
@@ -149,14 +157,14 @@ struct MCMC
                 return numeric_limits<double>::infinity();
             _rng = &rng;
             if (is_new_group(nr))
-                nr = place_new_group(v, nr, rng);
+                nr = place_new_group(v, nr, rng, false);
             return _state.virtual_move(v, nr, _entropy_args);
         }
 
         void perform_move(vertex_t v, group_t nr)
         {
             if (is_new_group(nr))
-                nr = place_new_group(v, nr, *_rng);
+                nr = place_new_group(v, nr, *_rng, true);
             _state.move_vertex(v, nr);
         }
     };
