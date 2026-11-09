@@ -218,8 +218,10 @@ class WeightedOverlapBlockState(WeightedBlockState, OverlapBlockState):
 
     @kwargs_wrap
     def __init__(self, g, **kwargs):
-        WeightedBlockState.__init__(self, g, **kwargs)
+        # the overlap state needs to be initialized first, since it determines
+        # the (half-edge) label types
         OverlapBlockState.__init__(self, g, **kwargs)
+        WeightedBlockState.__init__(self, g, **kwargs)
 
         if type(self) is WeightedOverlapBlockState:
             with self._mk_state():
