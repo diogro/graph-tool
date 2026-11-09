@@ -20,7 +20,9 @@
 
 All combinations of model variants (directed, overlapping, layered, weighted,
 degree-corrected, ...) are exercised with all MCMC sweeps, nested states, and
-the minimize_*() functions, with the internal consistency checks enabled
+the minimize_*() functions; the other partition models (ranked, planted
+partition, modularity, normalized cut, Potts) with all sweeps and
+minimize_blockmodel_dl(). The internal consistency checks are enabled
 (``graph_tool.inference.set_test(True)``), which verify, among other things,
 that the entropy differences reported by the sweeps match the actual ones, and
 that copies of the states have the same entropy.
@@ -307,6 +309,82 @@ def minimize(p, seed):
     steps = Steps()
     steps.run("minimize flat", flat)
     steps.run("minimize nested", nested)
+    steps.check()
+
+
+# Other partition models (flat states only)
+
+other_models = ["ranked", "ranked-distance", "ranked-unique", "pp",
+                "pp-uniform", "modularity", "normcut", "potts"]
+
+
+def other_state_args(name, p, rng):
+    """Graph, state type, state arguments and initial partition of one of the
+    ``other_models``."""
+    kind = name.split("-")[0]
+    g = gt.GraphView(data["g"], directed=kind == "ranked")
+    N = g.num_vertices()
+    q = 10                                  # Potts states
+    if p["init"] == "singletons":
+        b = np.arange(N)
+    else:
+        b = rng.integers(0, q, N)
+    b = g.new_vp("int64_t", vals=b)
+    if kind == "ranked":
+        args = dict(deg_corr=p["deg_corr"], distance=name == "ranked-distance",
+                    unique=name == "ranked-unique")
+        return g, gt.RankedBlockState, args, b
+    if kind == "pp":
+        args = dict(deg_corr=p["deg_corr"], uniform=name == "pp-uniform")
+        return g, gt.PPBlockState, args, b
+    if kind == "potts":
+        f = rng.normal(0, 1, (q, q))
+        return g, gt.PottsState, dict(f=(f + f.T) / 2), b
+    return g, {"modularity": gt.ModularityState,
+               "normcut": gt.NormCutState}[kind], {}, b
+
+
+def other_ok(p):
+    kind = p["model"].split("-")[0]
+    # degree correction only exists for the ranked and planted partition
+    # models, and Potts states have a fixed number of labels
+    return ((p["deg_corr"] or kind in ["ranked", "pp"]) and
+            (p["init"] == "random" or kind != "potts"))
+
+
+@test(lambda: product(model=other_models, deg_corr=[True, False],
+                      parallel=[False, True], init=["singletons", "random"],
+                      where=other_ok),
+      nsteps=lambda p: 5)
+def other(p, seed):
+    """All sweeps and minimize_blockmodel_dl() on the other partition
+    models."""
+    rng = seed_job(seed)
+    g, state_t, state_args, b = other_state_args(p["model"], p, rng)
+    pargs = par_args(p)
+    sweeps = {"mcmc": lambda s: s.mcmc_sweep(beta=0),
+              "multiflip": lambda s: s.multiflip_mcmc_sweep(beta=0, **pargs),
+              "multilevel":
+              lambda s: s.multilevel_mcmc_sweep(beta=0, M=3,
+                                                parallel=p["parallel"],
+                                                **pargs),
+              "gibbs": lambda s: s.gibbs_sweep(beta=0)}
+
+    steps = Steps()
+    for name, sweep in sweeps.items():
+        def run():
+            state = state_t(g, b=b.copy(), **state_args)
+            return sweep(state), len(np.unique(state.b.fa))
+        steps.run(name, run)
+
+    def minimize():
+        state = gt.minimize_blockmodel_dl(g, state=state_t,
+                                          state_args=state_args,
+                                          multilevel_mcmc_args=dict(
+                                              parallel=p["parallel"],
+                                              **pargs))
+        return len(np.unique(state.b.fa)), state.entropy()
+    steps.run("minimize", minimize)
     steps.check()
 
 
