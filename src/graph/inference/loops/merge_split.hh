@@ -1250,6 +1250,9 @@ struct MergeSplit:
 
                 push_b(_vs);
 
+                // number of groups before the split (split() updates _rlist)
+                size_t B = _rlist.size();
+
                 Group s;
                 double pf_pb;
                 std::tie(r, s, _dS, pf, pf_pb) = split(r, _null_group, rng);
@@ -1258,10 +1261,10 @@ struct MergeSplit:
                 {
                     pf += pf_pb;
                     pf += log(State::_psplit);
-                    pf += -safelog_fast(_rlist.size());
+                    pf += -safelog_fast(B);
 
                     pb = merge_prob(s, r);
-                    pb += -safelog_fast(_rlist.size()+1); // FIXME: empty groups!
+                    pb += -safelog_fast(B + 1);
 
                     pb += log(State::_pmerge);
                 }
