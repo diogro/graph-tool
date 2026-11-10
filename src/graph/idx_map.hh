@@ -140,15 +140,10 @@ public:
     void clear()
     {
         auto& pos = get_pos();
-        if constexpr (args.shared_pos || !args.check_size)
-        {
-            for (auto k : _items)
-                pos[k.first] = _null;
-        }
-        else
-        {
-            pos.clear();
-        }
+        // only the positions of the items are reset, so that the storage of
+        // the positions is reused, without being filled again
+        for (auto k : _items)
+            pos[k.first] = _null;
         _items.clear();
     }
 
@@ -156,8 +151,13 @@ public:
     {
         auto& pos = get_pos();
         _items.shrink_to_fit();
-        if (_items.empty() && !args.check_size)
-            pos.clear();
+        // without items, the positions are released, except if they are
+        // shared and their size is checked
+        if constexpr (!args.check_size || !args.shared_pos)
+        {
+            if (_items.empty())
+                pos.clear();
+        }
         pos.shrink_to_fit();
     }
 
@@ -325,15 +325,10 @@ public:
     void clear()
     {
         auto& pos = const_cast<pos_t&>(get_pos());
-        if constexpr (args.shared_pos || !args.check_size)
-        {
-            for (auto k : _items)
-                pos[k] = _null;
-        }
-        else
-        {
-            pos.clear();
-        }
+        // only the positions of the items are reset, so that the storage of
+        // the positions is reused, without being filled again
+        for (auto k : _items)
+            pos[k] = _null;
         _items.clear();
     }
 
@@ -341,8 +336,13 @@ public:
     {
         auto& pos = const_cast<pos_t&>(get_pos());
         _items.shrink_to_fit();
-        if (_items.empty() && !args.check_size)
-            pos.clear();
+        // without items, the positions are released, except if they are
+        // shared and their size is checked
+        if constexpr (!args.check_size || !args.shared_pos)
+        {
+            if (_items.empty())
+                pos.clear();
+        }
         pos.shrink_to_fit();
     }
 
