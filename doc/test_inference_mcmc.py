@@ -39,7 +39,9 @@
   fixed number of levels (nested SBM), weighted by ``exp(-entropy())``. The
   marginal distribution of the numbers of groups at each level and the mean
   entropy are compared with the chain (chi-squared test, with batch-means
-  errors).
+  errors). This is done also with vertex labels given as ``clabel`` or
+  ``pclabel``, in which case only the hierarchies consistent with them are
+  enumerated.
 
 Jobs run in parallel; the comparisons are made by separate jobs, after the
 chains are done. The seed of each job is derived from its name.
@@ -533,16 +535,27 @@ def canonical(bs):
     return tuple(key)
 
 
-def exact_model_state(model, g, bs):
+# vertex labels of the tiny graph, which cross the two triangles
+tiny_labels = [0, 0, 1, 0, 1, 1]
+
+
+def exact_model_state(model, g, bs, labels=None):
+    """State of the given hierarchy; a ``ValueError`` is raised if it is
+    inconsistent with the labels."""
+    args = {}
+    if labels is not None:
+        args[labels] = g.new_vp("int64_t", vals=tiny_labels)
     if model == "nsbm":
-        return gt.NestedBlockState(g, bs=[np.asarray(b) for b in bs])
-    return gt.BlockState(g, b=np.asarray(bs[0]))
+        return gt.NestedBlockState(g, bs=[np.asarray(b) for b in bs],
+                                   base_state_args=args)
+    return gt.BlockState(g, b=np.asarray(bs[0]), **args)
 
 
-def exact_entropies(model, directed, L, output):
-    """Entropy of every hierarchy (every partition, for the flat model);
-    cached in ``OUTPUT/cache``."""
-    path = f"{output}/cache/exact_{model}_directed{directed}_L{L}.pickle"
+def exact_entropies(model, directed, labels, L, output):
+    """Entropy of every hierarchy (every partition, for the flat model)
+    consistent with the labels; cached in ``OUTPUT/cache``."""
+    path = (f"{output}/cache/exact_{model}_directed{directed}_L{L}"
+            f"{'' if labels is None else '_' + labels}.pickle")
     if os.path.exists(path):
         with open(path, "rb") as f:
             return pickle.load(f)
@@ -551,7 +564,10 @@ def exact_entropies(model, directed, L, output):
     set_total(len(hs))
     Ss = {}
     for h in hs:
-        Ss[h] = exact_model_state(model, g, h).entropy()
+        try:
+            Ss[h] = exact_model_state(model, g, h, labels).entropy()
+        except ValueError:
+            pass
         progress()
     tmp = f"{path}.{os.getpid()}.tmp"   # jobs may compute it concurrently
     with open(tmp, "wb") as f:
@@ -560,9 +576,9 @@ def exact_entropies(model, directed, L, output):
     return Ss
 
 
-def exact(model, directed, algo, seed, output, sweeps, L=3, nbatch=50,
-          pmin=1e-3, min_prob=0.005):
-    Ss = exact_entropies(model, directed, L, output)
+def exact(model, directed, labels, algo, seed, output, sweeps, L=3,
+          nbatch=50, pmin=1e-3, min_prob=0.005):
+    Ss = exact_entropies(model, directed, labels, L, output)
     keys = list(Ss)
     S = np.array([Ss[k] for k in keys])
     P = np.exp(-(S - S.min()))
@@ -576,8 +592,15 @@ def exact(model, directed, algo, seed, output, sweeps, L=3, nbatch=50,
     seed_job(seed)
     g = tiny_graph(directed)
     N = g.num_vertices()
-    bs = [np.zeros(N, dtype="int")] + [np.zeros(1, dtype="int")] * (L - 1)
-    state = exact_model_state(model, g, bs if model == "nsbm" else bs[:1])
+    if labels is None:
+        bs = [np.zeros(N, dtype="int")] + [np.zeros(1, dtype="int")] * (L - 1)
+    else:
+        # one group per label, merged only at the top level
+        C = max(tiny_labels) + 1
+        bs = ([np.array(tiny_labels)] + [np.arange(C)] * (L - 2) +
+              [np.zeros(C, dtype="int")])
+    state = exact_model_state(model, g, bs if model == "nsbm" else bs[:1],
+                              labels)
     get_bs = state.get_bs if model == "nsbm" else lambda: [state.b.a]
     method, args = algorithms[algo]
     sweep = getattr(state, method)
@@ -627,7 +650,7 @@ def exact(model, directed, algo, seed, output, sweeps, L=3, nbatch=50,
     plt.legend(loc="best")
     plt.tight_layout()
     savefig(fig, f"{output}/test_mcmc_exact_{model}_directed{directed}"
-            f"_{algo}.pdf")
+            f"{'' if labels is None else '_' + labels}_{algo}.pdf")
     if p < pmin:
         raise AssertionError(f"chain deviates from the exact posterior: "
                              f"chi2 = {chi2:.1f} for {len(z)} quantities "
@@ -680,6 +703,11 @@ def main():
     parser.add_argument("--exact-levels", type=int, default=3,
                         help="number of levels of the nested model in the "
                         "'exact' test (default: %(default)s)")
+    parser.add_argument("--exact-labels", nargs="+",
+                        default=["none", "clabel", "pclabel"],
+                        choices=["none", "clabel", "pclabel"],
+                        help="vertex labels in the 'exact' test "
+                        "(default: %(default)s)")
     parser.add_argument("--rerun", action="store_true",
                         help="rerun cached chains of the 'hists' test")
     parser.add_argument("--replot", action="store_true",
@@ -731,12 +759,16 @@ def main():
     if "exact" in args.tests:
         for model in ["sbm", "nsbm"]:
             for directed in [False, True]:
-                for algo in args.algorithms:
-                    jobs += job(f"exact: model={model} directed={directed} "
-                                f"{algo}", exact,
-                                lambda s: (model, directed, algo, s, output,
-                                           args.exact_sweeps,
-                                           args.exact_levels))
+                for labels in args.exact_labels:
+                    labels = None if labels == "none" else labels
+                    lname = "" if labels is None else f" labels={labels}"
+                    for algo in args.algorithms:
+                        jobs += job(f"exact: model={model} "
+                                    f"directed={directed}{lname} {algo}",
+                                    exact,
+                                    lambda s: (model, directed, labels, algo,
+                                               s, output, args.exact_sweeps,
+                                               args.exact_levels))
 
     comps = []
     if "hists" in args.tests:

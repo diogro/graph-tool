@@ -20,9 +20,10 @@
 
 All combinations of model variants (directed, overlapping, layered, weighted,
 degree-corrected, ...) are exercised with all MCMC sweeps, nested states, and
-the minimize_*() functions; the other partition models (ranked, planted
-partition, modularity, normalized cut, Potts) with all sweeps and
-minimize_blockmodel_dl(). The internal consistency checks are enabled
+the minimize_*() functions, also with vertex labels (``clabel`` and
+``pclabel``, whose constraints are verified); the other partition models
+(ranked, planted partition, modularity, normalized cut, Potts) with all sweeps
+and minimize_blockmodel_dl(). The internal consistency checks are enabled
 (``graph_tool.inference.set_test(True)``), which verify, among other things,
 that the entropy differences reported by the sweeps match the actual ones, and
 that copies of the states have the same entropy.
@@ -309,6 +310,119 @@ def minimize(p, seed):
     steps = Steps()
     steps.run("minimize flat", flat)
     steps.run("minimize nested", nested)
+    steps.check()
+
+
+# Vertex labels (non-overlapping states only)
+
+def label_args(p):
+    """Random ``clabel`` and/or ``pclabel`` arguments, with 3 and 2 values."""
+    rng = np.random.default_rng(zlib.crc32(p["labels"].encode()))
+    g = data["g"]
+    args = {}
+    if p["labels"] in ["clabel", "both"]:
+        args["clabel"] = g.new_vp("int64_t",
+                                  vals=rng.integers(0, 3, g.num_vertices()))
+    if p["labels"] in ["pclabel", "both"]:
+        args["pclabel"] = g.new_vp("int64_t",
+                                   vals=rng.integers(0, 2, g.num_vertices()))
+    return args
+
+
+def check_labels(state):
+    """Check that no group mixes labels, at every level of a nested state
+    (except the top one, which is unconstrained), and that the state can be
+    copied, which validates the labels again."""
+    levels = state.levels[:-1] if hasattr(state, "levels") else [state]
+    for l, s in enumerate(levels):
+        idx = s.vweight.fa > 0
+        b = s.b.fa[idx]
+        for c in [s.clabel, s.pclabel]:
+            c = c.fa[idx]
+            for r in np.unique(b):
+                if len(np.unique(c[b == r])) > 1:
+                    raise AssertionError(f"group {r} at level {l} "
+                                         "mixes labels")
+    state.copy()
+
+
+@test(lambda: product(directed=[False, True],
+                      layered=[False, "covariates", "independent"],
+                      rec=[None, "real-normal"], deg_corr=[False, True],
+                      labels=["clabel", "pclabel", "both"],
+                      parallel=[False, True]),
+      nsteps=lambda p: 11)
+def labels(p, seed):
+    """All sweeps (flat and nested) and the minimize_*() functions with
+    vertex labels."""
+    rng = seed_job(seed)
+    model = model_of(p)
+    g = model.graph
+    state_args = dict(model.state_args, **label_args(p))
+    pargs = par_args(p)
+    margs = dict(parallel=p["parallel"], **pargs)
+
+    def flat_state():
+        # random groups, refined by the labels
+        b = g.new_vp("int64_t", vals=rng.integers(0, 10, g.num_vertices()))
+        for k, n in [("clabel", 3), ("pclabel", 2)]:
+            if k in state_args:
+                b.fa = b.fa * n + state_args[k].fa
+        return model.state_type(g, b=b, **state_args)
+
+    sweeps = {"mcmc": lambda s: s.mcmc_sweep(beta=0),
+              "multiflip": lambda s: s.multiflip_mcmc_sweep(beta=0, **pargs),
+              "multilevel M=3":
+              lambda s: s.multilevel_mcmc_sweep(beta=0, M=3, **margs),
+              "multilevel": lambda s: s.multilevel_mcmc_sweep(**margs),
+              "gibbs": lambda s: s.gibbs_sweep(beta=0)}
+
+    steps = Steps()
+    for name, sweep in sweeps.items():
+        def run():
+            state = flat_state()
+            ret = sweep(state)
+            check_labels(state)
+            return ret, state.get_B()
+        steps.run(name, run)
+
+    nested_sweeps = {"mcmc": lambda s: s.mcmc_sweep(beta=0, d=0.5),
+                     "multiflip":
+                     lambda s: s.multiflip_mcmc_sweep(beta=0, d=0.5),
+                     "multilevel": lambda s: s.multilevel_mcmc_sweep(**margs)}
+    for name, sweep in nested_sweeps.items():
+        def run():
+            state = gt.NestedBlockState(g, base_state=model.state_type,
+                                        base_state_args=state_args)
+            for i in range(3):
+                ret = sweep(state)
+                check_labels(state)
+            return ret, [s.get_B() for s in state.levels]
+        steps.run(f"nested {name}", run)
+
+    def minimize_flat():
+        state = gt.minimize_blockmodel_dl(g, state=model.state_type,
+                                          state_args=state_args,
+                                          multilevel_mcmc_args=margs)
+        check_labels(state)
+        return state.get_B(), state.entropy()
+
+    def minimize_nested(**kwargs):
+        state = gt.minimize_nested_blockmodel_dl(g,
+                                                 base_state=model.state_type,
+                                                 base_state_args=state_args,
+                                                 multilevel_mcmc_args=margs,
+                                                 **kwargs)
+        check_labels(state)
+        for i in range(3):
+            state.multiflip_mcmc_sweep(niter=10, beta=np.inf)
+            check_labels(state)
+        return state.entropy()
+
+    steps.run("minimize flat", minimize_flat)
+    steps.run("minimize nested", minimize_nested)
+    steps.run("minimize nested simple_init",
+              lambda: minimize_nested(simple_init=True))
     steps.check()
 
 
