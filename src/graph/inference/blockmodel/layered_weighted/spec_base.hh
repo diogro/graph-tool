@@ -206,10 +206,12 @@ struct LayeredWeightedBlockStateSpec
                          w += delta;
                          for (auto&& [l, c] : w._h)
                          {
+                             // layers without edges are removed, regardless
+                             // of the rounding residues of the covariates
                              if (get_count(c) != 0)
                                  set_weight(c, 0, 1);
                              else
-                                 set_weight(c, 0, 0);
+                                 set_weight(c, 0);
                          }
                          w.clean();
 
@@ -234,7 +236,7 @@ struct LayeredWeightedBlockStateSpec
                         if (get_count(c) != 0)
                             set_weight(c, 0, 1);
                         else
-                            set_weight(c, 0, 0);
+                            set_weight(c, 0);
                     }
                     m.clean();
                     assert(m != 0);
