@@ -31,7 +31,8 @@
 namespace graph_tool
 {
 
-// thread-safe lgamma
+// thread-safe lgamma; doubles are not promoted to long double internally,
+// which is much slower and makes no difference at double precision
 
 auto safe_lgamma(auto x)
 {
@@ -41,7 +42,9 @@ auto safe_lgamma(auto x)
     using boost::math::policies::overflow_error;
     using boost::math::policies::make_policy;
     using boost::math::policies::ignore_error;
-    return boost::math::lgamma(x, make_policy(domain_error<ignore_error>(),
+    using boost::math::policies::promote_double;
+    return boost::math::lgamma(x, make_policy(promote_double<false>(),
+                                              domain_error<ignore_error>(),
                                               pole_error<ignore_error>(),
                                               overflow_error<ignore_error>(),
                                               evaluation_error<ignore_error>()));
