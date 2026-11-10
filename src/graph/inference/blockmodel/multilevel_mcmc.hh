@@ -69,40 +69,49 @@ struct MCMC
 
             if (_global_moves)
             {
-                idx_set<group_t> rs_min, rs_max;
-                for (auto v : vertices_range(_state._g))
-                {
-                    rs_min.insert(_b_min[v]);
-                    rs_max.insert(_b_max[v]);
-                }
-                _has_b_min = rs_min.size() == _B_min;
-                _has_b_max = rs_max.size() == _B_max;
-
-                // the labels of b_min and b_max are used as groups, so those
-                // that do not exist yet are created; these, and those that
-                // are empty, take the labels and the place in the hierarchy
-                // of the group of a vertex that is moved to them
+                // the labels of b_min and b_max are mapped to groups: an
+                // occupied group with the same label is reused if it has the
+                // clabel of the vertices moved to it, otherwise a new group is
+                // created, which takes the labels and the place in the
+                // hierarchy of the group of one of these vertices. Partitions
+                // that are inconsistent with clabel are not used.
                 size_t B = num_vertices(_state._bg);
                 size_t nB = B;
-                gt_hash_map<group_t, vertex_t> new_rs;
-                auto add = [&](group_t r, vertex_t v)
+                std::vector<std::tuple<group_t, vertex_t>> new_rs;
+                auto translate = [&](auto& b, auto& rmap, size_t B_x)
                 {
-                    if (size_t(r) < B && _state._wr[r] != 0)
-                        return;
-                    new_rs.try_emplace(r, v);
-                    nB = std::max(nB, size_t(r) + 1);
+                    // one vertex of each label
+                    gt_hash_map<group_t, vertex_t> us;
+                    for (auto v : vertices_range(_state._g))
+                    {
+                        if (_state.node_weight(v) == 0)
+                            continue;
+                        auto [iter, inserted] = us.try_emplace(b[v], v);
+                        if (!inserted &&
+                            _state._clabel[iter->second] != _state._clabel[v])
+                            return false;
+                    }
+                    if (us.size() != B_x)
+                        return false;
+                    for (auto& [r, v] : us)
+                    {
+                        if (size_t(r) < B && _state._wr[r] != 0 &&
+                            _state._bclabel[r] == _state._clabel[v])
+                        {
+                            rmap[r] = r;
+                            continue;
+                        }
+                        rmap[r] = nB;
+                        new_rs.emplace_back(nB++, v);
+                    }
+                    return true;
                 };
-                for (auto v : vertices_range(_state._g))
-                {
-                    if (_has_b_min)
-                        add(_b_min[v], v);
-                    if (_has_b_max)
-                        add(_b_max[v], v);
-                }
+                _has_b_min = translate(_b_min, _rb_min, _B_min);
+                _has_b_max = translate(_b_max, _rb_max, _B_max);
                 if (nB > B)
                     _state.add_group(nB - B);
-                for (auto& [r, v] : new_rs)
-                    _state.inherit_group(r, v);
+                for (auto& [s, v] : new_rs)
+                    _state.inherit_group(s, v);
             }
 
             resize_m_entries();
@@ -140,6 +149,7 @@ struct MCMC
 
         bool _has_b_max = false;
         bool _has_b_min = false;
+        gt_hash_map<group_t, group_t> _rb_min, _rb_max; // label -> group
 
         idx_set<group_t> _rs;
 
@@ -267,20 +277,24 @@ struct MCMC
             _state.merge_groups(r, s);
         }
 
+        // groups with different clabels cannot be merged
         template <class VS>
-        size_t get_Bmin(VS&)
+        size_t get_Bmin(VS& vs)
         {
-            return 1;
+            _rs.clear();
+            for (auto& v : vs)
+                _rs.insert(_state._bclabel[_state._b[v]]);
+            return _rs.size();
         }
 
         group_t get_b_min(vertex_t v)
         {
-            return _b_min[v];
+            return _rb_min.find(_b_min[v])->second;
         }
 
         group_t get_b_max(vertex_t v)
         {
-            return _b_max[v];
+            return _rb_max.find(_b_max[v])->second;
         }
 
         template <class RNG>
