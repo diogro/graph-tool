@@ -697,27 +697,14 @@ public:
     template <class VMap>
     void set_partition(VMap& b, bool parallel)
     {
-        visit_coupled
-            ([&](auto&& s, auto&)
-             {
-                 std::decay_t<decltype(s._b)> hb;
-                 if (this->has_coupled())
-                     hb = s._b;
-
-                 for (auto v : vertices_range(_g))
-                 {
-                     group_t r = b[v];
-                     if (size_t(r) >= num_vertices(_bg))
-                         add_group(r + 1 - num_vertices(_bg));
-                     if (_wr[r] == 0)
-                     {
-                         if (this->has_coupled())
-                             hb[r] = hb[_b[v]];
-                         _bclabel[r] = _bclabel[_b[v]];
-                         _bpclabel[r] = _bpclabel[_b[v]];
-                     }
-                 }
-             });
+        for (auto v : vertices_range(_g))
+        {
+            group_t r = b[v];
+            if (size_t(r) >= num_vertices(_bg))
+                add_group(r + 1 - num_vertices(_bg));
+            if (_wr[r] == 0)
+                inherit_group(r, v);
+        }
 
         if (parallel)
         {
@@ -1528,7 +1515,8 @@ public:
     }
 
     // Gives the (empty) group s the labels and the place in the hierarchy of
-    // the group of v.
+    // the group of v. The labels of s in the upper level are also copied,
+    // since they need not be those of v (the top level has none).
     void inherit_group(group_t s, vertex_t v)
     {
         auto r = _b[v];
@@ -1539,11 +1527,9 @@ public:
         visit_coupled_if
             ([&](auto&& cs, auto&)
              {
-                 auto& hb = cs._b;
-                 auto& hpclabel = cs._pclabel;
-                 auto& hclabel = cs._clabel;
-                 hb[s] = hb[r];
-                 hpclabel[s] = hclabel[s] = _pclabel[v];
+                 cs._b[s] = cs._b[r];
+                 cs._clabel[s] = cs._clabel[r];
+                 cs._pclabel[s] = cs._pclabel[r];
              });
     }
 
