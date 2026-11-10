@@ -177,9 +177,16 @@ struct MCMC
         template <class F>
         void iter_groups(F&& f)
         {
-            for (auto& [r, vs] : _state._groups)
+            // only the groups of the given vertices (which may be a subset)
+            // take part in the moves, since only these vertices are tracked
+            // by the loop
+            gt_hash_set<group_t> rs;
+            for (auto v : _vertices)
             {
-                if (!vs.empty())
+                if (_state.node_weight(v) == 0)
+                    continue;
+                group_t r = _state._b[v];
+                if (rs.insert(r).second)
                     f(r);
             }
         }
