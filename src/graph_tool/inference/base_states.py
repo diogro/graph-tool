@@ -51,12 +51,16 @@ def copy_state_wrap(func):
             assert not numpy.isnan(S) and not numpy.isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
 
-            state_copy = self.copy()
-            Salt = state_copy.entropy(*args, test=False, **kwargs)
+            # the entropy of a state coupled to others (e.g. a level of a
+            # hierarchy) depends on them, but its copy is not coupled; such
+            # states are checked by copying the whole hierarchy instead
+            if getattr(self, "_coupled_state", None) is None:
+                state_copy = self.copy()
+                Salt = state_copy.entropy(*args, test=False, **kwargs)
 
-            assert math.isclose(S, Salt, abs_tol=1e-8), \
-                "entropy discrepancy after copying (%g %g %g), eargs: %s" % \
-                (S, Salt, S - Salt, kwargs)
+                assert math.isclose(S, Salt, abs_tol=1e-8), \
+                    ("entropy discrepancy after copying (%g %g %g), "
+                     "eargs: %s" % (S, Salt, S - Salt, kwargs))
         return S
 
     return wrapper
