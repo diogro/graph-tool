@@ -188,47 +188,6 @@ build_forky_git:
     BASE: debian:forky
     PLATFORM: amd64
 
-build_questing:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:questing
-    PLATFORM: amd64
-
-build_questing_opt2:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:questing
-    PLATFORM: amd64
-    MARCH: "x86-64-v2"
-
-build_questing_opt3:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:questing
-    PLATFORM: amd64
-    MARCH: "x86-64-v3"
-
-build_questing_opt4:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:questing
-    PLATFORM: amd64
-    MARCH: "x86-64-v4"
-
-build_questing_arm:
-  extends: .build_deb
-  variables:
-    BASE: ubuntu:questing
-    PLATFORM: arm64
-    MARCH: "armv8-a"
-  needs: ["build_questing"]
-
-build_questing_git:
-  extends: .build_deb_git
-  variables:
-    BASE: ubuntu:questing
-    PLATFORM: amd64
-
 build_resolute:
   extends: .build_deb
   variables:
@@ -268,6 +227,47 @@ build_resolute_git:
   extends: .build_deb_git
   variables:
     BASE: ubuntu:resolute
+    PLATFORM: amd64
+
+build_stonking:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:stonking
+    PLATFORM: amd64
+
+build_stonking_opt2:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:stonking
+    PLATFORM: amd64
+    MARCH: "x86-64-v2"
+
+build_stonking_opt3:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:stonking
+    PLATFORM: amd64
+    MARCH: "x86-64-v3"
+
+build_stonking_opt4:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:stonking
+    PLATFORM: amd64
+    MARCH: "x86-64-v4"
+
+build_stonking_arm:
+  extends: .build_deb
+  variables:
+    BASE: ubuntu:stonking
+    PLATFORM: arm64
+    MARCH: "armv8-a"
+  needs: ["build_stonking"]
+
+build_stonking_git:
+  extends: .build_deb_git
+  variables:
+    BASE: ubuntu:stonking
     PLATFORM: amd64
 
 build_docker:
