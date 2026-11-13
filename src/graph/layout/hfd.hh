@@ -30,8 +30,12 @@
 #include <mutex>
 #include <numeric>
 
+// L-BFGS is only available in newer Boost versions
+#if __has_include(<boost/math/optimization/lbfgs.hpp>)
+#define HAVE_BOOST_LBFGS
 #include <boost/math/optimization/lbfgs.hpp>
 #include <boost/math/optimization/minimizer.hpp>
+#endif
 #include <boost/iterator/function_output_iterator.hpp>
 
 #include <CGAL/Search_traits.h>
@@ -54,7 +58,9 @@
 
 #include <boost/graph/biconnected_components.hpp>
 
+#ifdef HAVE_BOOST_LBFGS
 namespace bopt = boost::math::optimization;
+#endif
 
 namespace graph_tool
 {
@@ -3888,6 +3894,7 @@ public:
              });
     }
 
+#ifdef HAVE_BOOST_LBFGS
     // Convergence when the change of the objective between iterations is
     // below rtol relative to max(1, |f|), or below atol. (This replaces
     // Boost's relative_objective_tol_policy and
@@ -4017,6 +4024,16 @@ public:
         unpack(x);
         return boost::python::make_tuple(niter, energy(), !terminated);
     }
+#else
+    boost::python::tuple lbfgs_sweep(size_t, double, double, size_t, bool,
+                                     double, double, double, size_t, double,
+                                     double, double)
+    {
+        throw ValueException("lbfgs_sweep() is not available, since "
+                             "graph-tool was compiled with a Boost version "
+                             "without L-BFGS (boost/math/optimization)");
+    }
+#endif
 
     // Spatial indices
     // ===============
