@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <tuple>
+
 #include <boost/python.hpp>
 #include <boost/preprocessor/comparison/equal.hpp>
 #include <boost/preprocessor/cat.hpp>
@@ -80,18 +82,10 @@ struct nth<0>
     }
 };
 
-template <size_t N, class T, class... Ts>
+template <size_t N, class... Ts>
 struct nth_t
 {
-    typedef std::conditional_t<N == 0,
-                               T,
-                               typename nth_t<N-1, Ts...>::type> type;
-};
-
-template <size_t N, class T>
-struct nth_t<N, T>
-{
-    typedef T type;
+    typedef std::tuple_element_t<N, std::tuple<Ts...>> type;
 };
 
 template <template <class...> class State>

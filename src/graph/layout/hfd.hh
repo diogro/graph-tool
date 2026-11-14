@@ -299,8 +299,13 @@ public:
     void init_levels()
     {
         _L = _b.size();
-        for (auto* x : {&_gmu, &_omu, &_pmu, &_odist, &_opair_dist,
-                        &_group_grav, &_group_rep, &_group_spring})
+
+        // The lists are typed explicitly only because of clang, which
+        // otherwise unifies the type sugar of the members when deducing the
+        // list type, at a huge cost in memory (GCC is unaffected).
+        typedef std::initializer_list<std::vector<double>*> plist_t;
+        for (auto* x : plist_t{&_gmu, &_omu, &_pmu, &_odist, &_opair_dist,
+                               &_group_grav, &_group_rep, &_group_spring})
         {
             if (x->size() != _L)
                 throw ValueException(std::format("per-level parameter has {} "
@@ -309,7 +314,8 @@ public:
                                                  _L));
         }
 
-        for (auto* x : {&_gmu, &_omu, &_pmu, &_group_grav, &_group_spring})
+        for (auto* x : plist_t{&_gmu, &_omu, &_pmu, &_group_grav,
+                               &_group_spring})
         {
             if (!std::ranges::all_of(*x, [](auto& y) { return y >= 0; }))
                 throw ValueException("the penalties, group_grav and "

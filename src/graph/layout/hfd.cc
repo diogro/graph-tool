@@ -321,6 +321,11 @@ REGISTER_MOD
                  (gi, [&](auto& g)
                   {
                       size_t N = num_vertices(g);
+                      // local copies, since clang rejects references to the
+                      // variables of the enclosing lambda from the parallel
+                      // region below
+                      auto& gdist = gmin_dist;
+                      size_t l0 = l;
                       #pragma omp parallel if (N > get_openmp_min_thresh()) \
                           reduction(+:wR, w_tot)
                       parallel_vertex_loop_no_spawn
@@ -329,9 +334,9 @@ REGISTER_MOD
                            {
                                auto d = 2 * f.R[v];
                                auto& gm = f.gmin[v];
-                               gmin_dist[v].clear();
-                               for (size_t j = l; j < gm.size(); ++j)
-                                   gmin_dist[v].push_back(gm[j] + d);
+                               gdist[v].clear();
+                               for (size_t j = l0; j < gm.size(); ++j)
+                                   gdist[v].push_back(gm[j] + d);
                                wR += f.w[v] * f.R[v];
                                w_tot += f.w[v];
                            });
