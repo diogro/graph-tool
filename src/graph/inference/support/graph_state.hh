@@ -124,7 +124,11 @@ struct StateWrap
         };
     };
 
-    template <class F>
+    // Calls f(state_t*) for every state type. With NS > 1, only the types
+    // with index i in the product such that i % NS == IS are visited, so that
+    // the instantiations for all the types can be split among NS translation
+    // units, each needing less memory to compile.
+    template <size_t NS = 1, size_t IS = 0, class F>
     static void dispatch(F&& f, auto names)
     {
         auto final_dispatch =
@@ -138,8 +142,7 @@ struct StateWrap
 
         constexpr auto cp = hana::cartesian_product(hana::make_tuple(TRS()...));
 
-        hana::for_each
-            (cp,
+        auto dispatch_types =
              [&](auto ats)
              {
                  auto sargs =
@@ -165,7 +168,22 @@ struct StateWrap
                           return hana::type_c<typename boost::uncheck<T>::type>;
                       });
                  hana::unpack(args, final_dispatch);
-             });
+             };
+
+        if constexpr (NS == 1)
+        {
+            hana::for_each(cp, dispatch_types);
+        }
+        else
+        {
+            hana::for_each
+                (hana::make_range(hana::size_c<0>, hana::length(cp)),
+                 [&](auto i)
+                 {
+                     if constexpr (decltype(i)::value % NS == IS)
+                         dispatch_types(cp[i]);
+                 });
+        }
     }
 
     template <class F>
@@ -390,12 +408,12 @@ struct StateWrap
                 (ostate, std::forward<F>(f), names,                            \
                  std::forward<Extra>(args)...);                                \
         }                                                                      \
-        template <class F>                                                     \
+        template <size_t NS = 1, size_t IS = 0, class F>                       \
         static void dispatch(F&& f)                                            \
         {                                                                      \
             constexpr auto names =                                             \
                 boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
-            state_wrap_t::dispatch                                             \
+            state_wrap_t::template dispatch<NS, IS>                            \
                 (std::forward<F>(f), names);                                   \
         }                                                                      \
         template <class F>                                                     \

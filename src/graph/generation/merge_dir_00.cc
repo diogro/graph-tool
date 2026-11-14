@@ -15,6 +15,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include "spec.hh"
-
-#include "../multilevel_mcmc.cc"
+#define MERGE_REVERSED false
+#define MERGE_FILTERED false
+#include "merge_dir.hh"

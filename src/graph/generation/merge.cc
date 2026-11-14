@@ -42,37 +42,17 @@ boost::python::tuple graph_merge_dispatch(GraphInterface& ugi, GraphInterface& g
                                         diff, sym_diff, intersect, symmetric,
                                         simple);
 
-    auto writable_weight_props =
-        hana::append(writable_scalar_edge_properties,
-                     hana::type<null_weight_map_t>());
-
-    if (!aw1.has_value())
-        aw1 = null_weight_map_t();
-
-    if (!aw2.has_value())
-        aw2 = null_weight_map_t();
-
-    typedef eprop_map_t<GraphInterface::edge_t> emap_t;
-    emap_t emap(gi.get_edge_index());
-    emap.reserve(gi.get_edge_index_range());
-
-    gt_dispatch<{.gil_release=false}>()
-        ([&](auto& ug, auto& g, auto& vmap, auto& w1, auto& w2)
-         {
-             graph_merge(ug, g, vmap, emap, w1, w2,
-                         multiset, diff, sym_diff,
-                         intersect, symmetric,
-                         simple, ugi.get_keep_ehash());
-         },
-         always_directed,
-         always_directed,
-         integer_vertex_properties,
-         writable_weight_props,
-         same_arg_type)
-        (ugi.get_graph_view(), gi.get_graph_view(),
-         avmap, aw1, aw2);
-
-    return boost::python::make_tuple(avmap, std::any(emap));
+    // the same choice of view as GraphInterface::get_graph_view()
+    bool reversed = ugi.get_reversed();
+    bool filtered = (ugi.is_vertex_filter_active() ||
+                     ugi.is_edge_filter_active());
+    auto f = (reversed ?
+              (filtered ? graph_merge_dispatch_dir<true, true> :
+                          graph_merge_dispatch_dir<true, false>) :
+              (filtered ? graph_merge_dispatch_dir<false, true> :
+                          graph_merge_dispatch_dir<false, false>));
+    return f(ugi, gi, avmap, aw1, aw2, multiset, diff, sym_diff, intersect,
+             symmetric, simple);
 }
 
 #include <boost/python.hpp>

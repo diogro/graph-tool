@@ -808,4 +808,57 @@ struct property_merge
 };
 
 
+// Dispatches graph_merge() over the given views of the union graph (uviews)
+// and of the merged graph (gviews). The directed version is split among
+// several translation units (merge_dir_*.cc) by the view of the union graph,
+// to reduce the memory needed to compile it.
+template <class UViews, class GViews>
+boost::python::tuple
+graph_merge_dispatch_views(UViews uviews, GViews gviews, GraphInterface& ugi,
+                           GraphInterface& gi, std::any avmap, std::any aw1,
+                           std::any aw2, bool multiset, bool diff,
+                           bool sym_diff, bool intersect, bool symmetric,
+                           bool simple)
+{
+    auto writable_weight_props =
+        hana::append(writable_scalar_edge_properties,
+                     hana::type<null_weight_map_t>());
+
+    if (!aw1.has_value())
+        aw1 = null_weight_map_t();
+
+    if (!aw2.has_value())
+        aw2 = null_weight_map_t();
+
+    typedef eprop_map_t<GraphInterface::edge_t> emap_t;
+    emap_t emap(gi.get_edge_index());
+    emap.reserve(gi.get_edge_index_range());
+
+    gt_dispatch<{.gil_release=false}>()
+        ([&](auto& ug, auto& g, auto& vmap, auto& w1, auto& w2)
+         {
+             graph_merge(ug, g, vmap, emap, w1, w2,
+                         multiset, diff, sym_diff,
+                         intersect, symmetric,
+                         simple, ugi.get_keep_ehash());
+         },
+         uviews,
+         gviews,
+         integer_vertex_properties,
+         writable_weight_props,
+         same_arg_type)
+        (ugi.get_graph_view(), gi.get_graph_view(),
+         avmap, aw1, aw2);
+
+    return boost::python::make_tuple(avmap, std::any(emap));
+}
+
+// directed union graph, reversed or not, filtered or not (merge_dir_*.cc)
+template <bool reversed, bool filtered>
+boost::python::tuple
+graph_merge_dispatch_dir(GraphInterface& ugi, GraphInterface& gi,
+                         std::any avmap, std::any aw1, std::any aw2,
+                         bool multiset, bool diff, bool sym_diff,
+                         bool intersect, bool symmetric, bool simple);
+
 } // graph_tool namespace

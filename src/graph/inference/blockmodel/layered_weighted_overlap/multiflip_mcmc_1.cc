@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+// slice 2 of 2 of the state types (see StateWrap::dispatch())
+#define GT_DISPATCH_SLICES 2
+#define GT_DISPATCH_SLICE 1
+
 #include "spec.hh"
 
-#include "../multilevel_mcmc.cc"
+#include "../multiflip_mcmc.cc"

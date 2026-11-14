@@ -27,6 +27,15 @@
 #error "MODULE_PRIO not defined!"
 #endif
 
+// The state types can be split among GT_DISPATCH_SLICES translation units,
+// which define GT_DISPATCH_SLICE = 0, ..., GT_DISPATCH_SLICES - 1 before
+// including this file (see StateWrap::dispatch()), to reduce the memory
+// needed to compile them.
+#ifndef GT_DISPATCH_SLICES
+#define GT_DISPATCH_SLICES 1
+#define GT_DISPATCH_SLICE 0
+#endif
+
 using namespace boost;
 
 #define __MOD__ inference
@@ -38,7 +47,8 @@ REGISTER_MOD
     using namespace STATE_NAME;
     using namespace boost::python;
     using namespace __MOD__;
-    graph_tool::STATE_NAME::STATE_NAME::dispatch
+    graph_tool::STATE_NAME::STATE_NAME::template dispatch<GT_DISPATCH_SLICES,
+                                                          GT_DISPATCH_SLICE>
         ([&](auto* s)
          {
              typedef std::decay_t<decltype(*s)> state_t;

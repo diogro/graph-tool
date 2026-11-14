@@ -360,6 +360,10 @@ libgraph_tool_generation_la_SOURCES = \
 	src/graph/generation/line_graph.cc \
 	src/graph/generation/maxent_sbm.cc \
 	src/graph/generation/merge.cc \
+	src/graph/generation/merge_dir_00.cc \
+	src/graph/generation/merge_dir_01.cc \
+	src/graph/generation/merge_dir_10.cc \
+	src/graph/generation/merge_dir_11.cc \
 	src/graph/generation/merge_imp.cc \
 	src/graph/generation/merge_eprop.cc \
 	src/graph/generation/merge_vprop.cc \
@@ -381,6 +385,7 @@ nobase_libgraph_tool_generation_la_include_HEADERS = \
 	src/graph/generation/lattice.hh \
 	src/graph/generation/maxent_sbm.hh \
 	src/graph/generation/merge.hh \
+	src/graph/generation/merge_dir.hh \
 	src/graph/generation/parallel.hh \
 	src/graph/generation/predecessor.hh \
 	src/graph/generation/price.hh \
@@ -413,19 +418,25 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/layered/gibbs.cc \
 	src/graph/inference/blockmodel/layered/mcmc.cc \
 	src/graph/inference/blockmodel/layered/multiflip_mcmc.cc \
-	src/graph/inference/blockmodel/layered/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered/multilevel_mcmc_0.cc \
+	src/graph/inference/blockmodel/layered/multilevel_mcmc_1.cc \
 	src/graph/inference/blockmodel/layered_overlap/spec.cc \
 	src/graph/inference/blockmodel/layered_overlap/exhaustive.cc \
 	src/graph/inference/blockmodel/layered_overlap/gibbs.cc \
 	src/graph/inference/blockmodel/layered_overlap/mcmc.cc \
-	src/graph/inference/blockmodel/layered_overlap/multiflip_mcmc.cc \
-	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered_overlap/multiflip_mcmc_0.cc \
+	src/graph/inference/blockmodel/layered_overlap/multiflip_mcmc_1.cc \
+	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_0.cc \
+	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_1.cc \
+	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_2.cc \
+	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_3.cc \
     src/graph/inference/blockmodel/overlap/spec.cc \
 	src/graph/inference/blockmodel/overlap/exhaustive.cc \
 	src/graph/inference/blockmodel/overlap/gibbs.cc \
 	src/graph/inference/blockmodel/overlap/mcmc.cc \
 	src/graph/inference/blockmodel/overlap/multiflip_mcmc.cc \
-	src/graph/inference/blockmodel/overlap/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/overlap/multilevel_mcmc_0.cc \
+	src/graph/inference/blockmodel/overlap/multilevel_mcmc_1.cc \
     src/graph/inference/blockmodel/ranked/spec.cc \
 	src/graph/inference/blockmodel/ranked/exhaustive.cc \
 	src/graph/inference/blockmodel/ranked/gibbs.cc \
@@ -455,8 +466,10 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/layered_weighted_overlap/exhaustive.cc \
 	src/graph/inference/blockmodel/layered_weighted_overlap/gibbs.cc \
 	src/graph/inference/blockmodel/layered_weighted_overlap/mcmc.cc \
-	src/graph/inference/blockmodel/layered_weighted_overlap/multiflip_mcmc.cc \
-	src/graph/inference/blockmodel/layered_weighted_overlap/multilevel_mcmc.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/multiflip_mcmc_0.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/multiflip_mcmc_1.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/multilevel_mcmc_0.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/multilevel_mcmc_1.cc \
 	src/graph/inference/cliques/graph_clique_decomposition.cc \
 	src/graph/inference/histogram/graph_histogram.cc \
 	src/graph/inference/histogram/graph_histogram_mcmc.cc \
