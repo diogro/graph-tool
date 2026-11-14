@@ -142,7 +142,8 @@ struct OverlapPartitionStats
         return S;
     }
 
-    double get_dl() const
+    // the group labels are always considered for overlapping partitions
+    double get_dl(bool = true) const
     {
         double S = 0;
 
@@ -172,7 +173,8 @@ struct OverlapPartitionStats
         return diter->second;
     }
 
-    double get_delta_dl(group_t r, group_t nr, const ovweight_t& w = ovweight_t{})
+    double get_delta_dl(group_t r, group_t nr, bool labeled = true,
+                        const ovweight_t& w = ovweight_t{})
     {
         if (r == nr)
             return 0;
@@ -182,7 +184,7 @@ struct OverlapPartitionStats
             if (w.size() > 1)
             {
                 OverlapPartitionStats<directed, true> pstats(*this);
-                return pstats.get_delta_dl(r, nr, w);
+                return pstats.get_delta_dl(r, nr, labeled, w);
             }
         }
 

@@ -501,14 +501,14 @@ struct DummyPartitionStats
     template <class F>
     void init(F&&...) {}
 
-    constexpr double get_dl() { return 0; }
+    constexpr double get_dl(bool = true) { return 0; }
 
-    constexpr double get_delta_dl(auto, auto, auto&&)
+    constexpr double get_delta_dl(auto, auto, bool, auto&&)
     {
         return 0;
     }
 
-    constexpr double get_delta_dl(auto, auto)
+    constexpr double get_delta_dl(auto, auto, bool = true)
     {
         return 0;
     }

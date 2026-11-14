@@ -102,12 +102,16 @@ public:
         _N -= w;
     }
 
-    double get_dl()
+    // if labeled == false, the group labels are considered arbitrary, i.e.
+    // the partition is sampled uniformly among the unlabelled ones
+    double get_dl(bool labeled = true)
     {
         if (_N == 0)
             return 0;
         double S = 0;
         S += lbinom_fast(_N - 1, _actual_B - 1);
+        if (!labeled)
+            S -= lgamma_fast(_actual_B + 1);
         S += lgamma_fast(_N + 1);
 
         // the loop is memory-bound, and only benefits from parallelism for a
@@ -127,7 +131,8 @@ public:
         return S;
     }
 
-    double get_delta_dl(group_t r, group_t nr, size_t w = 1)
+    double get_delta_dl(group_t r, group_t nr, bool labeled = true,
+                        size_t w = 1)
     {
         if (r == nr || w == 0)
             return 0;
@@ -173,6 +178,12 @@ public:
             S_a += lgamma_fast(_N + dN + 1);
             S_b += safelog_fast(_N);
             S_a += safelog_fast(_N + dN);
+        }
+
+        if (!labeled && dB != 0)
+        {
+            S_b -= lgamma_fast(_actual_B + 1);
+            S_a -= lgamma_fast(_actual_B + dB + 1);
         }
 
         return S_a - S_b;
@@ -233,17 +244,18 @@ public:
         }
     }
 
-    double get_dl()
+    double get_dl(bool labeled = true)
     {
         double S = 0;
         for (auto& ps : _ps)
-            S += ps.get_dl();
+            S += ps.get_dl(labeled);
         return S;
     }
 
-    double get_delta_dl(group_t r, group_t nr, int64_t c, auto&&... w)
+    double get_delta_dl(group_t r, group_t nr, int64_t c,
+                        bool labeled = true, auto&&... w)
     {
-        return _ps[c].get_delta_dl(get_r(r, c), get_r(nr, c), w...);
+        return _ps[c].get_delta_dl(get_r(r, c), get_r(nr, c), labeled, w...);
     }
 
     size_t get_actual_B()

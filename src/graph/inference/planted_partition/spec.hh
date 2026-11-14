@@ -562,7 +562,8 @@ struct StateSpec
             auto delta = get_merge_delta(s, t);
             double dS = get_delta_dS(s, t, delta, _state._groups[s].size(), ea);
             if (ea.partition_dl)
-                dS += _ps.get_delta_dl(s, t, _state._bpclabel[s], _state._groups[s].size());
+                dS += _ps.get_delta_dl(s, t, _state._bpclabel[s], true,
+                                       _state._groups[s].size());
             if (_deg_corr && ea.degree_dl)
                 dS += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
             return dS;

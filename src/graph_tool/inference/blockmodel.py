@@ -317,10 +317,11 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
 
     @copy_state_wrap
     def _entropy(self, adjacency=True, dl=True, partition_dl=True,
-                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                 dense=False, multigraph=True, deg_entropy=True,
-                 parallel_entropy=True, beta_dl=1., Bfield=True, propagate=True,
-                 constants=True, **kwargs):
+                 labeled_partition=True, degree_dl=True,
+                 degree_dl_kind="distributed", edges_dl=True, dense=False,
+                 multigraph=True, deg_entropy=True, parallel_entropy=True,
+                 beta_dl=1., Bfield=True, propagate=True, constants=True,
+                 **kwargs):
         r"""Calculate the description length (a.k.a. negative joint
         log-likelihood) associated with the current block partition.
 
@@ -335,6 +336,11 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         partition_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the partition description length
             will be included.
+        labeled_partition : ``bool`` (optional, default: ``True``)
+            If ``False``, the group labels will be considered arbitrary, i.e.
+            the partition description length will be the one of an unlabelled
+            partition, which is smaller by :math:`\ln B!` (only for
+            non-overlapping partitions).
         degree_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the degree sequence description
             length will be included (for degree-corrected models).

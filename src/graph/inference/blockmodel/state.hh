@@ -1439,13 +1439,16 @@ public:
             if (r == _null_group)
             {
                 if constexpr (!merge)
-                    dS += _ps.get_delta_dl(r, nr, _bpclabel[nr]);
+                    dS += _ps.get_delta_dl(r, nr, _bpclabel[nr],
+                                           ea.labeled_partition);
                 else
-                    dS += _ps.get_delta_dl(r, nr, _bpclabel[nr], vw);
+                    dS += _ps.get_delta_dl(r, nr, _bpclabel[nr],
+                                           ea.labeled_partition, vw);
             }
             else
             {
-                dS += _ps.get_delta_dl(r, nr, _bpclabel[r], vw);
+                dS += _ps.get_delta_dl(r, nr, _bpclabel[r],
+                                       ea.labeled_partition, vw);
             }
         }
 
@@ -1890,7 +1893,7 @@ public:
         }
 
         if (ea.partition_dl)
-            S_dl += _ps.get_dl();
+            S_dl += _ps.get_dl(ea.labeled_partition);
 
         assert(!isnan(S) && !isnan(S_dl));
 

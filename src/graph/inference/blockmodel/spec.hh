@@ -50,7 +50,8 @@
     ((beta_dl, double))                                                        \
     ((Bfield, bool))                                                           \
     ((propagate, bool))                                                        \
-    ((constants, bool))
+    ((constants, bool))                                                        \
+    ((labeled_partition, bool))
 
 namespace graph_tool
 {
