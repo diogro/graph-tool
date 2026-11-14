@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+// slice 1 of 3 of the state types, by graph type (see imp.cc)
+#define GT_DISPATCH_SLICES 3
+#define GT_DISPATCH_SLICE 0
+
 #include "spec.hh"
 
 #include "../imp.cc"

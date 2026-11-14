@@ -413,14 +413,17 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/mcmc.cc \
 	src/graph/inference/blockmodel/multiflip_mcmc.cc \
 	src/graph/inference/blockmodel/multilevel_mcmc.cc \
-	src/graph/inference/blockmodel/layered/spec.cc \
+	src/graph/inference/blockmodel/layered/spec_0.cc \
+	src/graph/inference/blockmodel/layered/spec_1.cc \
 	src/graph/inference/blockmodel/layered/exhaustive.cc \
 	src/graph/inference/blockmodel/layered/gibbs.cc \
 	src/graph/inference/blockmodel/layered/mcmc.cc \
 	src/graph/inference/blockmodel/layered/multiflip_mcmc.cc \
 	src/graph/inference/blockmodel/layered/multilevel_mcmc_0.cc \
 	src/graph/inference/blockmodel/layered/multilevel_mcmc_1.cc \
-	src/graph/inference/blockmodel/layered_overlap/spec.cc \
+	src/graph/inference/blockmodel/layered_overlap/spec_0.cc \
+	src/graph/inference/blockmodel/layered_overlap/spec_1.cc \
+	src/graph/inference/blockmodel/layered_overlap/spec_2.cc \
 	src/graph/inference/blockmodel/layered_overlap/exhaustive.cc \
 	src/graph/inference/blockmodel/layered_overlap/gibbs.cc \
 	src/graph/inference/blockmodel/layered_overlap/mcmc.cc \
@@ -430,7 +433,8 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_1.cc \
 	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_2.cc \
 	src/graph/inference/blockmodel/layered_overlap/multilevel_mcmc_3.cc \
-    src/graph/inference/blockmodel/overlap/spec.cc \
+    src/graph/inference/blockmodel/overlap/spec_0.cc \
+    src/graph/inference/blockmodel/overlap/spec_1.cc \
 	src/graph/inference/blockmodel/overlap/exhaustive.cc \
 	src/graph/inference/blockmodel/overlap/gibbs.cc \
 	src/graph/inference/blockmodel/overlap/mcmc.cc \
@@ -462,7 +466,8 @@ libgraph_tool_inference_la_SOURCES = \
 	src/graph/inference/blockmodel/layered_weighted/mcmc.cc \
 	src/graph/inference/blockmodel/layered_weighted/multiflip_mcmc.cc \
 	src/graph/inference/blockmodel/layered_weighted/multilevel_mcmc.cc \
-	src/graph/inference/blockmodel/layered_weighted_overlap/spec.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/spec_0.cc \
+	src/graph/inference/blockmodel/layered_weighted_overlap/spec_1.cc \
 	src/graph/inference/blockmodel/layered_weighted_overlap/exhaustive.cc \
 	src/graph/inference/blockmodel/layered_weighted_overlap/gibbs.cc \
 	src/graph/inference/blockmodel/layered_weighted_overlap/mcmc.cc \

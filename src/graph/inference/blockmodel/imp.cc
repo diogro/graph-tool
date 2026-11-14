@@ -23,17 +23,70 @@
 #include "state.hh"
 #include "../uncertain/sample_edge_sbm.hh"
 
+#include <array>
+#include <boost/preprocessor/repetition/repeat.hpp>
+#include <boost/preprocessor/repetition/enum.hpp>
+
 #define MAKE_STATE BOOST_PP_CAT(make_,BOOST_PP_CAT(STATE_NAME,_state))
+
+// The state types can be split among GT_DISPATCH_SLICES translation units by
+// the type of their first parameter (the graph), which define
+// GT_DISPATCH_SLICE = 0, ..., GT_DISPATCH_SLICES - 1 before including this
+// file, to reduce the memory needed to compile them. Each one creates and
+// exports the states of its slice, and the first one also defines the Python
+// function that creates the state, which tries the slices in turn (see
+// StateWrap::make_dispatch()).
+#ifndef GT_DISPATCH_SLICES
+#define GT_DISPATCH_SLICES 1
+#define GT_DISPATCH_SLICE 0
+#endif
+
+#define MAKE_STATE_SLICE(i) BOOST_PP_CAT(MAKE_STATE, BOOST_PP_CAT(_slice_, i))
 
 namespace graph_tool {
 namespace STATE_NAME {
-python::object MAKE_STATE(boost::python::object ostate)
+
+#define _MAKE_STATE_SLICE_DECL(z, i, data)                                     \
+    python::object MAKE_STATE_SLICE(i)(boost::python::object ostate);
+BOOST_PP_REPEAT(GT_DISPATCH_SLICES, _MAKE_STATE_SLICE_DECL, _)
+
+python::object MAKE_STATE_SLICE(GT_DISPATCH_SLICE)(boost::python::object ostate)
 {
     python::object state;
-    STATE_NAME::make_dispatch(ostate,
-                              [&](auto& s){state = python::object(s);});
+    STATE_NAME::make_dispatch<GT_DISPATCH_SLICES, GT_DISPATCH_SLICE>
+        (ostate, [&](auto& s){state = python::object(s);});
     return state;
 }
+
+#if GT_DISPATCH_SLICE == 0
+python::object MAKE_STATE(boost::python::object ostate)
+{
+#if GT_DISPATCH_SLICES == 1
+    return MAKE_STATE_SLICE(0)(ostate);
+#else
+#define _MAKE_STATE_SLICE_PTR(z, i, data) &MAKE_STATE_SLICE(i)
+    std::array<python::object (*)(boost::python::object), GT_DISPATCH_SLICES>
+        slices = {BOOST_PP_ENUM(GT_DISPATCH_SLICES, _MAKE_STATE_SLICE_PTR, _)};
+    std::vector<std::string> trs;
+    std::string val;
+    for (auto make : slices)
+    {
+        try
+        {
+            return make(ostate);
+        }
+        catch (const DispatchNotFound& e)
+        {
+            // the graph has the type of another slice
+            trs.insert(trs.end(), e.get_trs().begin(), e.get_trs().end());
+            val = e.get_val();
+        }
+    }
+    STATE_NAME::first_param_not_found(trs, val);
+#endif
+}
+#endif
+
 } // namespace graph_tool
 } //namespace STATE_NAME
 
@@ -48,11 +101,15 @@ REGISTER_MOD
     using namespace __MOD__;
     using namespace STATE_NAME;
 
+#if GT_DISPATCH_SLICE == 0
     STATE_SPEC::python_export();
 
     def(BOOST_PP_STRINGIZE(MAKE_STATE), &MAKE_STATE);
+#endif
 
-    graph_tool::STATE_NAME::STATE_NAME::dispatch
+    graph_tool::STATE_NAME::STATE_NAME::template dispatch<GT_DISPATCH_SLICES,
+                                                          GT_DISPATCH_SLICE,
+                                                          true>
         ([&](auto* s)
          {
              typedef std::decay_t<decltype(*s)> state_t;

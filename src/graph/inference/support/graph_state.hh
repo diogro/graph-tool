@@ -124,11 +124,35 @@ struct StateWrap
         };
     };
 
-    // Calls f(state_t*) for every state type. With NS > 1, only the types
-    // with index i in the product such that i % NS == IS are visited, so that
-    // the instantiations for all the types can be split among NS translation
-    // units, each needing less memory to compile.
-    template <size_t NS = 1, size_t IS = 0, class F>
+    // The types of the first parameter with index j such that j % NS == IS
+    // (see dispatch() and make_dispatch())
+    template <size_t NS, size_t IS>
+    static constexpr auto first_types_slice()
+    {
+        constexpr auto idx =
+            hana::filter(hana::to_tuple(hana::make_range
+                                        (hana::size_c<0>,
+                                         hana::length(hana::front
+                                                      (hana::make_tuple(TRS()...))))),
+                         [](auto j)
+                         {
+                             return hana::bool_c<decltype(j)::value % NS == IS>;
+                         });
+        return hana::transform(idx,
+                               [](auto j)
+                               {
+                                   return hana::front(hana::make_tuple(TRS()...))[j];
+                               });
+    }
+
+    // Calls f(state_t*) for every state type. With NS > 1, only a slice IS of
+    // the types is visited, so that the instantiations for all of them can be
+    // split among NS translation units, each needing less memory to compile:
+    // if by_first is false, the types with index i in the product such that
+    // i % NS == IS; otherwise, the types whose first parameter is in
+    // first_types_slice<NS, IS>(), which are those of
+    // make_dispatch<NS, IS>().
+    template <size_t NS = 1, size_t IS = 0, bool by_first = false, class F>
     static void dispatch(F&& f, auto names)
     {
         auto final_dispatch =
@@ -173,6 +197,18 @@ struct StateWrap
         if constexpr (NS == 1)
         {
             hana::for_each(cp, dispatch_types);
+        }
+        else if constexpr (by_first)
+        {
+            constexpr auto first = first_types_slice<NS, IS>();
+            hana::for_each
+                (cp,
+                 [&](auto ats)
+                 {
+                     if constexpr (decltype(hana::contains(first,
+                                                           hana::front(ats)))::value)
+                         dispatch_types(ats);
+                 });
         }
         else
         {
@@ -221,7 +257,14 @@ struct StateWrap
         }
     };
 
-    template <class... Extra, class F>
+    // Creates the state from the Python object ostate and calls f(state).
+    // With NS > 1, only the types of the first parameter in
+    // first_types_slice<NS, IS>() are considered, so that the state
+    // constructors can be instantiated in NS translation units, which are
+    // tried in turn: if the first parameter does not have one of these types,
+    // the DispatchNotFound exception is passed on, and the next slice can be
+    // tried, since nothing has been constructed.
+    template <size_t NS = 1, size_t IS = 0, class... Extra, class F>
     static void make_dispatch(boost::python::object& ostate,
                               F&& f, auto names,
                               Extra&&... extra)
@@ -241,21 +284,40 @@ struct StateWrap
                      });
             };
 
+        auto make =
+            [&](auto ats, auto&&... args)
+            {
+                hana::unpack
+                    (ats,
+                     [&](auto... ts)
+                     {
+                         auto state =
+                             FactoryWrap<typename boost::uncheck<typename decltype(ts)::type>::type...>()
+                             (std::forward<Extra>(extra)...,
+                              std::forward<decltype(args)>(args)...);
+                         f(state);
+                     });
+            };
+
+        auto get_dispatch =
+            [&](auto... trs)
+            {
+                return gt_dispatch<{.pass_types=true, .gil_release=false}>()
+                    (make, trs...);
+            };
+
         auto dispatch =
-            gt_dispatch<{.pass_types=true, .gil_release=false}>()
-            ([&](auto ats, auto&&... args)
-             {
-                 hana::unpack
-                     (ats,
-                      [&](auto... ts)
-                      {
-                          auto state =
-                              FactoryWrap<typename boost::uncheck<typename decltype(ts)::type>::type...>()
-                              (std::forward<Extra>(extra)...,
-                               std::forward<decltype(args)>(args)...);
-                          f(state);
-                      });
-             }, convert_tr(TRS())...);
+            [&]()
+            {
+                if constexpr (NS == 1)
+                    return get_dispatch(convert_tr(TRS())...);
+                else
+                    return hana::unpack
+                        (hana::prepend(hana::drop_front
+                                       (hana::make_tuple(convert_tr(TRS())...)),
+                                       convert_tr(first_types_slice<NS, IS>())),
+                         get_dispatch);
+            }();
 
         try
         {
@@ -268,6 +330,8 @@ struct StateWrap
         }
         catch (const DispatchNotFound& e)
         {
+            if (NS > 1 && e.get_pos() == 0)
+                throw; // the first parameter belongs to another slice
             std::string msg;
             size_t idx = 0;
             hana::for_each
@@ -398,22 +462,36 @@ struct StateWrap
         typedef StateWrap<BOOST_PP_SEQ_ENUM((StateFactory<state_name>)         \
                                             GET_PARAMS_TRS(params))>           \
             state_wrap_t;                                                      \
-        template <class F, class... Extra>                                     \
+        template <size_t NS = 1, size_t IS = 0, class F, class... Extra>       \
         static void make_dispatch(boost::python::object ostate, F&& f,         \
                                   Extra&&... args)                             \
         {                                                                      \
             constexpr auto names =                                             \
                 boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
-            state_wrap_t::make_dispatch                                        \
+            state_wrap_t::template make_dispatch<NS, IS>                       \
                 (ostate, std::forward<F>(f), names,                            \
                  std::forward<Extra>(args)...);                                \
         }                                                                      \
-        template <size_t NS = 1, size_t IS = 0, class F>                       \
+        /* the error of make_dispatch() when the first parameter is not */    \
+        /* found in any of the slices, with the types of all of them    */    \
+        [[noreturn]] static void                                               \
+        first_param_not_found(const std::vector<std::string>& trs,             \
+                              const std::string& val)                          \
+        {                                                                      \
+            constexpr auto names =                                             \
+                boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
+            throw ValueException                                               \
+                (std::format("Cannot extract parameter \"{}\" of desired "     \
+                             "types {} from value: {}\n",                      \
+                             boost::hana::front(names).c_str(), trs, val));    \
+        }                                                                      \
+        template <size_t NS = 1, size_t IS = 0, bool by_first = false,         \
+                  class F>                                                     \
         static void dispatch(F&& f)                                            \
         {                                                                      \
             constexpr auto names =                                             \
                 boost::hana::make_tuple(GET_PARAMS_HNAMES(params));            \
-            state_wrap_t::template dispatch<NS, IS>                            \
+            state_wrap_t::template dispatch<NS, IS, by_first>                  \
                 (std::forward<F>(f), names);                                   \
         }                                                                      \
         template <class F>                                                     \
