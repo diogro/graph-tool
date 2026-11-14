@@ -554,7 +554,11 @@ noinst_LTLIBRARIES = libgraph_tool_inference_fast.la
 libgraph_tool_inference_fast_la_includedir = $(MOD_DIR)/include
 libgraph_tool_inference_fast_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_inference_fast_la_LDFLAGS = $(MOD_LDFLAGS)
-libgraph_tool_inference_fast_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -funswitch-loops -funroll-loops -fno-lto
+libgraph_tool_inference_fast_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -funswitch-loops -funroll-loops
+# -fno-lto has to come after the user's CXXFLAGS (which may contain -flto),
+# which automake puts after the per-library flags, so it is added to CXXFLAGS
+# for the objects of this library (a GNU make target-specific variable)
+$(libgraph_tool_inference_fast_la_OBJECTS): CXXFLAGS += -fno-lto
 libgraph_tool_inference_fast_la_SOURCES = \
 	src/graph/inference/uncertain/dynamics/epidemics/base_vec.cc \
 	src/graph/inference/uncertain/dynamics/cising_glauber/base_vec.cc \
@@ -712,7 +716,11 @@ libgraph_tool_layout_la_includedir = $(MOD_DIR)/include
 libgraph_tool_layout_la_CPPFLAGS = $(AM_CPPFLAGS) $(CGAL_CPPFLAGS) $(TBB_CPPFLAGS)
 libgraph_tool_layout_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD) $(CGAL_LDFLAGS) $(TBB_LIBS)
 libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
-libgraph_tool_layout_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -fno-finite-math-only -fno-lto
+libgraph_tool_layout_la_CXXFLAGS = $(MOD_CXXFLAGS) -ffast-math -fno-finite-math-only
+# -fno-lto has to come after the user's CXXFLAGS (which may contain -flto),
+# which automake puts after the per-library flags, so it is added to CXXFLAGS
+# for the objects of this library (a GNU make target-specific variable)
+$(libgraph_tool_layout_la_OBJECTS): CXXFLAGS += -fno-lto
 libgraph_tool_layout_la_SOURCES = \
 	src/graph/layout/arf.cc \
 	src/graph/layout/planar_layout.cc \
