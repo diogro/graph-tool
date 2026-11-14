@@ -639,6 +639,13 @@ class MultilevelMCMCState(EntropyState):
     def get_bclabel(self):
         return None
 
+    def _get_B_min_clabel(self):
+        """Minimum number of groups imposed by the constraint labels."""
+        clabel = self.clabel
+        if clabel is None:
+            return 1
+        return len(numpy.unique(clabel.fa))
+
     @mcmc_sweep_wrap
     @_parallel
     def multilevel_mcmc_sweep(self, niter=1, beta=numpy.inf, bisection=True,
@@ -778,9 +785,7 @@ class MultilevelMCMCState(EntropyState):
 
         """
 
-        clabel = self.clabel
-        if clabel is not None:
-            B_min = max((len(numpy.unique(clabel.fa)), B_min))
+        B_min = max((self._get_B_min_clabel(), B_min))
 
         if B_max < B_min or B_min < 1 or B_max < 1:
             raise ValueError(f"Invalid [B_min, B_max] range: [{B_min}, {B_max}]")

@@ -293,7 +293,9 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
                 B = int(max(s.get_N() / base_factor, B_min_base))
             else:
                 B = int(s.get_N() / top_factor)
-            B = min(max(B, 1), s.get_N())
+            # at least one group for each constraint label (e.g. both sides
+            # of a bipartite network, with pclabel)
+            B = min(max(B, s._get_B_min_clabel()), s.get_N())
             s.multilevel_mcmc_sweep(**dict(args,
                                            B_min=B,
                                            B_max=B if strict else s.get_N(),
