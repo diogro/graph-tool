@@ -2326,21 +2326,23 @@ public:
             }
         }
 
+        // the edge counts are described by the coupled state if there is one,
+        // and otherwise by this one
+        bool propagated = false;
         if constexpr (spec_t::propagate_delta)
         {
             visit_coupled_if
                 ([&](auto&& cs, auto& cea)
                  {
                      S_dl += cs.modify_edge_dS(r, s, me, dm, cea);
+                     propagated = true;
                  });
         }
-        else
+
+        if (!propagated && spec_t::edges_dl && ea.edges_dl)
         {
-            if (spec_t::edges_dl && ea.edges_dl)
-            {
-                S_dl -= get_edges_dl(_actual_B, _E, _g);
-                S_dl += get_edges_dl(_actual_B, _E + dm, _g);
-            }
+            S_dl -= get_edges_dl(_actual_B, _E, _g);
+            S_dl += get_edges_dl(_actual_B, _E + dm, _g);
         }
 
         S += _spec.modify_edge_dS(u, v, e, dm, ea);
