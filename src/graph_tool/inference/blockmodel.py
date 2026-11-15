@@ -236,10 +236,14 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
                                      b=b,
                                      deg_corr=False,
                                      clabel=self.get_bclabel() if not final else None,
-                                     pclabel=self.get_bpclabel() if not final else None,
+                                     pclabel=self.get_bpclabel(),
                                      flat_map=self.flat_map),
                                 **kwargs))
         state.update_entropy_args(dense=True, edges_dl=final)
+        # the multipartite edge counts are inherited by the levels above, since
+        # the edges_dl term is only computed at the top level
+        if "bip_edges_dl" in state._entropy_args:
+            state.update_entropy_args(bip_edges_dl=self._entropy_args.get("bip_edges_dl", False))
         if couple:
             self._couple_state(state, state.get_entropy_args())
         return state
@@ -318,10 +322,10 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
     @copy_state_wrap
     def _entropy(self, adjacency=True, dl=True, partition_dl=True,
                  labeled_partition=True, degree_dl=True,
-                 degree_dl_kind="distributed", edges_dl=True, dense=False,
-                 multigraph=True, deg_entropy=True, parallel_entropy=True,
-                 beta_dl=1., Bfield=True, propagate=True, constants=True,
-                 **kwargs):
+                 degree_dl_kind="distributed", edges_dl=True,
+                 bip_edges_dl=False, dense=False, multigraph=True,
+                 deg_entropy=True, parallel_entropy=True, beta_dl=1.,
+                 Bfield=True, propagate=True, constants=True, **kwargs):
         r"""Calculate the description length (a.k.a. negative joint
         log-likelihood) associated with the current block partition.
 
@@ -350,6 +354,17 @@ class BlockState(CLabelState, MCMCState, MultiflipMCMCState,
         edges_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the edge matrix description length
             will be included.
+        bip_edges_dl : ``bool`` (optional, default: ``False``)
+            If ``True``, the edge matrix description length will assume that
+            the edges can only connect groups with different values of
+            ``pclabel``, i.e. that the network is bipartite (or multipartite)
+            with the parts given by ``pclabel``. Otherwise, ``pclabel`` has no
+            effect on this term. In a hierarchical model, where this term is
+            computed only at the top level, the value is inherited by the
+            upper levels from the base state, so it should be set in its
+            entropy arguments (e.g. via ``state_args=dict(entropy_args=
+            dict(bip_edges_dl=True))`` in
+            :func:`~graph_tool.inference.minimize_nested_blockmodel_dl`).
         dense : ``bool`` (optional, default: ``False``)
             If ``True``, the "dense" variant of the entropy will be computed.
         multigraph : ``bool`` (optional, default: ``True``)

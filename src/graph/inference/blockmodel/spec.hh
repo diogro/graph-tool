@@ -51,7 +51,8 @@
     ((Bfield, bool))                                                           \
     ((propagate, bool))                                                        \
     ((constants, bool))                                                        \
-    ((labeled_partition, bool))
+    ((labeled_partition, bool))                                                \
+    ((bip_edges_dl, bool))
 
 namespace graph_tool
 {

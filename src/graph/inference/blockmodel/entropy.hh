@@ -295,4 +295,15 @@ double get_edges_dl(int64_t B, int64_t E, Graph& g)
     return lbinom_fast(BB + E - 1, E);
 }
 
+// Edges description length, when the edges can only connect BB pairs of groups
+// (e.g. groups of different classes, for multipartite graphs)
+inline double get_edges_dl_pairs(int64_t BB, int64_t E)
+{
+    if (E == 0)
+        return 0;
+    if (BB == 0)
+        return std::numeric_limits<double>::infinity();
+    return lbinom_fast(BB + E - 1, E);
+}
+
 } // namespace graph_tool

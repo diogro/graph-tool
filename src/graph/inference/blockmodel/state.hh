@@ -1298,6 +1298,27 @@ public:
         return dS + ea.beta_dl * dS_dl;
     }
 
+    // Description length of the edge counts, for E edges, with the number of
+    // nonempty groups changed by dr, if r is not null, and by ds, if s is not
+    // null. If ea.bip_edges_dl is true, the edges can only connect groups of
+    // different classes (pclabel), and the changes apply to the classes of r
+    // and s.
+    double get_edges_dl_ea(const entropy_args_t& ea, int64_t E,
+                           group_t r = _null_group, int64_t dr = 0,
+                           group_t s = _null_group, int64_t ds = 0)
+    {
+        if (r == _null_group)
+            dr = 0;
+        if (s == _null_group)
+            ds = 0;
+        if (!ea.bip_edges_dl)
+            return get_edges_dl(int64_t(_actual_B) + dr + ds, E, _g);
+        int64_t cr = (r != _null_group) ? int64_t(_bpclabel[r]) : -1;
+        int64_t cs = (s != _null_group) ? int64_t(_bpclabel[s]) : -1;
+        auto BB = _ps.get_multipartite_pairs(is_directed(_g), cr, dr, cs, ds);
+        return get_edges_dl_pairs(BB, E);
+    }
+
     double propagate_entries_dS(group_t u, group_t v, const rw_t& du,
                                 const rw_t& dv, auto& m_entries,
                                 const entropy_args_t& ea)
@@ -1316,10 +1337,13 @@ public:
             count_t dr = 0, ds = 0;
             if (r != _null_group)
                 dr = (_wr[r] + du == 0 && _wr[r] != 0) ? -1 : 0;
-            if (r != _null_group)
+            if (s != _null_group)
                 ds = (_wr[s] == 0 && dv != 0) ? 1 : 0;
-            dS -= get_edges_dl(_actual_B, _E, _g);
-            dS += get_edges_dl(_actual_B + (dr + ds), _E, _g);
+            if (dr != 0 || ds != 0)
+            {
+                dS -= get_edges_dl_ea(ea, _E);
+                dS += get_edges_dl_ea(ea, _E, r, dr, s, ds);
+            }
         }
 
         assert(std::isfinite(dS));
@@ -1358,16 +1382,16 @@ public:
                 dS_dl += _deg_stats.get_merge_dl(ea.degree_dl_kind, s, t);
         }
 
-        count_t dB = 0;
-        if (s != _null_group && _wr[s] == n)
-            dB--;
-        if (t != _null_group && _wr[t] == 0)
-            dB++;
+        count_t ds = (s != _null_group && _wr[s] == n) ? -1 : 0;
+        count_t dt = (t != _null_group && _wr[t] == 0) ? 1 : 0;
+        count_t dB = ds + dt;
 
-        if (spec_t::edges_dl && ea.edges_dl && dB != 0)
+        // with ea.bip_edges_dl, the number of group pairs can change also if
+        // dB == 0, when s and t belong to different classes
+        if (spec_t::edges_dl && ea.edges_dl && (ds != 0 || dt != 0))
         {
-            dS_dl -= get_edges_dl(_actual_B, _E, _g);
-            dS_dl += get_edges_dl(_actual_B + dB, _E, _g);
+            dS_dl -= get_edges_dl_ea(ea, _E);
+            dS_dl += get_edges_dl_ea(ea, _E, s, ds, t, dt);
         }
 
         if (!_Bfield.empty() && ea.Bfield && dB != 0)
@@ -1903,7 +1927,7 @@ public:
         assert(!isnan(S) && !isnan(S_dl));
 
         if (spec_t::edges_dl && ea.edges_dl)
-            S_dl += get_edges_dl(_actual_B, _E, _g);
+            S_dl += get_edges_dl_ea(ea, _E);
 
         assert(!isnan(S) && !isnan(S_dl));
 
@@ -2341,8 +2365,8 @@ public:
 
         if (!propagated && spec_t::edges_dl && ea.edges_dl)
         {
-            S_dl -= get_edges_dl(_actual_B, _E, _g);
-            S_dl += get_edges_dl(_actual_B, _E + dm, _g);
+            S_dl -= get_edges_dl_ea(ea, _E);
+            S_dl += get_edges_dl_ea(ea, _E + dm);
         }
 
         S += _spec.modify_edge_dS(u, v, e, dm, ea);

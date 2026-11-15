@@ -192,9 +192,44 @@ class NestedBlockState(object):
         :meth:`graph_tool.inference.OverlapBlockState.entropy`, or
         :meth:`graph_tool.inference.LayeredBlockState.entropy`).
 
+        The upper levels use their own entropy arguments, which they inherit
+        from the base state, except for ``bip_edges_dl``, which if given
+        applies to all levels.
         """
-        S = self.levels[0].entropy(**dict(kwargs, test=False))
-        return S
+        bip = kwargs.get("bip_edges_dl", None)
+        old = self._get_bip_edges_dl()
+        if bip is None or bip == old:
+            return self.levels[0].entropy(**dict(kwargs, test=False))
+        self._set_bip_edges_dl(bip)
+        try:
+            return self.levels[0].entropy(**dict(kwargs, test=False))
+        finally:
+            self._set_bip_edges_dl(old)
+
+    def _get_bip_edges_dl(self):
+        return self.levels[0].get_entropy_args().get("bip_edges_dl", False)
+
+    def _set_bip_edges_dl(self, bip):
+        """Set the ``bip_edges_dl`` entropy argument of all levels, and couple
+        them again, so that it applies to the top level."""
+        for s in self.levels:
+            if "bip_edges_dl" in s.get_entropy_args():
+                s.update_entropy_args(bip_edges_dl=bip)
+        for l in range(len(self.levels) - 1):
+            s = self.levels[l]
+            if getattr(s, "_coupled_state", None) is not None:
+                u = self.levels[l + 1]
+                s._couple_state(u, u.get_entropy_args())
+
+    def _check_bip_edges_dl(self, entropy_args):
+        bip = entropy_args.get("bip_edges_dl", None)
+        if (bip is not None and bip != self._get_bip_edges_dl() and
+            len(self.levels) > 1):
+            raise ValueError("bip_edges_dl differs from the value stored in the "
+                             "state, which is used by the upper levels; set it "
+                             "with the entropy_args of the base state instead "
+                             "(e.g. state_args=dict(entropy_args="
+                             "dict(bip_edges_dl=True))).")
 
     def move_vertex(self, v, s):
         r"""Move vertex ``v`` to block ``s``."""
@@ -278,6 +313,7 @@ class NestedBlockState(object):
         verbose = kwargs.get("verbose", False)
         c = kwargs.get("c", None)
         eargs = kwargs.get("entropy_args", {})
+        self._check_bip_edges_dl(eargs)
 
         lrange = list(kwargs.pop("ls", range(len(self.levels))))
         if kwargs.pop("ls_shuffle", False):

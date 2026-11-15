@@ -266,6 +266,36 @@ public:
         return B;
     }
 
+    // Number of pairs of nonempty groups of different classes (ordered pairs
+    // if directed), with the number of groups of class c changed by dc, and
+    // the one of class d by dd. Not available if the partition statistics do
+    // not keep the number of groups (e.g. layered overlapping states).
+    size_t get_multipartite_pairs(bool directed, int64_t c = -1,
+                                  int64_t dc = 0, int64_t d = -1,
+                                  int64_t dd = 0)
+    {
+        if constexpr (!requires (PStats& ps) { ps.get_actual_B(); })
+        {
+            throw ValueException("bip_edges_dl is not supported by this state");
+        }
+        else
+        {
+            int64_t S = 0, S2 = 0;
+            for (size_t i = 0; i < _ps.size(); ++i)
+            {
+                int64_t B = _ps[i].get_actual_B();
+                if (int64_t(i) == c)
+                    B += dc;
+                if (int64_t(i) == d)
+                    B += dd;
+                S += B;
+                S2 += B * B;
+            }
+            int64_t BB = S * S - S2;
+            return directed ? BB : BB / 2;
+        }
+    }
+
     static constexpr group_t _null_group = PStats::_null_group;
 
 private:
