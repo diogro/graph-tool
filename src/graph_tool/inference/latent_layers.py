@@ -217,7 +217,7 @@ class LatentClosureBlockState(LatentLayerBaseState):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Observed graph.
+        Observed graph (must be undirected).
     L : ``int`` (optional, default: ``1``)
         Maximum number of triadic closure generations.
     b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
@@ -258,6 +258,10 @@ class LatentClosureBlockState(LatentLayerBaseState):
     def __init__(self, g, L=1, b=None, aE=numpy.nan, nested=True,
                  state_args={}, g_orig=None, ew=None, ex=None, entropy_args={},
                  **kwargs):
+        if g.is_directed():
+            raise ValueError("triadic closure is only defined for "
+                             "undirected graphs")
+
         EntropyState.__init__(self, entropy_args=entropy_args)
 
         self.g = g
@@ -557,7 +561,7 @@ class MeasuredClosureBlockState(LatentClosureBlockState, UncertainBaseState):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Measured graph.
+        Measured graph (must be undirected).
     n : :class:`~graph_tool.EdgePropertyMap`
         Edge property map of type ``int``, containing the total number of
         measurements for each edge.
