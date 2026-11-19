@@ -296,7 +296,12 @@ def minimize_nested_blockmodel_dl(g, state=NestedBlockState,
             # at least one group for each constraint label (e.g. both sides
             # of a bipartite network, with pclabel)
             B = min(max(B, s._get_B_min_clabel()), s.get_N())
-            s.multilevel_mcmc_sweep(**dict(args,
+            largs = dict(args)
+            if l > 0:
+                # as in NestedBlockState.multilevel_mcmc_sweep(), the vertex
+                # subset refers only to the bottom level
+                largs.pop("vertices", None)
+            s.multilevel_mcmc_sweep(**dict(largs,
                                            B_min=B,
                                            B_max=B if strict else s.get_N(),
                                            force_accept=True,

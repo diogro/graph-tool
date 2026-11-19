@@ -311,13 +311,18 @@ class EntropyState(PickleState):
             if getattr(self, "is_weighted", False):
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
-                vertices = vertices[vw > 0]
+                vertices = self.g.vertex_index.copy().fa[vw > 0]
             elif hasattr(self, "g"):
                 vertices = self.g.vertex_index.copy().fa
             else:
                 vertices = []
         else:
-            vertices = vals
+            vertices = numpy.asarray(vals, dtype="int64")
+            if hasattr(self, "g") and len(vertices) > 0:
+                N = self.g.num_vertices(True)
+                if vertices.min() < 0 or vertices.max() >= N:
+                    raise ValueError(f"invalid vertex indices in 'vertices' "
+                                     f"(graph has {N} vertices)")
         return Vector_size_t(init=vertices)
 
 class CLabelState(ABC):
