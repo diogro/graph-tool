@@ -128,6 +128,14 @@ struct MultilevelStateBase
         return v;
     }
 
+    // group to which v is moved when a stored partition, where it belonged
+    // to group s, is restored
+    template <class V, class Group>
+    Group restore_group(V, Group s, auto&)
+    {
+        return s;
+    }
+
     void relax_update(bool) {}
 
     template <class V>
@@ -273,6 +281,9 @@ struct Multilevel:
         if (not discard)
         {
             auto& back = _bstack.back();
+            gt_hash_map<Group, Group> remap;
+            for (auto& [v, s] : back)
+                s = State::restore_group(v, s, remap);
             for (auto& [v, s] : back)
             {
                 auto r = State::get_group(v);
@@ -291,6 +302,12 @@ struct Multilevel:
             if constexpr (_has_relabel)
             {
                 auto& lback = _lstack.back();
+                for (auto& [r, u] : lback)
+                {
+                    auto iter = remap.find(r);
+                    if (iter != remap.end())
+                        r = iter->second;
+                }
                 if constexpr (_has_parallel_relabel)
                 {
                     State::relabel_groups_parallel
@@ -1173,6 +1190,13 @@ struct Multilevel:
             rs_.clear();
             auto& c = cache[B];
 
+            gt_hash_map<Group, Group> remap;
+            for (size_t i = 0; i < vs.size(); ++i)
+            {
+                auto& s = std::get<1>(c)[i];
+                s = State::restore_group(vs[i], s, remap);
+            }
+
             for (size_t i = 0; i < vs.size(); ++i)
             {
                 auto& s = std::get<1>(c)[i];
@@ -1186,7 +1210,12 @@ struct Multilevel:
             if constexpr (_has_relabel)
             {
                 for (auto& [r, u] : std::get<2>(c))
+                {
+                    auto iter = remap.find(r);
+                    if (iter != remap.end())
+                        r = iter->second;
                     State::relabel_group(r, u);
+                }
             }
 
             if constexpr (_has_extra_sweep)

@@ -294,14 +294,47 @@ struct MCMC
             return _rs.size();
         }
 
+        // A group of a partition stored during the sweep (or to which a label
+        // of b_min or b_max was mapped at its start) may have been vacated
+        // in the meantime, and taken by vertices of another clabel, which
+        // also places it in their part of the hierarchy. Vertex v is then
+        // moved instead to a new group, which takes the labels and the place
+        // in the hierarchy of the group of v (as in the constructor), and is
+        // used for the other vertices of the same stored group (via remap).
+        group_t restore_group(vertex_t v, group_t s,
+                              gt_hash_map<group_t, group_t>& remap)
+        {
+            if (_state._bclabel[s] == _state._clabel[v])
+                return s;
+            auto iter = remap.find(s);
+            if (iter != remap.end())
+                return iter->second;
+            group_t t = _state.add_group();
+            _state.inherit_group(t, v);
+            remap[s] = t;
+            return t;
+        }
+
+        group_t get_label_group(gt_hash_map<group_t, group_t>& rmap,
+                                group_t label, vertex_t v)
+        {
+            auto& r = rmap.find(label)->second;
+            if (_state._bclabel[r] != _state._clabel[v])
+            {
+                r = _state.add_group();
+                _state.inherit_group(r, v);
+            }
+            return r;
+        }
+
         group_t get_b_min(vertex_t v)
         {
-            return _rb_min.find(_b_min[v])->second;
+            return get_label_group(_rb_min, _b_min[v], v);
         }
 
         group_t get_b_max(vertex_t v)
         {
-            return _rb_max.find(_b_max[v])->second;
+            return get_label_group(_rb_max, _b_max[v], v);
         }
 
         template <class RNG>
