@@ -78,7 +78,7 @@ typedef std::vector<boost::multi_array_ref<double, 1>> hfd_level_arrays_t;
      ((K, double, 0))                                                          \
      ((rep_exp, double, 0))                                                    \
      ((att_exp, double, 0))                                                    \
-     ((grav, double, 0))                                                       \
+     ((center_pull, double, 0))                                                \
      ((theta, double, 0))                                                      \
      ((exact_thres, size_t, 0))                                                \
      ((b, std::vector<std::vector<int64_t>>, 0))                               \
@@ -267,8 +267,8 @@ public:
         }
         if (!(_nmu >= 0) || !(_rmu >= 0))
             throw ValueException("the penalties must be non-negative");
-        if (!(_K >= 0) || !(_grav >= 0) || !(_barrier_sep >= 0))
-            throw ValueException("K, grav and barrier_sep must be "
+        if (!(_K >= 0) || !(_center_pull >= 0) || !(_barrier_sep >= 0))
+            throw ValueException("K, center_pull and barrier_sep must be "
                                  "non-negative");
         // otherwise, the attraction decays faster than the repulsion, and
         // there is no bounded equilibrium
@@ -972,25 +972,25 @@ public:
              });
     }
 
-    // Gravity
-    // -------
+    // Central pull
+    // ------------
 
     // All vertices are attracted to their center of mass c by the energy
     //
     //     g sum_i m_i |x_i - c|^2,
     //
-    // where g = _grav, with the masses m_i of the repulsion, so that c is
-    // the center of mass of the repulsion, and a vertex is held against the
+    // where g = _center_pull, with the masses m_i of the repulsion, so that c
+    // is the center of mass of the repulsion, and a vertex is held against the
     // repulsion of the others independently of its mass.
 
-    double grav_energy(const auto& x, const auto& cm)
+    double pull_energy(const auto& x, const auto& cm)
     {
-        return _grav * dist2(x, cm);
+        return _center_pull * dist2(x, cm);
     }
 
-    auto grav_grad(const auto& x, const auto& cm)
+    auto pull_grad(const auto& x, const auto& cm)
     {
-        return (x - cm) * (2 * _grav);
+        return (x - cm) * (2 * _center_pull);
     }
 
     // Rank constraints
@@ -2740,8 +2740,8 @@ public:
     //
     // with D_rs = |X_r - X_s|, and those of the levels above it, recursively,
     // since the upper state places its own upper state in the same way. Only
-    // these terms of the upper states are used (not their gravity, group
-    // terms or constraints), so that a state that was laid out on its own
+    // these terms of the upper states are used (not their central pull,
+    // group terms or constraints), so that a state that was laid out on its own
     // (e.g. a coarse level of the hierarchical layout) can serve as the upper
     // state of the level below. Since X_r is the weighted mean of the
     // positions of the members, the gradient for a member v is w_v / W_r
@@ -2882,16 +2882,16 @@ public:
     // -------------------------
 
     // The energy is the sum of all the terms above: attraction, repulsion,
-    // gravity, group gravity, group repulsion and group confinement, the
+    // central pull, group gravity, group repulsion and group confinement, the
     // separation of the vertices with a radius, the attraction and repulsion
     // of the levels above, and the augmented Lagrangian terms of the active
     // constraints (ranks, distances, overlaps and two-member groups).
 
     // The terms that depend only on the positions (attraction, repulsion,
-    // gravity, group gravity and repulsion, levels above and separation) are
-    // computed once for every set of positions, their energy (_pg_U)
-    // together with their gradient (_pg), for the next evaluation of the
-    // gradient at the same positions (see pos_terms()); the others depend
+    // central pull, group gravity and repulsion, levels above and
+    // separation) are computed once for every set of positions, their energy
+    // (_pg_U) together with their gradient (_pg), for the next evaluation of
+    // the gradient at the same positions (see pos_terms()); the others depend
     // also on the multipliers or the strengths of the springs, which can
     // change at the same positions.
     void pos_cache()
@@ -3048,8 +3048,8 @@ public:
 
     // Gradient (and, if E, energy) of the terms of v that depend only on the
     // positions: the attraction (only its gradient, since the energy is
-    // summed over the edges), the repulsion, gravity, levels above (only the
-    // gradient, see energy()) and group gravity and repulsion. Both the
+    // summed over the edges), the repulsion, central pull, levels above (only
+    // the gradient, see energy()) and group gravity and repulsion. Both the
     // gradient cached by energy() and the one computed directly come from
     // here, so that they agree (up to the order in which the separation is
     // added, which pos_cache() includes).
@@ -3075,11 +3075,11 @@ public:
             rep_grad_sum(src, pv, _group_rep_exp) * vm : rgrad;
         grad += rgrad + qgrad * _group_rep_top;
 
-        if (_grav > 0)
+        if (_center_pull > 0)
         {
             if constexpr (E)
-                U += grav_energy(pv, get_cm()) * vm;
-            grad += grav_grad(pv, get_cm()) * vm;
+                U += pull_energy(pv, get_cm()) * vm;
+            grad += pull_grad(pv, get_cm()) * vm;
         }
 
         if (_up != nullptr)
@@ -4098,7 +4098,7 @@ public:
                  y += p[1] * w;
                  w_tot += w;
              });
-        // without any mass, the gravity vanishes anyway
+        // without any mass, the central pull vanishes anyway
         _cm = (w_tot > 0) ? p_t{x / w_tot, y / w_tot} : p_t{};
 
         group_tree_loop

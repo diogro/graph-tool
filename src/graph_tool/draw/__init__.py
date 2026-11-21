@@ -917,17 +917,17 @@ class HFDState(PickleState):
         should be distinct, since the repulsion vanishes between coinciding
         vertices.
     vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Vertex weights, which multiply the repulsion and the gravity, but not
-        the attraction. Vertices with zero weight are ignored, and keep their
-        positions (their edges exert no force). If not provided, all weights
-        are ``1``.
+        Vertex weights, which multiply the repulsion and the central pull, but
+        not the attraction. Vertices with zero weight are ignored, and keep
+        their positions (their edges exert no force). If not provided, all
+        weights are ``1``.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights, i.e. the strengths of the attraction along the edges
         (which are not multiplied by the vertex weights). If not provided,
         all weights are ``1``.
     rweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Factor of the vertex weights in the repulsion and gravity (e.g. the
-        relative sizes of the groups represented by the vertices of a coarse
+        Factor of the vertex weights in the repulsion and central pull (e.g.
+        the relative sizes of the groups represented by the vertices of a coarse
         graph). If not provided, all factors are ``1``.
     K : float (optional, default: ``1``)
         Strength of the repulsion, which sets the length scale of the layout.
@@ -938,9 +938,10 @@ class HFDState(PickleState):
     att_exp : float (optional, default: ``2``)
         Exponent :math:`a` of the attraction along the edges, whose force
         grows as :math:`d^{a-1}` (logarithmic for :math:`a = 0`).
-    grav : float (optional, default: ``1e-4``)
-        Strength of the gravity toward the center of mass, which keeps
-        disconnected parts of the layout together.
+    center_pull : float (optional, default: ``1e-4``)
+        Strength of the central pull, i.e. the harmonic attraction of every
+        vertex toward the center of mass, which keeps disconnected parts of
+        the layout together.
     theta : float (optional, default: ``0.6``)
         Opening criterion of the Barnes-Hut approximation. Smaller values are
         more accurate and slower.
@@ -1102,8 +1103,8 @@ class HFDState(PickleState):
     forces are :math:`2d^{a-1}` and :math:`d^{-(p+1)}`), the edge and vertex
     weights :math:`w_{uv}` and :math:`w_u`, the masses
     :math:`m_u = w_u\rho_u` with :math:`\rho_u` given by ``rweight``, the
-    gravity :math:`g` (``grav``), the groups :math:`b^l_u`, the group
-    gravity :math:`g_l f^l_r` (``group_grav`` and ``group_grav_fac``) and
+    central pull :math:`g` (``center_pull``), the groups :math:`b^l_u`, the
+    group gravity :math:`g_l f^l_r` (``group_grav`` and ``group_grav_fac``) and
     the group repulsion :math:`r_l` (``group_rep``), with the exponent
     :math:`q` given by ``group_rep_exp``. The repulsive terms are computed
     with the Barnes-Hut approximation.
@@ -1174,7 +1175,7 @@ class HFDState(PickleState):
     """
 
     def __init__(self, g, pos=None, vweight=None, eweight=None, rweight=None,
-                 K=1, rep_exp=1, att_exp=2, grav=1e-4, theta=.6,
+                 K=1, rep_exp=1, att_exp=2, center_pull=1e-4, theta=.6,
                  exact_thres=500, b=None, group_grav=.1, group_grav_fac=None,
                  group_grav_offset=.01, group_rep=0, group_rep_exp=1,
                  group_conf_R=None, group_conf_exp=6, group_spring=1,
@@ -1199,7 +1200,7 @@ class HFDState(PickleState):
         self.K = K
         self.rep_exp = rep_exp
         self.att_exp = att_exp
-        self.grav = grav
+        self.center_pull = center_pull
         self.vweight = _hfd_prop(vweight, g, val=1)
         self.rweight = _hfd_prop(rweight, g, val=1)
         self.eweight = _hfd_prop(eweight, g, key="e", val=1)
@@ -1643,7 +1644,8 @@ class HFDState(PickleState):
 @_parallel
 @_copy_params_doc(HFDState)
 def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
-               rep_exp=1, att_exp=2, grav=1e-4, theta=.6, exact_thres=500,
+               rep_exp=1, att_exp=2, center_pull=1e-4, theta=.6,
+               exact_thres=500,
                b=None, group_grav=.1, group_grav_fac=None,
                group_grav_offset=.01, group_rep=0, group_rep_exp=1,
                group_conf_R=None, group_conf_exp=6, group_spring=1,
@@ -1653,7 +1655,8 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
                opair_dist=None, pmu=10, rank=None, rmin_dist=0, rmu=1,
                rcm_dist=None, rcmu=1000, rcm_xdist=None, rcmxu=1000,
                hierarchical=True, grouped=None,
-               spring_G=20, spring_decay=2, grav_c=1, grav_L="mf",
+               spring_G=20, spring_decay=2, center_pull_c=1,
+               center_pull_L="mf",
                method="gradient", max_iter=None, epsilon=None, patience=3,
                sweep_args={}, adaptive_cooling=True, cooling_step=.9,
                momentum_restart=True, backtrack=True, init_multipliers=True,
@@ -1685,15 +1688,14 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
         Factor by which the strength of the springs decreases at every level
         above. Smaller values make the groups of the upper levels more
         compact and separated.
-    grav_c : float (optional, default: ``1``)
-        If not ``None`` and ``grouped == True``, the gravity is set relative
-        to the size of the layout, so that a vertex without edges stays
-        within this multiple of the radius of the layout, and ``grav`` is
-        ignored. Smaller values give more compact
-        layouts.
-    grav_L : ``"mf"`` or ``"measured"`` (optional, default: ``"mf"``)
-        Radius of the layout used for ``grav_c``: estimated in the mean field,
-        or measured from the layout of the level above.
+    center_pull_c : float (optional, default: ``1``)
+        If not ``None`` and ``grouped == True``, the central pull is set
+        relative to the size of the layout, so that a vertex without edges
+        stays within this multiple of the radius of the layout, and
+        ``center_pull`` is ignored. Smaller values give more compact layouts.
+    center_pull_L : ``"mf"`` or ``"measured"`` (optional, default: ``"mf"``)
+        Radius of the layout used for ``center_pull_c``: estimated in the mean
+        field, or measured from the layout of the level above.
     method : ``"gradient"`` or ``"lbfgs"`` (optional, default: ``"gradient"``)
         Minimization method, :meth:`~HFDState.gradient_sweep` or
         :meth:`~HFDState.lbfgs_sweep`.
@@ -1783,9 +1785,10 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
     follow from the pull of their external edges (``spring_G`` and
     ``spring_decay``). In this case, ``K`` can be a list with one value for
     the vertices followed by one for the groups of every level, which sets
-    how strongly they are pushed apart (the gravity of every level, and the
-    radii of the groups whose members are its vertices, follow its value). The gravity of every level is set by
-    ``grav_c``. The group gravity (``group_grav``) is not used in this case.
+    how strongly they are pushed apart (the central pull of every level, and
+    the radii of the groups whose members are its vertices, follow its
+    value). The central pull of every level is set by ``center_pull_c``. The
+    group gravity (``group_grav``) is not used in this case.
 
     If no partition is given, one with at most :math:`\lceil\log_2 V\rceil`
     levels is generated by halving the number of groups at every level, with
@@ -1829,7 +1832,7 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
     compared directly:
 
     >>> for c in [.25, 5]:
-    ...     pos = gt.hfd_layout(g, b=bs, pos=pos0, grav_c=c)
+    ...     pos = gt.hfd_layout(g, b=bs, pos=pos0, center_pull_c=c)
     ...     draw(pos, f"graph-draw-hfd-layout-{c}.pdf")
     <...>
     >>> for G in [2, 200]:
@@ -1884,7 +1887,7 @@ def hfd_layout(g, pos=None, vweight=None, eweight=None, rweight=None, K=1,
     stochastic block model, and colored by its groups at the sixth level.
     The middle column has the default parameters, and the others a smaller
     (*left*) and larger (*right*) value of one parameter, from top to
-    bottom: ``grav_c`` (:math:`0.25` and :math:`5`), which compresses or
+    bottom: ``center_pull_c`` (:math:`0.25` and :math:`5`), which compresses or
     loosens the layout; ``spring_G`` (:math:`2` and :math:`200`), which
     makes the groups diffuse or compact; ``spring_decay`` (:math:`1.2` and
     :math:`4`), which makes the upper levels compact and separated, or
@@ -2287,8 +2290,9 @@ def _hfd_hierarchical(args):
                        **dict(dargs, **draw_out(l, "after")))
         return ret
 
-    if args["grav_L"] not in ("mf", "measured"):
-        raise ValueError("invalid grav_L: " + str(args["grav_L"]))
+    if args["center_pull_L"] not in ("mf", "measured"):
+        raise ValueError("invalid center_pull_L: " +
+                         str(args["center_pull_L"]))
 
     # harmonic springs that keep the groups together, with the mean-field
     # radii as reference, and strengths decaying upwards
@@ -2329,20 +2333,20 @@ def _hfd_hierarchical(args):
                 rw.fa /= rw.fa[k].mean()
         return rw
 
-    # gravity relative to the size of the layout; since the gravity of a
-    # vertex is proportional to its mass in the repulsion, the latter is
+    # central pull relative to the size of the layout; since the central pull
+    # of a vertex is proportional to its mass in the repulsion, the latter is
     # balanced at the same distance for every vertex, with the total mass
     # and the repulsion strength K_l of the level
     p = args["rep_exp"]
 
-    def grav_of(L_lay, l):
-        if not grouped or args["grav_c"] is None or not (L_lay > 0):
+    def center_pull_of(L_lay, l):
+        if not grouped or args["center_pull_c"] is None or not (L_lay > 0):
             return {}
         c = levels[l]
         m_tot = (c.w.fa * rweight_of(l).fa).sum()
-        gr = K_l[l] * m_tot / (args["grav_c"] * L_lay) ** (p + 2)
-        log(f"gravity {gr:.3g} for the radius {L_lay:.3g}")
-        return dict(grav=gr)
+        gr = K_l[l] * m_tot / (args["center_pull_c"] * L_lay) ** (p + 2)
+        log(f"central pull {gr:.3g} for the radius {L_lay:.3g}")
+        return dict(center_pull=gr)
 
     def layout_radius(c, pos_c):
         # only the (non-empty) groups in the view
@@ -2354,8 +2358,8 @@ def _hfd_hierarchical(args):
                           wc.sum())
 
     # the radius of the whole layout in the mean field (L_top) is used for
-    # the initial positions of the top level, and its gravity
-    L_grav = L_top
+    # the initial positions of the top level, and its central pull
+    L_pull = L_top
 
     # if a layout is given, the initial positions of every level are the
     # centers of mass of its groups (and those of the vertices, at the
@@ -2427,7 +2431,7 @@ def _hfd_hierarchical(args):
                   # as tightly as the lowest level
                   epsilon=1e-4, patience=1,
                   rweight=rweight_of(l), return_state=True,
-                  **grav_of(L_grav, l))
+                  **center_pull_of(L_pull, l))
         # the state of the level above, whose vertices are the groups of
         # this level, is used for the attraction and repulsion of their
         # centers of mass (and those of the levels above it)
@@ -2440,8 +2444,9 @@ def _hfd_hierarchical(args):
             # levels below
             kw["max_iter"] = 0
         pos_c, state = yield from layout(l, **kw)
-        if args["grav_c"] is not None and args["grav_L"] == "measured":
-            L_grav = layout_radius(c, pos_c)
+        if (args["center_pull_c"] is not None and
+                args["center_pull_L"] == "measured"):
+            L_pull = layout_radius(c, pos_c)
 
         if pos0 is not None:
             pos = initial_pos(l - 1)
@@ -2456,7 +2461,8 @@ def _hfd_hierarchical(args):
                                                     _get_rng())
 
     # the lowest level, with the original partition (if any)
-    kw = dict(args, pos=pos, K=K, hierarchical=False, **grav_of(L_grav, 0))
+    kw = dict(args, pos=pos, K=K, hierarchical=False,
+              **center_pull_of(L_pull, 0))
     kw["upper"] = state if grouped else None
     if L > 0:
         kw.update(spring_args(0))
