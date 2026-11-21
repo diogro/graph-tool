@@ -528,17 +528,21 @@ public:
     }
 
     // Compact adjacency: the neighbours of v are _adj[_adj_begin[v]] to
-    // _adj[_adj_end[v] - 1], with the products of the edge and vertex
-    // weights, so that the attraction needs a single random access (the
-    // position of the neighbour) per edge. The edges with a zero product
-    // (e.g. with a vertex of zero weight) exert no force, and are left out.
+    // _adj[_adj_end[v] - 1], with the edge weights, so that the attraction
+    // needs a single random access (the position of the neighbour) per edge.
+    // The edges of zero weight, or with an endpoint of zero weight (which is
+    // not moved), exert no force, and are left out.
     std::vector<size_t> _adj_begin, _adj_end;
     std::vector<std::tuple<size_t, double>> _adj;
 
-    // weight of the edge e of v
+    // weight of the edge e of v (the vertex weights do not enter the
+    // attraction, except that the edges of the vertices of zero weight exert
+    // no force)
     double adj_weight(const auto& e, size_t v)
     {
-        return _eweight[e] * _vweight[target(e, _g)] * _vweight[v];
+        if (!(_vweight[target(e, _g)] > 0) || !(_vweight[v] > 0))
+            return 0;
+        return _eweight[e];
     }
 
     void init_adj()
@@ -752,11 +756,12 @@ public:
 
     // The vertices joined by an edge attract each other with the energy
     //
-    //     sum_e A_e w_u w_v k_a(d_e),   k_a(d) = (2 / a) d^a,
+    //     sum_e A_e k_a(d_e),   k_a(d) = (2 / a) d^a,
     //
     // (or k_0(d) = log d^2), where the sum is over the edges e = (u, v),
-    // d_e = |x_u - x_v|, A_e = _eweight[e], w_u = _vweight[u] and
-    // a = _att_exp.
+    // d_e = |x_u - x_v|, A_e = _eweight[e] and a = _att_exp. The vertex
+    // weights do not enter the attraction (only the repulsion), except that
+    // the edges of the vertices of zero weight are left out.
 
     // Kernel of the attraction for the squared length d2, whose force is
     // 2 d^(a-1) for every a; att_kernel_grad() gives the factor g such that
@@ -2724,13 +2729,13 @@ public:
     // If an upper state is set (see set_upper()), its vertices are the groups
     // at the lowest level of the partition (its vertex r is the group with
     // label r), with their total weights W_r, and its edges and their weights
-    // are those of the condensed graph (so that m_rs W_r W_s is the sum of
-    // m_uv w_u w_v over the edges between the groups). The attraction and
+    // are those of the condensed graph (so that m_rs is the sum of m_uv over
+    // the edges between the groups). The attraction and
     // repulsion of its vertices (with its own K and masses M_r, see
     // rep_mass()), placed at the centers of mass X_r of the groups, add the
     // energy
     //
-    //     sum_{(r,s)} m_rs W_r W_s k_a(D_rs)
+    //     sum_{(r,s)} m_rs k_a(D_rs)
     //         + K' sum_{r != s} M_r M_s phi_p(D_rs),
     //
     // with D_rs = |X_r - X_s|, and those of the levels above it, recursively,

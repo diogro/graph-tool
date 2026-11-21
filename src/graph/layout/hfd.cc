@@ -34,7 +34,8 @@ using namespace graph_tool;
 //   w:    total weight of the original vertices
 //   R:    radius of the group in the mean field (see hfd_mf_radii())
 //   gmin: mean gmin_dist of the original vertices, for every partition level
-//   e:    total attraction weight (ew * w_u * w_v) of the original edges
+//   e:    total weight of the original edges (those with an endpoint of zero
+//         weight are left out, since they exert no force)
 //
 // A level is passed from Python as the tuple (w, R, gmin, e). The
 // minimum distance between the vertices (nmin_dist) applies only to the
@@ -225,8 +226,8 @@ REGISTER_MOD
                           (g,
                            [&](const auto& e)
                            {
-                               f.e[e] = ew[e] * f.w[source(e, g)] *
-                                   f.w[target(e, g)];
+                               f.e[e] = (f.w[source(e, g)] > 0 &&
+                                         f.w[target(e, g)] > 0) ? ew[e] : 0;
                            });
                   })();
          });
@@ -304,10 +305,9 @@ REGISTER_MOD
          });
 
     // Computes the parameters of hfd_layout() for the given level, with the
-    // group constraints starting at partition level l: the edge weights, which
-    // are multiplied by the weights of both endpoints in the energy, and the
-    // minimum distances to the vertices of other groups (gmin_dist), which
-    // are increased by twice the radius of the groups. Returns the mean
+    // group constraints starting at partition level l: the edge weights, and
+    // the minimum distances to the vertices of other groups (gmin_dist),
+    // which are increased by twice the radius of the groups. Returns the mean
     // radius of the groups, weighted by their weights.
     def("hfd_level_params",
         +[](GraphInterface& gi, object of, object oeweight,
@@ -344,11 +344,7 @@ REGISTER_MOD
                           (g,
                            [&](const auto& e)
                            {
-                               // the edges of vertices of zero weight
-                               // exert no forces
-                               double ww = f.w[source(e, g)] *
-                                   f.w[target(e, g)];
-                               eweight[e] = (ww > 0) ? f.e[e] / ww : 0;
+                               eweight[e] = f.e[e];
                            });
                   })();
              return (w_tot > 0) ? wR / w_tot : 0.;
@@ -375,7 +371,7 @@ REGISTER_MOD
     // packing radius R_p = (K / 2) sqrt(w_r). Here w_r is the sum of the
     // weights of the members, m_r and q_r the sums of their masses in the
     // repulsion (vweight * rweight) and of their squares, e^in_r and e^ex_r
-    // the total attraction weights (ew * w_u * w_v) of the internal and
+    // the total weights ew of the internal and
     // external edges, c_p = <d^-p> (excluding the distances below the
     // typical spacing of the members if it diverges) and mu_a = <d^a>. The
     // radius is R_p for the groups without edges or with a single member
@@ -458,7 +454,11 @@ REGISTER_MOD
                               // self-loops exert no force
                               if (u == v)
                                   continue;
-                              double m = eweight[e] * vweight[u] * vweight[v];
+                              // the edges of vertices of zero weight
+                              // exert no force
+                              if (!(vweight[u] > 0) || !(vweight[v] > 0))
+                                  continue;
+                              double m = eweight[e];
                               auto r = lab[u], s = lab[v];
                               if (r == s)
                               {

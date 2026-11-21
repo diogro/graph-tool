@@ -917,10 +917,14 @@ class HFDState(PickleState):
         should be distinct, since the repulsion vanishes between coinciding
         vertices.
     vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
-        Vertex weights. Vertices with zero weight are ignored, and keep their
-        positions. If not provided, all weights are ``1``.
+        Vertex weights, which multiply the repulsion and the gravity, but not
+        the attraction. Vertices with zero weight are ignored, and keep their
+        positions (their edges exert no force). If not provided, all weights
+        are ``1``.
     eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
-        Edge weights. If not provided, all weights are ``1``.
+        Edge weights, i.e. the strengths of the attraction along the edges
+        (which are not multiplied by the vertex weights). If not provided,
+        all weights are ``1``.
     rweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Factor of the vertex weights in the repulsion and gravity (e.g. the
         relative sizes of the groups represented by the vertices of a coarse
@@ -1087,7 +1091,7 @@ class HFDState(PickleState):
 
     .. math::
 
-        U(\boldsymbol x) = \sum_{(u,v)\in E}w_{uv}w_uw_v A_a(d_{uv})
+        U(\boldsymbol x) = \sum_{(u,v)\in E}w_{uv}A_a(d_{uv})
                          + K\sum_{u\neq v}m_um_v R_p(d_{uv})
                          + g\sum_u m_u|\boldsymbol x_u - \boldsymbol x_{\text{cm}}|^2
                          + K\sum_l g_l\sum_{u\neq v}\delta_{b^l_u,b^l_v}f^l_{b^l_u}m_um_v\log(d_{uv} + c)
